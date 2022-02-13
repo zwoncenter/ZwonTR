@@ -1,0 +1,136 @@
+@import url("https://cdn.jsdelivr.net/font-iropke-batang/1.2/font-iropke-batang.css");
+
+* {
+  font-family: "Iropke Batang", serif !important;
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  input {
+    transform: rotate(0.04deg);
+  }
+}
+
+div {
+  box-sizing: border-box;
+  p {
+    margin-bottom: 0px;
+  }
+}
+.App {
+  text-align: center;
+  background-color: #e8e3ea;
+  padding: 20px;
+  padding-bottom: 600px;
+}
+
+.loginBox {
+  max-width: 90%;
+  width: 700px;
+  height: 100vh;
+  margin: auto;
+}
+
+.stuCard {
+  width: 500px;
+  max-width: 90%;
+  margin: auto;
+  margin-top: 40px;
+}
+
+.trCol {
+  margin-top: 10px;
+}
+
+.trCard {
+  padding: 10px;
+  border-radius: 5px;
+  background-color: #eee;
+  // box-shadow: 4px 3px 3px -2px rgba(50, 50, 50, 0.75);
+}
+.w-90 {
+  width: 90%;
+}
+
+.inputTime {
+  width: 7rem;
+  border-radius: 5px;
+  border: solid 1px gray;
+}
+
+.inputText {
+  width: 95%;
+  min-width: 2rem;
+}
+
+.h-30 {
+  margin: auto;
+}
+
+.trCard Form {
+  border: dotted 0px black;
+  border-radius: 5px;
+}
+
+.m-0 {
+  margin: 0px;
+}
+
+.btn-delete {
+  height: 28px;
+  width: 30px;
+  background-color: #ee9c61;
+  color: white;
+  padding: 0px;
+  vertical-align: middle;
+}
+
+.m-auto {
+  margin: auto;
+}
+
+td {
+  padding: 10px;
+  vertical-align: middle;
+
+  p {
+    margin: 0px;
+  }
+}
+
+.btn-good {
+  background-color: #6fa1d5;
+  color: white;
+}
+
+.btn-bad {
+  background-color: #ee9c61;
+  border-color: #ee9c61;
+}
+
+.textArea {
+  width: 95%;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.mw-5rem {
+  max-width: 3rem;
+}
+
+Table {
+  table-layout: fixed;
+}
+
+.fs-13px {
+  font-size: 13px;
+}
+.th-delete {
+  max-width: 60px;
+}
