@@ -2,6 +2,7 @@ const express = require("express");
 const path = require("path");
 const app = express();
 
+const ObjectId = require("mongodb").ObjectId;
 //MongoDB 연결, 설치필요 (npm install mongodb)
 const MongoClient = require("mongodb").MongoClient;
 
@@ -56,6 +57,21 @@ app.get("/api/studentList", function (req, res) {
     });
 });
 
+// collection 중 StudentDB에 새로운 stuDB 추가
+app.post("/api/studentAdd", function (req, res) {
+  const newDB = req.body;
+  db.collection("StudentDB").findOne({ 이름: newDB }, function (err, result) {
+    if (err) {
+      return console.log("/api/studentAdd findOne Error : ", err);
+    } else if (result === null) {
+      db.collection("StudentDB").insertOne(newDB, (err2, result2) => {
+        console.log("신규 DB 저장 완료");
+        return res.send(true);
+      });
+    }
+  });
+});
+
 // collection 중 StudentDB의 이름이 param 중 name인 Document 요청
 app.get("/api/stuDB/:name", function (req, res) {
   const paramName = decodeURIComponent(req.params.name);
@@ -69,23 +85,82 @@ app.get("/api/stuDB/:name", function (req, res) {
   });
 });
 
-// {req.param.name}TR라는 Collection에서 날짜가 {req.param.date}인 Document를 찾고
-// 존재하면 보내주고, 없다면 새로운 문서를 post한다.
-
-app.get("/api/:name/:date", function (req, res) {
+app.get("/api/TR/:name", function (req, res) {
   const paramName = decodeURIComponent(req.params.name);
-  const paramDate = req.params.date;
-  console.log("요청된 이름: ", paramName, "요청된 날짜: ", paramDate);
-  db.collection(`${paramName}TR`).findOne({ 날짜: paramDate }, function (err, result) {
+  console.log(`${paramName}의 TR 리스트 조회 시도`);
+  db.collection("TR")
+    .find({ 이름: paramName })
+    .toArray(function (err, result) {
+      if (err) {
+        return console.log("/api/TR/:name - find Error : ", err);
+      }
+      console.log(`${paramName}의 TR 리스트 조회 결과수 : `, result.length);
+      res.json(result);
+    });
+});
+
+app.post("/api/TR/write", function (req, res) {
+  const newTR = req.body;
+  console.log("일간하루 저장 시도 : ", newTR.이름, newTR.날짜);
+  db.collection(`TR`).findOne({ 이름: newTR.이름, 날짜: newTR.날짜 }, function (err, result) {
     if (err) {
-      return console.log(`/api/TR/${paramName}/${paramDate} - findOne Error : `, err);
-    } else if (result.length === 0) {
+      return console.log(`/api/TR/write - findOne Error : `, err);
+    } else if (result === null) {
+      db.collection("TR").insertOne(newTR, function (err2, result2) {
+        if (err2) {
+          return console.log("/api/TR/write - insertOne Error : ", err2);
+        }
+        console.log("터미널에 표시 : 일간하루 저장 완료");
+        return res.send(true);
+      });
+    } else {
+      return res.send(false);
     }
-    console.log("/api findOne 요청 결과 : ", result);
-    res.redirect("/");
   });
 });
 
-app.get("*", function (req, res) {
-  res.sendFile(path.join(__dirname, "../zwontr/build/index.html"));
+app.put("/api/TR/edit", function (req, res) {
+  const newTR = req.body;
+  console.log("일간하루 수정 시도 : ", newTR.이름, newTR.날짜);
+  db.collection(`TR`).findOne({ 이름: newTR.이름, 날짜: newTR.날짜 }, function (err, result) {
+    if (err) {
+      return console.log(`/api/TR/edit - findOne Error : `, err);
+    } else if (result !== null) {
+      db.collection("TR").updateOne({ 이름: newTR.이름, 날짜: newTR.날짜 }, { $set: newTR }, function (err2, result2) {
+        if (err2) {
+          return console.log("/api/TR/write - updateOne Error : ", err2);
+        }
+        console.log("터미널에 표시 : 일간하루 수정 완료");
+        return res.send(true);
+      });
+    } else {
+      return res.send(false);
+    }
+  });
 });
+
+app.put("/api/StudentEdit", function (req, res) {
+  const newstuDB = req.body;
+  console.log("stuDB 수정 시도 : ", newstuDB);
+  db.collection(`StudentDB`).findOne({ _id: ObjectId(newstuDB._id) }, function (err, result) {
+    if (err) {
+      return console.log(`/api/StudentEdit - findOne Error : `, err);
+    } else if (result !== null) {
+      const findID = ObjectId(newstuDB._id);
+      delete newstuDB._id;
+      db.collection("StudentDB").updateOne({ _id: findID }, { $set: newstuDB }, function (err2, result2) {
+        if (err2) {
+          return console.log("/api/StudentEdit - updateOne Error : ", err2);
+        }
+        console.log("터미널에 표시 : 학생DB 수정 완료");
+        return res.send(true);
+      });
+    } else {
+      return res.send(false);
+    }
+  });
+});
+
+// app.get("*", function (req, res) {
+//   res.sendFile(path.join(__dirname, "../zwontr/build/index.html"));
+// });

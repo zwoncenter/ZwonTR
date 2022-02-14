@@ -3,63 +3,12 @@ import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-boo
 import { Link, Route, Switch } from "react-router-dom";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
-import 강진영 from "../강진영.js";
-import 강진영TR from "../강진영TR.js";
 import axios from "axios";
 
-function TRpage(props) {
-  let [학생정보, 학생정보변경] = useState(강진영);
-  let [TR, TR변경] = useState(강진영TR);
-
-  // 학생DB에 있는 생활학습목표 및 진행중교재 추가
-  useEffect(() => {
-    let newTR = JSON.parse(JSON.stringify(TR));
-
-    newTR.생활.목표취침 = 학생정보.생활학습목표.취침;
-    newTR.생활.목표기상 = 학생정보.생활학습목표.기상;
-    newTR.생활.목표등원 = 학생정보.생활학습목표.등원;
-    newTR.생활.목표귀가 = 학생정보.생활학습목표.귀가;
-    newTR.생활.목표학습 = 학생정보.생활학습목표.학습;
-
-    newTR.생활.실제취침 = 학생정보.생활학습목표.취침;
-    newTR.생활.실제기상 = 학생정보.생활학습목표.기상;
-    newTR.생활.실제등원 = 학생정보.생활학습목표.등원;
-    newTR.생활.실제귀가 = 학생정보.생활학습목표.귀가;
-    newTR.생활.실제학습 = 0;
-    newTR.생활.프로그램시간 = 0;
-    newTR.생활.상담시간 = 0;
-
-    let tmp = [];
-    학생정보.진행중교재.map(function (a, i) {
-      tmp.push({
-        과목: a.과목,
-        교재: a.교재,
-        총교재량: a.총교재량,
-        최근진도: a.최근진도,
-        학습시간: "",
-      });
-    });
-    newTR.학습 = tmp;
-
-    tmp = [];
-    tmp.push({
-      프로그램분류: "",
-      매니저: "",
-      소요시간: "",
-      상세내용: "",
-    });
-    newTR.프로그램 = tmp;
-
-    tmp = [];
-    tmp.push({
-      매니저: "",
-      소요시간: "",
-      상세내용: "",
-    });
-    newTR.상담 = tmp;
-
-    TR변경(newTR);
-  }, []);
+function TRedit(props) {
+  let history = useHistory();
+  const [학생정보, 학생정보변경] = useState(props.stuDB);
+  const [TR, TR변경] = useState(props.existTR);
 
   function 시간계산(목표, 실제, 종류) {
     let [목표시간, 목표분] = 목표.split(":");
@@ -93,7 +42,16 @@ function TRpage(props) {
               </div>
               <div className="col-4">
                 <p className="fw-bold">날짜</p>
-                <input type="date" defaultValue={new Date().toISOString().split("T")[0]} className="w-100" />
+                <input
+                  type="date"
+                  defaultValue={TR.날짜}
+                  className="w-100"
+                  onChange={(e) => {
+                    var newTR = JSON.parse(JSON.stringify(TR));
+                    newTR.날짜 = e.target.value;
+                    TR변경(newTR);
+                  }}
+                />
               </div>
               <div className="col-2 pe-0">
                 <button
@@ -300,12 +258,12 @@ function TRpage(props) {
                           </td>
                           <td>
                             <input
-                              type="text"
-                              placeholder={a.최근진도}
+                              type="number"
+                              defaultValue={a.최근진도}
                               className="inputText"
                               onChange={(e) => {
                                 var newTR = JSON.parse(JSON.stringify(TR));
-                                newTR.학습[i].최근진도 = e.target.value;
+                                newTR.학습[i].최근진도 = parseInt(e.target.value);
                                 TR변경(newTR);
                               }}
                             />
@@ -313,7 +271,7 @@ function TRpage(props) {
                           <td>
                             <input
                               type="text"
-                              placeholder={a.학습시간}
+                              defaultValue={a.학습시간}
                               className="inputText"
                               onChange={(e) => {
                                 var newTR = JSON.parse(JSON.stringify(TR));
@@ -326,7 +284,7 @@ function TRpage(props) {
                                     실제학습분 += parseInt(a.학습시간.split(":")[1]);
                                   }
                                 });
-                                newTR.생활.실제학습 = (실제학습시간 + 실제학습분 / 60).toFixed(1);
+                                newTR.생활.실제학습 = parseFloat((실제학습시간 + 실제학습분 / 60).toFixed(1));
                                 TR변경(newTR);
                               }}
                             />
@@ -401,7 +359,7 @@ function TRpage(props) {
                                 TR변경(newTR);
                               }}
                             >
-                              <option>선택</option>
+                              <option>{a.프로그램분류 ? a.프로그램분류 : "선택"}</option>
                               {학생정보.프로그램분류.map(function (p, j) {
                                 return (
                                   <option value={p} key={j}>
@@ -420,7 +378,7 @@ function TRpage(props) {
                                 TR변경(newTR);
                               }}
                             >
-                              <option>선택</option>
+                              <option>{a.매니저 ? a.매니저 : "선택"}</option>
                               <option value="유장훈">유장훈</option>
                               <option value="오지영">오지영</option>
                             </Form.Select>
@@ -428,7 +386,8 @@ function TRpage(props) {
                           <td>
                             <input
                               type="text"
-                              placeholder="0:00"
+                              placeholder="ex) 0:50"
+                              defaultValue={a.소요시간}
                               className="inputText"
                               onChange={(e) => {
                                 var newTR = JSON.parse(JSON.stringify(TR));
@@ -441,7 +400,7 @@ function TRpage(props) {
                                     실제분 += parseInt(c.소요시간.split(":")[1]);
                                   }
                                 });
-                                newTR.생활.프로그램시간 = (실제시간 + 실제분 / 60).toFixed(1);
+                                newTR.생활.프로그램시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
                                 TR변경(newTR);
                               }}
                             />
@@ -452,7 +411,8 @@ function TRpage(props) {
                               name=""
                               id=""
                               rows="3"
-                              placeholder="프로그램 상세내용/특이사항 입력"
+                              placeholder="프로그램 진행 내용"
+                              defaultValue={a.상세내용}
                               onChange={(e) => {
                                 var newTR = JSON.parse(JSON.stringify(TR));
                                 newTR.프로그램[i].상세내용 = e.target.value;
@@ -543,7 +503,7 @@ function TRpage(props) {
                 {TR.학습태도.map((prob, i) => (
                   <div key={`study-${prob.분류}`} className="mb-2">
                     <Form.Check
-                      defaultValue={prob.문제여부}
+                      defaultChecked={prob.문제여부}
                       className="border-bottom"
                       type="checkbox"
                       id={`study-${prob.분류}`}
@@ -562,7 +522,7 @@ function TRpage(props) {
             {TR.문제행동.map((prob, i) => (
               <div key={`study-${prob.분류}`} className="mb-2">
                 <Form.Check
-                  defaultValue={prob.문제여부}
+                  defaultChecked={prob.문제여부}
                   className="border-bottom"
                   type="checkbox"
                   id={`study-${prob.분류}`}
@@ -602,7 +562,7 @@ function TRpage(props) {
                             TR변경(newTR);
                           }}
                         >
-                          <option>선택</option>
+                          <option>{a.매니저 ? a.매니저 : "선택"}</option>
                           <option value="유장훈">유장훈</option>
                           <option value="오지영">오지영</option>
                         </Form.Select>
@@ -610,7 +570,8 @@ function TRpage(props) {
                       <td>
                         <input
                           type="text"
-                          placeholder="0:00"
+                          placeholder="ex) 0:30"
+                          defaultValue={a.소요시간}
                           className="inputText"
                           onChange={(e) => {
                             var newTR = JSON.parse(JSON.stringify(TR));
@@ -623,7 +584,7 @@ function TRpage(props) {
                                 실제분 += parseInt(c.소요시간.split(":")[1]);
                               }
                             });
-                            newTR.생활.상담시간 = (실제시간 + 실제분 / 60).toFixed(1);
+                            newTR.생활.상담시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
                             TR변경(newTR);
                           }}
                         />
@@ -635,6 +596,7 @@ function TRpage(props) {
                           id=""
                           rows="3"
                           placeholder="상담 상세내용 입력"
+                          defaultValue={a.상세내용}
                           onChange={(e) => {
                             var newTR = JSON.parse(JSON.stringify(TR));
                             newTR.상담[i].상세내용 = e.target.value;
@@ -685,10 +647,37 @@ function TRpage(props) {
               </tbody>
             </Table>
           </div>
+          <Button
+            variant="danger"
+            className="mt-3 fs-4"
+            onClick={() => {
+              const newTR = JSON.parse(JSON.stringify(TR));
+              delete newTR._id;
+
+              TR변경(newTR);
+              console.log(TR);
+              axios
+                .put("/api/TR/edit", TR)
+                .then(function (result) {
+                  console.log(result);
+                  if (result.data === true) {
+                    console.log("수정 성공", result);
+                    history.push("/studentList");
+                  } else {
+                    window.alert("중복되는 날짜의 일간하루가 존재합니다.");
+                  }
+                })
+                .catch(function (err) {
+                  console.log("수정 실패 : ", err);
+                });
+            }}
+          >
+            일간하루 수정
+          </Button>
         </div>
       </div>
     </div>
   );
 }
 
-export default TRpage;
+export default TRedit;

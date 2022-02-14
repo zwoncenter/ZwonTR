@@ -6,26 +6,12 @@ import axios from "axios";
 
 function StudentAdd(props) {
   const history = useHistory();
-  const writeform = {
-    이름: "",
-    나이: 0,
-    생활학습목표: {
-      취침: "00:00",
-      기상: "08:00",
-      등원: "10:00",
-      귀가: "19:00",
-      학습: 0,
-    },
-    진행중교재: [],
-    프로그램분류: ["자기인식", "진로탐색", "헬스", "외부활동"],
-  };
-
-  const [stuDB, setstuDB] = useState(writeform);
+  const [stuDB, setstuDB] = useState(props.existstuDB);
   const [inputProgram, setinputProgram] = useState("");
 
   return (
     <div className="">
-      <h1 className="fw-bold">학생 DB 신규 작성 </h1>
+      <h1 className="fw-bold">학생 DB 조회/변경 </h1>
       <Button
         type="button"
         onClick={() => {
@@ -35,7 +21,7 @@ function StudentAdd(props) {
         stuDB 체크
       </Button>
       <Form className="stuDB-form">
-        <h3>생활정보 </h3>
+        <h3> 생활정보 </h3>
         <Form.Group as={Row} className="mb-3 mt-3 p-1">
           <Form.Label column sm="2">
             이름
@@ -43,7 +29,7 @@ function StudentAdd(props) {
           <Col sm="10">
             <Form.Control
               type="text"
-              placeholder="OOO"
+              defaultValue={stuDB ? stuDB.이름 : null}
               onChange={(e) => {
                 const newstuDB = JSON.parse(JSON.stringify(stuDB));
                 newstuDB.이름 = e.target.value;
@@ -59,7 +45,7 @@ function StudentAdd(props) {
           <Col sm="10">
             <Form.Control
               type="number"
-              placeholder="17"
+              defaultValue={stuDB ? stuDB.나이 : null}
               onChange={(e) => {
                 const newstuDB = JSON.parse(JSON.stringify(stuDB));
                 newstuDB.나이 = parseInt(e.target.value);
@@ -75,7 +61,7 @@ function StudentAdd(props) {
           <Col sm="10">
             <Form.Control
               type="time"
-              defaultValue="00:00"
+              defaultValue={stuDB ? stuDB.생활학습목표.취침 : null}
               onChange={(e) => {
                 const newstuDB = JSON.parse(JSON.stringify(stuDB));
                 newstuDB.생활학습목표.취침 = e.target.value;
@@ -92,7 +78,7 @@ function StudentAdd(props) {
           <Col sm="10">
             <Form.Control
               type="time"
-              defaultValue="08:00"
+              defaultValue={stuDB ? stuDB.생활학습목표.기상 : null}
               onChange={(e) => {
                 const newstuDB = JSON.parse(JSON.stringify(stuDB));
                 newstuDB.생활학습목표.기상 = e.target.value;
@@ -108,7 +94,7 @@ function StudentAdd(props) {
           <Col sm="10">
             <Form.Control
               type="time"
-              defaultValue="12:00"
+              defaultValue={stuDB ? stuDB.생활학습목표.등원 : null}
               onChange={(e) => {
                 const newstuDB = JSON.parse(JSON.stringify(stuDB));
                 newstuDB.생활학습목표.등원 = e.target.value;
@@ -125,7 +111,7 @@ function StudentAdd(props) {
           <Col sm="10">
             <Form.Control
               type="time"
-              defaultValue="19:00"
+              defaultValue={stuDB ? stuDB.생활학습목표.귀가 : null}
               onChange={(e) => {
                 const newstuDB = JSON.parse(JSON.stringify(stuDB));
                 newstuDB.생활학습목표.귀가 = e.target.value;
@@ -142,7 +128,7 @@ function StudentAdd(props) {
           <Col sm="10">
             <Form.Control
               type="number"
-              placeholder="ex) 1.5"
+              defaultValue={stuDB ? stuDB.생활학습목표.학습 : null}
               step="0.1"
               onChange={(e) => {
                 const newstuDB = JSON.parse(JSON.stringify(stuDB));
@@ -165,93 +151,98 @@ function StudentAdd(props) {
             </tr>
           </thead>
           <tbody>
-            {stuDB.진행중교재.map(function (a, i) {
-              return (
-                <tr key={i}>
-                  <td>
-                    <Form.Select
-                      size="sm"
-                      onChange={(e) => {
-                        var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                        newstuDB.진행중교재[i].과목 = e.target.value;
-                        setstuDB(newstuDB);
-                      }}
-                    >
-                      <option>선택</option>
-                      <option value="국어">국어</option>
-                      <option value="수학">수학</option>
-                      <option value="영어">영어</option>
-                      <option value="탐구">탐구</option>
-                    </Form.Select>
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      placeholder="ex)독사, 기탄수학 등"
-                      className="inputText"
-                      onChange={(e) => {
-                        var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                        newstuDB.진행중교재[i].교재 = e.target.value;
-                        setstuDB(newstuDB);
-                      }}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      placeholder="ex)100p, 250문제"
-                      className="inputText"
-                      onChange={(e) => {
-                        var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                        newstuDB.진행중교재[i].총교재량 = e.target.value;
-                        setstuDB(newstuDB);
-                      }}
-                    />
-                  </td>
+            {stuDB
+              ? stuDB.진행중교재.map(function (a, i) {
+                  return (
+                    <tr key={i}>
+                      <td>
+                        <Form.Select
+                          size="sm"
+                          onChange={(e) => {
+                            var newstuDB = JSON.parse(JSON.stringify(stuDB));
+                            newstuDB.진행중교재[i].과목 = e.target.value;
+                            setstuDB(newstuDB);
+                          }}
+                        >
+                          <option>{a.과목}</option>
+                          <option value="국어">국어</option>
+                          <option value="수학">수학</option>
+                          <option value="영어">영어</option>
+                          <option value="탐구">탐구</option>
+                        </Form.Select>
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          defaultValue={a.교재}
+                          className="inputText"
+                          onChange={(e) => {
+                            var newstuDB = JSON.parse(JSON.stringify(stuDB));
+                            newstuDB.진행중교재[i].교재 = e.target.value;
+                            setstuDB(newstuDB);
+                          }}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          placeholder="ex)100p, 250문제"
+                          defaultValue={a.총교재량}
+                          className="inputText"
+                          onChange={(e) => {
+                            var newstuDB = JSON.parse(JSON.stringify(stuDB));
+                            newstuDB.진행중교재[i].총교재량 = e.target.value;
+                            setstuDB(newstuDB);
+                          }}
+                        />
+                      </td>
 
-                  <td>
-                    <input
-                      type="number"
-                      placeholder="ex)100, 250"
-                      className="inputText"
-                      onChange={(e) => {
-                        var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                        newstuDB.진행중교재[i].총교재량숫자 = parseInt(e.target.value);
-                        setstuDB(newstuDB);
-                      }}
-                    />
-                  </td>
+                      <td>
+                        <input
+                          type="number"
+                          placeholder="ex)100, 250"
+                          defaultValue={a.총교재량숫자}
+                          className="inputText"
+                          onChange={(e) => {
+                            var newstuDB = JSON.parse(JSON.stringify(stuDB));
+                            newstuDB.진행중교재[i].총교재량숫자 = parseInt(e.target.value);
+                            setstuDB(newstuDB);
+                          }}
+                        />
+                      </td>
 
-                  <td>
-                    <input
-                      type="number"
-                      placeholder={a.최근진도}
-                      className="inputText"
-                      onChange={(e) => {
-                        var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                        newstuDB.진행중교재[i].최근진도 = parseInt(e.target.value);
-                        setstuDB(newstuDB);
-                      }}
-                    />
-                  </td>
-                  <td>
-                    <button
-                      className="btn btn-delete"
-                      type="button"
-                      onClick={() => {
-                        if (i > -1) {
-                          var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                          newstuDB.진행중교재.splice(i, 1);
-                          setstuDB(newstuDB);
-                        }
-                      }}
-                    >
-                      x
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+                      <td>
+                        <input
+                          type="number"
+                          placeholder={a.최근진도}
+                          defaultValue={a.최근진도}
+                          className="inputText"
+                          onChange={(e) => {
+                            var newstuDB = JSON.parse(JSON.stringify(stuDB));
+                            newstuDB.진행중교재[i].최근진도 = parseInt(e.target.value);
+                            setstuDB(newstuDB);
+                          }}
+                        />
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-delete"
+                          type="button"
+                          onClick={() => {
+                            if (i > -1) {
+                              var newstuDB = JSON.parse(JSON.stringify(stuDB));
+                              newstuDB.진행중교재.splice(i, 1);
+                              setstuDB(newstuDB);
+                            }
+                          }}
+                        >
+                          x
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              : null}
 
             <tr>
               <td colSpan={6}>
@@ -281,13 +272,15 @@ function StudentAdd(props) {
         <div>
           <h3 className="mt-5">프로그램 종류 </h3>
           <h4 className="mt-3">
-            {stuDB.프로그램분류.map(function (a, i) {
-              return (
-                <Badge pill bg="success" className="me-1" key={i}>
-                  {a}
-                </Badge>
-              );
-            })}
+            {stuDB
+              ? stuDB.프로그램분류.map(function (a, i) {
+                  return (
+                    <Badge pill bg="success" className="me-1" key={i}>
+                      {a}
+                    </Badge>
+                  );
+                })
+              : null}
           </h4>
           <InputGroup className="mt-3 mb-3" style={{ maxWidth: "500px", margin: "auto" }}>
             <FormControl
@@ -314,11 +307,11 @@ function StudentAdd(props) {
         <Button
           className="mt-4 fs-4"
           onClick={() => {
-            if (window.confirm(`${stuDB.이름} 학생의 DB를 저장하시겠습니까?`)) {
+            if (window.confirm(`${stuDB.이름} 학생의 DB를 수정하시겠습니까?`)) {
               axios
-                .post("/api/StudentAdd", stuDB)
+                .put("/api/StudentEdit", stuDB)
                 .then(function (response) {
-                  window.alert("저장되었습니다");
+                  window.alert("수정되었습니다");
                 })
                 .catch(function (err) {
                   window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
@@ -330,7 +323,7 @@ function StudentAdd(props) {
           }}
         >
           {" "}
-          신규 DB 등록
+          학생 DB 수정
         </Button>
       </Form>
     </div>

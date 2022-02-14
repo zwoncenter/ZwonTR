@@ -8,18 +8,27 @@ import axios from "axios";
 function StuListpage(props) {
   let history = useHistory();
 
+  // 모달창 관련 state 및 함수
   const [show, setShow] = useState(false);
-  const handleClose = () => setShow(false);
+  const handleClose = () => {
+    setShow(false);
+    TR리스트보임변경(false);
+  };
   const handleShow = () => setShow(true);
 
-  const [이름, 이름변경] = useState("");
-  const [날짜, 날짜변경] = useState(new Date().toISOString().split("T")[0]);
-  const [TR조회, TR조회변경] = useState(false);
+  // const [날짜, 날짜변경] = useState(new Date().toISOString().split("T")[0]);
+  const [TR리스트보임, TR리스트보임변경] = useState(false);
 
-  useEffect(async () => {
-    const result = await axios.get("/api/studentList");
-    console.log("/api/studentList result length :", result.data.length);
-    props.setstudentList(result.data);
+  useEffect(() => {
+    axios
+      .get("/api/studentList")
+      .then(function (result) {
+        console.log("/api/studentList result length :", result.data.length);
+        props.setstudentList(result.data);
+      })
+      .catch(function (err) {
+        console.log("/api/studentList fail :", err);
+      });
   }, []);
 
   return (
@@ -44,8 +53,19 @@ function StuListpage(props) {
                 className="pt-3 pb-3"
                 key={i}
                 onClick={() => {
-                  이름변경(a.이름);
+                  props.선택된index변경(i);
                   handleShow();
+                  axios
+                    .get(`/api/TR/${a.이름}`)
+                    .then(function (result) {
+                      result.data.sort(function (a, b) {
+                        return +(new Date(a.날짜) < new Date(b.날짜)) - 0.5;
+                      });
+                      props.settrList(result.data);
+                    })
+                    .catch(function (err) {
+                      console.log("/api/TR/:name fail : ", err);
+                    });
                 }}
               >
                 <p>{a.이름}</p>
@@ -56,48 +76,54 @@ function StuListpage(props) {
       </Card>
       <Modal show={show} onHide={handleClose}>
         <Modal.Header closeButton>
-          <Modal.Title>{이름}</Modal.Title>
+          <Modal.Title>{props.studentList.length !== 0 ? props.studentList[props.선택된index].이름 : ""}</Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center">
-          <button className="btn btn-primary me-3">학생DB조회/변경</button>
           <button
             className="btn btn-primary me-3"
             onClick={() => {
-              history.push(`/TR/${이름}/${날짜}`);
+              history.push(`/StudentEdit/${props.studentList[props.선택된index].이름}`);
             }}
           >
-            TR작성
+            학생DB조회/변경
           </button>
           <button
             className="btn btn-primary me-3"
             onClick={() => {
-              TR조회변경(!TR조회);
+              TR리스트보임변경(!TR리스트보임);
             }}
           >
-            TR조회/수정
+            TR(일간하루)
           </button>
         </Modal.Body>
-        {TR조회 === true ? (
-          <>
-            <div className="container text-center">
-              <input
-                type="date"
-                onChange={(e) => {
-                  날짜변경(e.target.value);
-                }}
-              />
-            </div>
-            <Modal.Footer>
-              <Button
-                variant="success"
-                onClick={() => {
-                  history.push(`/TR/${이름}/${날짜}`);
-                }}
-              >
-                조회하기
-              </Button>
-            </Modal.Footer>
-          </>
+        {TR리스트보임 === true ? (
+          <div className="text-center">
+            <Button
+              className="btn-secondary"
+              onClick={() => {
+                history.push(`/TR/${props.studentList[props.선택된index].이름}/write`);
+              }}
+            >
+              + 새 TR 작성 +
+            </Button>
+
+            <ListGroup variant="flush">
+              {props.trList.map(function (a, i) {
+                return (
+                  <ListGroup.Item
+                    className="pt-3 pb-3"
+                    key={i}
+                    onClick={() => {
+                      props.선택된TRindex변경(i);
+                      history.push(`TR/${a.이름}/edit/${a.날짜}`);
+                    }}
+                  >
+                    <p>{a.날짜}</p>
+                  </ListGroup.Item>
+                );
+              })}
+            </ListGroup>
+          </div>
         ) : null}
       </Modal>
     </div>
