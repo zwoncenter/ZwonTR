@@ -130,9 +130,10 @@ function StudentAdd(props) {
               type="number"
               defaultValue={stuDB ? stuDB.생활학습목표.학습 : null}
               step="0.1"
+              min="0"
               onChange={(e) => {
                 const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                newstuDB.생활학습목표.학습 = parseFloat(e.target.value);
+                newstuDB.생활학습목표.학습 = parseFloat(parseFloat(e.target.value).toFixed(1));
                 setstuDB(newstuDB);
               }}
             />
@@ -164,7 +165,7 @@ function StudentAdd(props) {
                             setstuDB(newstuDB);
                           }}
                         >
-                          <option>{a.과목}</option>
+                          <option>{a.과목 ? a.과목 : "선택"}</option>
                           <option value="국어">국어</option>
                           <option value="수학">수학</option>
                           <option value="영어">영어</option>
@@ -174,6 +175,7 @@ function StudentAdd(props) {
                       <td>
                         <input
                           type="text"
+                          placeholder="ex)독사, 기탄수학 등"
                           defaultValue={a.교재}
                           className="inputText"
                           onChange={(e) => {
@@ -201,7 +203,7 @@ function StudentAdd(props) {
                         <input
                           type="number"
                           placeholder="ex)100, 250"
-                          defaultValue={a.총교재량숫자}
+                          defaultValue={a.총교재량숫자 !== 0 ? a.총교재량숫자 : null}
                           className="inputText"
                           onChange={(e) => {
                             var newstuDB = JSON.parse(JSON.stringify(stuDB));
@@ -214,8 +216,8 @@ function StudentAdd(props) {
                       <td>
                         <input
                           type="number"
-                          placeholder={a.최근진도}
-                          defaultValue={a.최근진도}
+                          placeholder="ex)70, 100"
+                          defaultValue={a.최근진도 !== 0 ? a.최근진도 : null}
                           className="inputText"
                           onChange={(e) => {
                             var newstuDB = JSON.parse(JSON.stringify(stuDB));

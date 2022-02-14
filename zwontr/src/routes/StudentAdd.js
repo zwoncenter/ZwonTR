@@ -26,17 +26,17 @@ function StudentAdd(props) {
   return (
     <div className="">
       <h1 className="fw-bold">학생 DB 신규 작성 </h1>
-      <Button
+      {/* <Button
         type="button"
         onClick={() => {
           console.log(stuDB);
         }}
       >
         stuDB 체크
-      </Button>
+      </Button> */}
       <Form className="stuDB-form">
         <h3>생활정보 </h3>
-        <Form.Group as={Row} className="mb-3 mt-3 p-1">
+        <Form.Group as={Row} className="mb-3 mt-3">
           <Form.Label column sm="2">
             이름
           </Form.Label>
@@ -59,7 +59,7 @@ function StudentAdd(props) {
           <Col sm="10">
             <Form.Control
               type="number"
-              placeholder="17"
+              placeholder="ex) 17"
               onChange={(e) => {
                 const newstuDB = JSON.parse(JSON.stringify(stuDB));
                 newstuDB.나이 = parseInt(e.target.value);

@@ -109,7 +109,7 @@ function TRedit(props) {
                       <td>
                         <input
                           type="time"
-                          defaultValue={학생정보.생활학습목표.취침}
+                          defaultValue={TR.생활.실제취침}
                           className="inputTime"
                           onChange={(e) => {
                             var newTR = JSON.parse(JSON.stringify(TR));
@@ -137,7 +137,7 @@ function TRedit(props) {
                       <td>
                         <input
                           type="time"
-                          defaultValue={학생정보.생활학습목표.기상}
+                          defaultValue={TR.생활.실제기상}
                           className="inputTime"
                           onChange={(e) => {
                             var newTR = JSON.parse(JSON.stringify(TR));
@@ -165,7 +165,7 @@ function TRedit(props) {
                       <td>
                         <input
                           type="time"
-                          defaultValue={학생정보.생활학습목표.등원}
+                          defaultValue={TR.생활.실제등원}
                           className="inputTime"
                           onChange={(e) => {
                             var newTR = JSON.parse(JSON.stringify(TR));
@@ -193,7 +193,7 @@ function TRedit(props) {
                       <td>
                         <input
                           type="time"
-                          defaultValue={학생정보.생활학습목표.귀가}
+                          defaultValue={TR.생활.실제귀가}
                           className="inputTime"
                           onChange={(e) => {
                             var newTR = JSON.parse(JSON.stringify(TR));
@@ -230,8 +230,7 @@ function TRedit(props) {
                                 TR변경(newTR);
                               }}
                             >
-                              <option>{a.과목}</option>
-                              <option value="선택">선택</option>
+                              <option>{a.과목 ? a.과목 : "선택"}</option>
                               <option value="국어">국어</option>
                               <option value="수학">수학</option>
                               <option value="영어">영어</option>
@@ -247,8 +246,7 @@ function TRedit(props) {
                                 TR변경(newTR);
                               }}
                             >
-                              <option>{a.교재}</option>
-                              <option value="선택">선택</option>
+                              <option>{a.교재 ? a.교재 : "선택"}</option>
                               <option value="모의고사">모의고사</option>
                               <option value="테스트">테스트</option>
                             </Form.Select>
@@ -320,9 +318,9 @@ function TRedit(props) {
                           onClick={() => {
                             var newTR = JSON.parse(JSON.stringify(TR));
                             newTR.학습.push({
-                              과목: "선택",
-                              교재: "선택",
-                              총교재량: "",
+                              과목: "",
+                              교재: "",
+                              총교재량: "---",
                               최근진도: "",
                               학습시간: "",
                             });
@@ -652,24 +650,27 @@ function TRedit(props) {
             className="mt-3 fs-4"
             onClick={() => {
               const newTR = JSON.parse(JSON.stringify(TR));
-              delete newTR._id;
-
-              TR변경(newTR);
-              console.log(TR);
-              axios
-                .put("/api/TR/edit", TR)
-                .then(function (result) {
-                  console.log(result);
-                  if (result.data === true) {
-                    console.log("수정 성공", result);
-                    history.push("/studentList");
-                  } else {
-                    window.alert("중복되는 날짜의 일간하루가 존재합니다.");
-                  }
-                })
-                .catch(function (err) {
-                  console.log("수정 실패 : ", err);
-                });
+              if (newTR._id) {
+                delete newTR._id;
+                TR변경(newTR);
+                console.log(TR);
+              }
+              if (window.confirm("수정된 DB를 저장하시겠습니까?")) {
+                axios
+                  .put("/api/TR/edit", TR)
+                  .then(function (result) {
+                    console.log(result);
+                    if (result.data === true) {
+                      console.log("수정 성공", result);
+                      history.push("/studentList");
+                    } else {
+                      window.alert("수정 중 해당 일간하루가 삭제되었습니다. 개발/데이터 팀에 문의해주세요");
+                    }
+                  })
+                  .catch(function (err) {
+                    console.log("수정 실패 : ", err);
+                  });
+              }
             }}
           >
             일간하루 수정

@@ -65,9 +65,32 @@ app.post("/api/studentAdd", function (req, res) {
       return console.log("/api/studentAdd findOne Error : ", err);
     } else if (result === null) {
       db.collection("StudentDB").insertOne(newDB, (err2, result2) => {
-        console.log("신규 DB 저장 완료");
+        console.log("신규 학생DB 저장 완료");
         return res.send(true);
       });
+    }
+  });
+});
+
+// StudentDB에 수정 요청
+app.put("/api/StudentEdit", function (req, res) {
+  const newstuDB = req.body;
+  console.log("기존 학생DB 수정 시도 : ", newstuDB);
+  db.collection(`StudentDB`).findOne({ _id: ObjectId(newstuDB._id) }, function (err, result) {
+    if (err) {
+      return console.log(`/api/StudentEdit - findOne Error : `, err);
+    } else if (result !== null) {
+      const findID = ObjectId(newstuDB._id);
+      delete newstuDB._id;
+      db.collection("StudentDB").updateOne({ _id: findID }, { $set: newstuDB }, function (err2, result2) {
+        if (err2) {
+          return console.log("/api/StudentEdit - updateOne Error : ", err2);
+        }
+        console.log("기존 학생DB 수정 완료");
+        return res.send(true);
+      });
+    } else {
+      return res.send(false);
     }
   });
 });
@@ -131,28 +154,6 @@ app.put("/api/TR/edit", function (req, res) {
           return console.log("/api/TR/write - updateOne Error : ", err2);
         }
         console.log("터미널에 표시 : 일간하루 수정 완료");
-        return res.send(true);
-      });
-    } else {
-      return res.send(false);
-    }
-  });
-});
-
-app.put("/api/StudentEdit", function (req, res) {
-  const newstuDB = req.body;
-  console.log("stuDB 수정 시도 : ", newstuDB);
-  db.collection(`StudentDB`).findOne({ _id: ObjectId(newstuDB._id) }, function (err, result) {
-    if (err) {
-      return console.log(`/api/StudentEdit - findOne Error : `, err);
-    } else if (result !== null) {
-      const findID = ObjectId(newstuDB._id);
-      delete newstuDB._id;
-      db.collection("StudentDB").updateOne({ _id: findID }, { $set: newstuDB }, function (err2, result2) {
-        if (err2) {
-          return console.log("/api/StudentEdit - updateOne Error : ", err2);
-        }
-        console.log("터미널에 표시 : 학생DB 수정 완료");
         return res.send(true);
       });
     } else {
