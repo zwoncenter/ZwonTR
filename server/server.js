@@ -41,10 +41,6 @@ app.get("/", function (req, res) {
 });
 
 // collection 중 StudentDB의 모든 Document find 및 전송
-// res.json과 res.send의 차이점 :
-// 1. send가 상위호환이나 전송파일이 json일 경우 불필요한 호출이 한번 더 일어남
-// 2. 개발자가 소스코드를 읽을 때도 res.json이 더 명확한 의도가 드러남.
-
 app.get("/api/studentList", function (req, res) {
   db.collection("StudentDB")
     .find()
