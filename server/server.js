@@ -53,7 +53,7 @@ app.get("/api/studentList", function (req, res) {
     });
 });
 
-// collection 중 StudentDB에 새로운 stuDB 추가
+// collection 중 StudentDB에 새로운 stuDB 추가 요청
 app.post("/api/studentAdd", function (req, res) {
   const newDB = req.body;
   db.collection("StudentDB").findOne({ 이름: newDB }, function (err, result) {
@@ -61,6 +61,12 @@ app.post("/api/studentAdd", function (req, res) {
       return console.log("/api/studentAdd findOne Error : ", err);
     } else if (result === null) {
       db.collection("StudentDB").insertOne(newDB, (err2, result2) => {
+        db.collection("StudentDB_Log").insertOne(newDB, (err3, result) => {
+          if (err3) {
+            return console.log("로그데이터 저장 실패");
+          }
+          console.log("로그데이터 저장 완료");
+        });
         console.log("신규 학생DB 저장 완료");
         return res.send(true);
       });
@@ -82,9 +88,31 @@ app.put("/api/StudentEdit", function (req, res) {
         if (err2) {
           return console.log("/api/StudentEdit - updateOne Error : ", err2);
         }
+        db.collection("StudentDB_Log").insertOne(newstuDB, (err3, result3) => {
+          if (err3) {
+            return console.log("로그데이터 저장 실패");
+          }
+          console.log("로그데이터 저장 완료");
+        });
         console.log("기존 학생DB 수정 완료");
         return res.send(true);
       });
+    } else {
+      return res.send(false);
+    }
+  });
+});
+
+// StudentDB에 삭제 요청
+app.delete("/api/StudentDelete/:name", function (req, res) {
+  const stuName = req.params.name;
+  console.log(stuName + "의 DB 삭제 시도");
+  db.collection("StudentDB").deleteOne({ 이름: stuName }, (err, result) => {
+    if (err) {
+      return console.log("/api/StudentDelete - deleteOne error : ", err);
+    } else if (result !== null) {
+      console.log(`${stuName}의 DB 삭제 완료`);
+      return res.send(true);
     } else {
       return res.send(false);
     }
@@ -155,6 +183,20 @@ app.put("/api/TR/edit", function (req, res) {
     } else {
       return res.send(false);
     }
+  });
+});
+
+app.delete("/api/TR/delete/:id", function (req, res) {
+  const trID = ObjectId(req.params.id);
+  console.log("일간하루 삭제 시도 :", trID);
+  db.collection("TR").deleteOne({ _id: trID }, (err, result) => {
+    if (err) {
+      return console.log("/api/TR/delete/:id - deleteOne error : ", err);
+    } else if (result.deletedCount === 1) {
+      console.log("일간하루 삭제 완료 : ", result);
+      return res.send(true);
+    }
+    return res.send(false);
   });
 });
 

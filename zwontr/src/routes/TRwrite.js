@@ -1,10 +1,7 @@
 import "../App.scss";
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
-import { Link, Route, Switch } from "react-router-dom";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
-import 강진영 from "../강진영.js";
-import 강진영TR from "../강진영TR.js";
 import axios from "axios";
 
 function TRwrite(props) {
@@ -13,23 +10,35 @@ function TRwrite(props) {
   const [TR, TR변경] = useState({
     이름: 학생정보.이름,
     날짜: new Date().toISOString().split("T")[0],
-    생활: {
-      목표취침: 학생정보.생활학습목표.취침,
-      실제취침: 학생정보.생활학습목표.취침,
-      목표기상: 학생정보.생활학습목표.기상,
-      실제기상: 학생정보.생활학습목표.기상,
-      목표등원: 학생정보.생활학습목표.등원,
-      실제등원: 학생정보.생활학습목표.등원,
-      목표귀가: 학생정보.생활학습목표.귀가,
-      실제귀가: 학생정보.생활학습목표.귀가,
-      목표학습: 학생정보.생활학습목표.학습,
-      실제학습: 0,
-      결석여부: false,
-      결석사유: "",
-      결석상세내용: "",
-      프로그램시간: 0,
-      상담시간: 0,
-    },
+
+    결석여부: false,
+    결석사유: "",
+    결석상세내용: "",
+
+    신체컨디션: "",
+    정서컨디션: "",
+
+    목표취침: 학생정보.생활학습목표.평일취침,
+    실제취침: 학생정보.생활학습목표.평일취침,
+
+    목표기상: 학생정보.생활학습목표.평일기상,
+    실제기상: 학생정보.생활학습목표.평일기상,
+
+    목표등원: 학생정보.생활학습목표.평일등원,
+    실제등원: 학생정보.생활학습목표.평일등원,
+
+    목표귀가: 학생정보.생활학습목표.평일귀가,
+    실제귀가: 학생정보.생활학습목표.평일귀가,
+
+    목표학습: 학생정보.생활학습목표.평일학습,
+    실제학습: 0,
+
+    취침차이: 0,
+    기상차이: 0,
+    등원차이: 0,
+    귀가차이: 0,
+    학습차이: 0,
+
     학습: [],
     학습태도: [
       { 분류: "글씨 불량", 문제여부: false },
@@ -60,6 +69,10 @@ function TRwrite(props) {
       { 분류: "연락무시/잠수", 문제여부: false },
       { 분류: "자리정리 안함", 문제여부: false },
     ],
+
+    프로그램시간: 0,
+    상담시간: 0,
+
     프로그램: [],
     상담: [],
   });
@@ -73,7 +86,7 @@ function TRwrite(props) {
         과목: a.과목,
         교재: a.교재,
         총교재량: a.총교재량,
-        최근진도: a.최근진도,
+        최근진도: 0,
         학습시간: "",
       });
     });
@@ -82,7 +95,7 @@ function TRwrite(props) {
     TR변경(newTR);
   }, []);
 
-  function 시간계산(목표, 실제, 종류) {
+  function 차이계산(목표, 실제) {
     let [목표시간, 목표분] = 목표.split(":");
     let [실제시간, 실제분] = 실제.split(":");
     let diff = parseInt(목표시간) - parseInt(실제시간) + (parseInt(목표분) - parseInt(실제분)) / 60;
@@ -92,6 +105,10 @@ function TRwrite(props) {
       diff -= 24;
     }
 
+    return parseFloat(diff.toFixed(1));
+  }
+
+  function 차이출력(diff, 종류) {
     if (diff < 0) {
       diff = -diff;
       return diff.toFixed(1) + "시간 늦게 " + 종류;
@@ -131,7 +148,7 @@ function TRwrite(props) {
                   onClick={() => {
                     console.log(TR);
                     var newTR = JSON.parse(JSON.stringify(TR));
-                    newTR.생활.결석여부 = false;
+                    newTR.결석여부 = false;
                     TR변경(newTR);
                   }}
                 >
@@ -142,19 +159,66 @@ function TRwrite(props) {
                 <button
                   className="btn btn-danger btn-bad mt-3"
                   onClick={() => {
-                    console.log(TR);
-                    var newTR = JSON.parse(JSON.stringify(TR));
-                    newTR.생활.결석여부 = true;
-                    TR변경(newTR);
+                    if (window.confirm("입력된 생활 및 학습 등이 삭제됩니다. 결석으로 전환하시겠습니까?")) {
+                      console.log(TR);
+                      var newTR = JSON.parse(JSON.stringify(TR));
+                      newTR.결석여부 = true;
+                      TR변경(newTR);
+                    }
                   }}
                 >
                   결석
                 </button>
               </div>
             </div>
-            {TR.생활.결석여부 === false ? (
-              <div>
-                <Table striped bordered hover className="mt-3">
+
+            {TR.결석여부 === false ? (
+              <div className="mt-4">
+                <Form.Group as={Row} className="mb-3">
+                  <Form.Label column sm="2">
+                    신체 컨디션
+                  </Form.Label>
+                  <Col sm="10">
+                    <Form.Select
+                      size="sm"
+                      onChange={(e) => {
+                        const newTR = JSON.parse(JSON.stringify(TR));
+                        newTR.신체컨디션 = parseInt(e.target.value);
+                        TR변경(newTR);
+                      }}
+                    >
+                      <option value="선택">선택</option>
+                      <option value={5}>매우 좋음</option>
+                      <option value={4}> 좋음</option>
+                      <option value={3}>보통</option>
+                      <option value={2}> 안좋음</option>
+                      <option value={1}>매우 안좋음</option>
+                    </Form.Select>
+                  </Col>
+                </Form.Group>
+                <Form.Group as={Row} className="mb-3">
+                  <Form.Label column sm="2">
+                    정서 컨디션
+                  </Form.Label>
+                  <Col sm="10">
+                    <Form.Select
+                      size="sm"
+                      onChange={(e) => {
+                        const newTR = JSON.parse(JSON.stringify(TR));
+                        newTR.정서컨디션 = parseInt(e.target.value);
+                        TR변경(newTR);
+                      }}
+                    >
+                      <option value="선택">선택</option>
+                      <option value={5}>매우 좋음</option>
+                      <option value={4}> 좋음</option>
+                      <option value={3}>보통</option>
+                      <option value={2}> 안좋음</option>
+                      <option value={1}>매우 안좋음</option>
+                    </Form.Select>
+                  </Col>
+                </Form.Group>
+                <Table striped bordered hover className="mt-5">
                   <thead>
                     <tr>
                       <th width="10%">생활</th>
@@ -164,120 +228,44 @@ function TRwrite(props) {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td>취침</td>
-                      <td>
-                        <input
-                          type="time"
-                          defaultValue={학생정보.생활학습목표.취침}
-                          className="inputTime"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.생활.목표취침 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="time"
-                          defaultValue={학생정보.생활학습목표.취침}
-                          className="inputTime"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.생활.실제취침 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        />
-                      </td>
-                      <td>{시간계산(TR.생활.목표취침, TR.생활.실제취침, "취침")}</td>
-                    </tr>
-                    <tr>
-                      <td>기상</td>
-                      <td>
-                        <input
-                          type="time"
-                          defaultValue={학생정보.생활학습목표.기상}
-                          className="inputTime"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.생활.목표기상 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="time"
-                          defaultValue={학생정보.생활학습목표.기상}
-                          className="inputTime"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.생활.실제기상 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        />
-                      </td>
-                      <td>{시간계산(TR.생활.목표기상, TR.생활.실제기상, "기상")}</td>
-                    </tr>
-                    <tr>
-                      <td>등원</td>
-                      <td>
-                        <input
-                          type="time"
-                          defaultValue={학생정보.생활학습목표.등원}
-                          className="inputTime"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.생활.목표등원 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="time"
-                          defaultValue={학생정보.생활학습목표.등원}
-                          className="inputTime"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.생활.실제등원 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        />
-                      </td>
-                      <td>{시간계산(TR.생활.목표등원, TR.생활.실제등원, "등원")}</td>
-                    </tr>
-                    <tr>
-                      <td>귀가</td>
-                      <td>
-                        <input
-                          type="time"
-                          defaultValue={학생정보.생활학습목표.귀가}
-                          className="inputTime"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.생활.목표귀가 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="time"
-                          defaultValue={학생정보.생활학습목표.귀가}
-                          className="inputTime"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.생활.실제귀가 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        />
-                      </td>
-                      <td>{시간계산(TR.생활.목표귀가, TR.생활.실제귀가, "귀가")}</td>
-                    </tr>
+                    {["취침", "기상", "등원", "귀가"].map(function (a, i) {
+                      return (
+                        <tr key={i}>
+                          <td>{a}</td>
+                          <td>
+                            <input
+                              type="time"
+                              defaultValue={TR[`목표${a}`]}
+                              className="inputTime"
+                              onChange={(e) => {
+                                const newTR = JSON.parse(JSON.stringify(TR));
+                                newTR[`목표${a}`] = e.target.value;
+                                newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
+                                TR변경(newTR);
+                              }}
+                            />
+                          </td>
+
+                          <td>
+                            <input
+                              type="time"
+                              defaultValue={학생정보.생활학습목표[`평일${a}`]}
+                              className="inputTime"
+                              onChange={(e) => {
+                                const newTR = JSON.parse(JSON.stringify(TR));
+                                newTR[`실제${a}`] = e.target.value;
+                                newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
+                                TR변경(newTR);
+                              }}
+                            />
+                          </td>
+                          <td>{차이출력(TR[`${a}차이`], a)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </Table>
+
                 <Table striped bordered hover className="mt-3">
                   <thead>
                     <tr>
@@ -308,6 +296,7 @@ function TRwrite(props) {
                               <option value="수학">수학</option>
                               <option value="영어">영어</option>
                               <option value="탐구">탐구</option>
+                              <option value="기타">기타</option>
                             </Form.Select>
                           </td>
                           <td>
@@ -322,7 +311,10 @@ function TRwrite(props) {
                               <option>{a.교재}</option>
                               <option value="선택">선택</option>
                               <option value="모의고사">모의고사</option>
-                              <option value="테스트">테스트</option>
+                              <option value="테스트">테스트</option>q<option value="기타">기타</option>
+                              {/* {학생정보.진행중교재.map(function (b, j) {
+                                return <option value={b.교재}>{b.교재}</option>;
+                              })} */}
                             </Form.Select>
                           </td>
                           <td>
@@ -343,7 +335,7 @@ function TRwrite(props) {
                           <td>
                             <input
                               type="text"
-                              placeholder={a.학습시간}
+                              placeholder="ex) 0:40"
                               className="inputText"
                               onChange={(e) => {
                                 var newTR = JSON.parse(JSON.stringify(TR));
@@ -356,7 +348,7 @@ function TRwrite(props) {
                                     실제학습분 += parseInt(a.학습시간.split(":")[1]);
                                   }
                                 });
-                                newTR.생활.실제학습 = parseFloat((실제학습시간 + 실제학습분 / 60).toFixed(1));
+                                newTR.실제학습 = parseFloat((실제학습시간 + 실제학습분 / 60).toFixed(1));
                                 TR변경(newTR);
                               }}
                             />
@@ -380,9 +372,9 @@ function TRwrite(props) {
                     })}
 
                     <tr>
-                      <td colSpan={4}>목표 학습 - {TR.생활.목표학습} 시간</td>
-                      <td> {TR.생활.실제학습} 시간</td>
-                      <td>{TR.생활.실제학습 - TR.생활.목표학습}시간</td>
+                      <td colSpan={4}>목표 학습 - {TR.목표학습} 시간</td>
+                      <td> {TR.실제학습} 시간</td>
+                      <td>{(TR.실제학습 - TR.목표학습).toFixed(1)}시간</td>
                     </tr>
                     <tr>
                       <td colSpan={6}>
@@ -451,8 +443,28 @@ function TRwrite(props) {
                               }}
                             >
                               <option>선택</option>
-                              <option value="유장훈">유장훈</option>
-                              <option value="오지영">오지영</option>
+                              {[
+                                "전성원",
+                                "탁현창",
+                                "강민호",
+                                "임세린",
+                                "김시우",
+                                "최연우",
+                                "김윤태",
+                                "장명수",
+                                "강나무",
+                                "양재원",
+                                "방진영",
+                                "오지영",
+                                "유장훈",
+                                "오지영",
+                              ].map(function (b, j) {
+                                return (
+                                  <option value={b} key={j}>
+                                    {b}
+                                  </option>
+                                );
+                              })}
                             </Form.Select>
                           </td>
                           <td>
@@ -471,7 +483,7 @@ function TRwrite(props) {
                                     실제분 += parseInt(c.소요시간.split(":")[1]);
                                   }
                                 });
-                                newTR.생활.프로그램시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
+                                newTR.프로그램시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
                                 TR변경(newTR);
                               }}
                             />
@@ -509,7 +521,7 @@ function TRwrite(props) {
                     })}
 
                     <tr>
-                      <td colSpan={5}>프로그램 진행 시간 : {TR.생활.프로그램시간}시간</td>
+                      <td colSpan={5}>프로그램 진행 시간 : {TR.프로그램시간}시간</td>
                     </tr>
                     <tr>
                       <td colSpan={5}>
@@ -540,7 +552,7 @@ function TRwrite(props) {
                   size="sm"
                   onChange={(e) => {
                     var newTR = JSON.parse(JSON.stringify(TR));
-                    newTR.생활.결석사유 = e.target.value;
+                    newTR.결석사유 = e.target.value;
                     TR변경(newTR);
                   }}
                 >
@@ -557,7 +569,7 @@ function TRwrite(props) {
                   placeholder="결석 사유를 입력"
                   onChange={(e) => {
                     var newTR = JSON.parse(JSON.stringify(TR));
-                    newTR.생활.결석상세내용 = e.target.value;
+                    newTR.결석상세내용 = e.target.value;
                     TR변경(newTR);
                   }}
                 ></textarea>
@@ -567,7 +579,7 @@ function TRwrite(props) {
         </div>
         <div className="col-xl-3 trCol">
           <div className="trCard border border-3">
-            {TR.생활.결석여부 === false ? (
+            {TR.결석여부 === false ? (
               <>
                 <p className="fw-bold">학습태도</p>
                 {TR.학습태도.map((prob, i) => (
@@ -633,8 +645,28 @@ function TRwrite(props) {
                           }}
                         >
                           <option>선택</option>
-                          <option value="유장훈">유장훈</option>
-                          <option value="오지영">오지영</option>
+                          {[
+                            "전성원",
+                            "탁현창",
+                            "강민호",
+                            "임세린",
+                            "김시우",
+                            "최연우",
+                            "김윤태",
+                            "장명수",
+                            "강나무",
+                            "양재원",
+                            "방진영",
+                            "오지영",
+                            "유장훈",
+                            "오지영",
+                          ].map(function (b, j) {
+                            return (
+                              <option value={b} key={j}>
+                                {b}
+                              </option>
+                            );
+                          })}
                         </Form.Select>
                       </td>
                       <td>
@@ -653,7 +685,7 @@ function TRwrite(props) {
                                 실제분 += parseInt(c.소요시간.split(":")[1]);
                               }
                             });
-                            newTR.생활.상담시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
+                            newTR.상담시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
                             TR변경(newTR);
                           }}
                         />
@@ -691,7 +723,7 @@ function TRwrite(props) {
                 })}
 
                 <tr>
-                  <td colSpan={5}>총 상담 시간 : {TR.생활.상담시간}시간</td>
+                  <td colSpan={5}>총 상담 시간 : {TR.상담시간}시간</td>
                 </tr>
                 <tr>
                   <td colSpan={5}>
@@ -719,21 +751,22 @@ function TRwrite(props) {
             variant="danger"
             className="mt-3 fs-4"
             onClick={() => {
-              console.log(TR);
-              axios
-                .post("/api/TR/write", TR)
-                .then(function (result) {
-                  console.log(result);
-                  if (result.data === true) {
-                    console.log("저장 성공", result);
-                    history.push("/studentList");
-                  } else {
-                    window.alert("중복되는 날짜의 일간하루가 존재합니다.");
-                  }
-                })
-                .catch(function (err) {
-                  console.log("저장 실패 : ", err);
-                });
+              if (window.confirm(`${TR.이름}학생의 ${TR.날짜} 일간하루를 저장하시겠습니까?`)) {
+                axios
+                  .post("/api/TR/write", TR)
+                  .then(function (result) {
+                    console.log(result);
+                    if (result.data === true) {
+                      console.log("저장 성공", result);
+                      history.push("/studentList");
+                    } else {
+                      window.alert("중복되는 날짜의 일간하루가 존재합니다.");
+                    }
+                  })
+                  .catch(function (err) {
+                    console.log("저장 실패 : ", err);
+                  });
+              }
             }}
           >
             일간하루 저장

@@ -1,6 +1,5 @@
 import "../App.scss";
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
-import { Link, Route, Switch } from "react-router-dom";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -10,7 +9,7 @@ function TRedit(props) {
   const [학생정보, 학생정보변경] = useState(props.stuDB);
   const [TR, TR변경] = useState(props.existTR);
 
-  function 시간계산(목표, 실제, 종류) {
+  function 차이계산(목표, 실제) {
     let [목표시간, 목표분] = 목표.split(":");
     let [실제시간, 실제분] = 실제.split(":");
     let diff = parseInt(목표시간) - parseInt(실제시간) + (parseInt(목표분) - parseInt(실제분)) / 60;
@@ -20,6 +19,10 @@ function TRedit(props) {
       diff -= 24;
     }
 
+    return parseFloat(diff.toFixed(1));
+  }
+
+  function 차이출력(diff, 종류) {
     if (diff < 0) {
       diff = -diff;
       return diff.toFixed(1) + "시간 늦게 " + 종류;
@@ -59,7 +62,7 @@ function TRedit(props) {
                   onClick={() => {
                     console.log(TR);
                     var newTR = JSON.parse(JSON.stringify(TR));
-                    newTR.생활.결석여부 = false;
+                    newTR.결석여부 = false;
                     TR변경(newTR);
                   }}
                 >
@@ -70,18 +73,64 @@ function TRedit(props) {
                 <button
                   className="btn btn-danger btn-bad mt-3"
                   onClick={() => {
-                    console.log(TR);
-                    var newTR = JSON.parse(JSON.stringify(TR));
-                    newTR.생활.결석여부 = true;
-                    TR변경(newTR);
+                    if (window.confirm("입력된 생활 및 학습 등이 삭제됩니다. 결석으로 전환하시겠습니까?")) {
+                      console.log(TR);
+                      var newTR = JSON.parse(JSON.stringify(TR));
+                      newTR.결석여부 = true;
+                      TR변경(newTR);
+                    }
                   }}
                 >
                   결석
                 </button>
               </div>
             </div>
-            {TR.생활.결석여부 === false ? (
-              <div>
+            {TR.결석여부 === false ? (
+              <div className="mt-4">
+                <Form.Group as={Row} className="mb-3">
+                  <Form.Label column sm="2">
+                    신체 컨디션
+                  </Form.Label>
+                  <Col sm="10">
+                    <Form.Select
+                      size="sm"
+                      onChange={(e) => {
+                        const newTR = JSON.parse(JSON.stringify(TR));
+                        newTR.신체컨디션 = parseInt(e.target.value);
+                        TR변경(newTR);
+                      }}
+                    >
+                      <option>{TR.신체컨디션}</option>
+                      <option value={5}>매우 좋음</option>
+                      <option value={4}> 좋음</option>
+                      <option value={3}>보통</option>
+                      <option value={2}> 안좋음</option>
+                      <option value={1}>매우 안좋음</option>
+                    </Form.Select>
+                  </Col>
+                </Form.Group>
+                <Form.Group as={Row} className="mb-3">
+                  <Form.Label column sm="2">
+                    정서 컨디션
+                  </Form.Label>
+                  <Col sm="10">
+                    <Form.Select
+                      size="sm"
+                      onChange={(e) => {
+                        const newTR = JSON.parse(JSON.stringify(TR));
+                        newTR.정서컨디션 = parseInt(e.target.value);
+                        TR변경(newTR);
+                      }}
+                    >
+                      <option>{TR.정서컨디션}</option>
+                      <option value={5}>매우 좋음</option>
+                      <option value={4}> 좋음</option>
+                      <option value={3}>보통</option>
+                      <option value={2}> 안좋음</option>
+                      <option value={1}>매우 안좋음</option>
+                    </Form.Select>
+                  </Col>
+                </Form.Group>
                 <Table striped bordered hover className="mt-3">
                   <thead>
                     <tr>
@@ -92,118 +141,41 @@ function TRedit(props) {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td>취침</td>
-                      <td>
-                        <input
-                          type="time"
-                          defaultValue={학생정보.생활학습목표.취침}
-                          className="inputTime"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.생활.목표취침 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="time"
-                          defaultValue={TR.생활.실제취침}
-                          className="inputTime"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.생활.실제취침 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        />
-                      </td>
-                      <td>{시간계산(TR.생활.목표취침, TR.생활.실제취침, "취침")}</td>
-                    </tr>
-                    <tr>
-                      <td>기상</td>
-                      <td>
-                        <input
-                          type="time"
-                          defaultValue={학생정보.생활학습목표.기상}
-                          className="inputTime"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.생활.목표기상 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="time"
-                          defaultValue={TR.생활.실제기상}
-                          className="inputTime"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.생활.실제기상 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        />
-                      </td>
-                      <td>{시간계산(TR.생활.목표기상, TR.생활.실제기상, "기상")}</td>
-                    </tr>
-                    <tr>
-                      <td>등원</td>
-                      <td>
-                        <input
-                          type="time"
-                          defaultValue={학생정보.생활학습목표.등원}
-                          className="inputTime"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.생활.목표등원 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="time"
-                          defaultValue={TR.생활.실제등원}
-                          className="inputTime"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.생활.실제등원 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        />
-                      </td>
-                      <td>{시간계산(TR.생활.목표등원, TR.생활.실제등원, "등원")}</td>
-                    </tr>
-                    <tr>
-                      <td>귀가</td>
-                      <td>
-                        <input
-                          type="time"
-                          defaultValue={학생정보.생활학습목표.귀가}
-                          className="inputTime"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.생활.목표귀가 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="time"
-                          defaultValue={TR.생활.실제귀가}
-                          className="inputTime"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.생활.실제귀가 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        />
-                      </td>
-                      <td>{시간계산(TR.생활.목표귀가, TR.생활.실제귀가, "귀가")}</td>
-                    </tr>
+                    {["취침", "기상", "등원", "귀가"].map(function (a, i) {
+                      return (
+                        <tr key={i}>
+                          <td>{a}</td>
+                          <td>
+                            <input
+                              type="time"
+                              defaultValue={TR[`목표${a}`]}
+                              className="inputTime"
+                              onChange={(e) => {
+                                const newTR = JSON.parse(JSON.stringify(TR));
+                                newTR[`목표${a}`] = e.target.value;
+                                newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
+                                TR변경(newTR);
+                              }}
+                            />
+                          </td>
+
+                          <td>
+                            <input
+                              type="time"
+                              defaultValue={TR[`실제${a}`]}
+                              className="inputTime"
+                              onChange={(e) => {
+                                const newTR = JSON.parse(JSON.stringify(TR));
+                                newTR[`실제${a}`] = e.target.value;
+                                newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
+                                TR변경(newTR);
+                              }}
+                            />
+                          </td>
+                          <td>{차이출력(TR[`${a}차이`], a)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </Table>
                 <Table striped bordered hover className="mt-3">
@@ -282,7 +254,7 @@ function TRedit(props) {
                                     실제학습분 += parseInt(a.학습시간.split(":")[1]);
                                   }
                                 });
-                                newTR.생활.실제학습 = parseFloat((실제학습시간 + 실제학습분 / 60).toFixed(1));
+                                newTR.실제학습 = parseFloat((실제학습시간 + 실제학습분 / 60).toFixed(1));
                                 TR변경(newTR);
                               }}
                             />
@@ -306,9 +278,9 @@ function TRedit(props) {
                     })}
 
                     <tr>
-                      <td colSpan={4}>목표 학습 - {TR.생활.목표학습} 시간</td>
-                      <td> {TR.생활.실제학습} 시간</td>
-                      <td>{TR.생활.실제학습 - TR.생활.목표학습}시간</td>
+                      <td colSpan={4}>목표 학습 - {TR.목표학습} 시간</td>
+                      <td> {TR.실제학습} 시간</td>
+                      <td>{TR.실제학습 - TR.목표학습}시간</td>
                     </tr>
                     <tr>
                       <td colSpan={6}>
@@ -398,7 +370,7 @@ function TRedit(props) {
                                     실제분 += parseInt(c.소요시간.split(":")[1]);
                                   }
                                 });
-                                newTR.생활.프로그램시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
+                                newTR.프로그램시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
                                 TR변경(newTR);
                               }}
                             />
@@ -437,7 +409,7 @@ function TRedit(props) {
                     })}
 
                     <tr>
-                      <td colSpan={5}>프로그램 진행 시간 : {TR.생활.프로그램시간}시간</td>
+                      <td colSpan={5}>프로그램 진행 시간 : {TR.프로그램시간}시간</td>
                     </tr>
                     <tr>
                       <td colSpan={5}>
@@ -468,7 +440,7 @@ function TRedit(props) {
                   size="sm"
                   onChange={(e) => {
                     var newTR = JSON.parse(JSON.stringify(TR));
-                    newTR.생활.결석사유 = e.target.value;
+                    newTR.결석사유 = e.target.value;
                     TR변경(newTR);
                   }}
                 >
@@ -485,7 +457,7 @@ function TRedit(props) {
                   placeholder="결석 사유를 입력"
                   onChange={(e) => {
                     var newTR = JSON.parse(JSON.stringify(TR));
-                    newTR.생활.결석상세내용 = e.target.value;
+                    newTR.결석상세내용 = e.target.value;
                     TR변경(newTR);
                   }}
                 ></textarea>
@@ -495,7 +467,7 @@ function TRedit(props) {
         </div>
         <div className="col-xl-3 trCol">
           <div className="trCard border border-3">
-            {TR.생활.결석여부 === false ? (
+            {TR.결석여부 === false ? (
               <>
                 <p className="fw-bold">학습태도</p>
                 {TR.학습태도.map((prob, i) => (
@@ -582,7 +554,7 @@ function TRedit(props) {
                                 실제분 += parseInt(c.소요시간.split(":")[1]);
                               }
                             });
-                            newTR.생활.상담시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
+                            newTR.상담시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
                             TR변경(newTR);
                           }}
                         />
@@ -621,7 +593,7 @@ function TRedit(props) {
                 })}
 
                 <tr>
-                  <td colSpan={5}>총 상담 시간 : {TR.생활.상담시간}시간</td>
+                  <td colSpan={5}>총 상담 시간 : {TR.상담시간}시간</td>
                 </tr>
                 <tr>
                   <td colSpan={5}>
@@ -646,7 +618,7 @@ function TRedit(props) {
             </Table>
           </div>
           <Button
-            variant="danger"
+            variant="primary"
             className="mt-3 fs-4"
             onClick={() => {
               const newTR = JSON.parse(JSON.stringify(TR));
@@ -674,6 +646,33 @@ function TRedit(props) {
             }}
           >
             일간하루 수정
+          </Button>
+
+          <Button
+            variant="danger"
+            className="ms-4   mt-4 fs-6"
+            onClick={() => {
+              if (window.confirm(`현재 작성중인 일간하루를 정말 삭제하시겠습니까?`)) {
+                axios
+                  .delete(`/api/TR/delete/${TR._id}`)
+                  .then(function (response) {
+                    console.log(response);
+                    if (response.data === true) {
+                      window.alert("삭제되었습니다");
+                    } else {
+                      window.alert("삭제에 실패했습니다. 개발/데이터 팀에게 문의해주세요");
+                    }
+                  })
+                  .catch(function (err) {
+                    window.alert("삭제에 실패했습니다 개발/데이터 팀에게 문의해주세요");
+                  })
+                  .then(function () {
+                    history.push("/studentList");
+                  });
+              }
+            }}
+          >
+            일간하루 삭제
           </Button>
         </div>
       </div>
