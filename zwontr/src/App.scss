@@ -25,7 +25,6 @@ div {
   text-align: center;
   background-color: #e8e3ea;
   padding: 20px;
-  padding-bottom: 600px;
 }
 
 .loginBox {
@@ -116,10 +115,6 @@ td {
   width: 95%;
 }
 
-textarea {
-  resize: vertical;
-}
-
 .mw-5rem {
   max-width: 3rem;
 }
@@ -148,4 +143,13 @@ Table {
 
 Form h3 {
   text-decoration: underline;
+}
+
+.cube-box {
+  background-color: rgba(0, 0, 0, 0.05);
+  max-width: 600px;
+  width: 90%;
+  margin: auto;
+  border-radius: 10px;
+  padding: 10px;
 }

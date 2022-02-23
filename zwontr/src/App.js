@@ -21,13 +21,12 @@ function App() {
   const [trList, settrList] = useState([]);
   const [선택된TRindex, 선택된TRindex변경] = useState(0);
 
+  const [managerList, setmanagerList] = useState([]);
+
   return (
     <div className="App">
       <Route exact path="/">
         <Loginpage />
-      </Route>
-      <Route exact path="/studentAdd">
-        <StudentAdd></StudentAdd>
       </Route>
       <Route exact path="/studentList">
         <StuListpage
@@ -39,16 +38,23 @@ function App() {
           setstudentList={setstudentList}
           선택된index={선택된index}
           선택된index변경={선택된index변경}
+          managerList={managerList}
+          setmanagerList={setmanagerList}
         />
       </Route>
-      <Route exact path="/TR/:name/write">
-        <TRwrite stuDB={studentList[선택된index]}> </TRwrite>
-      </Route>
-      <Route exact path="/TR/:name/edit/:date">
-        <TRedit stuDB={studentList[선택된index]} existTR={trList[선택된TRindex]}></TRedit>
+      <Route exact path="/studentAdd">
+        <StudentAdd></StudentAdd>
       </Route>
       <Route exact path="/StudentEdit/:name">
         <StudentEdit existstuDB={studentList[선택된index]}></StudentEdit>
+      </Route>
+      <Route exact path="/TR/:name/write">
+        <TRwrite stuDB={studentList[선택된index]} managerList={managerList}>
+          {" "}
+        </TRwrite>
+      </Route>
+      <Route exact path="/TR/:name/edit/:date">
+        <TRedit stuDB={studentList[선택된index]} existTR={trList[선택된TRindex]} managerList={managerList}></TRedit>
       </Route>
     </div>
   );

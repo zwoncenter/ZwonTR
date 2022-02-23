@@ -8,75 +8,101 @@ import axios from "axios";
 function StuListpage(props) {
   let history = useHistory();
 
-  // 모달창 관련 state 및 함수
-  const [show, setShow] = useState(false);
-  const handleClose = () => {
-    setShow(false);
-    TR리스트보임변경(false);
+  const [modalShow, setmodalShow] = useState(false);
+  const [TRlistShow, setTRlistShow] = useState(false);
+
+  const modalOpen = () => setmodalShow(true);
+  const modalClose = () => {
+    setmodalShow(false);
+    setTRlistShow(false);
   };
-  const handleShow = () => setShow(true);
 
-  // const [날짜, 날짜변경] = useState(new Date().toISOString().split("T")[0]);
-  const [TR리스트보임, TR리스트보임변경] = useState(false);
+  const [ready, setready] = useState(false);
 
-  useEffect(() => {
+  const addClick = () => {
+    if (window.confirm("학생 신규 DB 등록을 진행하시겠습니까?")) {
+      history.push("/studentAdd");
+    }
+  };
+
+  async function nameClick(db, index) {
+    await props.선택된index변경(index);
+    modalOpen();
     axios
-      .get("/api/studentList")
-      .then(function (result) {
-        console.log("/api/studentList result length :", result.data.length);
-        props.setstudentList(result.data);
+      .get(`/api/TR/${db.이름}`)
+      .then(async function (result) {
+        await result.data.sort(function (a, b) {
+          return +(new Date(a.날짜) < new Date(b.날짜)) - 0.5;
+        });
+        props.settrList(result.data);
       })
       .catch(function (err) {
-        console.log("/api/studentList fail :", err);
+        console.log("/api/TR/:name fail : ", err);
       });
+  }
+
+  //
+  useEffect(async () => {
+    const result = await axios
+      .get("/api/studentList")
+      .then((result) => {
+        return result;
+      })
+      .catch((err) => {
+        return err;
+      });
+
+    if (result.data && result.data == "로그인필요") {
+      window.alert("로그인이 필요합니다.");
+      return history.push("/");
+    }
+    result.data.sort(function (a, b) {
+      return +(a.이름 > b.이름) - 0.5;
+    });
+    await props.선택된index변경(0);
+    await props.setstudentList(result.data);
+    setready(true);
+
+    const managerList = await axios
+      .get("/api/managerList")
+      .then((result) => {
+        return result;
+      })
+      .catch((err) => {
+        return err;
+      });
+    props.setmanagerList(managerList.data);
   }, []);
 
   return (
     <div>
       <h1>Zwon 학생 리스트</h1>
-
       <Card className="stuCard">
-        <Button
-          variant="secondary"
-          onClick={() => {
-            if (window.confirm("학생 신규 DB 등록을 진행하시겠습니까?")) {
-              history.push("/studentAdd");
-            }
-          }}
-        >
+        <Button variant="secondary" onClick={addClick}>
           +
         </Button>
         <ListGroup variant="flush">
-          {props.studentList.map(function (a, i) {
-            return (
-              <ListGroup.Item
-                className="pt-3 pb-3"
-                key={i}
-                onClick={() => {
-                  props.선택된index변경(i);
-                  handleShow();
-                  axios
-                    .get(`/api/TR/${a.이름}`)
-                    .then(function (result) {
-                      result.data.sort(function (a, b) {
-                        return +(new Date(a.날짜) < new Date(b.날짜)) - 0.5;
-                      });
-                      props.settrList(result.data);
-                    })
-                    .catch(function (err) {
-                      console.log("/api/TR/:name fail : ", err);
-                    });
-                }}
-              >
-                <p>{a.이름}</p>
-              </ListGroup.Item>
-            );
-          })}
+          {ready
+            ? props.studentList.map(function (db, index) {
+                return (
+                  <ListGroup.Item
+                    className="pt-3 pb-3"
+                    key={index}
+                    onClick={() => {
+                      nameClick(db, index);
+                    }}
+                  >
+                    <p>{db.이름}</p>
+                  </ListGroup.Item>
+                );
+              })
+            : null}
         </ListGroup>
       </Card>
-      <Modal show={show} onHide={handleClose}>
+
+      <Modal show={modalShow} onHide={modalClose}>
         <Modal.Header closeButton>
-          <Modal.Title>{props.studentList.length !== 0 ? props.studentList[props.선택된index].이름 : ""}</Modal.Title>
+          <Modal.Title>{ready ? props.studentList[props.선택된index].이름 : ""}</Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center">
           <button
@@ -87,17 +113,18 @@ function StuListpage(props) {
           >
             학생DB조회/변경
           </button>
+
           <button
             className="btn btn-primary me-3"
             onClick={() => {
-              TR리스트보임변경(!TR리스트보임);
+              setTRlistShow(!TRlistShow);
             }}
           >
             TR(일간하루)
           </button>
         </Modal.Body>
-        {TR리스트보임 === true ? (
-          <div className="text-center">
+        {TRlistShow === true ? (
+          <div className="text-center mb-3">
             <Button
               className="btn-secondary"
               onClick={() => {
@@ -108,17 +135,17 @@ function StuListpage(props) {
             </Button>
 
             <ListGroup variant="flush">
-              {props.trList.map(function (a, i) {
+              {props.trList.map(function (tr, index) {
                 return (
                   <ListGroup.Item
-                    className="pt-3 pb-3"
-                    key={i}
-                    onClick={() => {
-                      props.선택된TRindex변경(i);
-                      history.push(`TR/${a.이름}/edit/${a.날짜}`);
+                    className="pt-3"
+                    key={index}
+                    onClick={async () => {
+                      await props.선택된TRindex변경(index);
+                      history.push(`TR/${tr.이름}/edit/${tr.날짜}`);
                     }}
                   >
-                    <p>{a.날짜}</p>
+                    <p>{tr.날짜}</p>
                   </ListGroup.Item>
                 );
               })}

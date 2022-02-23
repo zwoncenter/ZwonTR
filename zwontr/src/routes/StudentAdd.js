@@ -24,28 +24,61 @@ function StudentAdd(props) {
       일요일귀가: "19:00",
       일요일학습: 0,
     },
+    큐브책: [],
     진행중교재: [],
     완료된교재: [],
-    프로그램분류: ["자기인식", "진로탐색", "헬스", "외부활동"],
+    프로그램분류: ["자기인식", "진로탐색", "헬스", "외부활동", "독서", "외국어"],
   };
 
   const [stuDB, setstuDB] = useState(writeform);
   const [inputProgram, setinputProgram] = useState("");
 
+  const programAdd = () => {
+    const newstuDB = JSON.parse(JSON.stringify(stuDB));
+    newstuDB.프로그램분류.push(inputProgram);
+    setstuDB(newstuDB);
+    document.querySelector("#inputProgram").value = "";
+  };
+
+  function change_depth_one(category, data) {
+    const newstuDB = JSON.parse(JSON.stringify(stuDB));
+    newstuDB[category] = data;
+    setstuDB(newstuDB);
+  }
+
+  function change_depth_two(category1, category2, data) {
+    const newstuDB = JSON.parse(JSON.stringify(stuDB));
+    newstuDB[category1][category2] = data;
+    setstuDB(newstuDB);
+  }
+
+  function change_depth_three(category1, category2, category3, data) {
+    const newstuDB = JSON.parse(JSON.stringify(stuDB));
+    newstuDB[category1][category2][category3] = data;
+    setstuDB(newstuDB);
+  }
+
+  function delete_depth_one(category, index) {
+    const newstuDB = JSON.parse(JSON.stringify(stuDB));
+    newstuDB[category].splice(index, 1);
+    setstuDB(newstuDB);
+  }
+
+  function push_depth_one(category, content) {
+    const newstuDB = JSON.parse(JSON.stringify(stuDB));
+    newstuDB[category].push(content);
+    setstuDB(newstuDB);
+  }
+
   return (
     <div className="">
       <h1 className="fw-bold">학생 DB 신규 작성 </h1>
-
-      {/* <Button
-        type="button"
-        onClick={() => {
-          console.log(stuDB);
+      <Form
+        className="stuDB-form"
+        onSubmit={(e) => {
+          e.preventDefault();
         }}
       >
-        stuDB 체크
-      </Button> */}
-
-      <Form className="stuDB-form">
         <h3 className="mb-3"> 작성매니저 / 작성일자 </h3>
 
         <Form.Group as={Row} className="mb-3">
@@ -57,9 +90,7 @@ function StudentAdd(props) {
               type="text"
               placeholder="본명입력 : ex)유재석"
               onChange={(e) => {
-                const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                newstuDB.작성매니저 = e.target.value;
-                setstuDB(newstuDB);
+                change_depth_one("작성매니저", e.target.value);
               }}
             />
           </Col>
@@ -73,9 +104,7 @@ function StudentAdd(props) {
             <Form.Control
               type="date"
               onChange={(e) => {
-                const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                newstuDB.작성일자 = e.target.value;
-                setstuDB(newstuDB);
+                change_depth_one("작성일자", e.target.value);
               }}
             />
           </Col>
@@ -92,9 +121,7 @@ function StudentAdd(props) {
               type="text"
               placeholder="OOO"
               onChange={(e) => {
-                const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                newstuDB.이름 = e.target.value;
-                setstuDB(newstuDB);
+                change_depth_one("이름", e.target.value);
               }}
             />
           </Col>
@@ -108,9 +135,7 @@ function StudentAdd(props) {
             <Form.Control
               type="date"
               onChange={(e) => {
-                const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                newstuDB.생년월일 = e.target.value;
-                setstuDB(newstuDB);
+                change_depth_one("생년월일", e.target.value);
               }}
             />
           </Col>
@@ -125,9 +150,7 @@ function StudentAdd(props) {
               type="text"
               placeholder="ex) 010-1234-1234"
               onChange={(e) => {
-                const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                newstuDB.연락처 = e.target.value;
-                setstuDB(newstuDB);
+                change_depth_one("연락처", e.target.value);
               }}
             />
           </Col>
@@ -146,9 +169,7 @@ function StudentAdd(props) {
               type="time"
               defaultValue="00:00"
               onChange={(e) => {
-                const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                newstuDB.생활학습목표.평일취침 = e.target.value;
-                setstuDB(newstuDB);
+                change_depth_two("생활학습목표", "평일취침", e.target.value);
               }}
             />
           </Col>
@@ -163,13 +184,12 @@ function StudentAdd(props) {
               type="time"
               defaultValue="08:00"
               onChange={(e) => {
-                const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                newstuDB.생활학습목표.평일기상 = e.target.value;
-                setstuDB(newstuDB);
+                change_depth_two("생활학습목표", "평일기상", e.target.value);
               }}
             />
           </Col>
         </Form.Group>
+
         <Form.Group as={Row} className="mb-3">
           <Form.Label column sm="2">
             목표등원
@@ -179,9 +199,7 @@ function StudentAdd(props) {
               type="time"
               defaultValue="13:00"
               onChange={(e) => {
-                const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                newstuDB.생활학습목표.평일등원 = e.target.value;
-                setstuDB(newstuDB);
+                change_depth_two("생활학습목표", "평일등원", e.target.value);
               }}
             />
           </Col>
@@ -196,9 +214,7 @@ function StudentAdd(props) {
               type="time"
               defaultValue="19:00"
               onChange={(e) => {
-                const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                newstuDB.생활학습목표.평일귀가 = e.target.value;
-                setstuDB(newstuDB);
+                change_depth_two("생활학습목표", "평일귀가", e.target.value);
               }}
             />
           </Col>
@@ -214,9 +230,7 @@ function StudentAdd(props) {
               placeholder="ex) 1.5"
               step="0.1"
               onChange={(e) => {
-                const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                newstuDB.생활학습목표.평일학습 = parseFloat(e.target.value);
-                setstuDB(newstuDB);
+                change_depth_two("생활학습목표", "평일학습", e.target.value);
               }}
             />
           </Col>
@@ -233,9 +247,7 @@ function StudentAdd(props) {
               type="time"
               defaultValue="00:00"
               onChange={(e) => {
-                const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                newstuDB.생활학습목표.일요일취침 = e.target.value;
-                setstuDB(newstuDB);
+                change_depth_two("생활학습목표", "일요일취침", e.target.value);
               }}
             />
           </Col>
@@ -250,13 +262,12 @@ function StudentAdd(props) {
               type="time"
               defaultValue="08:00"
               onChange={(e) => {
-                const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                newstuDB.생활학습목표.일요일기상 = e.target.value;
-                setstuDB(newstuDB);
+                change_depth_two("생활학습목표", "일요일기상", e.target.value);
               }}
             />
           </Col>
         </Form.Group>
+
         <Form.Group as={Row} className="mb-3">
           <Form.Label column sm="2">
             일요일 목표등원
@@ -266,9 +277,7 @@ function StudentAdd(props) {
               type="time"
               defaultValue="13:00"
               onChange={(e) => {
-                const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                newstuDB.생활학습목표.일요일등원 = e.target.value;
-                setstuDB(newstuDB);
+                change_depth_two("생활학습목표", "일요일등원", e.target.value);
               }}
             />
           </Col>
@@ -283,9 +292,7 @@ function StudentAdd(props) {
               type="time"
               defaultValue="19:00"
               onChange={(e) => {
-                const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                newstuDB.생활학습목표.일요일귀가 = e.target.value;
-                setstuDB(newstuDB);
+                change_depth_two("생활학습목표", "일요일귀가", e.target.value);
               }}
             />
           </Col>
@@ -301,13 +308,51 @@ function StudentAdd(props) {
               placeholder="ex) 1.5"
               step="0.1"
               onChange={(e) => {
-                const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                newstuDB.생활학습목표.일요일학습 = parseFloat(e.target.value);
-                setstuDB(newstuDB);
+                change_depth_two("생활학습목표", "일요일학습", e.target.value);
               }}
             />
           </Col>
         </Form.Group>
+
+        {/* 큐브책 입력란 */}
+        <h3 className="mt-5">큐브책 체크리스트</h3>
+
+        <div className="cube-box">
+          {stuDB.큐브책.map(function (a, i) {
+            return (
+              <Form.Group as={Row} className="mt-1" key={i}>
+                <Col sm="11">
+                  <Form.Control
+                    className="mb-2"
+                    type="text"
+                    placeholder="큐브책 체크리스트 입력"
+                    onChange={(e) => {
+                      change_depth_two("큐브책", i, e.target.value);
+                    }}
+                  />
+                </Col>
+                <Col sm="1" className="p-1 ">
+                  <button
+                    className="btn btn-delete"
+                    onClick={() => {
+                      delete_depth_one("큐브책", i);
+                    }}
+                  >
+                    x
+                  </button>
+                </Col>
+              </Form.Group>
+            );
+          })}
+          <Button
+            variant="dark"
+            onClick={() => {
+              push_depth_one("큐브책", "");
+            }}
+          >
+            +
+          </Button>
+        </div>
 
         {/* 진행중 교재 */}
 
@@ -332,9 +377,7 @@ function StudentAdd(props) {
                     <Form.Select
                       size="sm"
                       onChange={(e) => {
-                        var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                        newstuDB.진행중교재[i].과목 = e.target.value;
-                        setstuDB(newstuDB);
+                        change_depth_three("진행중교재", i, "과목", e.target.value);
                       }}
                     >
                       <option>선택</option>
@@ -350,9 +393,7 @@ function StudentAdd(props) {
                       placeholder="ex)독사, 기탄수학 등"
                       className="inputText"
                       onChange={(e) => {
-                        var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                        newstuDB.진행중교재[i].교재 = e.target.value;
-                        setstuDB(newstuDB);
+                        change_depth_three("진행중교재", i, "교재", e.target.value);
                       }}
                     />
                   </td>
@@ -361,12 +402,10 @@ function StudentAdd(props) {
                       type="text"
                       placeholder="ex)100p, 250문제"
                       className="inputText"
-                      onChange={(e) => {
-                        var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                        newstuDB.진행중교재[i].총교재량 = e.target.value;
-                        const regex = /[^0-9]/g;
-                        newstuDB.진행중교재[i].총교재량숫자 = parseInt(e.target.value.replace(regex, ""));
-                        setstuDB(newstuDB);
+                      onChange={async (e) => {
+                        change_depth_three("진행중교재", i, "총교재량", e.target.value);
+                        // const regex = /[^0-9]/g;
+                        // change_depth_three("진행중교재", i, "총교재량숫자", parseInt(e.target.value.replace(regex, "")));
                       }}
                     />
                   </td>
@@ -376,9 +415,7 @@ function StudentAdd(props) {
                       type="date"
                       className="inputText"
                       onChange={(e) => {
-                        var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                        newstuDB.진행중교재[i].교재시작일 = e.target.value;
-                        setstuDB(newstuDB);
+                        change_depth_three("진행중교재", i, "교재시작일", e.target.value);
                       }}
                     />
                   </td>
@@ -389,9 +426,7 @@ function StudentAdd(props) {
                       placeholder={a.최근진도}
                       className="inputText"
                       onChange={(e) => {
-                        var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                        newstuDB.진행중교재[i].최근진도 = parseInt(e.target.value);
-                        setstuDB(newstuDB);
+                        change_depth_three("진행중교재", i, "최근진도", parseInt(e.target.value));
                       }}
                     />
                   </td>
@@ -401,9 +436,7 @@ function StudentAdd(props) {
                       type="button"
                       onClick={() => {
                         if (i > -1) {
-                          var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                          newstuDB.진행중교재.splice(i, 1);
-                          setstuDB(newstuDB);
+                          delete_depth_one("진행중교재", i);
                         }
                       }}
                     >
@@ -421,8 +454,7 @@ function StudentAdd(props) {
                   className="btn btn-dark"
                   type="button"
                   onClick={() => {
-                    var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                    newstuDB.진행중교재.push({
+                    push_depth_one("진행중교재", {
                       과목: "",
                       교재: "",
                       총교재량: "",
@@ -430,7 +462,6 @@ function StudentAdd(props) {
                       교재시작일: "",
                       최근진도: 0,
                     });
-                    setstuDB(newstuDB);
                   }}
                 >
                   +
@@ -463,9 +494,7 @@ function StudentAdd(props) {
                     <Form.Select
                       size="sm"
                       onChange={(e) => {
-                        var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                        newstuDB.완료된교재[i].과목 = e.target.value;
-                        setstuDB(newstuDB);
+                        change_depth_three("완료된교재", i, "과목", e.target.value);
                       }}
                     >
                       <option>선택</option>
@@ -481,9 +510,7 @@ function StudentAdd(props) {
                       placeholder="ex)독사, 기탄수학 등"
                       className="inputText"
                       onChange={(e) => {
-                        var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                        newstuDB.완료된교재[i].교재 = e.target.value;
-                        setstuDB(newstuDB);
+                        change_depth_three("완료된교재", i, "교재", e.target.value);
                       }}
                     />
                   </td>
@@ -493,11 +520,9 @@ function StudentAdd(props) {
                       placeholder="ex)100p, 250문제"
                       className="inputText"
                       onChange={(e) => {
-                        var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                        newstuDB.완료된교재[i].총교재량 = e.target.value;
-                        const regex = /[^0-9]/g;
-                        newstuDB.완료된교재[i].총교재량숫자 = parseInt(e.target.value.replace(regex, ""));
-                        setstuDB(newstuDB);
+                        // const regex = /[^0-9]/g;
+                        change_depth_three("완료된교재", i, "총교재량", e.target.value);
+                        // change_depth_three("완료된교재", i, "총교재량숫자", parseInt(e.target.value.replace(regex, "")));
                       }}
                     />
                   </td>
@@ -507,9 +532,7 @@ function StudentAdd(props) {
                       type="date"
                       className="inputText"
                       onChange={(e) => {
-                        var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                        newstuDB.완료된교재[i].교재시작일 = e.target.value;
-                        setstuDB(newstuDB);
+                        change_depth_three("완료된교재", i, "교재시작일", e.target.value);
                       }}
                     />
                   </td>
@@ -519,9 +542,7 @@ function StudentAdd(props) {
                       type="date"
                       className="inputText"
                       onChange={(e) => {
-                        var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                        newstuDB.완료된교재[i].교재종료일 = e.target.value;
-                        setstuDB(newstuDB);
+                        change_depth_three("완료된교재", i, "교재종료일", e.target.value);
                       }}
                     />
                   </td>
@@ -532,9 +553,7 @@ function StudentAdd(props) {
                       type="button"
                       onClick={() => {
                         if (i > -1) {
-                          var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                          newstuDB.완료된교재.splice(i, 1);
-                          setstuDB(newstuDB);
+                          delete_depth_one("완료된교재", i);
                         }
                       }}
                     >
@@ -552,8 +571,7 @@ function StudentAdd(props) {
                   className="btn btn-dark"
                   type="button"
                   onClick={() => {
-                    var newstuDB = JSON.parse(JSON.stringify(stuDB));
-                    newstuDB.완료된교재.push({
+                    push_depth_one("완료된교재", {
                       과목: "",
                       교재: "",
                       총교재량: "",
@@ -561,7 +579,6 @@ function StudentAdd(props) {
                       교재시작일: "",
                       교재종료일: "",
                     });
-                    setstuDB(newstuDB);
                   }}
                 >
                   +
@@ -589,16 +606,13 @@ function StudentAdd(props) {
               onChange={(e) => {
                 setinputProgram(e.target.value);
               }}
-            />
-            <Button
-              className="btn-secondary"
-              onClick={() => {
-                const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                newstuDB.프로그램분류.push(inputProgram);
-                setstuDB(newstuDB);
-                document.querySelector("#inputProgram").value = "";
+              onKeyPress={(e) => {
+                if (e.key == "Enter") {
+                  programAdd();
+                }
               }}
-            >
+            />
+            <Button className="btn-secondary" onClick={programAdd}>
               +
             </Button>
           </InputGroup>
@@ -609,9 +623,11 @@ function StudentAdd(props) {
           onClick={() => {
             if (stuDB.작성매니저 === "") {
               return window.alert("작성매니저가 입력되지 않았습니다.");
-            } else if (stuDB.작성일자 === "") {
+            }
+            if (stuDB.작성일자 === "") {
               return window.alert("작성일자가 입력되지 않았습니다.");
-            } else if (window.confirm(`${stuDB.이름} 학생의 DB를 저장하시겠습니까?`)) {
+            }
+            if (window.confirm(`${stuDB.이름} 학생의 DB를 저장하시겠습니까?`)) {
               axios
                 .post("/api/StudentAdd", stuDB)
                 .then(function (response) {

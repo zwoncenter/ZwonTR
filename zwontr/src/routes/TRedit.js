@@ -6,8 +6,114 @@ import axios from "axios";
 
 function TRedit(props) {
   let history = useHistory();
+  var managerList = props.managerList;
   const [학생정보, 학생정보변경] = useState(props.stuDB);
   const [TR, TR변경] = useState(props.existTR);
+
+  function 입력확인() {
+    if (!TR.날짜) {
+      window.alert("일간하루 날짜가 입력되지 않았습니다.");
+      return false;
+    }
+    if (!TR.작성매니저) {
+      window.alert("일간하루 작성매니저가 선택되지 않았습니다.");
+      return false;
+    }
+    if (TR.결석여부) {
+      if (!TR.결석사유) {
+        window.alert("결석사유가 선택되지 않았습니다.");
+        return false;
+      }
+      return true;
+    }
+    if (!TR.신체컨디션) {
+      window.alert("신체컨디션이 선택되지 않았습니다.");
+      return false;
+    }
+
+    if (!TR.정서컨디션) {
+      window.alert("정서컨디션이 선택되지 않았습니다.");
+      return false;
+    }
+    if (TR.학습) {
+      for (let i = 0; i < TR.학습.length; i++) {
+        if (TR.학습[i].과목 == "선택") {
+          window.alert(`${i + 1}번째 학습의 과목이 선택되지 않았습니다.`);
+          return false;
+        }
+        if (TR.학습[i].교재 == "선택") {
+          window.alert(`${i + 1}번째 학습의 교재가 선택되지 않았습니다.`);
+          return false;
+        }
+        if (!TR.학습[i].최근진도) {
+          window.alert(`${i + 1}번째 학습의 최근진도가 입력되지 않았습니다.`);
+          return false;
+        }
+        if (!TR.학습[i].학습시간) {
+          window.alert(`${i + 1}번째 학습의 학습시간이 입력되지 않았습니다.`);
+          return false;
+        }
+      }
+    }
+    if (isNaN(TR.실제학습)) {
+      window.alert("학습 시간의 값이 NaN입니다. 수정 후 다시시도해 주세요.");
+      return false;
+    }
+
+    if (isNaN(TR.프로그램시간)) {
+      window.alert("프로그램 시간의 값이 NaN입니다. 수정 후 다시시도해 주세요.");
+      return false;
+    }
+    return true;
+  }
+
+  function 컨디션변환(num) {
+    if (num == 5) {
+      return "매우 좋음";
+    }
+    if (num == 4) {
+      return "좋음";
+    }
+    if (num == 3) {
+      return "보통";
+    }
+    if (num == 2) {
+      return "안좋음";
+    }
+    if (num == 1) {
+      return "매우 안좋음";
+    }
+  }
+
+  function change_depth_one(category, data) {
+    const newTR = JSON.parse(JSON.stringify(TR));
+    newTR[category] = data;
+    TR변경(newTR);
+  }
+
+  function change_depth_two(category1, category2, data) {
+    const newTR = JSON.parse(JSON.stringify(TR));
+    newTR[category1][category2] = data;
+    TR변경(newTR);
+  }
+
+  function change_depth_three(category1, category2, category3, data) {
+    const newTR = JSON.parse(JSON.stringify(TR));
+    newTR[category1][category2][category3] = data;
+    TR변경(newTR);
+  }
+
+  function delete_depth_one(category, index) {
+    const newTR = JSON.parse(JSON.stringify(TR));
+    newTR[category].splice(index, 1);
+    TR변경(newTR);
+  }
+
+  function push_depth_one(category, content) {
+    const newTR = JSON.parse(JSON.stringify(TR));
+    newTR[category].push(content);
+    TR변경(newTR);
+  }
 
   function 차이계산(목표, 실제) {
     let [목표시간, 목표분] = 목표.split(":");
@@ -33,37 +139,60 @@ function TRedit(props) {
     }
   }
 
+  useEffect(() => {
+    const newTR = JSON.parse(JSON.stringify(TR));
+    newTR.작성매니저 = "";
+    TR변경(newTR);
+  }, []);
+
   return (
     <div>
       <div className="row">
         <div className="col-xl-5 trCol">
           <div className="trCard border border-3">
             <div className="row mb-2">
-              <div className="col-4">
+              <div className="col-2">
                 <p className="fw-bold">이름</p>
                 <p>{TR.이름}</p>
               </div>
-              <div className="col-4">
+              <div className="col-3">
                 <p className="fw-bold">날짜</p>
                 <input
                   type="date"
                   defaultValue={TR.날짜}
                   className="w-100"
                   onChange={(e) => {
-                    var newTR = JSON.parse(JSON.stringify(TR));
-                    newTR.날짜 = e.target.value;
-                    TR변경(newTR);
+                    change_depth_one("날짜", e.target.value);
                   }}
                 />
               </div>
+
+              <div className="col-3">
+                <p className="fw-bold">작성매니저</p>
+                <Form.Select
+                  size="sm"
+                  onChange={(e) => {
+                    change_depth_one("작성매니저", e.target.value);
+                  }}
+                >
+                  <option value={props.existTR.작성매니저}>{"기존 : " + props.existTR.작성매니저}</option>
+                  {managerList
+                    ? managerList.map((manager, index) => {
+                        return (
+                          <option value={manager} key={index}>
+                            {manager}
+                          </option>
+                        );
+                      })
+                    : null}
+                </Form.Select>
+              </div>
+
               <div className="col-2 pe-0">
                 <button
                   className="btn btn-good mt-3"
                   onClick={() => {
-                    console.log(TR);
-                    var newTR = JSON.parse(JSON.stringify(TR));
-                    newTR.결석여부 = false;
-                    TR변경(newTR);
+                    change_depth_one("결석여부", false);
                   }}
                 >
                   등원
@@ -75,9 +204,7 @@ function TRedit(props) {
                   onClick={() => {
                     if (window.confirm("입력된 생활 및 학습 등이 삭제됩니다. 결석으로 전환하시겠습니까?")) {
                       console.log(TR);
-                      var newTR = JSON.parse(JSON.stringify(TR));
-                      newTR.결석여부 = true;
-                      TR변경(newTR);
+                      change_depth_one("결석여부", true);
                     }
                   }}
                 >
@@ -95,12 +222,10 @@ function TRedit(props) {
                     <Form.Select
                       size="sm"
                       onChange={(e) => {
-                        const newTR = JSON.parse(JSON.stringify(TR));
-                        newTR.신체컨디션 = parseInt(e.target.value);
-                        TR변경(newTR);
+                        change_depth_one("신체컨디션", parseInt(e.target.value));
                       }}
                     >
-                      <option>{TR.신체컨디션}</option>
+                      <option value={props.existTR.신체컨디션}>{컨디션변환(props.existTR.신체컨디션)}</option>
                       <option value={5}>매우 좋음</option>
                       <option value={4}> 좋음</option>
                       <option value={3}>보통</option>
@@ -117,12 +242,10 @@ function TRedit(props) {
                     <Form.Select
                       size="sm"
                       onChange={(e) => {
-                        const newTR = JSON.parse(JSON.stringify(TR));
-                        newTR.정서컨디션 = parseInt(e.target.value);
-                        TR변경(newTR);
+                        change_depth_one("정서컨디션", parseInt(e.target.value));
                       }}
                     >
-                      <option>{TR.정서컨디션}</option>
+                      <option value={props.existTR.정서컨디션}>{컨디션변환(props.existTR.정서컨디션)}</option>
                       <option value={5}>매우 좋음</option>
                       <option value={4}> 좋음</option>
                       <option value={3}>보통</option>
@@ -197,9 +320,7 @@ function TRedit(props) {
                             <Form.Select
                               size="sm"
                               onChange={(e) => {
-                                var newTR = JSON.parse(JSON.stringify(TR));
-                                newTR.학습[i].과목 = e.target.value;
-                                TR변경(newTR);
+                                change_depth_three("학습", i, "과목", e.target.value);
                               }}
                             >
                               <option>{a.과목 ? a.과목 : "선택"}</option>
@@ -213,9 +334,7 @@ function TRedit(props) {
                             <Form.Select
                               size="sm"
                               onChange={(e) => {
-                                var newTR = JSON.parse(JSON.stringify(TR));
-                                newTR.학습[i].교재 = e.target.value;
-                                TR변경(newTR);
+                                change_depth_three("학습", i, "교재", e.target.value);
                               }}
                             >
                               <option>{a.교재 ? a.교재 : "선택"}</option>
@@ -232,9 +351,7 @@ function TRedit(props) {
                               defaultValue={a.최근진도}
                               className="inputText"
                               onChange={(e) => {
-                                var newTR = JSON.parse(JSON.stringify(TR));
-                                newTR.학습[i].최근진도 = parseInt(e.target.value);
-                                TR변경(newTR);
+                                change_depth_three("학습", i, "최근진도", parseInt(e.target.value));
                               }}
                             />
                           </td>
@@ -266,6 +383,15 @@ function TRedit(props) {
                                 if (i > -1) {
                                   var newTR = JSON.parse(JSON.stringify(TR));
                                   newTR.학습.splice(i, 1);
+                                  let 실제학습시간 = 0;
+                                  let 실제학습분 = 0;
+                                  newTR.학습.map(function (b, j) {
+                                    if (b.학습시간) {
+                                      실제학습시간 += parseInt(b.학습시간.split(":")[0]);
+                                      실제학습분 += parseInt(b.학습시간.split(":")[1]);
+                                    }
+                                  });
+                                  newTR.실제학습 = parseFloat((실제학습시간 + 실제학습분 / 60).toFixed(1));
                                   TR변경(newTR);
                                 }
                               }}
@@ -280,7 +406,7 @@ function TRedit(props) {
                     <tr>
                       <td colSpan={4}>목표 학습 - {TR.목표학습} 시간</td>
                       <td> {TR.실제학습} 시간</td>
-                      <td>{TR.실제학습 - TR.목표학습}시간</td>
+                      <td>{(TR.실제학습 - TR.목표학습).toFixed(1)}시간</td>
                     </tr>
                     <tr>
                       <td colSpan={6}>
@@ -288,15 +414,13 @@ function TRedit(props) {
                         <button
                           className="btn btn-dark"
                           onClick={() => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.학습.push({
+                            push_depth_one("학습", {
                               과목: "",
                               교재: "",
                               총교재량: "---",
                               최근진도: "",
                               학습시간: "",
                             });
-                            TR변경(newTR);
                           }}
                         >
                           +
@@ -324,9 +448,7 @@ function TRedit(props) {
                             <Form.Select
                               size="sm"
                               onChange={(e) => {
-                                var newTR = JSON.parse(JSON.stringify(TR));
-                                newTR.프로그램[i].프로그램분류 = e.target.value;
-                                TR변경(newTR);
+                                change_depth_three("프로그램", i, "프로그램분류", e.target.value);
                               }}
                             >
                               <option>{a.프로그램분류 ? a.프로그램분류 : "선택"}</option>
@@ -343,14 +465,17 @@ function TRedit(props) {
                             <Form.Select
                               size="sm"
                               onChange={(e) => {
-                                var newTR = JSON.parse(JSON.stringify(TR));
-                                newTR.프로그램[i].매니저 = e.target.value;
-                                TR변경(newTR);
+                                change_depth_three("프로그램", i, "매니저", e.target.value);
                               }}
                             >
                               <option>{a.매니저 ? a.매니저 : "선택"}</option>
-                              <option value="유장훈">유장훈</option>
-                              <option value="오지영">오지영</option>
+                              {managerList.map(function (b, j) {
+                                return (
+                                  <option value={b} key={j}>
+                                    {b}
+                                  </option>
+                                );
+                              })}
                             </Form.Select>
                           </td>
                           <td>
@@ -384,9 +509,7 @@ function TRedit(props) {
                               placeholder="프로그램 진행 내용"
                               defaultValue={a.상세내용}
                               onChange={(e) => {
-                                var newTR = JSON.parse(JSON.stringify(TR));
-                                newTR.프로그램[i].상세내용 = e.target.value;
-                                TR변경(newTR);
+                                change_depth_three("프로그램", i, "상세내용", e.target.value);
                               }}
                             ></textarea>
                           </td>
@@ -397,6 +520,15 @@ function TRedit(props) {
                                 if (i > -1) {
                                   var newTR = JSON.parse(JSON.stringify(TR));
                                   newTR.프로그램.splice(i, 1);
+                                  let 실제시간 = 0;
+                                  let 실제분 = 0;
+                                  newTR.프로그램.map(function (c, k) {
+                                    if (c.소요시간) {
+                                      실제시간 += parseInt(c.소요시간.split(":")[0]);
+                                      실제분 += parseInt(c.소요시간.split(":")[1]);
+                                    }
+                                  });
+                                  newTR.프로그램시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
                                   TR변경(newTR);
                                 }
                               }}
@@ -417,14 +549,12 @@ function TRedit(props) {
                         <button
                           className="btn btn-dark"
                           onClick={() => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.프로그램.push({
+                            push_depth_one("프로그램", {
                               프로그램분류: "",
                               매니저: "",
                               소요시간: "",
                               상세내용: "",
                             });
-                            TR변경(newTR);
                           }}
                         >
                           +
@@ -439,9 +569,7 @@ function TRedit(props) {
                 <Form.Select
                   size="sm"
                   onChange={(e) => {
-                    var newTR = JSON.parse(JSON.stringify(TR));
-                    newTR.결석사유 = e.target.value;
-                    TR변경(newTR);
+                    push_depth_one("결석사유", e.target.value);
                   }}
                 >
                   <option>선택</option>
@@ -456,9 +584,7 @@ function TRedit(props) {
                   className="textArea mt-3"
                   placeholder="결석 사유를 입력"
                   onChange={(e) => {
-                    var newTR = JSON.parse(JSON.stringify(TR));
-                    newTR.결석상세내용 = e.target.value;
-                    TR변경(newTR);
+                    push_depth_one("결석상세내용", e.target.value);
                   }}
                 ></textarea>
               </div>
@@ -479,9 +605,7 @@ function TRedit(props) {
                       id={`study-${prob.분류}`}
                       label={`${prob.분류}`}
                       onChange={(e) => {
-                        var newTR = JSON.parse(JSON.stringify(TR));
-                        newTR.학습태도[i].문제여부 = e.target.checked;
-                        TR변경(newTR);
+                        change_depth_three("학습태도", i, "문제여부", e.target.checked);
                       }}
                     />
                   </div>
@@ -498,124 +622,40 @@ function TRedit(props) {
                   id={`study-${prob.분류}`}
                   label={`${prob.분류}`}
                   onChange={(e) => {
-                    var newTR = JSON.parse(JSON.stringify(TR));
-                    newTR.문제행동[i].문제여부 = e.target.checked;
-                    TR변경(newTR);
+                    change_depth_three("문제행동", i, "문제여부", e.target.checked);
                   }}
                 />
               </div>
             ))}
           </div>
         </div>
+
         <div className="col-xl-4 trCol">
           <div className="trCard border border-3">
-            <p className="fw-bold mt-3">상담</p>
-            <Table striped bordered hover className="mt-3">
-              <thead>
-                <tr>
-                  <th width="15%">매니저</th>
-                  <th width="20%">소요시간</th>
-                  <th width="55%">상세내용</th>
-                  <th width="10%"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {TR.상담.map(function (a, i) {
-                  return (
-                    <tr key={i}>
-                      <td>
-                        <Form.Select
-                          size="sm"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.상담[i].매니저 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        >
-                          <option>{a.매니저 ? a.매니저 : "선택"}</option>
-                          <option value="유장훈">유장훈</option>
-                          <option value="오지영">오지영</option>
-                        </Form.Select>
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          placeholder="ex) 0:30"
-                          defaultValue={a.소요시간}
-                          className="inputText"
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.상담[i].소요시간 = e.target.value;
-                            let 실제시간 = 0;
-                            let 실제분 = 0;
-                            newTR.상담.map(function (c, k) {
-                              if (c.소요시간) {
-                                실제시간 += parseInt(c.소요시간.split(":")[0]);
-                                실제분 += parseInt(c.소요시간.split(":")[1]);
-                              }
-                            });
-                            newTR.상담시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
-                            TR변경(newTR);
-                          }}
-                        />
-                      </td>
-                      <td>
-                        <textarea
-                          className="textArea"
-                          name=""
-                          id=""
-                          rows="3"
-                          placeholder="상담 상세내용 입력"
-                          defaultValue={a.상세내용}
-                          onChange={(e) => {
-                            var newTR = JSON.parse(JSON.stringify(TR));
-                            newTR.상담[i].상세내용 = e.target.value;
-                            TR변경(newTR);
-                          }}
-                        ></textarea>
-                      </td>
-                      <td>
-                        <button
-                          className="btn btn-delete"
-                          onClick={() => {
-                            if (i > -1) {
-                              var newTR = JSON.parse(JSON.stringify(TR));
-                              newTR.상담.splice(i, 1);
-                              TR변경(newTR);
-                            }
-                          }}
-                        >
-                          x
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+            <h5 className="fw-bold mt-3 mb-3">큐브책 체크리스트</h5>
+            {TR.큐브책.map((a, i) => (
+              <div key={i} className="mb-2 mt -3 ">
+                <Form.Check
+                  className="border-bottom"
+                  defaultChecked={a.완료여부}
+                  type="checkbox"
+                  label={`${a.할일}`}
+                  onChange={(e) => {
+                    change_depth_three("큐브책", i, "완료여부", e.target.checked);
+                  }}
+                />
+              </div>
+            ))}
 
-                <tr>
-                  <td colSpan={5}>총 상담 시간 : {TR.상담시간}시간</td>
-                </tr>
-                <tr>
-                  <td colSpan={5}>
-                    {" "}
-                    <button
-                      className="btn btn-dark"
-                      onClick={() => {
-                        var newTR = JSON.parse(JSON.stringify(TR));
-                        newTR.상담.push({
-                          매니저: "",
-                          소요시간: "",
-                          상세내용: "",
-                        });
-                        TR변경(newTR);
-                      }}
-                    >
-                      +
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </Table>
+            <h5 className="fw-bold mt-5 mb-3">매니저 피드백</h5>
+            <textarea
+              className="textArea"
+              rows="10"
+              defaultValue={TR.매니저피드백}
+              onChange={(e) => {
+                change_depth_one("매니저피드백", e.target.value);
+              }}
+            ></textarea>
           </div>
           <Button
             variant="primary"
@@ -627,21 +667,25 @@ function TRedit(props) {
                 TR변경(newTR);
                 console.log(TR);
               }
-              if (window.confirm("수정된 DB를 저장하시겠습니까?")) {
-                axios
-                  .put("/api/TR/edit", TR)
-                  .then(function (result) {
-                    console.log(result);
-                    if (result.data === true) {
-                      console.log("수정 성공", result);
-                      history.push("/studentList");
-                    } else {
-                      window.alert("수정 중 해당 일간하루가 삭제되었습니다. 개발/데이터 팀에 문의해주세요");
-                    }
-                  })
-                  .catch(function (err) {
-                    console.log("수정 실패 : ", err);
-                  });
+              if (입력확인()) {
+                if (window.confirm("수정된 DB를 저장하시겠습니까?")) {
+                  axios
+                    .put("/api/TR/edit", TR)
+                    .then(function (result) {
+                      if (result.data === true) {
+                        window.alert("저장되었습니다");
+                        history.push("/studentList");
+                      } else if (result.data === "로그인필요") {
+                        window.alert("로그인이 필요합니다.");
+                        return history.push("/");
+                      } else {
+                        window.alert("수정 중 해당 일간하루가 삭제되었습니다. 개발/데이터 팀에 문의해주세요");
+                      }
+                    })
+                    .catch(function (err) {
+                      console.log("수정 실패 : ", err);
+                    });
+                }
               }
             }}
           >
@@ -656,7 +700,6 @@ function TRedit(props) {
                 axios
                   .delete(`/api/TR/delete/${TR._id}`)
                   .then(function (response) {
-                    console.log(response);
                     if (response.data === true) {
                       window.alert("삭제되었습니다");
                     } else {
