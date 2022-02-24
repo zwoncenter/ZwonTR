@@ -1,7 +1,7 @@
 import "../App.scss";
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 
 function TRwrite(props) {
@@ -20,19 +20,15 @@ function TRwrite(props) {
     신체컨디션: "",
     정서컨디션: "",
 
-    목표취침: 학생정보.생활학습목표.평일취침,
-    실제취침: 학생정보.생활학습목표.평일취침,
-
-    목표기상: 학생정보.생활학습목표.평일기상,
-    실제기상: 학생정보.생활학습목표.평일기상,
-
-    목표등원: 학생정보.생활학습목표.평일등원,
-    실제등원: 학생정보.생활학습목표.평일등원,
-
-    목표귀가: 학생정보.생활학습목표.평일귀가,
-    실제귀가: 학생정보.생활학습목표.평일귀가,
-
-    목표학습: 학생정보.생활학습목표.평일학습,
+    목표취침: "",
+    실제취침: "",
+    목표기상: "",
+    실제기상: "",
+    목표등원: "",
+    실제등원: "",
+    목표귀가: "",
+    실제귀가: "",
+    목표학습: "",
     실제학습: 0,
 
     취침차이: 0,
@@ -192,11 +188,12 @@ function TRwrite(props) {
   }
 
   // 학생DB에 있는 생활학습목표 및 진행중교재 추가
+  const isInitialMount = useRef(true);
+
   useEffect(async () => {
-    let newTR = JSON.parse(JSON.stringify(TR));
-    let tmp = [];
+    const newTR = JSON.parse(JSON.stringify(TR));
     학생정보.진행중교재.map(function (a, i) {
-      tmp.push({
+      newTR.학습.push({
         과목: a.과목,
         교재: a.교재,
         총교재량: a.총교재량,
@@ -204,20 +201,85 @@ function TRwrite(props) {
         학습시간: "",
       });
     });
-    newTR.학습 = [...tmp];
-
-    const tmp2 = [];
     학생정보.큐브책.map(function (a, i) {
-      tmp2.push({
+      newTR.큐브책.push({
         할일: a,
         완료여부: false,
       });
     });
 
-    newTR.큐브책 = [...tmp2];
+    const tmp = new Date(TR.날짜);
 
-    TR변경(newTR);
+    if (tmp.getDay() === 0) {
+      newTR["목표취침"] = 학생정보.생활학습목표.일요일취침;
+      newTR["실제취침"] = 학생정보.생활학습목표.일요일취침;
+      newTR["목표기상"] = 학생정보.생활학습목표.일요일기상;
+      newTR["실제기상"] = 학생정보.생활학습목표.일요일기상;
+      newTR["목표등원"] = 학생정보.생활학습목표.일요일등원;
+      newTR["실제등원"] = 학생정보.생활학습목표.일요일등원;
+      newTR["목표귀가"] = 학생정보.생활학습목표.일요일귀가;
+      newTR["실제귀가"] = 학생정보.생활학습목표.일요일귀가;
+      newTR["목표학습"] = 학생정보.생활학습목표.일요일학습;
+    } else {
+      newTR["목표취침"] = 학생정보.생활학습목표.평일취침;
+      newTR["실제취침"] = 학생정보.생활학습목표.평일취침;
+      newTR["목표기상"] = 학생정보.생활학습목표.평일기상;
+      newTR["실제기상"] = 학생정보.생활학습목표.평일기상;
+      newTR["목표등원"] = 학생정보.생활학습목표.평일등원;
+      newTR["실제등원"] = 학생정보.생활학습목표.평일등원;
+      newTR["목표귀가"] = 학생정보.생활학습목표.평일귀가;
+      newTR["실제귀가"] = 학생정보.생활학습목표.평일귀가;
+      newTR["목표학습"] = 학생정보.생활학습목표.평일학습;
+    }
+
+    ["취침", "기상", "등원", "귀가"].forEach((a) => {
+      newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
+    });
+
+    await TR변경(newTR);
+
+    isInitialMount.current = false;
   }, []);
+
+  useEffect(() => {
+    if (!isInitialMount.current) {
+      const newTR = JSON.parse(JSON.stringify(TR));
+      const tmp = new Date(TR.날짜);
+
+      if (tmp.getDay() === 0) {
+        newTR["목표취침"] = 학생정보.생활학습목표.일요일취침;
+        newTR["실제취침"] = 학생정보.생활학습목표.일요일취침;
+        newTR["목표기상"] = 학생정보.생활학습목표.일요일기상;
+        newTR["실제기상"] = 학생정보.생활학습목표.일요일기상;
+        newTR["목표등원"] = 학생정보.생활학습목표.일요일등원;
+        newTR["실제등원"] = 학생정보.생활학습목표.일요일등원;
+        newTR["목표귀가"] = 학생정보.생활학습목표.일요일귀가;
+        newTR["실제귀가"] = 학생정보.생활학습목표.일요일귀가;
+        newTR["목표학습"] = 학생정보.생활학습목표.일요일학습;
+      } else {
+        newTR["목표취침"] = 학생정보.생활학습목표.평일취침;
+        newTR["실제취침"] = 학생정보.생활학습목표.평일취침;
+        newTR["목표기상"] = 학생정보.생활학습목표.평일기상;
+        newTR["실제기상"] = 학생정보.생활학습목표.평일기상;
+        newTR["목표등원"] = 학생정보.생활학습목표.평일등원;
+        newTR["실제등원"] = 학생정보.생활학습목표.평일등원;
+        newTR["목표귀가"] = 학생정보.생활학습목표.평일귀가;
+        newTR["실제귀가"] = 학생정보.생활학습목표.평일귀가;
+        newTR["목표학습"] = 학생정보.생활학습목표.평일학습;
+      }
+      TR변경(newTR);
+    }
+  }, [TR.날짜]);
+
+  useEffect(() => {
+    if (!isInitialMount.current) {
+      const newTR = JSON.parse(JSON.stringify(TR));
+      ["취침", "기상", "등원", "귀가"].forEach((a) => {
+        newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
+      });
+      TR변경(newTR);
+    }
+  }, [TR.목표취침, TR.실제취침, TR.목표기상, TR.실제기상, TR.목표등원, TR.실제등원, TR.목표귀가, TR.실제귀가, TR.목표학습, TR.실제학습]);
 
   return (
     <div>
@@ -350,7 +412,6 @@ function TRwrite(props) {
                               onChange={(e) => {
                                 const newTR = JSON.parse(JSON.stringify(TR));
                                 newTR[`목표${a}`] = e.target.value;
-                                newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
                                 TR변경(newTR);
                               }}
                             />
@@ -359,12 +420,11 @@ function TRwrite(props) {
                           <td>
                             <input
                               type="time"
-                              defaultValue={학생정보.생활학습목표[`평일${a}`]}
+                              defaultValue={TR[`실제${a}`]}
                               className="inputTime"
                               onChange={(e) => {
                                 const newTR = JSON.parse(JSON.stringify(TR));
                                 newTR[`실제${a}`] = e.target.value;
-                                newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
                                 TR변경(newTR);
                               }}
                             />
@@ -418,9 +478,6 @@ function TRwrite(props) {
                               <option value="선택">선택</option>
                               <option value="모의고사">모의고사</option>
                               <option value="테스트">테스트</option>q<option value="기타">기타</option>
-                              {/* {학생정보.진행중교재.map(function (b, j) {
-                                return <option value={b.교재}>{b.교재}</option>;
-                              })} */}
                             </Form.Select>
                           </td>
                           <td>
