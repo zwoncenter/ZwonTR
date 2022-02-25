@@ -83,6 +83,9 @@ function TRedit(props) {
     if (num == 1) {
       return "매우 안좋음";
     }
+    if (num === "-") {
+      return "-";
+    }
   }
 
   function change_depth_one(category, data) {

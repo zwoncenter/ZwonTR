@@ -99,60 +99,61 @@ function StuListpage(props) {
             : null}
         </ListGroup>
       </Card>
-
-      <Modal show={modalShow} onHide={modalClose}>
-        <Modal.Header closeButton>
-          <Modal.Title>{ready ? props.studentList[props.선택된index].이름 : ""}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="text-center">
-          <button
-            className="btn btn-primary me-3"
-            onClick={() => {
-              history.push(`/StudentEdit/${props.studentList[props.선택된index].이름}`);
-            }}
-          >
-            학생DB조회/변경
-          </button>
-
-          <button
-            className="btn btn-primary me-3"
-            onClick={() => {
-              setTRlistShow(!TRlistShow);
-            }}
-          >
-            TR(일간하루)
-          </button>
-        </Modal.Body>
-        {TRlistShow === true ? (
-          <div className="text-center mb-3">
-            <Button
-              className="btn-secondary"
+      {modalShow === true ? (
+        <Modal show={modalShow} onHide={modalClose}>
+          <Modal.Header closeButton>
+            <Modal.Title>{ready ? props.studentList[props.선택된index].이름 : ""}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body className="text-center">
+            <button
+              className="btn btn-primary me-3"
               onClick={() => {
-                history.push(`/TR/${props.studentList[props.선택된index].이름}/write`);
+                history.push(`/StudentEdit/${props.studentList[props.선택된index].이름}`);
               }}
             >
-              + 새 TR 작성 +
-            </Button>
+              학생DB조회/변경
+            </button>
 
-            <ListGroup variant="flush">
-              {props.trList.map(function (tr, index) {
-                return (
-                  <ListGroup.Item
-                    className="pt-3"
-                    key={index}
-                    onClick={async () => {
-                      await props.선택된TRindex변경(index);
-                      history.push(`TR/${tr.이름}/edit/${tr.날짜}`);
-                    }}
-                  >
-                    <p>{tr.날짜}</p>
-                  </ListGroup.Item>
-                );
-              })}
-            </ListGroup>
-          </div>
-        ) : null}
-      </Modal>
+            <button
+              className="btn btn-primary me-3"
+              onClick={() => {
+                setTRlistShow(!TRlistShow);
+              }}
+            >
+              TR(일간하루)
+            </button>
+          </Modal.Body>
+          {TRlistShow === true ? (
+            <div className="text-center mb-3">
+              <Button
+                className="btn-secondary"
+                onClick={() => {
+                  history.push(`/TR/${props.studentList[props.선택된index].이름}/write`);
+                }}
+              >
+                + 새 TR 작성 +
+              </Button>
+
+              <ListGroup variant="flush">
+                {props.trList.map(function (tr, index) {
+                  return (
+                    <ListGroup.Item
+                      className="pt-3"
+                      key={index}
+                      onClick={async () => {
+                        await props.선택된TRindex변경(index);
+                        history.push(`TR/${tr.이름}/edit/${tr.날짜}`);
+                      }}
+                    >
+                      <p>{tr.날짜}</p>
+                    </ListGroup.Item>
+                  );
+                })}
+              </ListGroup>
+            </div>
+          ) : null}
+        </Modal>
+      ) : null}
     </div>
   );
 }

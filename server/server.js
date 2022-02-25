@@ -33,7 +33,7 @@ MongoClient.connect(process.env.DB_URL, function (err, client) {
   }
 
   // db라는 변수에 Zwon 데이터베이스를 연결.
-  db = client.db("Zwon");
+  db = client.db("zwon");
 
   app.listen(process.env.PORT, function () {
     console.log(`listening on ${process.env.PORT}`);
@@ -126,7 +126,7 @@ app.get("/api/studentList", loginCheck, function (req, res) {
 });
 
 app.get("/api/managerList", loginCheck, (req, res) => {
-  db.collection("manager")
+  db.collection("Manager")
     .find()
     .toArray((err, result) => {
       if (err) {
