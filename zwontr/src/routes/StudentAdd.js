@@ -73,12 +73,7 @@ function StudentAdd(props) {
   return (
     <div className="">
       <h1 className="fw-bold">학생 DB 신규 작성 </h1>
-      <Form
-        className="stuDB-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-        }}
-      >
+      <div className="stuDB-form">
         <h3 className="mb-3"> 작성매니저 / 작성일자 </h3>
 
         <Form.Group as={Row} className="mb-3">
@@ -593,8 +588,19 @@ function StudentAdd(props) {
           <h4 className="mt-3">
             {stuDB.프로그램분류.map(function (a, i) {
               return (
-                <Badge pill bg="success" className="me-1" key={i}>
+                <Badge pill bg="success" className="me-1 mt-1" key={i}>
                   {a}
+                  <span
+                    className="program-delete"
+                    onClick={() => {
+                      if (i > -1) {
+                        delete_depth_one("프로그램분류", i);
+                      }
+                    }}
+                  >
+                    {" "}
+                    x
+                  </span>
                 </Badge>
               );
             })}
@@ -645,7 +651,7 @@ function StudentAdd(props) {
           {" "}
           신규 DB 등록
         </Button>
-      </Form>
+      </div>
     </div>
   );
 }

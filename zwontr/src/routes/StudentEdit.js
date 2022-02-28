@@ -56,6 +56,13 @@ function StudentAdd(props) {
   return (
     <div className="">
       <h1 className="fw-bold">학생 DB 조회/변경 </h1>
+      {/* <Button
+        onClick={() => {
+          console.log(stuDB);
+        }}
+      >
+        DB 확인
+      </Button> */}
 
       <Form
         className="stuDB-form"
@@ -87,6 +94,7 @@ function StudentAdd(props) {
           <Col sm="10">
             <Form.Control
               type="date"
+              defaultValue={stuDB.작성일자}
               onChange={(e) => {
                 change_depth_one("작성일자", e.target.value);
               }}
@@ -593,8 +601,19 @@ function StudentAdd(props) {
             {stuDB
               ? stuDB.프로그램분류.map(function (a, i) {
                   return (
-                    <Badge pill bg="success" className="me-1" key={i}>
+                    <Badge pill bg="success" className="me-1 mt-1" key={i}>
                       {a}
+                      <span
+                        className="program-delete"
+                        onClick={() => {
+                          if (i > -1) {
+                            delete_depth_one("프로그램분류", i);
+                          }
+                        }}
+                      >
+                        {" "}
+                        x
+                      </span>
                     </Badge>
                   );
                 })
@@ -624,9 +643,11 @@ function StudentAdd(props) {
           onClick={() => {
             if (stuDB.작성매니저 === "") {
               return window.alert("작성매니저가 입력되지 않았습니다.");
-            } else if (stuDB.작성일자 === "") {
+            }
+            if (stuDB.작성일자 === "") {
               return window.alert("작성일자가 입력되지 않았습니다.");
-            } else if (window.confirm(`${stuDB.이름} 학생의 DB를 수정하시겠습니까?`)) {
+            }
+            if (window.confirm(`${stuDB.이름} 학생의 DB를 수정하시겠습니까?`)) {
               axios
                 .put("/api/StudentEdit", stuDB)
                 .then(function (result) {
@@ -645,7 +666,6 @@ function StudentAdd(props) {
             }
           }}
         >
-          {" "}
           학생 DB 수정
         </Button>
 
