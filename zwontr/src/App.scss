@@ -56,9 +56,8 @@ div {
 }
 
 .inputTime {
-  width: 7rem;
-  border-radius: 5px;
-  border: solid 1px gray;
+  width: 70%;
+  min-width: 2rem;
 }
 
 .inputText {
@@ -152,4 +151,16 @@ Form h3 {
   margin: auto;
   border-radius: 10px;
   padding: 10px;
+}
+
+.program-delete {
+  color: black;
+
+  &:hover {
+    cursor: pointer;
+  }
+}
+
+.timepicker {
+  border-radius: 7px;
 }
