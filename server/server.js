@@ -256,7 +256,7 @@ app.put("/api/TR/edit", loginCheck, function (req, res) {
     if (err) {
       return res.send(`/api/TR/edit - findOne Error : `, err);
     }
-    if (result !== null) {
+    if (result !== null && !result._id.equals(findID)) {
       return res.send("중복되는 날짜의 일간하루가 존재합니다.");
     }
     db.collection(`TR`).findOne({ _id: findID }, function (err2, result2) {
