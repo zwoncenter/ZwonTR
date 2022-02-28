@@ -49,9 +49,7 @@ function App() {
         <StudentEdit existstuDB={studentList[선택된index]}></StudentEdit>
       </Route>
       <Route exact path="/TR/:name/write">
-        <TRwrite stuDB={studentList[선택된index]} managerList={managerList}>
-          {" "}
-        </TRwrite>
+        <TRwrite stuDB={studentList[선택된index]} managerList={managerList}></TRwrite>
       </Route>
       <Route exact path="/TR/:name/edit/:date">
         <TRedit stuDB={studentList[선택된index]} existTR={trList[선택된TRindex]} managerList={managerList}></TRedit>

@@ -652,8 +652,8 @@ function TRedit(props) {
 
             <h5 className="fw-bold mt-5 mb-3">매니저 피드백</h5>
             <textarea
-              className="textArea"
               rows="10"
+              className="textArea"
               defaultValue={TR.매니저피드백}
               onChange={(e) => {
                 change_depth_one("매니저피드백", e.target.value);
@@ -682,11 +682,13 @@ function TRedit(props) {
                         window.alert("로그인이 필요합니다.");
                         return history.push("/");
                       } else {
-                        window.alert("수정 중 해당 일간하루가 삭제되었습니다. 개발/데이터 팀에 문의해주세요");
+                        console.log(result.data);
+                        window.alert(result.data);
                       }
                     })
                     .catch(function (err) {
                       console.log("수정 실패 : ", err);
+                      window.alert(err);
                     });
                 }
               }
@@ -706,11 +708,11 @@ function TRedit(props) {
                     if (response.data === true) {
                       window.alert("삭제되었습니다");
                     } else {
-                      window.alert("삭제에 실패했습니다. 개발/데이터 팀에게 문의해주세요");
+                      window.alert(response.data);
                     }
                   })
                   .catch(function (err) {
-                    window.alert("삭제에 실패했습니다 개발/데이터 팀에게 문의해주세요");
+                    window.alert(err, "삭제에 실패했습니다 개발/데이터 팀에게 문의해주세요");
                   })
                   .then(function () {
                     history.push("/studentList");

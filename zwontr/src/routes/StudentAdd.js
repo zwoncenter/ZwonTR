@@ -627,6 +627,9 @@ function StudentAdd(props) {
             if (stuDB.작성일자 === "") {
               return window.alert("작성일자가 입력되지 않았습니다.");
             }
+            if (stuDB.이름 === "") {
+              return window.alert("학생의 이름이 입력되지 않았습니다.");
+            }
             if (window.confirm(`${stuDB.이름} 학생의 DB를 저장하시겠습니까?`)) {
               axios
                 .post("/api/StudentAdd", stuDB)

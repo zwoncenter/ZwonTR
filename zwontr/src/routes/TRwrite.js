@@ -807,6 +807,7 @@ function TRwrite(props) {
                         window.alert("로그인이 필요합니다.");
                         return history.push("/");
                       } else {
+                        console.log(result.data);
                         window.alert("중복되는 날짜의 일간하루가 존재합니다.");
                       }
                     })

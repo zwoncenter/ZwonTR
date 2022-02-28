@@ -624,9 +624,14 @@ function StudentAdd(props) {
           onClick={() => {
             if (stuDB.작성매니저 === "") {
               return window.alert("작성매니저가 입력되지 않았습니다.");
-            } else if (stuDB.작성일자 === "") {
+            }
+            if (stuDB.작성일자 === "") {
               return window.alert("작성일자가 입력되지 않았습니다.");
-            } else if (window.confirm(`${stuDB.이름} 학생의 DB를 수정하시겠습니까?`)) {
+            }
+            if (stuDB.이름 === "") {
+              return window.alert("학생의 이름이 입력되지 않았습니다.");
+            }
+            if (window.confirm(`${stuDB.이름} 학생의 DB를 수정하시겠습니까?`)) {
               axios
                 .put("/api/StudentEdit", stuDB)
                 .then(function (result) {
