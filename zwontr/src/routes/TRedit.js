@@ -3,7 +3,7 @@ import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-boo
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
-
+import TimePicker from "react-time-picker";
 function TRedit(props) {
   let history = useHistory();
   var managerList = props.managerList;
@@ -83,6 +83,9 @@ function TRedit(props) {
     if (num == 1) {
       return "매우 안좋음";
     }
+    if (num === "-") {
+      return "-";
+    }
   }
 
   function change_depth_one(category, data) {
@@ -116,6 +119,9 @@ function TRedit(props) {
   }
 
   function 차이계산(목표, 실제) {
+    if (!목표 || !실제) {
+      return NaN;
+    }
     let [목표시간, 목표분] = 목표.split(":");
     let [실제시간, 실제분] = 실제.split(":");
     let diff = parseInt(목표시간) - parseInt(실제시간) + (parseInt(목표분) - parseInt(실제분)) / 60;
@@ -258,10 +264,10 @@ function TRedit(props) {
                 <Table striped hover className="mt-3">
                   <thead>
                     <tr>
-                      <th width="10%">생활</th>
-                      <th>목표</th>
-                      <th>실제</th>
-                      <th width="25%">차이</th>
+                      <th width="15%">생활</th>
+                      <th width="25%">목표</th>
+                      <th width="25%">실제</th>
+                      <th>차이</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -270,31 +276,34 @@ function TRedit(props) {
                         <tr key={i}>
                           <td>{a}</td>
                           <td>
-                            <input
-                              type="time"
-                              defaultValue={TR[`목표${a}`]}
-                              className="inputTime"
-                              onChange={(e) => {
+                            <TimePicker
+                              locale="sv-sv"
+                              value={TR[`목표${a}`]}
+                              openClockOnFocus={false}
+                              clearIcon={null}
+                              clockIcon={null}
+                              onChange={(value) => {
                                 const newTR = JSON.parse(JSON.stringify(TR));
-                                newTR[`목표${a}`] = e.target.value;
-                                newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
+                                newTR[`목표${a}`] = value;
                                 TR변경(newTR);
                               }}
-                            />
+                            ></TimePicker>
                           </td>
 
                           <td>
-                            <input
-                              type="time"
-                              defaultValue={TR[`실제${a}`]}
-                              className="inputTime"
-                              onChange={(e) => {
+                            <TimePicker
+                              className="timepicker"
+                              locale="sv-sv"
+                              value={TR[`실제${a}`]}
+                              openClockOnFocus={false}
+                              clearIcon={null}
+                              clockIcon={null}
+                              onChange={(value) => {
                                 const newTR = JSON.parse(JSON.stringify(TR));
-                                newTR[`실제${a}`] = e.target.value;
-                                newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
+                                newTR[`실제${a}`] = value;
                                 TR변경(newTR);
                               }}
-                            />
+                            ></TimePicker>
                           </td>
                           <td>{차이출력(TR[`${a}차이`], a)}</td>
                         </tr>
@@ -358,25 +367,28 @@ function TRedit(props) {
                             />
                           </td>
                           <td>
-                            <input
-                              type="text"
-                              defaultValue={a.학습시간}
-                              className="inputText"
-                              onChange={(e) => {
+                            <TimePicker
+                              className="timepicker"
+                              locale="sv-sv"
+                              value={a.학습시간}
+                              openClockOnFocus={false}
+                              clearIcon={null}
+                              clockIcon={null}
+                              onChange={(value) => {
                                 var newTR = JSON.parse(JSON.stringify(TR));
-                                newTR.학습[i].학습시간 = e.target.value;
+                                newTR.학습[i].학습시간 = value;
                                 let 실제학습시간 = 0;
                                 let 실제학습분 = 0;
-                                newTR.학습.map(function (a, i) {
-                                  if (a.학습시간) {
-                                    실제학습시간 += parseInt(a.학습시간.split(":")[0]);
-                                    실제학습분 += parseInt(a.학습시간.split(":")[1]);
+                                newTR.학습.map(function (b, j) {
+                                  if (b.학습시간) {
+                                    실제학습시간 += parseInt(b.학습시간.split(":")[0]);
+                                    실제학습분 += parseInt(b.학습시간.split(":")[1]);
                                   }
                                 });
                                 newTR.실제학습 = parseFloat((실제학습시간 + 실제학습분 / 60).toFixed(1));
                                 TR변경(newTR);
                               }}
-                            />
+                            ></TimePicker>
                           </td>
                           <td>
                             <button
@@ -482,14 +494,16 @@ function TRedit(props) {
                             </Form.Select>
                           </td>
                           <td>
-                            <input
-                              type="text"
-                              placeholder="ex) 0:50"
-                              defaultValue={a.소요시간}
-                              className="inputText"
-                              onChange={(e) => {
+                            <TimePicker
+                              className="timepicker"
+                              locale="sv-sv"
+                              value={a.소요시간}
+                              openClockOnFocus={false}
+                              clearIcon={null}
+                              clockIcon={null}
+                              onChange={(value) => {
                                 var newTR = JSON.parse(JSON.stringify(TR));
-                                newTR.프로그램[i].소요시간 = e.target.value;
+                                newTR.프로그램[i].소요시간 = value;
                                 let 실제시간 = 0;
                                 let 실제분 = 0;
                                 newTR.프로그램.map(function (c, k) {
@@ -501,7 +515,7 @@ function TRedit(props) {
                                 newTR.프로그램시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
                                 TR변경(newTR);
                               }}
-                            />
+                            ></TimePicker>
                           </td>
                           <td>
                             <textarea
@@ -653,8 +667,8 @@ function TRedit(props) {
 
             <h5 className="fw-bold mt-5 mb-3"><strong>[ 매니저 피드백 ]</strong></h5>
             <textarea
-              className="textArea"
               rows="10"
+              className="textArea"
               defaultValue={TR.매니저피드백}
               onChange={(e) => {
                 change_depth_one("매니저피드백", e.target.value);
@@ -683,11 +697,13 @@ function TRedit(props) {
                         window.alert("로그인이 필요합니다.");
                         return history.push("/");
                       } else {
-                        window.alert("수정 중 해당 일간하루가 삭제되었습니다. 개발/데이터 팀에 문의해주세요");
+                        console.log(result.data);
+                        window.alert(result.data);
                       }
                     })
                     .catch(function (err) {
                       console.log("수정 실패 : ", err);
+                      window.alert(err);
                     });
                 }
               }
@@ -707,11 +723,11 @@ function TRedit(props) {
                     if (response.data === true) {
                       window.alert("삭제되었습니다");
                     } else {
-                      window.alert("삭제에 실패했습니다. 개발/데이터 팀에게 문의해주세요");
+                      window.alert(response.data);
                     }
                   })
                   .catch(function (err) {
-                    window.alert("삭제에 실패했습니다 개발/데이터 팀에게 문의해주세요");
+                    window.alert(err, "삭제에 실패했습니다 개발/데이터 팀에게 문의해주세요");
                   })
                   .then(function () {
                     history.push("/studentList");

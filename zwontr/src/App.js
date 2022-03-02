@@ -1,4 +1,3 @@
-import "./App.scss";
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
 import { Link, Route, Switch } from "react-router-dom";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
@@ -50,9 +49,7 @@ function App() {
         <StudentEdit existstuDB={studentList[선택된index]}></StudentEdit>
       </Route>
       <Route exact path="/TR/:name/write">
-        <TRwrite stuDB={studentList[선택된index]} managerList={managerList}>
-          {" "}
-        </TRwrite>
+        <TRwrite stuDB={studentList[선택된index]} managerList={managerList}></TRwrite>
       </Route>
       <Route exact path="/TR/:name/edit/:date">
         <TRedit stuDB={studentList[선택된index]} existTR={trList[선택된TRindex]} managerList={managerList}></TRedit>

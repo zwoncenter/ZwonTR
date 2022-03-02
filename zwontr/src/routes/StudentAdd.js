@@ -73,12 +73,6 @@ function StudentAdd(props) {
   return (
     <div className="stuedit-background">
       <h2 className="fw-bold text-center"><strong>학생 DB 신규 작성</strong></h2>
-      <Form
-        className="stuDB-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-        }}
-      >
         <div className="stuedit-cat-box">
         <h3 className="stuedit-cat-title mb-4"><strong>[ 작성매니저 / 작성일자 ]</strong></h3>
 
@@ -600,6 +594,17 @@ function StudentAdd(props) {
               return (
                 <Badge pill bg="dark" className="me-2" key={i}>
                   {a}
+                  <span
+                    className="program-delete"
+                    onClick={() => {
+                      if (i > -1) {
+                        delete_depth_one("프로그램분류", i);
+                      }
+                    }}
+                  >
+                    {" "}
+                    x
+                  </span>
                 </Badge>
               );
             })}
@@ -633,6 +638,9 @@ function StudentAdd(props) {
             if (stuDB.작성일자 === "") {
               return window.alert("작성일자가 입력되지 않았습니다.");
             }
+            if (stuDB.이름 === "") {
+              return window.alert("학생의 이름이 입력되지 않았습니다.");
+            }
             if (window.confirm(`${stuDB.이름} 학생의 DB를 저장하시겠습니까?`)) {
               axios
                 .post("/api/StudentAdd", stuDB)
@@ -651,7 +659,6 @@ function StudentAdd(props) {
           {" "}
           <strong>신규 DB 등록</strong>
         </Button></ul>
-      </Form>
     </div>
   );
 }

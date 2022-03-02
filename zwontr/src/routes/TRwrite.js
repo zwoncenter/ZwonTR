@@ -3,6 +3,7 @@ import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-boo
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import TimePicker from "react-time-picker";
 
 function TRwrite(props) {
   let history = useHistory();
@@ -69,10 +70,9 @@ function TRwrite(props) {
     ],
 
     프로그램시간: 0,
-    상담시간: 0,
 
     프로그램: [],
-    매니저피드백: [],
+    매니저피드백: "",
     큐브책: [],
   });
 
@@ -134,6 +134,9 @@ function TRwrite(props) {
   }
 
   function 차이계산(목표, 실제) {
+    if (!목표 || !실제) {
+      return NaN;
+    }
     let [목표시간, 목표분] = 목표.split(":");
     let [실제시간, 실제분] = 실제.split(":");
     let diff = parseInt(목표시간) - parseInt(실제시간) + (parseInt(목표분) - parseInt(실제분)) / 60;
@@ -394,10 +397,10 @@ function TRwrite(props) {
                 <Table striped hover size="sm" className="mt-0">
                   <thead>
                     <tr>
-                      <th width="10%">생활</th>
-                      <th>목표</th>
-                      <th>실제</th>
-                      <th width="25%">차이</th>
+                      <th width="15%">생활</th>
+                      <th width="25%">목표</th>
+                      <th width="25%">실제</th>
+                      <th>차이</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -406,29 +409,34 @@ function TRwrite(props) {
                         <tr key={i}>
                           <td>{a}</td>
                           <td>
-                            <input
-                              type="time"
-                              defaultValue={TR[`목표${a}`]}
-                              className="inputTime"
-                              onChange={(e) => {
+                            <TimePicker
+                              locale="sv-sv"
+                              value={TR[`목표${a}`]}
+                              openClockOnFocus={false}
+                              clearIcon={null}
+                              clockIcon={null}
+                              onChange={(value) => {
                                 const newTR = JSON.parse(JSON.stringify(TR));
-                                newTR[`목표${a}`] = e.target.value;
+                                newTR[`목표${a}`] = value;
                                 TR변경(newTR);
                               }}
-                            />
+                            ></TimePicker>
                           </td>
 
                           <td>
-                            <input
-                              type="time"
-                              defaultValue={TR[`실제${a}`]}
-                              className="inputTime"
-                              onChange={(e) => {
+                            <TimePicker
+                              className="timepicker"
+                              locale="sv-sv"
+                              value={TR[`실제${a}`]}
+                              openClockOnFocus={false}
+                              clearIcon={null}
+                              clockIcon={null}
+                              onChange={(value) => {
                                 const newTR = JSON.parse(JSON.stringify(TR));
-                                newTR[`실제${a}`] = e.target.value;
+                                newTR[`실제${a}`] = value;
                                 TR변경(newTR);
                               }}
-                            />
+                            ></TimePicker>
                           </td>
                           <td>{차이출력(TR[`${a}차이`], a)}</td>
                         </tr>
@@ -496,13 +504,16 @@ function TRwrite(props) {
                             />
                           </td>
                           <td>
-                            <input
-                              type="text"
-                              placeholder="ex) 0:40"
-                              className="inputText"
-                              onChange={(e) => {
+                            <TimePicker
+                              className="timepicker"
+                              locale="sv-sv"
+                              value="00:00"
+                              openClockOnFocus={false}
+                              clearIcon={null}
+                              clockIcon={null}
+                              onChange={(value) => {
                                 var newTR = JSON.parse(JSON.stringify(TR));
-                                newTR.학습[i].학습시간 = e.target.value;
+                                newTR.학습[i].학습시간 = value;
                                 let 실제학습시간 = 0;
                                 let 실제학습분 = 0;
                                 newTR.학습.map(function (b, j) {
@@ -514,7 +525,7 @@ function TRwrite(props) {
                                 newTR.실제학습 = parseFloat((실제학습시간 + 실제학습분 / 60).toFixed(1));
                                 TR변경(newTR);
                               }}
-                            />
+                            ></TimePicker>
                           </td>
                           <td>
                             <button
@@ -620,13 +631,16 @@ function TRwrite(props) {
                             </Form.Select>
                           </td>
                           <td>
-                            <input
-                              type="text"
-                              placeholder="0:00"
-                              className="inputText"
-                              onChange={(e) => {
+                            <TimePicker
+                              className="timepicker"
+                              locale="sv-sv"
+                              value="00:00"
+                              openClockOnFocus={false}
+                              clearIcon={null}
+                              clockIcon={null}
+                              onChange={(value) => {
                                 var newTR = JSON.parse(JSON.stringify(TR));
-                                newTR.프로그램[i].소요시간 = e.target.value;
+                                newTR.프로그램[i].소요시간 = value;
                                 let 실제시간 = 0;
                                 let 실제분 = 0;
                                 newTR.프로그램.map(function (c, k) {
@@ -638,7 +652,7 @@ function TRwrite(props) {
                                 newTR.프로그램시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
                                 TR변경(newTR);
                               }}
-                            />
+                            ></TimePicker>
                           </td>
                           <td>
                             <textarea
@@ -716,6 +730,7 @@ function TRwrite(props) {
                   <option value="병가">병가</option>
                   <option value="무단">무단</option>
                   <option value="휴가">휴가</option>
+                  <option value="구조적용중">"구조적용중"</option>
                   <option value="기타">기타</option>
                 </Form.Select>
                 <textarea
@@ -812,6 +827,7 @@ function TRwrite(props) {
                         window.alert("로그인이 필요합니다.");
                         return history.push("/");
                       } else {
+                        console.log(result.data);
                         window.alert("중복되는 날짜의 일간하루가 존재합니다.");
                       }
                     })
