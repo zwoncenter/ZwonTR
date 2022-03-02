@@ -1,5 +1,5 @@
 import "../App.scss";
-import "./StuListpage.scss";
+import "./StuListpage practice.scss";
 import { Button, Card, ListGroup, Modal } from "react-bootstrap";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
@@ -10,6 +10,10 @@ function StuListpage(props) {
 
   const [modalShow, setmodalShow] = useState(false);
   const [TRlistShow, setTRlistShow] = useState(false);
+  let [ stuListShow, stuListShowChange ] = useState(false);
+  useEffect(()=>{
+    let timer = setTimeout(()=>{ stuListShowChange(true) }, 250);
+  }, []);
 
   const modalOpen = () => setmodalShow(true);
   const modalClose = () => {
@@ -41,7 +45,6 @@ function StuListpage(props) {
       });
   }
 
-  //
   useEffect(async () => {
     const result = await axios
       .get("/api/studentList")
@@ -75,25 +78,29 @@ function StuListpage(props) {
   }, []);
 
   return (
-    <div>
-      <h1>Zwon 학생 리스트</h1>
+
+    <div  className='stuList-background'>
+      <div className={stuListShow === true
+      ? "stuListShow stuListShowActive text-center"
+      : "stuListShow text-center"}>
+      <h2><strong>지원센터 학생 목록</strong></h2>
       <Card className="stuCard">
-        <Button variant="secondary" onClick={addClick}>
-          +
+        <Button variant="secondary" className="stuAddbtn" onClick={addClick}>
+         <strong>+</strong>
         </Button>
         <ListGroup variant="flush">
           {ready
             ? props.studentList.map(function (db, index) {
                 return (
+                  <div className="stuListItem">
                   <ListGroup.Item
-                    className="pt-3 pb-3"
                     key={index}
                     onClick={() => {
                       nameClick(db, index);
                     }}
                   >
                     <p>{db.이름}</p>
-                  </ListGroup.Item>
+                  </ListGroup.Item></div>
                 );
               })
             : null}
@@ -106,7 +113,7 @@ function StuListpage(props) {
         </Modal.Header>
         <Modal.Body className="text-center">
           <button
-            className="btn btn-primary me-3"
+            className="btn btn-primary me-3 stuButton"
             onClick={() => {
               history.push(`/StudentEdit/${props.studentList[props.선택된index].이름}`);
             }}
@@ -115,7 +122,7 @@ function StuListpage(props) {
           </button>
 
           <button
-            className="btn btn-primary me-3"
+            className="btn btn-primary me-3 stuButton"
             onClick={() => {
               setTRlistShow(!TRlistShow);
             }}
@@ -126,7 +133,7 @@ function StuListpage(props) {
         {TRlistShow === true ? (
           <div className="text-center mb-3">
             <Button
-              className="btn-secondary"
+              className="btn-secondary createTRButton"
               onClick={() => {
                 history.push(`/TR/${props.studentList[props.선택된index].이름}/write`);
               }}
@@ -137,8 +144,9 @@ function StuListpage(props) {
             <ListGroup variant="flush">
               {props.trList.map(function (tr, index) {
                 return (
+                  <div className="stuListItem">
                   <ListGroup.Item
-                    className="pt-3"
+                    className="stuListItem"
                     key={index}
                     onClick={async () => {
                       await props.선택된TRindex변경(index);
@@ -146,14 +154,14 @@ function StuListpage(props) {
                     }}
                   >
                     <p>{tr.날짜}</p>
-                  </ListGroup.Item>
+                  </ListGroup.Item></div>
                 );
               })}
             </ListGroup>
           </div>
         ) : null}
       </Modal>
-    </div>
+    </div></div>
   );
 }
 

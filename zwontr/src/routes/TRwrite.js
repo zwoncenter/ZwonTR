@@ -1,4 +1,4 @@
-import "../App.scss";
+import "./TRWriteEdit.scss";
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
@@ -282,17 +282,17 @@ function TRwrite(props) {
   }, [TR.목표취침, TR.실제취침, TR.목표기상, TR.실제기상, TR.목표등원, TR.실제등원, TR.목표귀가, TR.실제귀가, TR.목표학습, TR.실제학습]);
 
   return (
-    <div>
+    <div className="trEdit-background">
       <div className="row">
-        <div className="col-xl-5 trCol">
-          <div className="trCard border border-3">
-            <div className="row mb-2">
+        <div className="col-xl-6 trCol">
+          <div>
+            <div className="row m-0 trCard">
               <div className="col-2">
-                <p className="fw-bold">이름</p>
+                <p className="fw-bold">[ 이름 ]</p>
                 <p>{TR.이름}</p>
               </div>
               <div className="col-3">
-                <p className="fw-bold">날짜</p>
+                <p className="fw-bold">[ 날짜 ]</p>
                 <input
                   type="date"
                   defaultValue={TR.날짜}
@@ -303,7 +303,7 @@ function TRwrite(props) {
                 />
               </div>
               <div className="col-3">
-                <p className="fw-bold">작성매니저</p>
+                <p className="fw-bold">[ 작성매니저 ]</p>
                 <Form.Select
                   size="sm"
                   onChange={(e) => {
@@ -322,20 +322,20 @@ function TRwrite(props) {
                     : null}
                 </Form.Select>
               </div>
-              <div className="col-2 pe-0">
+              <div className="col-2 p-0">
                 <button
-                  className="btn btn-good mt-3"
+                  className="btn btn-TRcommit btn-attend"
                   onClick={() => {
                     console.log(TR);
                     change_depth_one("결석여부", false);
                   }}
                 >
-                  등원
+                  <strong>등원</strong>
                 </button>
               </div>
-              <div className="col-2 ps-0">
+              <div className="col-2 p-0">
                 <button
-                  className="btn btn-danger btn-bad mt-3"
+                  className="btn btn-TRcommit btn-absent"
                   onClick={() => {
                     if (window.confirm("입력된 생활 및 학습 등이 삭제됩니다. 결석으로 전환하시겠습니까?")) {
                       console.log(TR);
@@ -343,16 +343,17 @@ function TRwrite(props) {
                     }
                   }}
                 >
-                  결석
+                  <strong>결석</strong>
                 </button>
               </div>
             </div>
 
             {TR.결석여부 === false ? (
-              <div className="mt-4">
-                <Form.Group as={Row} className="mb-3">
+              <div className="mt-3">
+                <div className="trCard">
+                <Form.Group as={Row}>
                   <Form.Label column sm="2">
-                    신체 컨디션
+                    <strong>[ 신체 컨디션 ]</strong>
                   </Form.Label>
                   <Col sm="10">
                     <Form.Select
@@ -372,7 +373,7 @@ function TRwrite(props) {
                 </Form.Group>
                 <Form.Group as={Row} className="mb-3">
                   <Form.Label column sm="2">
-                    정서 컨디션
+                    <strong>[ 정서 컨디션 ]</strong>
                   </Form.Label>
                   <Col sm="10">
                     <Form.Select
@@ -390,7 +391,7 @@ function TRwrite(props) {
                     </Form.Select>
                   </Col>
                 </Form.Group>
-                <Table striped bordered hover className="mt-5">
+                <Table striped hover size="sm" className="mt-0">
                   <thead>
                     <tr>
                       <th width="10%">생활</th>
@@ -434,9 +435,10 @@ function TRwrite(props) {
                       );
                     })}
                   </tbody>
-                </Table>
+                </Table></div>
 
-                <Table striped bordered hover className="mt-3">
+                <div className="trCard">
+                <Table striped hover size="sm">
                   <thead>
                     <tr>
                       <th width="15%">학습</th>
@@ -534,7 +536,7 @@ function TRwrite(props) {
                                 }
                               }}
                             >
-                              x
+                              <strong>x</strong>
                             </button>
                           </td>
                         </tr>
@@ -550,7 +552,7 @@ function TRwrite(props) {
                       <td colSpan={6}>
                         {" "}
                         <button
-                          className="btn btn-dark"
+                          className="btn btn-add program-add"
                           onClick={() => {
                             push_depth_one("학습", {
                               과목: "선택",
@@ -561,14 +563,15 @@ function TRwrite(props) {
                             });
                           }}
                         >
-                          +
+                          <strong>+</strong>
                         </button>
                       </td>
                     </tr>
                   </tbody>
-                </Table>
+                </Table></div>
 
-                <Table striped bordered hover className="mt-3">
+                <div className="trCard">
+                <Table striped hover size="sm">
                   <thead>
                     <tr>
                       <th width="20%">프로그램</th>
@@ -669,7 +672,7 @@ function TRwrite(props) {
                                 }
                               }}
                             >
-                              x
+                              <strong>x</strong>
                             </button>
                           </td>
                         </tr>
@@ -683,7 +686,7 @@ function TRwrite(props) {
                       <td colSpan={5}>
                         {" "}
                         <button
-                          className="btn btn-dark"
+                          className="btn btn-add program-add"
                           onClick={() => {
                             push_depth_one("프로그램", {
                               프로그램분류: "",
@@ -693,22 +696,23 @@ function TRwrite(props) {
                             });
                           }}
                         >
-                          +
+                          <strong>+</strong>
                         </button>
                       </td>
                     </tr>
                   </tbody>
-                </Table>
+                </Table></div>
               </div>
             ) : (
-              <div>
+              
+              <div className="trCard mt-3">
                 <Form.Select
                   size="sm"
                   onChange={(e) => {
                     change_depth_one("결석사유", e.target.value);
                   }}
                 >
-                  <option>선택</option>
+                  <option>결석사유 선택</option>
                   <option value="병가">병가</option>
                   <option value="무단">무단</option>
                   <option value="휴가">휴가</option>
@@ -729,12 +733,11 @@ function TRwrite(props) {
         </div>
 
         <div className="col-xl-3 trCol">
-          <div className="trCard border border-3">
-            {TR.결석여부 === false ? (
+            {TR.결석여부 === false ? (<div className="trCard">
               <>
-                <h5 className="fw-bold mt-3 mb-3">학습태도</h5>
+                <h5 className="fw-bold mt-3 mb-3"><strong>[ 학습태도 ]</strong></h5>
                 {TR.학습태도.map((prob, i) => (
-                  <div key={`study-${prob.분류}`} className="mb-2">
+                  <div key={`study-${prob.분류}`} className="mb-1 mt-1 checkBox">
                     <Form.Check
                       defaultValue={prob.문제여부}
                       className="border-bottom"
@@ -747,11 +750,12 @@ function TRwrite(props) {
                     />
                   </div>
                 ))}
-              </>
+              </></div>
             ) : null}
-            <h5 className="fw-bold mt-3 mb-3">문제행동</h5>
+            <div className="trCard">
+            <h5 className="fw-bold mt-3 mb-3"><strong>[ 문제행동 ]</strong></h5>
             {TR.문제행동.map((prob, i) => (
-              <div key={`study-${prob.분류}`} className="mb-2">
+              <div key={`study-${prob.분류}`} className="mb-1 mt-1 checkBox">
                 <Form.Check
                   defaultValue={prob.문제여부}
                   className="border-bottom"
@@ -767,11 +771,11 @@ function TRwrite(props) {
           </div>
         </div>
 
-        <div className="col-xl-4 trCol">
-          <div className="trCard border border-3">
-            <h5 className="fw-bold mt-3 mb-3">큐브책 체크리스트</h5>
+        <div className="col-xl-3 trCol">
+          <div className="trCard">
+            <h5 className="fw-bold mt-3 mb-3"><strong>[ 큐브책 체크리스트 ]</strong></h5>
             {TR.큐브책.map((a, i) => (
-              <div key={i} className="mb-2 mt -3 ">
+              <div key={i} className="mb-1 mt-1 checkBox">
                 <Form.Check
                   className="border-bottom"
                   type="checkbox"
@@ -783,7 +787,7 @@ function TRwrite(props) {
               </div>
             ))}
 
-            <h5 className="fw-bold mt-5 mb-3">매니저 피드백</h5>
+            <h5 className="fw-bold mt-5 mb-3"><strong>[ 매니저 피드백 ]</strong></h5>
             <textarea
               className="textArea"
               rows="5"
@@ -794,7 +798,7 @@ function TRwrite(props) {
           </div>
           <Button
             variant="danger"
-            className="mt-3 fs-4"
+            className="btn-TRcommit btn-edit"
             onClick={() => {
               if (입력확인()) {
                 if (window.confirm(`${TR.이름}학생의 ${TR.날짜} 일간하루를 저장하시겠습니까?`)) {
@@ -818,7 +822,7 @@ function TRwrite(props) {
               }
             }}
           >
-            일간하루 저장
+            <strong>일간하루 저장</strong>
           </Button>
         </div>
       </div>

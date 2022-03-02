@@ -11,6 +11,7 @@ import StudentAdd from "./routes/StudentAdd";
 import TRwrite from "./routes/TRwrite";
 import TRedit from "./routes/TRedit";
 import StudentEdit from "./routes/StudentEdit";
+import Practice from "./Practice";
 
 function App() {
   let history = useHistory();
@@ -26,7 +27,7 @@ function App() {
   return (
     <div className="App">
       <Route exact path="/">
-        <Loginpage />
+        <Practice/>
       </Route>
       <Route exact path="/studentList">
         <StuListpage

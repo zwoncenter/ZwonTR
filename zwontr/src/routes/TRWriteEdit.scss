@@ -1,0 +1,102 @@
+@import url(https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/nanumsquare.css);
+
+* p,span,h2,h3,
+a,h4,h5,h6,
+label,select,
+th,td,button,textarea {
+  font-family: "NanumSquare" !important;
+  input {
+    transform: rotate(0.04deg);
+  }
+}
+
+.trEdit-background {
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  text-align: center;
+}
+
+.trCard {
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 20px;
+  border: 0px;
+  background-color: white;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  p, label, select, td, th, input, textarea, h5, button{
+    font-size: 0.9rem;
+    vertical-align: middle;
+    margin:0;
+  }
+  input, select, textArea{
+    border-radius: 10px;
+    text-align: center;
+  }
+  Table {
+    table-layout: fixed;
+    background-color: white;
+    border-radius: 5px;
+    padding: 10px;
+    td{
+      border-bottom: 0px;
+    }
+  }
+}
+
+.btn-TRcommit{
+  margin: 10px;
+  width: 80%;
+  font-size: 20px;
+  border-radius: 20px;
+  border: 0px;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  color: white;
+}
+
+.btn-attend{
+  background-color:#5500d3;
+}
+
+.btn-absent{
+  background-color: black;
+}
+
+.btn-edit{
+  background-color:#5500d3;
+}
+
+.inputTime {
+  width: 7rem;
+  border-radius: 5px;
+  border: solid 1px gray;
+}
+
+.inputText {
+  width: 95%;
+  min-width: 2rem;
+}
+
+.textArea {
+  width: 100%;
+  border-radius: 10px;
+}
+
+.btn-add {
+  height: auto;
+  width: 95%;
+  border-radius: 20px;
+  font-size: 20px;
+  padding: 0px;
+  color: white;
+}
+
+.program-add{
+  background-color: black;
+  border: 0px;
+}
+
+.checkBox{
+  width: 90%;
+  margin: auto;
+}

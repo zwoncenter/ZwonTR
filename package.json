@@ -1,7 +1,6 @@
 {
   "name": "zwon-tr",
   "version": "1.0.0",
-  "description": "",
   "main": "./server/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -18,5 +17,15 @@
     "nodemon": "^2.0.15",
     "passport": "^0.5.2",
     "passport-local": "^1.0.0"
-  }
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zeka-0337/ZwonTR.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Zeka-0337/ZwonTR/issues"
+  },
+  "homepage": "https://github.com/Zeka-0337/ZwonTR#readme",
+  "description": ""
 }

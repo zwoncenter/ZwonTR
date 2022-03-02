@@ -1,155 +1,154 @@
-@import url("https://cdn.jsdelivr.net/font-iropke-batang/1.2/font-iropke-batang.css");
+// @import url("https://cdn.jsdelivr.net/font-iropke-batang/1.2/font-iropke-batang.css");
 
-* {
-  font-family: "Iropke Batang", serif !important;
-  p,
-  span,
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6,
-  input {
-    transform: rotate(0.04deg);
-  }
-}
+// * {
+//   font-family: "Iropke Batang", serif !important;
+//   p,
+//   span,
+//   h1,
+//   h2,
+//   h3,
+//   h4,
+//   h5,
+//   h6,
+//   input {
+//     transform: rotate(0.04deg);
+//   }
+// }
 
-div {
-  box-sizing: border-box;
-  p {
-    margin-bottom: 0px;
-  }
-}
-.App {
-  text-align: center;
-  background-color: #e8e3ea;
-  padding: 20px;
-}
+// div {
+//   box-sizing: border-box;
+//   p {
+//     margin-bottom: 0px;
+//   }
+// }
+// .App {
+//   text-align: center;
+//   background-color: #e8e3ea;
+// }
 
-.loginBox {
-  max-width: 90%;
-  width: 700px;
-  height: 100vh;
-  margin: auto;
-}
+// .loginBox {
+//   max-width: 90%;
+//   width: 700px;
+//   height: 100vh;
+//   margin: auto;
+// }
 
-.stuCard {
-  width: 500px;
-  max-width: 90%;
-  margin: auto;
-  margin-top: 40px;
-}
+// .stuCard {
+//   width: 500px;
+//   max-width: 90%;
+//   margin: auto;
+//   margin-top: 40px;
+// }
 
-.trCol {
-  margin-top: 10px;
-}
+// .trCol {
+//   margin-top: 10px;
+// }
 
-.trCard {
-  padding: 10px;
-  border-radius: 5px;
-  background-color: #eee;
-  // box-shadow: 4px 3px 3px -2px rgba(50, 50, 50, 0.75);
-}
-.w-90 {
-  width: 90%;
-}
+// .trCard {
+//   padding: 10px;
+//   border-radius: 5px;
+//   background-color: #eee;
+//   // box-shadow: 4px 3px 3px -2px rgba(50, 50, 50, 0.75);
+// }
+// .w-90 {
+//   width: 90%;
+// }
 
-.inputTime {
-  width: 7rem;
-  border-radius: 5px;
-  border: solid 1px gray;
-}
+// .inputTime {
+//   width: 7rem;
+//   border-radius: 5px;
+//   border: solid 1px gray;
+// }
 
-.inputText {
-  width: 95%;
-  min-width: 2rem;
-}
+// .inputText {
+//   width: 95%;
+//   min-width: 2rem;
+// }
 
-.h-30 {
-  margin: auto;
-}
+// .h-30 {
+//   margin: auto;
+// }
 
-.trCard Form {
-  border: dotted 0px black;
-  border-radius: 5px;
-}
+// .trCard Form {
+//   border: dotted 0px black;
+//   border-radius: 5px;
+// }
 
-.m-0 {
-  margin: 0px;
-}
+// .m-0 {
+//   margin: 0px;
+// }
 
-.btn-delete {
-  height: 28px;
-  width: 30px;
-  background-color: #ee9c61;
-  color: white;
-  padding: 0px;
-  vertical-align: middle;
-}
+// .btn-delete {
+//   height: 28px;
+//   width: 30px;
+//   background-color: #ee9c61;
+//   color: white;
+//   padding: 0px;
+//   vertical-align: middle;
+// }
 
-.m-auto {
-  margin: auto;
-}
+// .m-auto {
+//   margin: auto;
+// }
 
-td {
-  padding: 10px;
-  vertical-align: middle;
+// td {
+//   padding: 10px;
+//   vertical-align: middle;
 
-  p {
-    margin: 0px;
-  }
-}
+//   p {
+//     margin: 0px;
+//   }
+// }
 
-.btn-good {
-  background-color: #6fa1d5;
-  color: white;
-}
+// .btn-good {
+//   background-color: #6fa1d5;
+//   color: white;
+// }
 
-.btn-bad {
-  background-color: #ee9c61;
-  border-color: #ee9c61;
-}
+// .btn-bad {
+//   background-color: #ee9c61;
+//   border-color: #ee9c61;
+// }
 
-.textArea {
-  width: 95%;
-}
+// .textArea {
+//   width: 95%;
+// }
 
-.mw-5rem {
-  max-width: 3rem;
-}
+// .mw-5rem {
+//   max-width: 3rem;
+// }
 
-Table {
-  table-layout: fixed;
-}
+// Table {
+//   table-layout: fixed;
+// }
 
-.fs-13px {
-  font-size: 13px;
-}
-.th-delete {
-  max-width: 60px;
-}
+// .fs-13px {
+//   font-size: 13px;
+// }
+// .th-delete {
+//   max-width: 60px;
+// }
 
-.btn-orange {
-  background-color: #807c95;
-  border: solid 2px #ac98af;
-  border-radius: 25px;
-  font-size: 25px;
-}
+// .btn-orange {
+//   background-color: #807c95;
+//   border: solid 2px #ac98af;
+//   border-radius: 25px;
+//   font-size: 25px;
+// }
 
-.mw-95 {
-  max-width: 95%;
-}
+// .mw-95 {
+//   max-width: 95%;
+// }
 
-Form h3 {
-  text-decoration: underline;
-}
+// Form h3 {
+//   text-decoration: underline;
+// }
 
-.cube-box {
-  background-color: rgba(0, 0, 0, 0.05);
-  max-width: 600px;
-  width: 90%;
-  margin: auto;
-  border-radius: 10px;
-  padding: 10px;
-}
+// .cube-box {
+//   background-color: rgba(0, 0, 0, 0.05);
+//   max-width: 600px;
+//   width: 90%;
+//   margin: auto;
+//   border-radius: 10px;
+//   padding: 10px;
+// }

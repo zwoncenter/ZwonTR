@@ -1,4 +1,4 @@
-import "../App.scss";
+import "./StudentAddEdit.scss";
 import { Form, Table, Row, Col, Button, Badge, InputGroup, FormControl } from "react-bootstrap";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
@@ -54,8 +54,8 @@ function StudentAdd(props) {
   }, []);
 
   return (
-    <div className="">
-      <h1 className="fw-bold">학생 DB 조회/변경 </h1>
+    <div className="stuedit-background">
+      <h2 className="fw-bold text-center"><strong>학생 DB 조회 및 변경</strong></h2>
 
       <Form
         className="stuDB-form"
@@ -63,16 +63,17 @@ function StudentAdd(props) {
           e.preventDefault();
         }}
       >
-        <h3 className="mb-3"> 작성매니저 / 작성일자 </h3>
+        <div className='stuedit-cat-box'>
+        <h3 className="stuedit-cat-title mb-4"><strong>[ 작성매니저 / 작성일자 ]</strong></h3>
 
-        <Form.Group as={Row} className="mb-3">
+        <Form.Group as={Row} className="mb-3 me-3 ms-3">
           <Form.Label column sm="2">
             작성매니저
           </Form.Label>
           <Col sm="10">
             <Form.Control
               type="text"
-              placeholder={`최근작성매니저 : ${props.existstuDB.작성매니저}`}
+              placeholder={`최근작성 매니저 : ${props.existstuDB.작성매니저}`}
               onChange={(e) => {
                 change_depth_one("작성매니저", e.target.value);
               }}
@@ -80,7 +81,7 @@ function StudentAdd(props) {
           </Col>
         </Form.Group>
 
-        <Form.Group as={Row} className="mb-3">
+        <Form.Group as={Row} className="mb-3 me-3 ms-3">
           <Form.Label column sm="2">
             작성일자
           </Form.Label>
@@ -92,11 +93,12 @@ function StudentAdd(props) {
               }}
             />
           </Col>
-        </Form.Group>
+        </Form.Group></div>
 
-        <h3 className="mb-3">기본정보 </h3>
+        <div className="stuedit-cat-box">
+        <h3 className="stuedit-cat-title mb-4"><strong>[ 기본정보 ]</strong></h3>
 
-        <Form.Group as={Row} className="mb-3">
+        <Form.Group as={Row} className="mb-3 me-3 ms-3">
           <Form.Label column sm="2">
             이름
           </Form.Label>
@@ -112,7 +114,7 @@ function StudentAdd(props) {
           </Col>
         </Form.Group>
 
-        <Form.Group as={Row} className="mb-3">
+        <Form.Group as={Row} className="mb-3 me-3 ms-3">
           <Form.Label column sm="2">
             생년월일
           </Form.Label>
@@ -127,7 +129,7 @@ function StudentAdd(props) {
           </Col>
         </Form.Group>
 
-        <Form.Group as={Row} className="mb-3">
+        <Form.Group as={Row} className="mb-3 me-3 ms-3">
           <Form.Label column sm="2">
             연락처
           </Form.Label>
@@ -141,13 +143,14 @@ function StudentAdd(props) {
               }}
             />
           </Col>
-        </Form.Group>
+        </Form.Group></div>
+        
+        <div className="stuedit-cat-box">
+        <h3 className="stuedit-cat-title mb-4"><strong>[ 생활정보 ]</strong></h3>
 
-        <h3 className="mb-3">생활정보 </h3>
+        <h5 className="mb-3 mt-5"><strong>주중 목표</strong></h5>
 
-        <h5 className="mb-3">주중 목표</h5>
-
-        <Form.Group as={Row} className="mb-3">
+        <Form.Group as={Row} className="mb-3 me-3 ms-3">
           <Form.Label column sm="2">
             목표취침
           </Form.Label>
@@ -162,7 +165,7 @@ function StudentAdd(props) {
           </Col>
         </Form.Group>
 
-        <Form.Group as={Row} className="mb-3">
+        <Form.Group as={Row} className="mb-3 me-3 ms-3">
           <Form.Label column sm="2">
             목표기상
           </Form.Label>
@@ -177,7 +180,7 @@ function StudentAdd(props) {
           </Col>
         </Form.Group>
 
-        <Form.Group as={Row} className="mb-3">
+        <Form.Group as={Row} className="mb-3 me-3 ms-3">
           <Form.Label column sm="2">
             목표등원
           </Form.Label>
@@ -192,7 +195,7 @@ function StudentAdd(props) {
           </Col>
         </Form.Group>
 
-        <Form.Group as={Row} className="mb-3">
+        <Form.Group as={Row} className="mb-3 me-3 ms-3">
           <Form.Label column sm="2">
             목표귀가
           </Form.Label>
@@ -207,7 +210,7 @@ function StudentAdd(props) {
           </Col>
         </Form.Group>
 
-        <Form.Group as={Row} className="mb-3">
+        <Form.Group as={Row} className="mb-3 me-3 ms-3">
           <Form.Label column sm="2">
             목표학습
           </Form.Label>
@@ -223,9 +226,9 @@ function StudentAdd(props) {
           </Col>
         </Form.Group>
 
-        <h5 className="mb-3">일요일 목표</h5>
+        <h5 className="mb-3 mt-5"><strong>일요일 목표</strong></h5>
 
-        <Form.Group as={Row} className="mb-3">
+        <Form.Group as={Row} className="mb-3 me-3 ms-3">
           <Form.Label column sm="2">
             일요일 목표취침
           </Form.Label>
@@ -240,7 +243,7 @@ function StudentAdd(props) {
           </Col>
         </Form.Group>
 
-        <Form.Group as={Row} className="mb-3">
+        <Form.Group as={Row} className="mb-3 me-3 ms-3">
           <Form.Label column sm="2">
             일요일 목표기상
           </Form.Label>
@@ -255,7 +258,7 @@ function StudentAdd(props) {
           </Col>
         </Form.Group>
 
-        <Form.Group as={Row} className="mb-3">
+        <Form.Group as={Row} className="mb-3 me-3 ms-3">
           <Form.Label column sm="2">
             일요일 목표등원
           </Form.Label>
@@ -270,7 +273,7 @@ function StudentAdd(props) {
           </Col>
         </Form.Group>
 
-        <Form.Group as={Row} className="mb-3">
+        <Form.Group as={Row} className="mb-3 me-3 ms-3">
           <Form.Label column sm="2">
             일요일 목표귀가
           </Form.Label>
@@ -285,7 +288,7 @@ function StudentAdd(props) {
           </Col>
         </Form.Group>
 
-        <Form.Group as={Row} className="mb-3">
+        <Form.Group as={Row} className="mb-3 me-3 ms-3">
           <Form.Label column sm="2">
             일요일 목표학습
           </Form.Label>
@@ -299,15 +302,16 @@ function StudentAdd(props) {
               }}
             />
           </Col>
-        </Form.Group>
+        </Form.Group></div>
 
         {/* 큐브책 입력란 */}
-        <h3 className="mt-5">큐브책 체크리스트</h3>
+        <div className="stuedit-cat-box">
+        <h3 className="stuedit-cat-title mb-4"><strong>[ 큐브책 체크리스트 ]</strong></h3>
 
         <div className="cube-box">
           {stuDB.큐브책.map(function (a, i) {
             return (
-              <Form.Group as={Row} className="mt-1" key={i}>
+              <Form.Group as={Row} className="mb-3 me-3 ms-3" key={i}>
                 <Col sm="11">
                   <Form.Control
                     className="mb-2"
@@ -326,30 +330,31 @@ function StudentAdd(props) {
                       delete_depth_one("큐브책", i);
                     }}
                   >
-                    x
+                   <strong>X</strong>
                   </button>
                 </Col>
               </Form.Group>
             );
           })}
-          <Button
+          <Button className="btn-add"
             variant="dark"
             onClick={() => {
               push_depth_one("큐브책", "");
             }}
           >
-            +
+           <strong>+</strong>
           </Button>
-        </div>
-
-        <h3 className="mt-5">진행중교재 </h3>
-        <Table striped bordered hover className="mt-3">
+        </div></div>
+        
+        <div className="stuedit-cat-box">
+        <h3 className="stuedit-cat-title mb-4"><strong>[ 진행중교재 ]</strong></h3>
+        <Table striped hover className="mt-3">
           <thead>
             <tr>
               <th width="15%">과목</th>
               <th>교재명</th>
-              <th width="15%">총교재량</th>
-              <th width="17%">교재 시작일</th>
+              <th width="20%">총교재량</th>
+              <th width="19%">교재 시작일</th>
               <th width="17%">최근진도</th>
               <th width="60px"></th>
             </tr>
@@ -430,7 +435,7 @@ function StudentAdd(props) {
                             }
                           }}
                         >
-                          x
+                         <strong>X</strong>
                         </button>
                       </td>
                     </tr>
@@ -442,7 +447,7 @@ function StudentAdd(props) {
               <td colSpan={6}>
                 {" "}
                 <button
-                  className="btn btn-dark"
+                  className="btn btn-dark btn-add"
                   type="button"
                   onClick={() => {
                     push_depth_one("진행중교재", {
@@ -455,25 +460,24 @@ function StudentAdd(props) {
                     });
                   }}
                 >
-                  +
+                 <strong>+</strong>
                 </button>
               </td>
             </tr>
           </tbody>
-        </Table>
+        </Table></div>
 
         {/* 완료된 교재 */}
-
-        <h3 className="mt-5">완료된교재 </h3>
-
-        <Table striped bordered hover className="mt-3">
+        <div className="stuedit-cat-box">
+        <h3 className="stuedit-cat-title mb-3"><strong>[ 완료된교재 ]</strong></h3>
+        <Table striped hover className="mt-3">
           <thead>
             <tr>
               <th width="15%">과목</th>
               <th>교재명</th>
-              <th width="15%">총교재량</th>
-              <th width="17%">교재 시작일</th>
-              <th width="17%">교재 종료일</th>
+              <th width="20%">총교재량</th>
+              <th width="19%">교재 시작일</th>
+              <th width="19%">교재 종료일</th>
               <th width="60px"></th>
             </tr>
           </thead>
@@ -555,7 +559,7 @@ function StudentAdd(props) {
                             }
                           }}
                         >
-                          x
+                          <strong>X</strong>
                         </button>
                       </td>
                     </tr>
@@ -567,7 +571,7 @@ function StudentAdd(props) {
               <td colSpan={6}>
                 {" "}
                 <button
-                  className="btn btn-dark"
+                  className="btn btn-dark btn-add"
                   type="button"
                   onClick={() => {
                     push_depth_one("완료된교재", {
@@ -580,27 +584,27 @@ function StudentAdd(props) {
                     });
                   }}
                 >
-                  +
+                  <strong>+</strong>
                 </button>
               </td>
             </tr>
           </tbody>
-        </Table>
+        </Table></div>
 
-        <div>
-          <h3 className="mt-5">프로그램 종류 </h3>
+        <div className="stuedit-cat-box">
+          <h3 className="stuedit-cat-title mb-3"><strong>[ 프로그램 종류 ]</strong></h3>
           <h4 className="mt-3">
             {stuDB
               ? stuDB.프로그램분류.map(function (a, i) {
                   return (
-                    <Badge pill bg="success" className="me-1" key={i}>
+                    <Badge pill bg="dark" className="me-2" key={i}>
                       {a}
                     </Badge>
                   );
                 })
               : null}
           </h4>
-          <InputGroup className="mt-3 mb-3" style={{ maxWidth: "500px", margin: "auto" }}>
+          <InputGroup className="mt-3 mb-3" style={{ maxWidth: "500px", margin: "auto"}}>
             <FormControl
               id="inputProgram"
               placeholder="ex) 동기부여 등의 해당 학생의 프로그램"
@@ -613,14 +617,15 @@ function StudentAdd(props) {
                 }
               }}
             />
-            <Button className="btn-secondary" onClick={programAdd} type="button">
-              +
+            <Button className="btn-secondary program-add" onClick={programAdd} type="button">
+             <strong>+</strong>
             </Button>
           </InputGroup>
         </div>
-
+        
+        <ul className="commit-btns">
         <Button
-          className="mt-4 fs-4"
+          className="btn-DBcommit btn-edit"
           onClick={() => {
             if (stuDB.작성매니저 === "") {
               return window.alert("작성매니저가 입력되지 않았습니다.");
@@ -646,12 +651,11 @@ function StudentAdd(props) {
           }}
         >
           {" "}
-          학생 DB 수정
+          <strong>DB 수정</strong>
         </Button>
 
         <Button
-          variant="danger"
-          className="ms-4   mt-4 fs-6"
+          className="btn-DBcommit btn-cancel"
           onClick={() => {
             if (window.confirm(`${stuDB.이름} 학생의 DB를 정말 삭제하시겠습니까?`)) {
               axios
@@ -672,8 +676,8 @@ function StudentAdd(props) {
             }
           }}
         >
-          DB 삭제
-        </Button>
+          <strong>DB 삭제</strong>
+        </Button></ul>
       </Form>
     </div>
   );

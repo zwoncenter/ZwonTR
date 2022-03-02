@@ -1,4 +1,4 @@
-import "../App.scss";
+import "./TRWriteEdit.scss";
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
@@ -146,17 +146,17 @@ function TRedit(props) {
   }, []);
 
   return (
-    <div>
+    <div className="trEdit-background">
       <div className="row">
-        <div className="col-xl-5 trCol">
-          <div className="trCard border border-3">
-            <div className="row mb-2">
+        <div className="col-xl-6 trCol">
+          <div>
+            <div className="row m-0 trCard">
               <div className="col-2">
-                <p className="fw-bold">이름</p>
+                <p className="fw-bold">[ 이름 ]</p>
                 <p>{TR.이름}</p>
               </div>
               <div className="col-3">
-                <p className="fw-bold">날짜</p>
+                <p className="fw-bold">[ 날짜 ]</p>
                 <input
                   type="date"
                   defaultValue={TR.날짜}
@@ -168,7 +168,7 @@ function TRedit(props) {
               </div>
 
               <div className="col-3">
-                <p className="fw-bold">작성매니저</p>
+                <p className="fw-bold">[ 작성매니저 ]</p>
                 <Form.Select
                   size="sm"
                   onChange={(e) => {
@@ -190,17 +190,17 @@ function TRedit(props) {
 
               <div className="col-2 pe-0">
                 <button
-                  className="btn btn-good mt-3"
+                  className="btn btn-TRcommit btn-attend"
                   onClick={() => {
                     change_depth_one("결석여부", false);
                   }}
                 >
-                  등원
+                  <strong>등원</strong>
                 </button>
               </div>
               <div className="col-2 ps-0">
                 <button
-                  className="btn btn-danger btn-bad mt-3"
+                  className="btn btn-TRcommit btn-absent"
                   onClick={() => {
                     if (window.confirm("입력된 생활 및 학습 등이 삭제됩니다. 결석으로 전환하시겠습니까?")) {
                       console.log(TR);
@@ -208,15 +208,16 @@ function TRedit(props) {
                     }
                   }}
                 >
-                  결석
+                  <strong>결석</strong>
                 </button>
               </div>
             </div>
             {TR.결석여부 === false ? (
-              <div className="mt-4">
-                <Form.Group as={Row} className="mb-3">
+              <div className="mt-3">
+                <div className="trCard">
+                <Form.Group as={Row}>
                   <Form.Label column sm="2">
-                    신체 컨디션
+                    <strong>[ 신체 컨디션 ]</strong>
                   </Form.Label>
                   <Col sm="10">
                     <Form.Select
@@ -236,7 +237,7 @@ function TRedit(props) {
                 </Form.Group>
                 <Form.Group as={Row} className="mb-3">
                   <Form.Label column sm="2">
-                    정서 컨디션
+                    <strong>[ 정서 컨디션 ]</strong>
                   </Form.Label>
                   <Col sm="10">
                     <Form.Select
@@ -254,7 +255,7 @@ function TRedit(props) {
                     </Form.Select>
                   </Col>
                 </Form.Group>
-                <Table striped bordered hover className="mt-3">
+                <Table striped hover className="mt-3">
                   <thead>
                     <tr>
                       <th width="10%">생활</th>
@@ -300,8 +301,9 @@ function TRedit(props) {
                       );
                     })}
                   </tbody>
-                </Table>
-                <Table striped bordered hover className="mt-3">
+                </Table></div>
+                <div className="trCard">
+                <Table striped hover className="mt-3">
                   <thead>
                     <tr>
                       <th width="15%">학습</th>
@@ -309,7 +311,7 @@ function TRedit(props) {
                       <th width="15%">총교재량</th>
                       <th width="15%">최근진도</th>
                       <th width="15%">학습시간</th>
-                      <th width="10%"></th>
+                      <th width="12%"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -396,7 +398,7 @@ function TRedit(props) {
                                 }
                               }}
                             >
-                              x
+                              <strong>x</strong>
                             </button>
                           </td>
                         </tr>
@@ -412,7 +414,7 @@ function TRedit(props) {
                       <td colSpan={6}>
                         {" "}
                         <button
-                          className="btn btn-dark"
+                          className="btn btn-add program-add"
                           onClick={() => {
                             push_depth_one("학습", {
                               과목: "",
@@ -423,14 +425,15 @@ function TRedit(props) {
                             });
                           }}
                         >
-                          +
+                          <strong>+</strong>
                         </button>
                       </td>
                     </tr>
                   </tbody>
-                </Table>
-
-                <Table striped bordered hover className="mt-3">
+                </Table></div>
+                
+                <div className="trCard">
+                <Table striped hover className="mt-3">
                   <thead>
                     <tr>
                       <th width="20%">프로그램</th>
@@ -533,7 +536,7 @@ function TRedit(props) {
                                 }
                               }}
                             >
-                              x
+                              <strong>x</strong>
                             </button>
                           </td>
                         </tr>
@@ -547,7 +550,7 @@ function TRedit(props) {
                       <td colSpan={5}>
                         {" "}
                         <button
-                          className="btn btn-dark"
+                          className="btn btn-add program-add"
                           onClick={() => {
                             push_depth_one("프로그램", {
                               프로그램분류: "",
@@ -557,15 +560,15 @@ function TRedit(props) {
                             });
                           }}
                         >
-                          +
+                          <strong>+</strong>
                         </button>
                       </td>
                     </tr>
                   </tbody>
                 </Table>
-              </div>
+              </div></div>
             ) : (
-              <div>
+              <div className="trCard mt-3">
                 <Form.Select
                   size="sm"
                   onChange={(e) => {
@@ -592,12 +595,12 @@ function TRedit(props) {
           </div>
         </div>
         <div className="col-xl-3 trCol">
-          <div className="trCard border border-3">
-            {TR.결석여부 === false ? (
+          
+            {TR.결석여부 === false ? (<div className="trCard">
               <>
-                <p className="fw-bold">학습태도</p>
+                <p className="fw-bold mt-3 mb-3"><strong>[ 학습태도 ]</strong></p>
                 {TR.학습태도.map((prob, i) => (
-                  <div key={`study-${prob.분류}`} className="mb-2">
+                  <div key={`study-${prob.분류}`} className="mb-2 checkBox">
                     <Form.Check
                       defaultChecked={prob.문제여부}
                       className="border-bottom"
@@ -610,11 +613,12 @@ function TRedit(props) {
                     />
                   </div>
                 ))}
-              </>
+              </></div>
             ) : null}
-            <p className="fw-bold">문제행동</p>
+            <div className="trCard">
+            <p className="fw-bold mt-3 mb-3"><strong>[ 문제행동 ]</strong></p>
             {TR.문제행동.map((prob, i) => (
-              <div key={`study-${prob.분류}`} className="mb-2">
+              <div key={`study-${prob.분류}`} className="mb-2 checkBox">
                 <Form.Check
                   defaultChecked={prob.문제여부}
                   className="border-bottom"
@@ -630,11 +634,11 @@ function TRedit(props) {
           </div>
         </div>
 
-        <div className="col-xl-4 trCol">
-          <div className="trCard border border-3">
-            <h5 className="fw-bold mt-3 mb-3">큐브책 체크리스트</h5>
+        <div className="col-xl-3 trCol">
+          <div className="trCard">
+            <h5 className="fw-bold mt-3 mb-3"><strong>[ 큐브책 체크리스트 ]</strong></h5>
             {TR.큐브책.map((a, i) => (
-              <div key={i} className="mb-2 mt -3 ">
+              <div key={i} className="mb-2 checkBox">
                 <Form.Check
                   className="border-bottom"
                   defaultChecked={a.완료여부}
@@ -647,7 +651,7 @@ function TRedit(props) {
               </div>
             ))}
 
-            <h5 className="fw-bold mt-5 mb-3">매니저 피드백</h5>
+            <h5 className="fw-bold mt-5 mb-3"><strong>[ 매니저 피드백 ]</strong></h5>
             <textarea
               className="textArea"
               rows="10"
@@ -659,7 +663,7 @@ function TRedit(props) {
           </div>
           <Button
             variant="primary"
-            className="mt-3 fs-4"
+            className="btn-TRcommit btn-edit"
             onClick={() => {
               const newTR = JSON.parse(JSON.stringify(TR));
               if (newTR._id) {
@@ -694,7 +698,7 @@ function TRedit(props) {
 
           <Button
             variant="danger"
-            className="ms-4   mt-4 fs-6"
+            className="btn-TRcommit btn-cancel"
             onClick={() => {
               if (window.confirm(`현재 작성중인 일간하루를 정말 삭제하시겠습니까?`)) {
                 axios

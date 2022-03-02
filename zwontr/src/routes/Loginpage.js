@@ -1,4 +1,4 @@
-import "../App.scss";
+import "../Practice.scss";
 import { Form, Button } from "react-bootstrap";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
@@ -6,6 +6,10 @@ import axios from "axios";
 
 function Loginpage() {
   let history = useHistory();
+  let [ loginModal, loginModalChange ] = useState(false);
+  useEffect(()=>{
+    let timer = setTimeout(()=>{ loginModalChange(true) }, 250);
+  }, []);
 
   const [inputID, setinputID] = useState("");
   const [inputPW, setinputPW] = useState("");
@@ -35,8 +39,10 @@ function Loginpage() {
   }
 
   return (
-    <div>
-      <h1 className="">Zwon Center Manage Page</h1>
+    <div className={loginModal === true
+      ? "loginModal loginModal-active"
+      : "loginModal"}>
+      
       <Form className="loginBox">
         <Form.Group className="mb-3" controlId="formBasicEmail">
           <Form.Label>ID</Form.Label>
@@ -53,14 +59,15 @@ function Loginpage() {
           <Form.Label>Password</Form.Label>
           <Form.Control
             type="password"
-            placeholder="Password"
+            placeholder="Enter Password"
             onChange={(e) => {
               setinputPW(e.target.value);
             }}
           />
         </Form.Group>
         <Form.Group className="mb-3" controlId="formBasicCheckbox"></Form.Group>
-        <Button variant="primary" type="button" onClick={loginClick}>
+        <Button variant="primary" type="button" onClick={() => {
+          loginClick();}}>
           Login
         </Button>
       </Form>
