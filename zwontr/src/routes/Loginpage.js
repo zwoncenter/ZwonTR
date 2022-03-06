@@ -6,9 +6,11 @@ import axios from "axios";
 
 function Loginpage() {
   let history = useHistory();
-  let [ loginModal, loginModalChange ] = useState(false);
-  useEffect(()=>{
-    let timer = setTimeout(()=>{ loginModalChange(true) }, 250);
+  let [loginModal, loginModalChange] = useState(false);
+  useEffect(() => {
+    let timer = setTimeout(() => {
+      loginModalChange(true);
+    }, 250);
   }, []);
 
   const [inputID, setinputID] = useState("");
@@ -39,10 +41,7 @@ function Loginpage() {
   }
 
   return (
-    <div className={loginModal === true
-      ? "loginModal loginModal-active"
-      : "loginModal"}>
-      
+    <div className={loginModal === true ? "loginModal loginModal-active" : "loginModal"}>
       <Form className="loginBox">
         <Form.Group className="mb-3" controlId="formBasicEmail">
           <Form.Label>ID</Form.Label>
@@ -51,6 +50,11 @@ function Loginpage() {
             placeholder="Enter ID"
             onChange={(e) => {
               setinputID(e.target.value);
+            }}
+            onKeyPress={(e) => {
+              if (e.key == "Enter") {
+                loginClick();
+              }
             }}
           />
         </Form.Group>
@@ -63,12 +67,22 @@ function Loginpage() {
             onChange={(e) => {
               setinputPW(e.target.value);
             }}
+            onKeyPress={(e) => {
+              if (e.key == "Enter") {
+                loginClick();
+              }
+            }}
           />
         </Form.Group>
         <Form.Group className="mb-3" controlId="formBasicCheckbox"></Form.Group>
-        <Button variant="primary" type="button" onClick={() => {
-          loginClick();}}>
-          Login
+        <Button
+          variant="primary"
+          type="button"
+          onClick={() => {
+            loginClick();
+          }}
+        >
+          로그인
         </Button>
       </Form>
     </div>

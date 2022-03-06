@@ -10,9 +10,11 @@ function StuListpage(props) {
 
   const [modalShow, setmodalShow] = useState(false);
   const [TRlistShow, setTRlistShow] = useState(false);
-  let [ stuListShow, stuListShowChange ] = useState(false);
-  useEffect(()=>{
-    let timer = setTimeout(()=>{ stuListShowChange(true) }, 250);
+  let [stuListShow, stuListShowChange] = useState(false);
+  useEffect(() => {
+    let timer = setTimeout(() => {
+      stuListShowChange(true);
+    }, 250);
   }, []);
 
   const modalOpen = () => setmodalShow(true);
@@ -78,93 +80,93 @@ function StuListpage(props) {
   }, []);
 
   return (
-
-    <div  className='stuList-background'>
-      <div className={stuListShow === true
-      ? "stuListShow stuListShowActive text-center"
-      : "stuListShow text-center"}>
-      <h2><strong>지원센터 학생 목록</strong></h2>
-      <Card className="stuCard">
-        <Button variant="secondary" className="stuAddbtn" onClick={addClick}>
-         <strong>+</strong>
-        </Button>
-        <ListGroup variant="flush">
-          {ready
-            ? props.studentList.map(function (db, index) {
-                return (
-                  <div className="stuListItem">
-                  <ListGroup.Item
-                    key={index}
-                    onClick={() => {
-                      nameClick(db, index);
-                    }}
-                  >
-                    <p>{db.이름}</p>
-                  </ListGroup.Item></div>
-                );
-              })
-            : null}
-        </ListGroup>
-      </Card>
-      {modalShow === true ? (
-        <Modal show={modalShow} onHide={modalClose}>
-          <Modal.Header closeButton>
-            <Modal.Title>{ready ? props.studentList[props.선택된index].이름 : ""}</Modal.Title>
-          </Modal.Header>
-          <Modal.Body className="text-center">
-            <button
-              className="btn btn-primary me-3 stuButton"
-              onClick={() => {
-                history.push(`/StudentEdit/${props.studentList[props.선택된index].이름}`);
-              }}
-            >
-              학생DB조회/변경
-            </button>
-
-          <button
-            className="btn btn-primary me-3 stuButton"
-            onClick={() => {
-              setTRlistShow(!TRlistShow);
-            }}
-          >
-            TR(일간하루)
-          </button>
-        </Modal.Body>
-        {TRlistShow === true ? (
-          <div className="text-center mb-3">
-            <Button
-              className="btn-secondary createTRButton"
+    <div className="stuList-background">
+      <div className={stuListShow === true ? "stuListShow stuListShowActive text-center" : "stuListShow text-center"}>
+        <h2>
+          <strong>지원센터 학생 목록</strong>
+        </h2>
+        <Card className="stuCard">
+          <Button variant="secondary" className="stuAddbtn" onClick={addClick}>
+            <strong>+</strong>
+          </Button>
+          <ListGroup variant="flush">
+            {ready
+              ? props.studentList.map(function (db, index) {
+                  return (
+                    <div className="stuListItem" key={index}>
+                      <ListGroup.Item
+                        key={index}
+                        onClick={() => {
+                          nameClick(db, index);
+                        }}
+                      >
+                        <p>{db.이름}</p>
+                      </ListGroup.Item>
+                    </div>
+                  );
+                })
+              : null}
+          </ListGroup>
+        </Card>
+        {modalShow === true ? (
+          <Modal show={modalShow} onHide={modalClose}>
+            <Modal.Header closeButton>
+              <Modal.Title>{ready ? props.studentList[props.선택된index].이름 : ""}</Modal.Title>
+            </Modal.Header>
+            <Modal.Body className="text-center">
+              <button
+                className="btn btn-primary me-3 stuButton"
                 onClick={() => {
-                  history.push(`/TR/${props.studentList[props.선택된index].이름}/write`);
+                  history.push(`/StudentEdit/${props.studentList[props.선택된index].이름}`);
                 }}
               >
-                + 새 TR 작성 +
-              </Button>
+                학생DB조회/변경
+              </button>
 
-            <ListGroup variant="flush">
-              {props.trList.map(function (tr, index) {
-                return (
-                  <div className="stuListItem">
-                    <ListGroup.Item
-                      className="stuListItem"
-                      key={index}
-                      onClick={async () => {
-                        await props.선택된TRindex변경(index);
-                        history.push(`TR/${tr.이름}/edit/${tr.날짜}`);
-                      }}
-                    >
-                      <p>{tr.날짜}</p>
-                    </ListGroup.Item>
-                  </div>
-                );
-              })}
-            </ListGroup>
-          </div>
+              <button
+                className="btn btn-primary me-3 stuButton"
+                onClick={() => {
+                  setTRlistShow(!TRlistShow);
+                }}
+              >
+                TR(일간하루)
+              </button>
+            </Modal.Body>
+            {TRlistShow === true ? (
+              <div className="text-center mb-3">
+                <Button
+                  className="btn-secondary createTRButton"
+                  onClick={() => {
+                    history.push(`/TR/${props.studentList[props.선택된index].이름}/write`);
+                  }}
+                >
+                  + 새 TR 작성 +
+                </Button>
+
+                <ListGroup variant="flush">
+                  {props.trList.map(function (tr, index) {
+                    return (
+                      <div className="stuListItem" key={index}>
+                        <ListGroup.Item
+                          className="stuListItem"
+                          key={index}
+                          onClick={async () => {
+                            await props.선택된TRindex변경(index);
+                            history.push(`TR/${tr.이름}/edit/${tr.날짜}`);
+                          }}
+                        >
+                          <p>{tr.날짜}</p>
+                        </ListGroup.Item>
+                      </div>
+                    );
+                  })}
+                </ListGroup>
+              </div>
+            ) : null}
+          </Modal>
         ) : null}
-      </Modal>)
-      : null }
       </div>
-      </div>
+    </div>
   );
 }
 

@@ -8,9 +8,9 @@ import TimePicker from "react-time-picker";
 function TRwrite(props) {
   let history = useHistory();
   var managerList = props.managerList;
-  const [학생정보, 학생정보변경] = useState(props.stuDB);
+  const [stuDB, setstuDB] = useState(props.stuDB);
   const [TR, TR변경] = useState({
-    이름: 학생정보.이름,
+    이름: stuDB.이름,
     날짜: new Date().toISOString().split("T")[0],
     작성매니저: "",
 
@@ -111,7 +111,7 @@ function TRwrite(props) {
           window.alert(`${i + 1}번째 학습의 교재가 선택되지 않았습니다.`);
           return false;
         }
-        if (!TR.학습[i].최근진도) {
+        if (TR.학습[i].최근진도 < 0) {
           window.alert(`${i + 1}번째 학습의 최근진도가 입력되지 않았습니다.`);
           return false;
         }
@@ -195,16 +195,16 @@ function TRwrite(props) {
 
   useEffect(async () => {
     const newTR = JSON.parse(JSON.stringify(TR));
-    학생정보.진행중교재.map(function (a, i) {
+    stuDB.진행중교재.map(function (a, i) {
       newTR.학습.push({
         과목: a.과목,
         교재: a.교재,
         총교재량: a.총교재량,
-        최근진도: 0,
+        최근진도: -1,
         학습시간: "",
       });
     });
-    학생정보.큐브책.map(function (a, i) {
+    stuDB.큐브책.map(function (a, i) {
       newTR.큐브책.push({
         할일: a,
         완료여부: false,
@@ -214,25 +214,25 @@ function TRwrite(props) {
     const tmp = new Date(TR.날짜);
 
     if (tmp.getDay() === 0) {
-      newTR["목표취침"] = 학생정보.생활학습목표.일요일취침;
-      newTR["실제취침"] = 학생정보.생활학습목표.일요일취침;
-      newTR["목표기상"] = 학생정보.생활학습목표.일요일기상;
-      newTR["실제기상"] = 학생정보.생활학습목표.일요일기상;
-      newTR["목표등원"] = 학생정보.생활학습목표.일요일등원;
-      newTR["실제등원"] = 학생정보.생활학습목표.일요일등원;
-      newTR["목표귀가"] = 학생정보.생활학습목표.일요일귀가;
-      newTR["실제귀가"] = 학생정보.생활학습목표.일요일귀가;
-      newTR["목표학습"] = 학생정보.생활학습목표.일요일학습;
+      newTR["목표취침"] = stuDB.생활학습목표.일요일취침;
+      newTR["실제취침"] = stuDB.생활학습목표.일요일취침;
+      newTR["목표기상"] = stuDB.생활학습목표.일요일기상;
+      newTR["실제기상"] = stuDB.생활학습목표.일요일기상;
+      newTR["목표등원"] = stuDB.생활학습목표.일요일등원;
+      newTR["실제등원"] = stuDB.생활학습목표.일요일등원;
+      newTR["목표귀가"] = stuDB.생활학습목표.일요일귀가;
+      newTR["실제귀가"] = stuDB.생활학습목표.일요일귀가;
+      newTR["목표학습"] = stuDB.생활학습목표.일요일학습;
     } else {
-      newTR["목표취침"] = 학생정보.생활학습목표.평일취침;
-      newTR["실제취침"] = 학생정보.생활학습목표.평일취침;
-      newTR["목표기상"] = 학생정보.생활학습목표.평일기상;
-      newTR["실제기상"] = 학생정보.생활학습목표.평일기상;
-      newTR["목표등원"] = 학생정보.생활학습목표.평일등원;
-      newTR["실제등원"] = 학생정보.생활학습목표.평일등원;
-      newTR["목표귀가"] = 학생정보.생활학습목표.평일귀가;
-      newTR["실제귀가"] = 학생정보.생활학습목표.평일귀가;
-      newTR["목표학습"] = 학생정보.생활학습목표.평일학습;
+      newTR["목표취침"] = stuDB.생활학습목표.평일취침;
+      newTR["실제취침"] = stuDB.생활학습목표.평일취침;
+      newTR["목표기상"] = stuDB.생활학습목표.평일기상;
+      newTR["실제기상"] = stuDB.생활학습목표.평일기상;
+      newTR["목표등원"] = stuDB.생활학습목표.평일등원;
+      newTR["실제등원"] = stuDB.생활학습목표.평일등원;
+      newTR["목표귀가"] = stuDB.생활학습목표.평일귀가;
+      newTR["실제귀가"] = stuDB.생활학습목표.평일귀가;
+      newTR["목표학습"] = stuDB.생활학습목표.평일학습;
     }
 
     ["취침", "기상", "등원", "귀가"].forEach((a) => {
@@ -250,25 +250,25 @@ function TRwrite(props) {
       const tmp = new Date(TR.날짜);
 
       if (tmp.getDay() === 0) {
-        newTR["목표취침"] = 학생정보.생활학습목표.일요일취침;
-        newTR["실제취침"] = 학생정보.생활학습목표.일요일취침;
-        newTR["목표기상"] = 학생정보.생활학습목표.일요일기상;
-        newTR["실제기상"] = 학생정보.생활학습목표.일요일기상;
-        newTR["목표등원"] = 학생정보.생활학습목표.일요일등원;
-        newTR["실제등원"] = 학생정보.생활학습목표.일요일등원;
-        newTR["목표귀가"] = 학생정보.생활학습목표.일요일귀가;
-        newTR["실제귀가"] = 학생정보.생활학습목표.일요일귀가;
-        newTR["목표학습"] = 학생정보.생활학습목표.일요일학습;
+        newTR["목표취침"] = stuDB.생활학습목표.일요일취침;
+        newTR["실제취침"] = stuDB.생활학습목표.일요일취침;
+        newTR["목표기상"] = stuDB.생활학습목표.일요일기상;
+        newTR["실제기상"] = stuDB.생활학습목표.일요일기상;
+        newTR["목표등원"] = stuDB.생활학습목표.일요일등원;
+        newTR["실제등원"] = stuDB.생활학습목표.일요일등원;
+        newTR["목표귀가"] = stuDB.생활학습목표.일요일귀가;
+        newTR["실제귀가"] = stuDB.생활학습목표.일요일귀가;
+        newTR["목표학습"] = stuDB.생활학습목표.일요일학습;
       } else {
-        newTR["목표취침"] = 학생정보.생활학습목표.평일취침;
-        newTR["실제취침"] = 학생정보.생활학습목표.평일취침;
-        newTR["목표기상"] = 학생정보.생활학습목표.평일기상;
-        newTR["실제기상"] = 학생정보.생활학습목표.평일기상;
-        newTR["목표등원"] = 학생정보.생활학습목표.평일등원;
-        newTR["실제등원"] = 학생정보.생활학습목표.평일등원;
-        newTR["목표귀가"] = 학생정보.생활학습목표.평일귀가;
-        newTR["실제귀가"] = 학생정보.생활학습목표.평일귀가;
-        newTR["목표학습"] = 학생정보.생활학습목표.평일학습;
+        newTR["목표취침"] = stuDB.생활학습목표.평일취침;
+        newTR["실제취침"] = stuDB.생활학습목표.평일취침;
+        newTR["목표기상"] = stuDB.생활학습목표.평일기상;
+        newTR["실제기상"] = stuDB.생활학습목표.평일기상;
+        newTR["목표등원"] = stuDB.생활학습목표.평일등원;
+        newTR["실제등원"] = stuDB.생활학습목표.평일등원;
+        newTR["목표귀가"] = stuDB.생활학습목표.평일귀가;
+        newTR["실제귀가"] = stuDB.생활학습목표.평일귀가;
+        newTR["목표학습"] = stuDB.생활학습목표.평일학습;
       }
       TR변경(newTR);
     }
@@ -354,186 +354,167 @@ function TRwrite(props) {
             {TR.결석여부 === false ? (
               <div className="mt-3">
                 <div className="trCard">
-                <Form.Group as={Row}>
-                  <Form.Label column sm="2">
-                    <strong>[ 신체 컨디션 ]</strong>
-                  </Form.Label>
-                  <Col sm="10">
-                    <Form.Select
-                      size="sm"
-                      onChange={(e) => {
-                        change_depth_one("신체컨디션", parseInt(e.target.value));
-                      }}
-                    >
-                      <option value="선택">선택</option>
-                      <option value={5}>매우 좋음</option>
-                      <option value={4}> 좋음</option>
-                      <option value={3}>보통</option>
-                      <option value={2}> 안좋음</option>
-                      <option value={1}>매우 안좋음</option>
-                    </Form.Select>
-                  </Col>
-                </Form.Group>
-                <Form.Group as={Row} className="mb-3">
-                  <Form.Label column sm="2">
-                    <strong>[ 정서 컨디션 ]</strong>
-                  </Form.Label>
-                  <Col sm="10">
-                    <Form.Select
-                      size="sm"
-                      onChange={(e) => {
-                        change_depth_one("정서컨디션", parseInt(e.target.value));
-                      }}
-                    >
-                      <option value="선택">선택</option>
-                      <option value={5}>매우 좋음</option>
-                      <option value={4}> 좋음</option>
-                      <option value={3}>보통</option>
-                      <option value={2}> 안좋음</option>
-                      <option value={1}>매우 안좋음</option>
-                    </Form.Select>
-                  </Col>
-                </Form.Group>
-                <Table striped hover size="sm" className="mt-0">
-                  <thead>
-                    <tr>
-                      <th width="15%">생활</th>
-                      <th width="25%">목표</th>
-                      <th width="25%">실제</th>
-                      <th>차이</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {["취침", "기상", "등원", "귀가"].map(function (a, i) {
-                      return (
-                        <tr key={i}>
-                          <td>{a}</td>
-                          <td>
-                            <TimePicker
-                              locale="sv-sv"
-                              value={TR[`목표${a}`]}
-                              openClockOnFocus={false}
-                              clearIcon={null}
-                              clockIcon={null}
-                              onChange={(value) => {
-                                const newTR = JSON.parse(JSON.stringify(TR));
-                                newTR[`목표${a}`] = value;
-                                TR변경(newTR);
-                              }}
-                            ></TimePicker>
-                          </td>
+                  <Form.Group as={Row}>
+                    <Form.Label column sm="2">
+                      <strong>[ 신체 컨디션 ]</strong>
+                    </Form.Label>
+                    <Col sm="10">
+                      <Form.Select
+                        size="sm"
+                        onChange={(e) => {
+                          change_depth_one("신체컨디션", parseInt(e.target.value));
+                        }}
+                      >
+                        <option value="선택">선택</option>
+                        <option value={5}>매우 좋음</option>
+                        <option value={4}> 좋음</option>
+                        <option value={3}>보통</option>
+                        <option value={2}> 안좋음</option>
+                        <option value={1}>매우 안좋음</option>
+                      </Form.Select>
+                    </Col>
+                  </Form.Group>
+                  <Form.Group as={Row} className="mb-3">
+                    <Form.Label column sm="2">
+                      <strong>[ 정서 컨디션 ]</strong>
+                    </Form.Label>
+                    <Col sm="10">
+                      <Form.Select
+                        size="sm"
+                        onChange={(e) => {
+                          change_depth_one("정서컨디션", parseInt(e.target.value));
+                        }}
+                      >
+                        <option value="선택">선택</option>
+                        <option value={5}>매우 좋음</option>
+                        <option value={4}> 좋음</option>
+                        <option value={3}>보통</option>
+                        <option value={2}> 안좋음</option>
+                        <option value={1}>매우 안좋음</option>
+                      </Form.Select>
+                    </Col>
+                  </Form.Group>
+                  <Table striped hover size="sm" className="mt-0">
+                    <thead>
+                      <tr>
+                        <th width="15%">생활</th>
+                        <th width="25%">목표</th>
+                        <th width="25%">실제</th>
+                        <th>차이</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {["취침", "기상", "등원", "귀가"].map(function (a, i) {
+                        return (
+                          <tr key={i}>
+                            <td>{a}</td>
+                            <td>
+                              <TimePicker
+                                locale="sv-sv"
+                                value={TR[`목표${a}`]}
+                                openClockOnFocus={false}
+                                clearIcon={null}
+                                clockIcon={null}
+                                onChange={(value) => {
+                                  const newTR = JSON.parse(JSON.stringify(TR));
+                                  newTR[`목표${a}`] = value;
+                                  TR변경(newTR);
+                                }}
+                              ></TimePicker>
+                            </td>
 
-                          <td>
-                            <TimePicker
-                              className="timepicker"
-                              locale="sv-sv"
-                              value={TR[`실제${a}`]}
-                              openClockOnFocus={false}
-                              clearIcon={null}
-                              clockIcon={null}
-                              onChange={(value) => {
-                                const newTR = JSON.parse(JSON.stringify(TR));
-                                newTR[`실제${a}`] = value;
-                                TR변경(newTR);
-                              }}
-                            ></TimePicker>
-                          </td>
-                          <td>{차이출력(TR[`${a}차이`], a)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </Table></div>
+                            <td>
+                              <TimePicker
+                                className="timepicker"
+                                locale="sv-sv"
+                                value={TR[`실제${a}`]}
+                                openClockOnFocus={false}
+                                clearIcon={null}
+                                clockIcon={null}
+                                onChange={(value) => {
+                                  const newTR = JSON.parse(JSON.stringify(TR));
+                                  newTR[`실제${a}`] = value;
+                                  TR변경(newTR);
+                                }}
+                              ></TimePicker>
+                            </td>
+                            <td>{차이출력(TR[`${a}차이`], a)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </Table>
+                </div>
 
                 <div className="trCard">
-                <Table striped hover size="sm">
-                  <thead>
-                    <tr>
-                      <th width="15%">학습</th>
-                      <th>교재</th>
-                      <th width="15%">총교재량</th>
-                      <th width="15%">최근진도</th>
-                      <th width="15%">학습시간</th>
-                      <th width="10%"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {TR.학습.map(function (a, i) {
-                      return (
-                        <tr key={i}>
-                          <td>
-                            <Form.Select
-                              size="sm"
-                              onChange={(e) => {
-                                change_depth_three("학습", i, "과목", e.target.value);
-                              }}
-                            >
-                              <option>{a.과목}</option>
-                              <option value="선택">선택</option>
-                              <option value="국어">국어</option>
-                              <option value="수학">수학</option>
-                              <option value="영어">영어</option>
-                              <option value="탐구">탐구</option>
-                              <option value="기타">기타</option>
-                            </Form.Select>
-                          </td>
-                          <td>
-                            <Form.Select
-                              size="sm"
-                              onChange={(e) => {
-                                change_depth_three("학습", i, "교재", e.target.value);
-                              }}
-                            >
-                              <option>{a.교재}</option>
-                              <option value="선택">선택</option>
-                              <option value="모의고사">모의고사</option>
-                              <option value="테스트">테스트</option>q<option value="기타">기타</option>
-                            </Form.Select>
-                          </td>
-                          <td>
-                            <p className="fs-13px">{a.총교재량}</p>
-                          </td>
-                          <td>
-                            <input
-                              type="number"
-                              placeholder="0"
-                              className="inputText"
-                              onChange={(e) => {
-                                change_depth_three("학습", i, "최근진도", parseInt(e.target.value));
-                              }}
-                            />
-                          </td>
-                          <td>
-                            <TimePicker
-                              className="timepicker"
-                              locale="sv-sv"
-                              value="00:00"
-                              openClockOnFocus={false}
-                              clearIcon={null}
-                              clockIcon={null}
-                              onChange={(value) => {
-                                var newTR = JSON.parse(JSON.stringify(TR));
-                                newTR.학습[i].학습시간 = value;
-                                let 실제학습시간 = 0;
-                                let 실제학습분 = 0;
-                                newTR.학습.map(function (b, j) {
-                                  if (b.학습시간) {
-                                    실제학습시간 += parseInt(b.학습시간.split(":")[0]);
-                                    실제학습분 += parseInt(b.학습시간.split(":")[1]);
-                                  }
-                                });
-                                newTR.실제학습 = parseFloat((실제학습시간 + 실제학습분 / 60).toFixed(1));
-                                TR변경(newTR);
-                              }}
-                            ></TimePicker>
-                          </td>
-                          <td>
-                            <button
-                              className="btn btn-delete"
-                              onClick={() => {
-                                if (i > -1) {
+                  <Table striped hover size="sm">
+                    <thead>
+                      <tr>
+                        <th width="15%">학습</th>
+                        <th>교재</th>
+                        <th width="15%">총교재량</th>
+                        <th width="15%">최근진도</th>
+                        <th width="15%">학습시간</th>
+                        <th width="10%"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {TR.학습.map(function (a, i) {
+                        return (
+                          <tr key={i}>
+                            <td>
+                              <Form.Select
+                                size="sm"
+                                onChange={(e) => {
+                                  change_depth_three("학습", i, "과목", e.target.value);
+                                }}
+                              >
+                                <option>{a.과목}</option>
+                                <option value="선택">선택</option>
+                                <option value="국어">국어</option>
+                                <option value="수학">수학</option>
+                                <option value="영어">영어</option>
+                                <option value="탐구">탐구</option>
+                                <option value="기타">기타</option>
+                              </Form.Select>
+                            </td>
+                            <td>
+                              <Form.Select
+                                size="sm"
+                                onChange={(e) => {
+                                  change_depth_three("학습", i, "교재", e.target.value);
+                                }}
+                              >
+                                <option>{a.교재}</option>
+                                <option value="선택">선택</option>
+                                <option value="모의고사">모의고사</option>
+                                <option value="테스트">테스트</option>q<option value="기타">기타</option>
+                              </Form.Select>
+                            </td>
+                            <td>
+                              <p className="fs-13px">{a.총교재량}</p>
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                placeholder="-1"
+                                className="inputText"
+                                onChange={(e) => {
+                                  change_depth_three("학습", i, "최근진도", parseInt(e.target.value));
+                                }}
+                              />
+                            </td>
+                            <td>
+                              <TimePicker
+                                className="timepicker"
+                                locale="sv-sv"
+                                value="00:00"
+                                openClockOnFocus={false}
+                                clearIcon={null}
+                                clockIcon={null}
+                                onChange={(value) => {
                                   var newTR = JSON.parse(JSON.stringify(TR));
-                                  newTR.학습.splice(i, 1);
+                                  newTR.학습[i].학습시간 = value;
                                   let 실제학습시간 = 0;
                                   let 실제학습분 = 0;
                                   newTR.학습.map(function (b, j) {
@@ -544,135 +525,126 @@ function TRwrite(props) {
                                   });
                                   newTR.실제학습 = parseFloat((실제학습시간 + 실제학습분 / 60).toFixed(1));
                                   TR변경(newTR);
-                                }
-                              }}
-                            >
-                              <strong>x</strong>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                                }}
+                              ></TimePicker>
+                            </td>
+                            <td>
+                              <button
+                                className="btn btn-delete"
+                                onClick={() => {
+                                  if (i > -1) {
+                                    if (window.confirm("삭제하시겠습니까?")) {
+                                      var newTR = JSON.parse(JSON.stringify(TR));
+                                      newTR.학습.splice(i, 1);
+                                      let 실제학습시간 = 0;
+                                      let 실제학습분 = 0;
+                                      newTR.학습.map(function (b, j) {
+                                        if (b.학습시간) {
+                                          실제학습시간 += parseInt(b.학습시간.split(":")[0]);
+                                          실제학습분 += parseInt(b.학습시간.split(":")[1]);
+                                        }
+                                      });
+                                      newTR.실제학습 = parseFloat((실제학습시간 + 실제학습분 / 60).toFixed(1));
+                                      TR변경(newTR);
+                                    }
+                                  }
+                                }}
+                              >
+                                <strong>x</strong>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
 
-                    <tr>
-                      <td colSpan={4}>목표 학습 - {TR.목표학습} 시간</td>
-                      <td> {TR.실제학습} 시간</td>
-                      <td>{(TR.실제학습 - TR.목표학습).toFixed(1)}시간</td>
-                    </tr>
-                    <tr>
-                      <td colSpan={6}>
-                        {" "}
-                        <button
-                          className="btn btn-add program-add"
-                          onClick={() => {
-                            push_depth_one("학습", {
-                              과목: "선택",
-                              교재: "선택",
-                              총교재량: "",
-                              최근진도: "",
-                              학습시간: "",
-                            });
-                          }}
-                        >
-                          <strong>+</strong>
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </Table></div>
+                      <tr>
+                        <td colSpan={4}>목표 학습 - {TR.목표학습} 시간</td>
+                        <td> {TR.실제학습} 시간</td>
+                        <td>{(TR.실제학습 - TR.목표학습).toFixed(1)}시간</td>
+                      </tr>
+                      <tr>
+                        <td colSpan={6}>
+                          {" "}
+                          <button
+                            className="btn btn-add program-add"
+                            onClick={() => {
+                              push_depth_one("학습", {
+                                과목: "선택",
+                                교재: "선택",
+                                총교재량: "",
+                                최근진도: -1,
+                                학습시간: "",
+                              });
+                            }}
+                          >
+                            <strong>+</strong>
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </Table>
+                </div>
 
                 <div className="trCard">
-                <Table striped hover size="sm">
-                  <thead>
-                    <tr>
-                      <th width="20%">프로그램</th>
-                      <th width="20%">매니저</th>
-                      <th width="15%">소요시간</th>
-                      <th width="35%">상세내용</th>
-                      <th width="10%"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {TR.프로그램.map(function (a, i) {
-                      return (
-                        <tr key={i}>
-                          <td>
-                            <Form.Select
-                              size="sm"
-                              onChange={(e) => {
-                                change_depth_three("프로그램", i, "프로그램분류", e.target.value);
-                              }}
-                            >
-                              <option>선택</option>
-                              {학생정보.프로그램분류.map(function (p, j) {
-                                return (
-                                  <option value={p} key={j}>
-                                    {p}
-                                  </option>
-                                );
-                              })}
-                            </Form.Select>
-                          </td>
-                          <td>
-                            <Form.Select
-                              size="sm"
-                              onChange={(e) => {
-                                change_depth_three("프로그램", i, "매니저", e.target.value);
-                              }}
-                            >
-                              <option>선택</option>
-                              {managerList.map(function (b, j) {
-                                return (
-                                  <option value={b} key={j}>
-                                    {b}
-                                  </option>
-                                );
-                              })}
-                            </Form.Select>
-                          </td>
-                          <td>
-                            <TimePicker
-                              className="timepicker"
-                              locale="sv-sv"
-                              value="00:00"
-                              openClockOnFocus={false}
-                              clearIcon={null}
-                              clockIcon={null}
-                              onChange={(value) => {
-                                var newTR = JSON.parse(JSON.stringify(TR));
-                                newTR.프로그램[i].소요시간 = value;
-                                let 실제시간 = 0;
-                                let 실제분 = 0;
-                                newTR.프로그램.map(function (c, k) {
-                                  if (c.소요시간) {
-                                    실제시간 += parseInt(c.소요시간.split(":")[0]);
-                                    실제분 += parseInt(c.소요시간.split(":")[1]);
-                                  }
-                                });
-                                newTR.프로그램시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
-                                TR변경(newTR);
-                              }}
-                            ></TimePicker>
-                          </td>
-                          <td>
-                            <textarea
-                              className="textArea"
-                              name=""
-                              id=""
-                              rows="3"
-                              placeholder="프로그램 상세내용/특이사항 입력"
-                              onChange={(e) => {
-                                change_depth_three("프로그램", i, "상세내용", e.target.value);
-                              }}
-                            ></textarea>
-                          </td>
-                          <td>
-                            <button
-                              className="btn btn-delete"
-                              onClick={() => {
-                                if (i > -1) {
+                  <Table striped hover size="sm">
+                    <thead>
+                      <tr>
+                        <th width="20%">프로그램</th>
+                        <th width="20%">매니저</th>
+                        <th width="15%">소요시간</th>
+                        <th width="35%">상세내용</th>
+                        <th width="10%"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {TR.프로그램.map(function (a, i) {
+                        return (
+                          <tr key={i}>
+                            <td>
+                              <Form.Select
+                                size="sm"
+                                onChange={(e) => {
+                                  change_depth_three("프로그램", i, "프로그램분류", e.target.value);
+                                }}
+                              >
+                                <option>선택</option>
+                                {stuDB.프로그램분류.map(function (p, j) {
+                                  return (
+                                    <option value={p} key={j}>
+                                      {p}
+                                    </option>
+                                  );
+                                })}
+                              </Form.Select>
+                            </td>
+                            <td>
+                              <Form.Select
+                                size="sm"
+                                onChange={(e) => {
+                                  change_depth_three("프로그램", i, "매니저", e.target.value);
+                                }}
+                              >
+                                <option>선택</option>
+                                {managerList.map(function (b, j) {
+                                  return (
+                                    <option value={b} key={j}>
+                                      {b}
+                                    </option>
+                                  );
+                                })}
+                              </Form.Select>
+                            </td>
+                            <td>
+                              <TimePicker
+                                className="timepicker"
+                                locale="sv-sv"
+                                value="00:00"
+                                openClockOnFocus={false}
+                                clearIcon={null}
+                                clockIcon={null}
+                                onChange={(value) => {
                                   var newTR = JSON.parse(JSON.stringify(TR));
-                                  newTR.프로그램.splice(i, 1);
+                                  newTR.프로그램[i].소요시간 = value;
                                   let 실제시간 = 0;
                                   let 실제분 = 0;
                                   newTR.프로그램.map(function (c, k) {
@@ -683,42 +655,76 @@ function TRwrite(props) {
                                   });
                                   newTR.프로그램시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
                                   TR변경(newTR);
-                                }
-                              }}
-                            >
-                              <strong>x</strong>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                                }}
+                              ></TimePicker>
+                            </td>
+                            <td>
+                              <textarea
+                                className="textArea"
+                                name=""
+                                id=""
+                                rows="3"
+                                placeholder="프로그램 상세내용/특이사항 입력"
+                                onChange={(e) => {
+                                  change_depth_three("프로그램", i, "상세내용", e.target.value);
+                                }}
+                              ></textarea>
+                            </td>
+                            <td>
+                              <button
+                                className="btn btn-delete"
+                                onClick={() => {
+                                  if (i > -1) {
+                                    if (window.confirm("삭제하시겠습니까?")) {
+                                      var newTR = JSON.parse(JSON.stringify(TR));
+                                      newTR.프로그램.splice(i, 1);
+                                      let 실제시간 = 0;
+                                      let 실제분 = 0;
+                                      newTR.프로그램.map(function (c, k) {
+                                        if (c.소요시간) {
+                                          실제시간 += parseInt(c.소요시간.split(":")[0]);
+                                          실제분 += parseInt(c.소요시간.split(":")[1]);
+                                        }
+                                      });
+                                      newTR.프로그램시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
+                                      TR변경(newTR);
+                                    }
+                                  }
+                                }}
+                              >
+                                <strong>x</strong>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
 
-                    <tr>
-                      <td colSpan={5}>프로그램 진행 시간 : {TR.프로그램시간}시간</td>
-                    </tr>
-                    <tr>
-                      <td colSpan={5}>
-                        {" "}
-                        <button
-                          className="btn btn-add program-add"
-                          onClick={() => {
-                            push_depth_one("프로그램", {
-                              프로그램분류: "",
-                              매니저: "",
-                              소요시간: "",
-                              상세내용: "",
-                            });
-                          }}
-                        >
-                          <strong>+</strong>
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </Table></div>
+                      <tr>
+                        <td colSpan={5}>프로그램 진행 시간 : {TR.프로그램시간}시간</td>
+                      </tr>
+                      <tr>
+                        <td colSpan={5}>
+                          {" "}
+                          <button
+                            className="btn btn-add program-add"
+                            onClick={() => {
+                              push_depth_one("프로그램", {
+                                프로그램분류: "",
+                                매니저: "",
+                                소요시간: "",
+                                상세내용: "",
+                              });
+                            }}
+                          >
+                            <strong>+</strong>
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </Table>
+                </div>
               </div>
             ) : (
-              
               <div className="trCard mt-3">
                 <Form.Select
                   size="sm"
@@ -748,9 +754,12 @@ function TRwrite(props) {
         </div>
 
         <div className="col-xl-3 trCol">
-            {TR.결석여부 === false ? (<div className="trCard">
+          {TR.결석여부 === false ? (
+            <div className="trCard">
               <>
-                <h5 className="fw-bold mt-3 mb-3"><strong>[ 학습태도 ]</strong></h5>
+                <h5 className="fw-bold mt-3 mb-3">
+                  <strong>[ 학습태도 ]</strong>
+                </h5>
                 {TR.학습태도.map((prob, i) => (
                   <div key={`study-${prob.분류}`} className="mb-1 mt-1 checkBox">
                     <Form.Check
@@ -765,10 +774,13 @@ function TRwrite(props) {
                     />
                   </div>
                 ))}
-              </></div>
-            ) : null}
-            <div className="trCard">
-            <h5 className="fw-bold mt-3 mb-3"><strong>[ 문제행동 ]</strong></h5>
+              </>
+            </div>
+          ) : null}
+          <div className="trCard">
+            <h5 className="fw-bold mt-3 mb-3">
+              <strong>[ 문제행동 ]</strong>
+            </h5>
             {TR.문제행동.map((prob, i) => (
               <div key={`study-${prob.분류}`} className="mb-1 mt-1 checkBox">
                 <Form.Check
@@ -788,7 +800,9 @@ function TRwrite(props) {
 
         <div className="col-xl-3 trCol">
           <div className="trCard">
-            <h5 className="fw-bold mt-3 mb-3"><strong>[ 큐브책 체크리스트 ]</strong></h5>
+            <h5 className="fw-bold mt-3 mb-3">
+              <strong>[ 큐브책 체크리스트 ]</strong>
+            </h5>
             {TR.큐브책.map((a, i) => (
               <div key={i} className="mb-1 mt-1 checkBox">
                 <Form.Check
@@ -802,7 +816,9 @@ function TRwrite(props) {
               </div>
             ))}
 
-            <h5 className="fw-bold mt-5 mb-3"><strong>[ 매니저 피드백 ]</strong></h5>
+            <h5 className="fw-bold mt-5 mb-3">
+              <strong>[ 매니저 피드백 ]</strong>
+            </h5>
             <textarea
               className="textArea"
               rows="5"
