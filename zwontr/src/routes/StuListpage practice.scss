@@ -21,8 +21,8 @@ h6{
 }
 
 .stuList-background{
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
   background: url("../../public/blurry-gradient-haikei.png");
   background-size: cover;
   padding: 1px;
@@ -36,18 +36,18 @@ h6{
 .stuListShow{
   opacity: 0;
   transform: translateY(200px);
-  transition-delay: 1s;
-  transition: all 1s;
+  transition-delay: 0.5s;
+  transition: all 0.8s;
 }
 
 .stuListShowActive{
   opacity: 1;
-  transform: translateY(0px);
+  transform: translateY(-50px);
 }
 
 .stuCard{
   font-family: 'NanumSquare';
-  font-size:15px;
+  font-size: 15px;
   width: 90%;
   max-width: 600px;
   padding: 5px;
@@ -59,6 +59,12 @@ h6{
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 
+.stuCardstuList{
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
 .stuAddbtn{
   width: 100%;
   border-radius: 10px;
@@ -68,7 +74,7 @@ h6{
 }
 
 .stuListItem{
-  width: 100%;
+  width: 33%;
   height: 100%;
   padding: 2px;
   border-radius: 10px;
@@ -79,6 +85,11 @@ h6{
     background-color: #5500d3;
     color: white;
   }
+}
+
+.stuTRItem{
+  @extend .stuListItem;
+  width: 100%;
 }
 
 .stuButton{
@@ -92,4 +103,15 @@ h6{
   border-radius: 10px;
   border: 0;
   margin-bottom: 10px;
+}
+
+.dateContainer{
+  @extend .stuListItem;
+  overflow: auto;
+  height: 500px;
+  width: 100%;
+}
+
+.TRModal{
+  padding: 30px;
 }

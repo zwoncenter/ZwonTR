@@ -78,7 +78,6 @@ function StuListpage(props) {
   }, []);
 
   return (
-
     <div  className='stuList-background'>
       <div className={stuListShow === true
       ? "stuListShow stuListShowActive text-center"
@@ -88,10 +87,11 @@ function StuListpage(props) {
         <Button variant="secondary" className="stuAddbtn" onClick={addClick}>
          <strong>+</strong>
         </Button>
-        <ListGroup variant="flush">
+        <ListGroup variant="flush" className="stuCardstuList">
           {ready
             ? props.studentList.map(function (db, index) {
                 return (
+                  
                   <div className="stuListItem">
                   <ListGroup.Item
                     key={index}
@@ -107,7 +107,7 @@ function StuListpage(props) {
         </ListGroup>
       </Card>
       {modalShow === true ? (
-        <Modal show={modalShow} onHide={modalClose}>
+        <Modal show={modalShow} onHide={modalClose} className="TRModal">
           <Modal.Header closeButton>
             <Modal.Title>{ready ? props.studentList[props.선택된index].이름 : ""}</Modal.Title>
           </Modal.Header>
@@ -140,13 +140,13 @@ function StuListpage(props) {
               >
                 + 새 TR 작성 +
               </Button>
-
-            <ListGroup variant="flush">
+              <p className="mb-0 mt-1"><strong>[ 기존 TR ]</strong></p>   
+            <ListGroup variant="flush" className="dateContainer">
               {props.trList.map(function (tr, index) {
                 return (
-                  <div className="stuListItem">
+                  <div>
                     <ListGroup.Item
-                      className="stuListItem"
+                      className="stuTRItem"
                       key={index}
                       onClick={async () => {
                         await props.선택된TRindex변경(index);
@@ -155,6 +155,7 @@ function StuListpage(props) {
                     >
                       <p>{tr.날짜}</p>
                     </ListGroup.Item>
+                    
                   </div>
                 );
               })}
