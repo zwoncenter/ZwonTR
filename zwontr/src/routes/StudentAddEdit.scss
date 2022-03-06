@@ -1,11 +1,19 @@
 @import url(https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/nanumsquare.css);
 
-* p,span,h2,h3,a,
-h4,h5,h6,label,th,td{
+* p,
+span,
+h2,
+h3,
+a,
+h4,
+h5,
+h6,
+label,
+th,
+strong,
+td {
   font-family: "NanumSquare" !important;
-  input {
-    transform: rotate(0.04deg);
-  }
+  transform: rotate(-0.1deg);
 }
 
 .stuDB-form {
@@ -38,7 +46,7 @@ h4,h5,h6,label,th,td{
     background-color: #484554;
     h3,
     h5,
-    label{
+    label {
       color: white;
     }
   }
@@ -79,37 +87,42 @@ Table {
   background-color: white;
   border-radius: 5px;
   padding: 10px;
-  td{
+  td {
     border-bottom: 0px;
   }
-  input, option{
-      width: 100%;
+  input,
+  option {
+    width: 100%;
   }
 }
 
-.program-add{
-    background-color: black;
-    border: 0px;
+.program-add {
+  background-color: black;
+  border: 0px;
 }
 
-.commit-btns{
-    display: flex;
-    justify-content: center;
+.commit-btns {
+  display: flex;
+  justify-content: center;
 }
 
-.btn-DBcommit{
-    margin: 10px;
-    width: 20%;
-    font-size: 20px;
-    border-radius: 20px;
-    border: 0px;
-    box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+.btn-DBcommit {
+  margin: 10px;
+  width: 20%;
+  font-size: 20px;
+  border-radius: 20px;
+  border: 0px;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 
-.btn-edit{
-    background-color:#675ec2;
+.btn-edit {
+  background-color: #675ec2;
 }
 
-.btn-cancel{
-    background-color: black;
+.btn-cancel {
+  background-color: black;
+}
+
+.program-delete:hover {
+  cursor: pointer;
 }

@@ -6,11 +6,9 @@ h2,
 h3,
 h4,
 h5,
-h6{
+h6 {
   font-family: "NanumSquare" !important;
-   input {
-    transform: rotate(0.04deg);
-  }
+  transform: rotate(0.04deg);
 }
 
 .stuDB-form {
@@ -26,21 +24,21 @@ h6{
   background: url("../../public/blurry-gradient-haikei.png");
   background-size: cover;
   padding: 1px;
-  h2{
+  h2 {
     color: white;
     margin-top: 180px;
     font-size: 4rem;
   }
 }
 
-.stuListShow{
+.stuListShow {
   opacity: 0;
   transform: translateY(200px);
   transition-delay: 0.5s;
   transition: all 0.8s;
 }
 
-.stuListShowActive{
+.stuListShowActive {
   opacity: 1;
   transform: translateY(-50px);
 }
@@ -78,10 +76,10 @@ h6{
   height: 100%;
   padding: 2px;
   border-radius: 10px;
-  p{
+  p {
     margin: 0;
   }
-  div:hover{
+  div:hover {
     background-color: #5500d3;
     color: white;
   }
@@ -98,7 +96,7 @@ h6{
   border: 0;
 }
 
-.createTRButton{
+.createTRButton {
   background-color: black;
   border-radius: 10px;
   border: 0;

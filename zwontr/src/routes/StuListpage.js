@@ -10,9 +10,11 @@ function StuListpage(props) {
 
   const [modalShow, setmodalShow] = useState(false);
   const [TRlistShow, setTRlistShow] = useState(false);
-  let [ stuListShow, stuListShowChange ] = useState(false);
-  useEffect(()=>{
-    let timer = setTimeout(()=>{ stuListShowChange(true) }, 250);
+  let [stuListShow, stuListShowChange] = useState(false);
+  useEffect(() => {
+    let timer = setTimeout(() => {
+      stuListShowChange(true);
+    }, 250);
   }, []);
 
   const modalOpen = () => setmodalShow(true);
@@ -161,11 +163,12 @@ function StuListpage(props) {
               })}
             </ListGroup>
           </div>
+        
         ) : null}
-      </Modal>)
-      : null }
+        </Modal>
+      ) : null}
       </div>
-      </div>
+    </div>
   );
 }
 
