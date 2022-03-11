@@ -16,6 +16,16 @@ function StudentAdd(props) {
     document.querySelector("#inputProgram").value = "";
   };
 
+  function phoneNumber(value) {
+    value = value.replace(/[^0-9]/g, "");
+    return value.replace(/[^0-9]/, "").replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, `$1-$2-$3`);
+  }
+  const [contact, setContact] = useState(props.existstuDB["연락처"]);
+
+  useEffect(() => {
+    change_depth_one("연락처", contact);
+  }, [contact]);
+
   function change_depth_one(category, data) {
     const newstuDB = JSON.parse(JSON.stringify(stuDB));
     newstuDB[category] = data;
@@ -61,12 +71,7 @@ function StudentAdd(props) {
         <strong>학생 DB 조회 및 변경</strong>
       </h2>
 
-      <Form
-        className="stuDB-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-        }}
-      >
+      <div className="stuDB-form">
         <div className="stuedit-cat-box">
           <h3 className="stuedit-cat-title mb-4">
             <strong>[ 작성매니저 / 작성일자 ]</strong>
@@ -146,11 +151,13 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="text"
-                placeholder="ex) 010-1234-1234"
-                defaultValue={stuDB.연락처}
                 onChange={(e) => {
-                  change_depth_one("연락처", e.target.value);
+                  setContact(phoneNumber(e.target.value));
+                  change_depth_one("연락처", contact);
                 }}
+                value={contact}
+                maxLength="13"
+                placeholder="숫자만 입력해주세요"
               />
             </Col>
           </Form.Group>
@@ -632,7 +639,7 @@ function StudentAdd(props) {
             {stuDB
               ? stuDB.프로그램분류.map(function (a, i) {
                   return (
-                    <Badge pill bg="dark" className="me-2" key={i}>
+                    <Badge pill bg="dark" className="me-2 mt-2" key={i}>
                       {a}
                       <span
                         className="program-delete"
@@ -671,6 +678,7 @@ function StudentAdd(props) {
 
         <ul className="commit-btns">
           <Button
+            variant="secondary"
             className="btn-DBcommit btn-edit"
             onClick={() => {
               if (stuDB.작성매니저 === "") {
@@ -705,6 +713,7 @@ function StudentAdd(props) {
           </Button>
 
           <Button
+            variant="secondary"
             className="btn-DBcommit btn-cancel"
             onClick={() => {
               if (window.confirm(`${stuDB.이름} 학생의 DB를 정말 삭제하시겠습니까?`)) {
@@ -729,7 +738,7 @@ function StudentAdd(props) {
             <strong>DB 삭제</strong>
           </Button>
         </ul>
-      </Form>
+      </div>
     </div>
   );
 }

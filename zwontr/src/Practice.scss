@@ -31,8 +31,9 @@
   border-radius: 10px;
   margin-top: 50px;
   opacity: 0;
-  transition-delay: 1s;
-  transition: opacity 1s;
+  transition-delay: 0.5s;
+  transition: opacity 0.5s;
+  transition-duration: 0.5s;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 

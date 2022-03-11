@@ -26,30 +26,29 @@ td {
 .stuedit-background {
   width: 100%;
   height: 100%;
-  background: url("../../public/blurry-gradient-haikei.png");
+
   background-attachment: fixed;
   background-size: cover;
   padding: 1px;
   text-align: center;
   label {
+    color: white;
     background-color: #675ec2;
     border-radius: 30px;
-    color: white;
     margin-bottom: 10px;
   }
   h2 {
-    color: white;
     margin-top: 50px;
     font-size: 3rem;
   }
-  div:hover {
-    background-color: #484554;
-    h3,
-    h5,
-    label {
-      color: white;
-    }
-  }
+  // div:hover {
+  //   background-color: #484554;
+  //   h3,
+  //   h5,
+  //   label {
+  //     color: white;
+  //   }
+  // }
 }
 
 .stuedit-cat-box {
