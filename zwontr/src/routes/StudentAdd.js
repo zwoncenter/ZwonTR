@@ -71,7 +71,10 @@ function StudentAdd(props) {
   function delete_depth_one(category, index) {
     if (window.confirm("삭제하시겠습니까?")) {
       const newstuDB = JSON.parse(JSON.stringify(stuDB));
+      console.log(newstuDB[category]);
+      console.log(index);
       newstuDB[category].splice(index, 1);
+      console.log(newstuDB[category]);
       setstuDB(newstuDB);
     }
   }
@@ -347,7 +350,13 @@ function StudentAdd(props) {
           <h3 className="stuedit-cat-title mb-4">
             <strong>[ 큐브책 체크리스트 ]</strong>
           </h3>
-
+          <Button
+            onClick={() => {
+              console.log(stuDB["완료된교재"]);
+            }}
+          >
+            완료된교재 확인
+          </Button>
           <div className="cube-box">
             {stuDB.큐브책.map(function (a, i) {
               return (
@@ -357,6 +366,7 @@ function StudentAdd(props) {
                       className="mb-2"
                       type="text"
                       placeholder="큐브책 체크리스트 입력"
+                      value={a}
                       onChange={(e) => {
                         change_depth_two("큐브책", i, e.target.value);
                       }}
@@ -371,6 +381,7 @@ function StudentAdd(props) {
                     <button
                       className="btn btn-delete"
                       onClick={() => {
+                        console.log(i);
                         delete_depth_one("큐브책", i);
                       }}
                     >
@@ -421,7 +432,7 @@ function StudentAdd(props) {
                           change_depth_three("진행중교재", i, "과목", e.target.value);
                         }}
                       >
-                        <option>선택</option>
+                        <option>{a.과목 ? a.과목 : "선택"}</option>
                         <option value="국어">국어</option>
                         <option value="수학">수학</option>
                         <option value="영어">영어</option>
@@ -432,6 +443,7 @@ function StudentAdd(props) {
                       <input
                         type="text"
                         placeholder="ex)독사, 기탄수학 등"
+                        value={a.교재}
                         className="inputText"
                         onChange={(e) => {
                           change_depth_three("진행중교재", i, "교재", e.target.value);
@@ -443,6 +455,7 @@ function StudentAdd(props) {
                         type="text"
                         placeholder="ex)100p, 250문제"
                         className="inputText"
+                        value={a.총교재량}
                         onChange={async (e) => {
                           change_depth_three("진행중교재", i, "총교재량", e.target.value);
                           // const regex = /[^0-9]/g;
@@ -455,6 +468,7 @@ function StudentAdd(props) {
                       <input
                         type="date"
                         className="inputText"
+                        value={a.교재시작일}
                         onChange={(e) => {
                           change_depth_three("진행중교재", i, "교재시작일", e.target.value);
                         }}
@@ -464,7 +478,7 @@ function StudentAdd(props) {
                     <td>
                       <input
                         type="number"
-                        placeholder={a.최근진도}
+                        value={a.최근진도}
                         className="inputText"
                         onChange={(e) => {
                           change_depth_three("진행중교재", i, "최근진도", parseInt(e.target.value));
@@ -541,7 +555,7 @@ function StudentAdd(props) {
                           change_depth_three("완료된교재", i, "과목", e.target.value);
                         }}
                       >
-                        <option>선택</option>
+                        <option>{a.과목 ? a.과목 : "선택"}</option>
                         <option value="국어">국어</option>
                         <option value="수학">수학</option>
                         <option value="영어">영어</option>
@@ -552,6 +566,7 @@ function StudentAdd(props) {
                       <input
                         type="text"
                         placeholder="ex)독사, 기탄수학 등"
+                        value={a.교재}
                         className="inputText"
                         onChange={(e) => {
                           change_depth_three("완료된교재", i, "교재", e.target.value);
@@ -562,6 +577,7 @@ function StudentAdd(props) {
                       <input
                         type="text"
                         placeholder="ex)100p, 250문제"
+                        value={a.총교재량}
                         className="inputText"
                         onChange={(e) => {
                           // const regex = /[^0-9]/g;
@@ -575,6 +591,7 @@ function StudentAdd(props) {
                       <input
                         type="date"
                         className="inputText"
+                        value={a.교재시작일}
                         onChange={(e) => {
                           change_depth_three("완료된교재", i, "교재시작일", e.target.value);
                         }}
@@ -585,6 +602,7 @@ function StudentAdd(props) {
                       <input
                         type="date"
                         className="inputText"
+                        value={a.교재종료일}
                         onChange={(e) => {
                           change_depth_three("완료된교재", i, "교재종료일", e.target.value);
                         }}

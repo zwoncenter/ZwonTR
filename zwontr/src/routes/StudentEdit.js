@@ -344,7 +344,7 @@ function StudentAdd(props) {
                       className="mb-2"
                       type="text"
                       placeholder="큐브책 체크리스트 입력"
-                      defaultValue={a}
+                      value={a}
                       onChange={(e) => {
                         change_depth_two("큐브책", i, e.target.value);
                       }}
@@ -418,7 +418,7 @@ function StudentAdd(props) {
                           <input
                             type="text"
                             placeholder="ex)독사, 기탄수학 등"
-                            defaultValue={a.교재}
+                            value={a.교재}
                             className="inputText"
                             onChange={(e) => {
                               change_depth_three("진행중교재", i, "교재", e.target.value);
@@ -429,7 +429,7 @@ function StudentAdd(props) {
                           <input
                             type="text"
                             placeholder="ex)100p, 250문제"
-                            defaultValue={a.총교재량}
+                            value={a.총교재량}
                             className="inputText"
                             onChange={(e) => {
                               change_depth_three("진행중교재", i, "총교재량", e.target.value);
@@ -443,7 +443,7 @@ function StudentAdd(props) {
                           <input
                             type="date"
                             className="inputText"
-                            defaultValue={a.교재시작일}
+                            value={a.교재시작일}
                             onChange={(e) => {
                               change_depth_three("진행중교재", i, "교재시작일", e.target.value);
                             }}
@@ -454,7 +454,7 @@ function StudentAdd(props) {
                           <input
                             type="number"
                             placeholder="ex)70, 100"
-                            defaultValue={a.최근진도 !== 0 ? a.최근진도 : null}
+                            value={a.최근진도 !== 0 ? a.최근진도 : null}
                             className="inputText"
                             onChange={(e) => {
                               change_depth_three("진행중교재", i, "최근진도", parseInt(e.target.value));
@@ -544,7 +544,7 @@ function StudentAdd(props) {
                           <input
                             type="text"
                             placeholder="ex)독사, 기탄수학 등"
-                            defaultValue={a.교재 ? a.교재 : null}
+                            value={a.교재 ? a.교재 : null}
                             className="inputText"
                             onChange={(e) => {
                               change_depth_three("완료된교재", i, "교재", e.target.value);
@@ -555,7 +555,7 @@ function StudentAdd(props) {
                           <input
                             type="text"
                             placeholder="ex)100p, 250문제"
-                            defaultValue={a.총교재량 ? a.총교재량 : null}
+                            value={a.총교재량 ? a.총교재량 : null}
                             className="inputText"
                             onChange={(e) => {
                               change_depth_three("완료된교재", i, "춍교재량", e.target.value);
@@ -570,7 +570,7 @@ function StudentAdd(props) {
                           <input
                             type="date"
                             className="inputText"
-                            defaultValue={a.교재시작일 ? a.교재시작일 : null}
+                            value={a.교재시작일 ? a.교재시작일 : null}
                             onChange={(e) => {
                               change_depth_three("완료된교재", i, "교재시작일", e.target.value);
                             }}
@@ -581,7 +581,7 @@ function StudentAdd(props) {
                           <input
                             type="date"
                             className="inputText"
-                            defaultValue={a.교재종료일 ? a.교재종료일 : null}
+                            value={a.교재종료일 ? a.교재종료일 : null}
                             onChange={(e) => {
                               change_depth_three("완료된교재", i, "교재종료일", e.target.value);
                             }}
