@@ -70,6 +70,8 @@ function StudentAdd(props) {
       <h2 className="fw-bold text-center">
         <strong>학생 DB 조회 및 변경</strong>
       </h2>
+      <p>최근 작성매니저 : {props.existstuDB.작성매니저}</p>
+      <p>최근 수정일 : {props.existstuDB.작성일자}</p>
 
       <div className="stuDB-form">
         <div className="stuedit-cat-box">
@@ -84,7 +86,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="text"
-                placeholder={`최근작성 매니저 : ${props.existstuDB.작성매니저}`}
+                placeholder="본명입력 : ex)유재석"
                 onChange={(e) => {
                   change_depth_one("작성매니저", e.target.value);
                 }}
@@ -99,7 +101,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="date"
-                defaultValue={stuDB.작성일자}
+                value={stuDB.작성일자}
                 onChange={(e) => {
                   change_depth_one("작성일자", e.target.value);
                 }}
@@ -121,7 +123,7 @@ function StudentAdd(props) {
               <Form.Control
                 type="text"
                 placeholder="OOO"
-                defaultValue={stuDB.이름}
+                value={stuDB.이름}
                 onChange={(e) => {
                   change_depth_one("이름", e.target.value);
                 }}
@@ -136,7 +138,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="date"
-                defaultValue={stuDB.생년월일}
+                value={stuDB.생년월일}
                 onChange={(e) => {
                   change_depth_one("생년월일", e.target.value);
                 }}
@@ -179,7 +181,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="time"
-                defaultValue={stuDB ? stuDB.생활학습목표.평일취침 : null}
+                value={stuDB.생활학습목표.평일취침}
                 onChange={(e) => {
                   change_depth_two("생활학습목표", "평일취침", e.target.value);
                 }}
@@ -194,7 +196,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="time"
-                defaultValue={stuDB.생활학습목표.평일기상}
+                value={stuDB.생활학습목표.평일기상}
                 onChange={(e) => {
                   change_depth_two("생활학습목표", "평일기상", e.target.value);
                 }}
@@ -209,7 +211,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="time"
-                defaultValue={stuDB.생활학습목표.평일등원}
+                value={stuDB.생활학습목표.평일등원}
                 onChange={(e) => {
                   change_depth_two("생활학습목표", "평일등원", e.target.value);
                 }}
@@ -224,7 +226,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="time"
-                defaultValue={stuDB.생활학습목표.평일귀가}
+                value={stuDB.생활학습목표.평일귀가}
                 onChange={(e) => {
                   change_depth_two("생활학습목표", "평일귀가", e.target.value);
                 }}
@@ -239,7 +241,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="number"
-                defaultValue={stuDB.생활학습목표.평일학습}
+                value={stuDB.생활학습목표.평일학습}
                 step="0.1"
                 onChange={(e) => {
                   change_depth_two("생활학습목표", "평일학습", e.target.value);
@@ -259,7 +261,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="time"
-                defaultValue={stuDB.생활학습목표.일요일취침}
+                value={stuDB.생활학습목표.일요일취침}
                 onChange={(e) => {
                   change_depth_two("생활학습목표", "일요일취침", e.target.value);
                 }}
@@ -274,7 +276,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="time"
-                defaultValue={stuDB.생활학습목표.일요일기상}
+                value={stuDB.생활학습목표.일요일기상}
                 onChange={(e) => {
                   change_depth_two("생활학습목표", "일요일기상", e.target.value);
                 }}
@@ -289,7 +291,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="time"
-                defaultValue={stuDB.생활학습목표.일요일등원}
+                value={stuDB.생활학습목표.일요일등원}
                 onChange={(e) => {
                   change_depth_two("생활학습목표", "일요일등원", e.target.value);
                 }}
@@ -304,14 +306,13 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="time"
-                defaultValue={stuDB.생활학습목표.일요일귀가}
+                value={stuDB.생활학습목표.일요일귀가}
                 onChange={(e) => {
                   change_depth_two("생활학습목표", "일요일귀가", e.target.value);
                 }}
               />
             </Col>
           </Form.Group>
-
           <Form.Group as={Row} className="mb-3 me-3 ms-3">
             <Form.Label column sm="2">
               일요일 목표학습
@@ -319,7 +320,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="number"
-                defaultValue={stuDB.생활학습목표.일요일학습}
+                value={stuDB.생활학습목표.일요일학습}
                 step="0.1"
                 onChange={(e) => {
                   change_depth_two("생활학습목표", "일요일학습", e.target.value);
@@ -380,6 +381,7 @@ function StudentAdd(props) {
           </div>
         </div>
 
+        {/* 진행중 교재 */}
         <div className="stuedit-cat-box">
           <h3 className="stuedit-cat-title mb-4">
             <strong>[ 진행중교재 ]</strong>
@@ -396,88 +398,87 @@ function StudentAdd(props) {
               </tr>
             </thead>
             <tbody>
-              {stuDB
-                ? stuDB.진행중교재.map(function (a, i) {
-                    return (
-                      <tr key={i}>
-                        <td>
-                          <Form.Select
-                            size="sm"
-                            onChange={(e) => {
-                              change_depth_three("진행중교재", i, "과목", e.target.value);
-                            }}
-                          >
-                            <option>{a.과목 ? a.과목 : "선택"}</option>
-                            <option value="국어">국어</option>
-                            <option value="수학">수학</option>
-                            <option value="영어">영어</option>
-                            <option value="탐구">탐구</option>
-                          </Form.Select>
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            placeholder="ex)독사, 기탄수학 등"
-                            value={a.교재}
-                            className="inputText"
-                            onChange={(e) => {
-                              change_depth_three("진행중교재", i, "교재", e.target.value);
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            placeholder="ex)100p, 250문제"
-                            value={a.총교재량}
-                            className="inputText"
-                            onChange={(e) => {
-                              change_depth_three("진행중교재", i, "총교재량", e.target.value);
-                              // const regex = /[^0-9]/g;
-                              // newstuDB.진행중교재[i].총교재량숫자 = parseInt(e.target.value.replace(regex, ""));
-                            }}
-                          />
-                        </td>
+              {stuDB.진행중교재.map(function (a, i) {
+                return (
+                  <tr key={i}>
+                    <td>
+                      <Form.Select
+                        size="sm"
+                        value={a.과목}
+                        onChange={(e) => {
+                          change_depth_three("진행중교재", i, "과목", e.target.value);
+                        }}
+                      >
+                        <option value="선택">선택</option>
+                        <option value="국어">국어</option>
+                        <option value="수학">수학</option>
+                        <option value="영어">영어</option>
+                        <option value="탐구">탐구</option>
+                      </Form.Select>
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        placeholder="ex)독사, 기탄수학 등"
+                        value={a.교재}
+                        className="inputText"
+                        onChange={(e) => {
+                          change_depth_three("진행중교재", i, "교재", e.target.value);
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        placeholder="ex)100p, 250문제"
+                        value={a.총교재량}
+                        className="inputText"
+                        onChange={(e) => {
+                          change_depth_three("진행중교재", i, "총교재량", e.target.value);
+                          // const regex = /[^0-9]/g;
+                          // newstuDB.진행중교재[i].총교재량숫자 = parseInt(e.target.value.replace(regex, ""));
+                        }}
+                      />
+                    </td>
 
-                        <td>
-                          <input
-                            type="date"
-                            className="inputText"
-                            value={a.교재시작일}
-                            onChange={(e) => {
-                              change_depth_three("진행중교재", i, "교재시작일", e.target.value);
-                            }}
-                          />
-                        </td>
+                    <td>
+                      <input
+                        type="date"
+                        className="inputText"
+                        value={a.교재시작일}
+                        onChange={(e) => {
+                          change_depth_three("진행중교재", i, "교재시작일", e.target.value);
+                        }}
+                      />
+                    </td>
 
-                        <td>
-                          <input
-                            type="number"
-                            placeholder="ex)70, 100"
-                            value={a.최근진도 !== 0 ? a.최근진도 : null}
-                            className="inputText"
-                            onChange={(e) => {
-                              change_depth_three("진행중교재", i, "최근진도", parseInt(e.target.value));
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <button
-                            className="btn btn-delete"
-                            type="button"
-                            onClick={() => {
-                              if (i > -1) {
-                                delete_depth_one("진행중교재", i);
-                              }
-                            }}
-                          >
-                            <strong>X</strong>
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                : null}
+                    <td>
+                      <input
+                        type="number"
+                        placeholder="ex)70, 100"
+                        value={a.최근진도}
+                        className="inputText"
+                        onChange={(e) => {
+                          change_depth_three("진행중교재", i, "최근진도", parseInt(e.target.value));
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-delete"
+                        type="button"
+                        onClick={() => {
+                          if (i > -1) {
+                            delete_depth_one("진행중교재", i);
+                          }
+                        }}
+                      >
+                        <strong>X</strong>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
 
               <tr>
                 <td colSpan={6}>
@@ -487,7 +488,7 @@ function StudentAdd(props) {
                     type="button"
                     onClick={() => {
                       push_depth_one("진행중교재", {
-                        과목: "",
+                        과목: "선택",
                         교재: "",
                         총교재량: "",
                         총교재량숫자: 0,
@@ -522,89 +523,88 @@ function StudentAdd(props) {
             </thead>
 
             <tbody>
-              {stuDB.완료된교재
-                ? stuDB.완료된교재.map(function (a, i) {
-                    return (
-                      <tr key={i}>
-                        <td>
-                          <Form.Select
-                            size="sm"
-                            onChange={(e) => {
-                              change_depth_three("완료된교재", i, "과목", e.target.value);
-                            }}
-                          >
-                            <option>{a.과목 ? a.과목 : "선택"}</option>
-                            <option value="국어">국어</option>
-                            <option value="수학">수학</option>
-                            <option value="영어">영어</option>
-                            <option value="탐구">탐구</option>
-                          </Form.Select>
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            placeholder="ex)독사, 기탄수학 등"
-                            value={a.교재 ? a.교재 : null}
-                            className="inputText"
-                            onChange={(e) => {
-                              change_depth_three("완료된교재", i, "교재", e.target.value);
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            placeholder="ex)100p, 250문제"
-                            value={a.총교재량 ? a.총교재량 : null}
-                            className="inputText"
-                            onChange={(e) => {
-                              change_depth_three("완료된교재", i, "춍교재량", e.target.value);
-                              // const regex = /[^0-9]/g;
-                              // newstuDB.완료된교재[i].총교재량숫자 = parseInt(e.target.value.replace(regex, ""));
-                              // setstuDB(newstuDB);
-                            }}
-                          />
-                        </td>
+              {stuDB.완료된교재.map(function (a, i) {
+                return (
+                  <tr key={i}>
+                    <td>
+                      <Form.Select
+                        size="sm"
+                        value={a.과목}
+                        onChange={(e) => {
+                          change_depth_three("완료된교재", i, "과목", e.target.value);
+                        }}
+                      >
+                        <option value="선택">선택</option>
+                        <option value="국어">국어</option>
+                        <option value="수학">수학</option>
+                        <option value="영어">영어</option>
+                        <option value="탐구">탐구</option>
+                      </Form.Select>
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        placeholder="ex)독사, 기탄수학 등"
+                        value={a.교재}
+                        className="inputText"
+                        onChange={(e) => {
+                          change_depth_three("완료된교재", i, "교재", e.target.value);
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        placeholder="ex)100p, 250문제"
+                        value={a.총교재량}
+                        className="inputText"
+                        onChange={(e) => {
+                          change_depth_three("완료된교재", i, "총교재량", e.target.value);
+                          // const regex = /[^0-9]/g;
+                          // newstuDB.완료된교재[i].총교재량숫자 = parseInt(e.target.value.replace(regex, ""));
+                          // setstuDB(newstuDB);
+                        }}
+                      />
+                    </td>
 
-                        <td>
-                          <input
-                            type="date"
-                            className="inputText"
-                            value={a.교재시작일 ? a.교재시작일 : null}
-                            onChange={(e) => {
-                              change_depth_three("완료된교재", i, "교재시작일", e.target.value);
-                            }}
-                          />
-                        </td>
+                    <td>
+                      <input
+                        type="date"
+                        className="inputText"
+                        value={a.교재시작일 ? a.교재시작일 : null}
+                        onChange={(e) => {
+                          change_depth_three("완료된교재", i, "교재시작일", e.target.value);
+                        }}
+                      />
+                    </td>
 
-                        <td>
-                          <input
-                            type="date"
-                            className="inputText"
-                            value={a.교재종료일 ? a.교재종료일 : null}
-                            onChange={(e) => {
-                              change_depth_three("완료된교재", i, "교재종료일", e.target.value);
-                            }}
-                          />
-                        </td>
+                    <td>
+                      <input
+                        type="date"
+                        className="inputText"
+                        value={a.교재종료일 ? a.교재종료일 : null}
+                        onChange={(e) => {
+                          change_depth_three("완료된교재", i, "교재종료일", e.target.value);
+                        }}
+                      />
+                    </td>
 
-                        <td>
-                          <button
-                            className="btn btn-delete"
-                            type="button"
-                            onClick={() => {
-                              if (i > -1) {
-                                delete_depth_one("완료된교재", i);
-                              }
-                            }}
-                          >
-                            <strong>X</strong>
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                : null}
+                    <td>
+                      <button
+                        className="btn btn-delete"
+                        type="button"
+                        onClick={() => {
+                          if (i > -1) {
+                            delete_depth_one("완료된교재", i);
+                          }
+                        }}
+                      >
+                        <strong>X</strong>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
 
               <tr>
                 <td colSpan={6}>
@@ -614,7 +614,7 @@ function StudentAdd(props) {
                     type="button"
                     onClick={() => {
                       push_depth_one("완료된교재", {
-                        과목: "",
+                        과목: "선택",
                         교재: "",
                         총교재량: "",
                         총교재량숫자: 0,

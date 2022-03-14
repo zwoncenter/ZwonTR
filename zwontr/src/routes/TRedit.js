@@ -1,9 +1,10 @@
 import "./TRWriteEdit.scss";
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import TimePicker from "react-time-picker";
+
 function TRedit(props) {
   let history = useHistory();
   var managerList = props.managerList;
@@ -21,7 +22,7 @@ function TRedit(props) {
     }
     if (TR.결석여부) {
       if (!TR.결석사유) {
-        window.alert("결석사유가 선택되지 않았습니다.");
+        window.alert("미등원 사유가 선택되지 않았습니다.");
         return false;
       }
       return true;
@@ -45,12 +46,8 @@ function TRedit(props) {
           window.alert(`${i + 1}번째 학습의 교재가 선택되지 않았습니다.`);
           return false;
         }
-        if (TR.학습[i].최근진도 < 0) {
-          window.alert(`${i + 1}번째 학습의 최근진도가 입력되지 않았습니다.`);
-          return false;
-        }
         if (!TR.학습[i].학습시간) {
-          window.alert(`${i + 1}번째 학습의 학습시간이 입력되지 않았습니다.`);
+          window.alert(`${i + 1}번째 학습의 학습시간이 입력되지 않았습니다. 학습이 진행되지 않은 경우, 해당 항목을 삭제해주세요.`);
           return false;
         }
       }
@@ -67,24 +64,30 @@ function TRedit(props) {
     return true;
   }
 
-  function 컨디션변환(num) {
-    if (num == 5) {
-      return "매우 좋음";
+  function 차이계산(목표, 실제) {
+    if (!목표 || !실제) {
+      return NaN;
     }
-    if (num == 4) {
-      return "좋음";
+    let [목표시간, 목표분] = 목표.split(":");
+    let [실제시간, 실제분] = 실제.split(":");
+    let diff = parseInt(목표시간) - parseInt(실제시간) + (parseInt(목표분) - parseInt(실제분)) / 60;
+    if (diff < -12) {
+      diff += 24;
+    } else if (diff > 12) {
+      diff -= 24;
     }
-    if (num == 3) {
-      return "보통";
-    }
-    if (num == 2) {
-      return "안좋음";
-    }
-    if (num == 1) {
-      return "매우 안좋음";
-    }
-    if (num === "-") {
-      return "-";
+
+    return parseFloat(diff.toFixed(1));
+  }
+
+  function 차이출력(diff, 종류) {
+    if (diff < 0) {
+      diff = -diff;
+      return diff.toFixed(1) + "시간 늦게 " + 종류;
+    } else if (diff > 0) {
+      return diff.toFixed(1) + "시간 일찍 " + 종류;
+    } else {
+      return "정시 " + 종류;
     }
   }
 
@@ -118,38 +121,56 @@ function TRedit(props) {
     TR변경(newTR);
   }
 
-  function 차이계산(목표, 실제) {
-    if (!목표 || !실제) {
-      return NaN;
+  function 컨디션변환(num) {
+    if (num == 5) {
+      return "매우 좋음";
     }
-    let [목표시간, 목표분] = 목표.split(":");
-    let [실제시간, 실제분] = 실제.split(":");
-    let diff = parseInt(목표시간) - parseInt(실제시간) + (parseInt(목표분) - parseInt(실제분)) / 60;
-    if (diff < -12) {
-      diff += 24;
-    } else if (diff > 12) {
-      diff -= 24;
+    if (num == 4) {
+      return "좋음";
     }
-
-    return parseFloat(diff.toFixed(1));
-  }
-
-  function 차이출력(diff, 종류) {
-    if (diff < 0) {
-      diff = -diff;
-      return diff.toFixed(1) + "시간 늦게 " + 종류;
-    } else if (diff > 0) {
-      return diff.toFixed(1) + "시간 일찍 " + 종류;
-    } else {
-      return "정시 " + 종류;
+    if (num == 3) {
+      return "보통";
+    }
+    if (num == 2) {
+      return "안좋음";
+    }
+    if (num == 1) {
+      return "매우 안좋음";
+    }
+    if (num === "-") {
+      return "-";
     }
   }
 
-  useEffect(() => {
+  const isInitialMount = useRef(true);
+
+  useEffect(async () => {
     const newTR = JSON.parse(JSON.stringify(TR));
     newTR.작성매니저 = "";
-    TR변경(newTR);
+    await TR변경(newTR);
+
+    isInitialMount.current = false;
   }, []);
+
+  useEffect(() => {
+    if (!isInitialMount.current) {
+      const newTR = JSON.parse(JSON.stringify(TR));
+      const tmp = new Date(TR.날짜);
+      const ls = ["일", "월", "화", "수", "목", "금", "토"];
+      newTR["요일"] = ls[tmp.getDay()] + "요일";
+      TR변경(newTR);
+    }
+  }, [TR.날짜]);
+
+  useEffect(() => {
+    if (!isInitialMount.current) {
+      const newTR = JSON.parse(JSON.stringify(TR));
+      ["취침", "기상", "등원", "귀가"].forEach((a) => {
+        newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
+      });
+      TR변경(newTR);
+    }
+  }, [TR.목표취침, TR.실제취침, TR.목표기상, TR.실제기상, TR.목표등원, TR.실제등원, TR.목표귀가, TR.실제귀가, TR.목표학습, TR.실제학습]);
 
   return (
     <div className="trEdit-background">
@@ -165,7 +186,7 @@ function TRedit(props) {
                 <p className="fw-bold">[ 날짜 ]</p>
                 <input
                   type="date"
-                  defaultValue={TR.날짜}
+                  value={TR.날짜}
                   className="w-100"
                   onChange={(e) => {
                     change_depth_one("날짜", e.target.value);
@@ -177,11 +198,12 @@ function TRedit(props) {
                 <p className="fw-bold">[ 작성매니저 ]</p>
                 <Form.Select
                   size="sm"
+                  value={TR.작성매니저}
                   onChange={(e) => {
                     change_depth_one("작성매니저", e.target.value);
                   }}
                 >
-                  <option value={props.existTR.작성매니저}>{"기존 : " + props.existTR.작성매니저}</option>
+                  <option value="기존">{"기존 : " + props.existTR.작성매니저}</option>
                   {managerList
                     ? managerList.map((manager, index) => {
                         return (
@@ -198,6 +220,7 @@ function TRedit(props) {
                 <button
                   className="btn btn-TRcommit btn-attend"
                   onClick={() => {
+                    console.log(TR);
                     change_depth_one("결석여부", false);
                   }}
                 >
@@ -208,13 +231,13 @@ function TRedit(props) {
                 <button
                   className="btn btn-TRcommit btn-absent"
                   onClick={() => {
-                    if (window.confirm("입력된 생활 및 학습 등이 삭제됩니다. 결석으로 전환하시겠습니까?")) {
+                    if (window.confirm("미등원으로 전환하시겠습니까?")) {
                       console.log(TR);
                       change_depth_one("결석여부", true);
                     }
                   }}
                 >
-                  <strong>결석</strong>
+                  <strong>미등원</strong>
                 </button>
               </div>
             </div>
@@ -228,6 +251,7 @@ function TRedit(props) {
                     <Col sm="10">
                       <Form.Select
                         size="sm"
+                        value={TR.신체컨디션}
                         onChange={(e) => {
                           change_depth_one("신체컨디션", parseInt(e.target.value));
                         }}
@@ -248,6 +272,7 @@ function TRedit(props) {
                     <Col sm="10">
                       <Form.Select
                         size="sm"
+                        value={TR.정서컨디션}
                         onChange={(e) => {
                           change_depth_one("정서컨디션", parseInt(e.target.value));
                         }}
@@ -261,7 +286,7 @@ function TRedit(props) {
                       </Form.Select>
                     </Col>
                   </Form.Group>
-                  <Table striped hover className="mt-3">
+                  <Table striped hover size="sm" className="mt-3">
                     <thead>
                       <tr>
                         <th width="15%">생활</th>
@@ -312,8 +337,9 @@ function TRedit(props) {
                     </tbody>
                   </Table>
                 </div>
+
                 <div className="trCard">
-                  <Table striped hover className="mt-3">
+                  <Table striped hover size="sm" className="mt-3">
                     <thead>
                       <tr>
                         <th width="15%">학습</th>
@@ -331,27 +357,34 @@ function TRedit(props) {
                             <td>
                               <Form.Select
                                 size="sm"
+                                value={a.과목}
                                 onChange={(e) => {
                                   change_depth_three("학습", i, "과목", e.target.value);
                                 }}
                               >
-                                <option>{a.과목 ? a.과목 : "선택"}</option>
+                                <option value="선택">선택</option>
                                 <option value="국어">국어</option>
                                 <option value="수학">수학</option>
                                 <option value="영어">영어</option>
                                 <option value="탐구">탐구</option>
+                                <option value="기타">기타</option>
                               </Form.Select>
                             </td>
                             <td>
                               <Form.Select
                                 size="sm"
+                                value={a.교재}
                                 onChange={(e) => {
                                   change_depth_three("학습", i, "교재", e.target.value);
                                 }}
                               >
-                                <option>{a.교재 ? a.교재 : "선택"}</option>
+                                <option value="선택">선택</option>
+                                {stuDB.진행중교재.map(function (book, index) {
+                                  return <option value={book.교재}>{book.교재}</option>;
+                                })}
                                 <option value="모의고사">모의고사</option>
                                 <option value="테스트">테스트</option>
+                                <option value="기타">기타</option>
                               </Form.Select>
                             </td>
                             <td>
@@ -360,7 +393,7 @@ function TRedit(props) {
                             <td>
                               <input
                                 type="number"
-                                defaultValue={a.최근진도}
+                                value={a.최근진도}
                                 className="inputText"
                                 onChange={(e) => {
                                   change_depth_three("학습", i, "최근진도", parseInt(e.target.value));
@@ -432,8 +465,8 @@ function TRedit(props) {
                             className="btn btn-add program-add"
                             onClick={() => {
                               push_depth_one("학습", {
-                                과목: "",
-                                교재: "",
+                                과목: "선택",
+                                교재: "선택",
                                 총교재량: "---",
                                 최근진도: -1,
                                 학습시간: "",
@@ -449,7 +482,7 @@ function TRedit(props) {
                 </div>
 
                 <div className="trCard">
-                  <Table striped hover className="mt-3">
+                  <Table striped hover size="sm" className="mt-3">
                     <thead>
                       <tr>
                         <th width="20%">프로그램</th>
@@ -466,11 +499,12 @@ function TRedit(props) {
                             <td>
                               <Form.Select
                                 size="sm"
+                                value={a.프로그램분류}
                                 onChange={(e) => {
                                   change_depth_three("프로그램", i, "프로그램분류", e.target.value);
                                 }}
                               >
-                                <option>{a.프로그램분류 ? a.프로그램분류 : "선택"}</option>
+                                <option value="선택">선택</option>
                                 {stuDB.프로그램분류.map(function (p, j) {
                                   return (
                                     <option value={p} key={j}>
@@ -483,11 +517,12 @@ function TRedit(props) {
                             <td>
                               <Form.Select
                                 size="sm"
+                                value={a.매니저}
                                 onChange={(e) => {
                                   change_depth_three("프로그램", i, "매니저", e.target.value);
                                 }}
                               >
-                                <option>{a.매니저 ? a.매니저 : "선택"}</option>
+                                <option value="선택">선택</option>
                                 {managerList.map(function (b, j) {
                                   return (
                                     <option value={b} key={j}>
@@ -528,7 +563,7 @@ function TRedit(props) {
                                 id=""
                                 rows="3"
                                 placeholder="프로그램 진행 내용"
-                                defaultValue={a.상세내용}
+                                value={a.상세내용}
                                 onChange={(e) => {
                                   change_depth_three("프로그램", i, "상세내용", e.target.value);
                                 }}
@@ -573,9 +608,9 @@ function TRedit(props) {
                             className="btn btn-add program-add"
                             onClick={() => {
                               push_depth_one("프로그램", {
-                                프로그램분류: "",
-                                매니저: "",
-                                소요시간: "",
+                                프로그램분류: "선택",
+                                매니저: "선택",
+                                소요시간: "00:00",
                                 상세내용: "",
                               });
                             }}
@@ -592,21 +627,23 @@ function TRedit(props) {
               <div className="trCard mt-3">
                 <Form.Select
                   size="sm"
+                  value={TR.결석사유}
                   onChange={(e) => {
                     push_depth_one("결석사유", e.target.value);
                   }}
                 >
-                  <option>선택</option>
+                  <option value="">미등원사유 선택</option>
+                  <option value="등원일 아님">등원일 아님</option>
                   <option value="병가">병가</option>
                   <option value="무단">무단</option>
                   <option value="휴가">휴가</option>
+                  <option value="구조적용중">"구조적용중"</option>
                   <option value="기타">기타</option>
                 </Form.Select>
                 <textarea
-                  name=""
-                  id=""
                   className="textArea mt-3"
-                  placeholder="결석 사유를 입력"
+                  placeholder="미등원 사유를 입력"
+                  value={TR.결석상세내용}
                   onChange={(e) => {
                     push_depth_one("결석상세내용", e.target.value);
                   }}
@@ -623,7 +660,7 @@ function TRedit(props) {
                   <strong>[ 학습태도 ]</strong>
                 </p>
                 {TR.학습태도.map((prob, i) => (
-                  <div key={`study-${prob.분류}`} className="mb-2 checkBox">
+                  <div key={`study-${prob.분류}`} className="mb-1 mt-1 checkBox">
                     <Form.Check
                       defaultChecked={prob.문제여부}
                       className="border-bottom"
@@ -666,7 +703,7 @@ function TRedit(props) {
               <strong>[ 큐브책 체크리스트 ]</strong>
             </h5>
             {TR.큐브책.map((a, i) => (
-              <div key={i} className="mb-2 checkBox">
+              <div key={i} className="mb-1 mt-1 checkBox">
                 <Form.Check
                   className="border-bottom"
                   defaultChecked={a.완료여부}
@@ -685,24 +722,18 @@ function TRedit(props) {
             <textarea
               rows="10"
               className="textArea"
-              defaultValue={TR.매니저피드백}
+              value={TR.매니저피드백}
               onChange={(e) => {
                 change_depth_one("매니저피드백", e.target.value);
               }}
             ></textarea>
           </div>
           <Button
-            variant="primary"
+            variant="danger"
             className="btn-TRcommit btn-edit"
             onClick={() => {
-              const newTR = JSON.parse(JSON.stringify(TR));
-              if (newTR._id) {
-                delete newTR._id;
-                TR변경(newTR);
-                console.log(TR);
-              }
               if (입력확인()) {
-                if (window.confirm("수정된 DB를 저장하시겠습니까?")) {
+                if (window.confirm(`수정된 ${TR.이름}학생의 ${TR.날짜} 일간하루를 저장하시겠습니까?`)) {
                   axios
                     .put("/api/TR/edit", TR)
                     .then(function (result) {
@@ -735,11 +766,11 @@ function TRedit(props) {
               if (window.confirm(`현재 작성중인 일간하루를 정말 삭제하시겠습니까?`)) {
                 axios
                   .delete(`/api/TR/delete/${TR._id}`)
-                  .then(function (response) {
-                    if (response.data === true) {
+                  .then(function (result) {
+                    if (result.data === true) {
                       window.alert("삭제되었습니다");
                     } else {
-                      window.alert(response.data);
+                      window.alert(result.data);
                     }
                   })
                   .catch(function (err) {
