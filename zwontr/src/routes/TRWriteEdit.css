@@ -1,5 +1,4 @@
 @import url(https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/nanumsquare.css);
-
 * p,
 span,
 h2,
@@ -15,7 +14,8 @@ td,
 button,
 textarea {
   font-family: "NanumSquare" !important;
-  transform: rotate(0.04deg);
+  -webkit-transform: rotate(0.04deg);
+          transform: rotate(0.04deg);
 }
 
 .trEdit-background {
@@ -31,35 +31,40 @@ textarea {
   border-radius: 20px;
   border: 0px;
   background-color: white;
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
-  p,
-  label,
-  select,
-  td,
-  th,
-  input,
-  textarea,
-  h5,
-  button {
-    font-size: 0.9rem;
-    vertical-align: middle;
-    margin-bottom: 0px;
-  }
-  input,
-  select,
-  textArea {
-    border-radius: 10px;
-    text-align: center;
-  }
-  Table {
-    table-layout: fixed;
-    background-color: white;
-    border-radius: 5px;
-    padding: 10px;
-    td {
-      border-bottom: 0px;
-    }
-  }
+  -webkit-box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+          box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+}
+
+.trCard p,
+.trCard label,
+.trCard select,
+.trCard td,
+.trCard th,
+.trCard input,
+.trCard textarea,
+.trCard h5,
+.trCard button {
+  font-size: 0.9rem;
+  vertical-align: middle;
+  margin-bottom: 0px;
+}
+
+.trCard input,
+.trCard select,
+.trCard textArea {
+  border-radius: 10px;
+  text-align: center;
+}
+
+.trCard Table {
+  table-layout: fixed;
+  background-color: white;
+  border-radius: 5px;
+  padding: 10px;
+}
+
+.trCard Table td {
+  border-bottom: 0px;
 }
 
 .btn-TRcommit {
@@ -68,7 +73,8 @@ textarea {
   font-size: 20px;
   border-radius: 20px;
   border: 0px;
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  -webkit-box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+          box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
   color: white;
 }
 
@@ -118,11 +124,4 @@ textarea {
   width: 90%;
   margin: auto;
 }
-
-.tmp {
-  font-size: 40px;
-}
-
-.tmp2 {
-  text-align: left;
-}
+/*# sourceMappingURL=TRWriteEdit.css.map */

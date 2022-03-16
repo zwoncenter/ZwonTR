@@ -9,6 +9,8 @@ function TRwrite(props) {
   let history = useHistory();
   var managerList = props.managerList;
   const [stuDB, setstuDB] = useState(props.stuDB);
+  const [cuberaito, setCuberatio] = useState(0);
+  const [failCnt, setFailCnt] = useState(0);
   const [TR, TR변경] = useState({
     이름: stuDB.이름,
     날짜: new Date().toISOString().split("T")[0],
@@ -72,6 +74,10 @@ function TRwrite(props) {
 
     프로그램시간: 0,
 
+    센터내시간: 0,
+    센터활용률: 0,
+    센터학습활용률: 0,
+
     프로그램: [],
     매니저피드백: "",
     큐브책: [],
@@ -112,7 +118,7 @@ function TRwrite(props) {
           window.alert(`${i + 1}번째 학습의 교재가 선택되지 않았습니다.`);
           return false;
         }
-        if (!TR.학습[i].학습시간) {
+        if (!TR.학습[i].학습시간 || TR.학습[i].학습시간 === "00:00") {
           window.alert(`${i + 1}번째 학습의 학습시간이 입력되지 않았습니다. \n 학습이 진행되지 않은 경우, 해당 항목을 삭제해주세요.`);
           return false;
         }
@@ -143,15 +149,15 @@ function TRwrite(props) {
       diff -= 24;
     }
 
-    return parseFloat(diff.toFixed(1));
+    return Math.round(diff * 10) / 10;
   }
 
   function 차이출력(diff, 종류) {
     if (diff < 0) {
       diff = -diff;
-      return diff.toFixed(1) + "시간 늦게 " + 종류;
+      return Math.round(diff * 10) / 10 + "시간 늦게 " + 종류;
     } else if (diff > 0) {
-      return diff.toFixed(1) + "시간 일찍 " + 종류;
+      return Math.round(diff * 10) / 10 + "시간 일찍 " + 종류;
     } else {
       return "정시 " + 종류;
     }
@@ -197,13 +203,14 @@ function TRwrite(props) {
         과목: a.과목,
         교재: a.교재,
         총교재량: a.총교재량,
-        최근진도: -1,
-        학습시간: "",
+        최근진도: 0,
+        학습시간: "00:00",
       });
     });
     stuDB.큐브책.map(function (a, i) {
       newTR.큐브책.push({
-        할일: a,
+        구분: a.구분,
+        할일: a.내용,
         완료여부: false,
       });
     });
@@ -282,9 +289,41 @@ function TRwrite(props) {
       ["취침", "기상", "등원", "귀가"].forEach((a) => {
         newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
       });
+      newTR.센터내시간 = 차이계산(newTR.실제귀가, newTR.실제등원);
+      newTR.센터활용률 = Math.round(((newTR.프로그램시간 + newTR.실제학습) / TR.센터내시간) * 1000) / 10;
+      newTR.센터학습활용률 = Math.round((newTR.실제학습 / newTR.센터내시간) * 1000) / 10;
       TR변경(newTR);
     }
-  }, [TR.목표취침, TR.실제취침, TR.목표기상, TR.실제기상, TR.목표등원, TR.실제등원, TR.목표귀가, TR.실제귀가, TR.목표학습, TR.실제학습]);
+  }, [
+    TR.목표취침,
+    TR.실제취침,
+    TR.목표기상,
+    TR.실제기상,
+    TR.목표등원,
+    TR.실제등원,
+    TR.목표귀가,
+    TR.실제귀가,
+    TR.목표학습,
+    TR.실제학습,
+    TR.프로그램시간,
+    TR.센터내시간,
+  ]);
+
+  useEffect(() => {
+    if (!isInitialMount.current) {
+      let cnt = 0;
+      let fail = 0;
+      for (const cube of TR["큐브책"]) {
+        if (cube["완료여부"] === true) {
+          cnt += 1;
+        } else {
+          fail += 1;
+        }
+      }
+      setFailCnt(fail);
+      setCuberatio(Math.round((cnt / TR["큐브책"].length) * 1000) / 10);
+    }
+  }, [TR.큐브책]);
 
   return (
     <div className="trEdit-background">
@@ -450,6 +489,9 @@ function TRwrite(props) {
                       })}
                     </tbody>
                   </Table>
+                  <p style={{ fontSize: "18px" }} className="mt-2">
+                    센터내시간 : {TR.센터내시간}시간 / 센터활용률 : {TR.센터활용률}% / 센터학습활용률: {TR.센터학습활용률}%
+                  </p>
                 </div>
 
                 <div className="trCard">
@@ -494,7 +536,11 @@ function TRwrite(props) {
                               >
                                 <option value="선택">선택</option>
                                 {stuDB.진행중교재.map(function (book, index) {
-                                  return <option value={book.교재}>{book.교재}</option>;
+                                  return (
+                                    <option value={book.교재} key={index}>
+                                      {book.교재}
+                                    </option>
+                                  );
                                 })}
                                 <option value="모의고사">모의고사</option>
                                 <option value="테스트">테스트</option>
@@ -534,7 +580,7 @@ function TRwrite(props) {
                                       실제학습분 += parseInt(b.학습시간.split(":")[1]);
                                     }
                                   });
-                                  newTR.실제학습 = parseFloat((실제학습시간 + 실제학습분 / 60).toFixed(1));
+                                  newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
                                   TR변경(newTR);
                                 }}
                               ></TimePicker>
@@ -555,7 +601,7 @@ function TRwrite(props) {
                                           실제학습분 += parseInt(b.학습시간.split(":")[1]);
                                         }
                                       });
-                                      newTR.실제학습 = parseFloat((실제학습시간 + 실제학습분 / 60).toFixed(1));
+                                      newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
                                       TR변경(newTR);
                                     }
                                   }
@@ -571,7 +617,7 @@ function TRwrite(props) {
                       <tr>
                         <td colSpan={4}>목표 학습 - {TR.목표학습} 시간</td>
                         <td> {TR.실제학습} 시간</td>
-                        <td>{(TR.실제학습 - TR.목표학습).toFixed(1)}시간</td>
+                        <td>{Math.round((TR.실제학습 - TR.목표학습) * 10) / 10}시간</td>
                       </tr>
                       <tr>
                         <td colSpan={6}>
@@ -582,9 +628,9 @@ function TRwrite(props) {
                               push_depth_one("학습", {
                                 과목: "선택",
                                 교재: "선택",
-                                총교재량: "",
-                                최근진도: -1,
-                                학습시간: "",
+                                총교재량: "---",
+                                최근진도: 0,
+                                학습시간: "00:00",
                               });
                             }}
                           >
@@ -666,7 +712,7 @@ function TRwrite(props) {
                                       실제분 += parseInt(c.소요시간.split(":")[1]);
                                     }
                                   });
-                                  newTR.프로그램시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
+                                  newTR.프로그램시간 = Math.round((실제시간 + 실제분 / 60) * 10) / 10;
                                   TR변경(newTR);
                                 }}
                               ></TimePicker>
@@ -700,7 +746,7 @@ function TRwrite(props) {
                                           실제분 += parseInt(c.소요시간.split(":")[1]);
                                         }
                                       });
-                                      newTR.프로그램시간 = parseFloat((실제시간 + 실제분 / 60).toFixed(1));
+                                      newTR.프로그램시간 = Math.round((실제시간 + 실제분 / 60) * 10) / 10;
                                       TR변경(newTR);
                                     }
                                   }
@@ -768,7 +814,7 @@ function TRwrite(props) {
           </div>
         </div>
 
-        <div className="col-xl-3 trCol">
+        <div className="col-xl-2 trCol">
           {TR.결석여부 === false ? (
             <div className="trCard">
               <>
@@ -778,7 +824,7 @@ function TRwrite(props) {
                 {TR.학습태도.map((prob, i) => (
                   <div key={`study-${prob.분류}`} className="mb-1 mt-1 checkBox">
                     <Form.Check
-                      defaultChecked={prob.문제여부}
+                      checked={prob.문제여부}
                       className="border-bottom"
                       type="checkbox"
                       id={`study-${prob.분류}`}
@@ -799,7 +845,7 @@ function TRwrite(props) {
             {TR.문제행동.map((prob, i) => (
               <div key={`study-${prob.분류}`} className="mb-1 mt-1 checkBox">
                 <Form.Check
-                  defaultChecked={prob.문제여부}
+                  checked={prob.문제여부}
                   className="border-bottom"
                   type="checkbox"
                   id={`study-${prob.분류}`}
@@ -813,24 +859,29 @@ function TRwrite(props) {
           </div>
         </div>
 
-        <div className="col-xl-3 trCol">
+        <div className="col-xl-4 trCol">
           <div className="trCard">
             <h5 className="fw-bold mt-3 mb-3">
               <strong>[ 큐브책 체크리스트 ]</strong>
             </h5>
             {TR.큐브책.map((a, i) => (
-              <div key={i} className="mb-1 mt-1 checkBox">
+              <div key={`cube-${i}`} className="mb-1 mt-1 checkBox">
                 <Form.Check
-                  className="border-bottom"
-                  defaultChecked={a.완료여부}
+                  className="border-bottom tmp2"
+                  checked={a.완료여부}
                   type="checkbox"
-                  label={`${a.할일}`}
+                  id={`cube-${i}`}
+                  label={`${a.구분} - ${a.할일}`}
                   onChange={(e) => {
                     change_depth_three("큐브책", i, "완료여부", e.target.checked);
                   }}
                 />
               </div>
             ))}
+
+            <p style={{ fontSize: "18px" }} className="mt-2">
+              큐브책 달성률 : {cuberaito}% / 달성 실패 : {failCnt}개
+            </p>
 
             <h5 className="fw-bold mt-5 mb-3">
               <strong>[ 매니저 피드백 ]</strong>

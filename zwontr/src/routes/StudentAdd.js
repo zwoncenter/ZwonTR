@@ -71,10 +71,7 @@ function StudentAdd(props) {
   function delete_depth_one(category, index) {
     if (window.confirm("삭제하시겠습니까?")) {
       const newstuDB = JSON.parse(JSON.stringify(stuDB));
-      console.log(newstuDB[category]);
-      console.log(index);
       newstuDB[category].splice(index, 1);
-      console.log(newstuDB[category]);
       setstuDB(newstuDB);
     }
   }
@@ -359,17 +356,34 @@ function StudentAdd(props) {
             {stuDB.큐브책.map(function (a, i) {
               return (
                 <Form.Group as={Row} className="mb-3 me-3 ms-3" key={i}>
-                  <Col sm="11">
+                  <Col sm="3">
+                    <Form.Control
+                      className="mb-2"
+                      type="text"
+                      placeholder="큐브책 구분 입력"
+                      value={a.구분}
+                      onChange={(e) => {
+                        change_depth_three("큐브책", i, "구분", e.target.value);
+                      }}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                        }
+                      }}
+                    />
+                  </Col>
+
+                  <Col sm="8">
                     <Form.Control
                       className="mb-2"
                       type="text"
                       placeholder="큐브책 체크리스트 입력"
-                      value={a}
+                      value={a.내용}
                       onChange={(e) => {
-                        change_depth_two("큐브책", i, e.target.value);
+                        change_depth_three("큐브책", i, "내용", e.target.value);
                       }}
                       onKeyPress={(e) => {
-                        if (e.key == "Enter") {
+                        if (e.key === "Enter") {
                           e.preventDefault();
                         }
                       }}
@@ -392,7 +406,7 @@ function StudentAdd(props) {
               className="btn-add"
               variant="dark"
               onClick={() => {
-                push_depth_one("큐브책", "");
+                push_depth_one("큐브책", { 구분: "", 내용: "" });
               }}
             >
               <strong>+</strong>
@@ -682,7 +696,7 @@ function StudentAdd(props) {
                 setinputProgram(e.target.value);
               }}
               onKeyPress={(e) => {
-                if (e.key == "Enter") {
+                if (e.key === "Enter") {
                   programAdd();
                 }
               }}
@@ -711,7 +725,7 @@ function StudentAdd(props) {
                 axios
                   .post("/api/StudentAdd", stuDB)
                   .then(function (result) {
-                    if (result.data == "로그인필요") {
+                    if (result.data === "로그인필요") {
                       window.alert("로그인이 필요합니다.");
                       return history.push("/");
                     }
