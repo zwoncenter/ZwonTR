@@ -1,5 +1,14 @@
 import "./StudentAddEdit.scss";
-import { Form, Table, Row, Col, Button, Badge, InputGroup, FormControl } from "react-bootstrap";
+import {
+  Form,
+  Table,
+  Row,
+  Col,
+  Button,
+  Badge,
+  InputGroup,
+  FormControl,
+} from "react-bootstrap";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -27,7 +36,14 @@ function StudentAdd(props) {
     큐브책: [],
     진행중교재: [],
     완료된교재: [],
-    프로그램분류: ["자기인식", "진로탐색", "헬스", "외부활동", "독서", "외국어"],
+    프로그램분류: [
+      "자기인식",
+      "진로탐색",
+      "헬스",
+      "외부활동",
+      "독서",
+      "외국어",
+    ],
   };
 
   const [stuDB, setstuDB] = useState(writeform);
@@ -71,6 +87,15 @@ function StudentAdd(props) {
     newstuDB[category].push(content);
     setstuDB(newstuDB);
   }
+
+  function phoneNumber(value) {
+    value = value.replace(/[^0-9]/g, "");
+    return value.replace(/[^0-9]/, '').replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, `$1-$2-$3`);
+  }
+  const [number, setNumber] = useState("");
+  useEffect( () => {
+    change_depth_one("연락처", number);
+  }, [number])
 
   return (
     <div className="stuedit-background">
@@ -158,11 +183,14 @@ function StudentAdd(props) {
             </Form.Label>
             <Col sm="10">
               <Form.Control
-                type="text"
-                placeholder="ex) 010-1234-1234"
-                onChange={(e) => {
-                  change_depth_one("연락처", e.target.value);
-                }}
+                type="text" 
+                onChange={ (e)=>{
+                  setNumber(phoneNumber(e.target.value));
+                  change_depth_one("연락처", number);
+                  } }
+                value={number}
+                maxLength="13"
+                placeholder="숫자만 입력해주세요"
               />
             </Col>
           </Form.Group>
@@ -266,7 +294,11 @@ function StudentAdd(props) {
                 type="time"
                 defaultValue="00:00"
                 onChange={(e) => {
-                  change_depth_two("생활학습목표", "일요일취침", e.target.value);
+                  change_depth_two(
+                    "생활학습목표",
+                    "일요일취침",
+                    e.target.value
+                  );
                 }}
               />
             </Col>
@@ -281,7 +313,11 @@ function StudentAdd(props) {
                 type="time"
                 defaultValue="08:00"
                 onChange={(e) => {
-                  change_depth_two("생활학습목표", "일요일기상", e.target.value);
+                  change_depth_two(
+                    "생활학습목표",
+                    "일요일기상",
+                    e.target.value
+                  );
                 }}
               />
             </Col>
@@ -296,7 +332,11 @@ function StudentAdd(props) {
                 type="time"
                 defaultValue="13:00"
                 onChange={(e) => {
-                  change_depth_two("생활학습목표", "일요일등원", e.target.value);
+                  change_depth_two(
+                    "생활학습목표",
+                    "일요일등원",
+                    e.target.value
+                  );
                 }}
               />
             </Col>
@@ -311,7 +351,11 @@ function StudentAdd(props) {
                 type="time"
                 defaultValue="19:00"
                 onChange={(e) => {
-                  change_depth_two("생활학습목표", "일요일귀가", e.target.value);
+                  change_depth_two(
+                    "생활학습목표",
+                    "일요일귀가",
+                    e.target.value
+                  );
                 }}
               />
             </Col>
@@ -327,7 +371,11 @@ function StudentAdd(props) {
                 placeholder="ex) 1.5"
                 step="0.1"
                 onChange={(e) => {
-                  change_depth_two("생활학습목표", "일요일학습", e.target.value);
+                  change_depth_two(
+                    "생활학습목표",
+                    "일요일학습",
+                    e.target.value
+                  );
                 }}
               />
             </Col>
@@ -410,7 +458,12 @@ function StudentAdd(props) {
                       <Form.Select
                         size="sm"
                         onChange={(e) => {
-                          change_depth_three("진행중교재", i, "과목", e.target.value);
+                          change_depth_three(
+                            "진행중교재",
+                            i,
+                            "과목",
+                            e.target.value
+                          );
                         }}
                       >
                         <option>선택</option>
@@ -426,7 +479,12 @@ function StudentAdd(props) {
                         placeholder="ex)독사, 기탄수학 등"
                         className="inputText"
                         onChange={(e) => {
-                          change_depth_three("진행중교재", i, "교재", e.target.value);
+                          change_depth_three(
+                            "진행중교재",
+                            i,
+                            "교재",
+                            e.target.value
+                          );
                         }}
                       />
                     </td>
@@ -436,7 +494,12 @@ function StudentAdd(props) {
                         placeholder="ex)100p, 250문제"
                         className="inputText"
                         onChange={async (e) => {
-                          change_depth_three("진행중교재", i, "총교재량", e.target.value);
+                          change_depth_three(
+                            "진행중교재",
+                            i,
+                            "총교재량",
+                            e.target.value
+                          );
                           // const regex = /[^0-9]/g;
                           // change_depth_three("진행중교재", i, "총교재량숫자", parseInt(e.target.value.replace(regex, "")));
                         }}
@@ -448,7 +511,12 @@ function StudentAdd(props) {
                         type="date"
                         className="inputText"
                         onChange={(e) => {
-                          change_depth_three("진행중교재", i, "교재시작일", e.target.value);
+                          change_depth_three(
+                            "진행중교재",
+                            i,
+                            "교재시작일",
+                            e.target.value
+                          );
                         }}
                       />
                     </td>
@@ -459,7 +527,12 @@ function StudentAdd(props) {
                         placeholder={a.최근진도}
                         className="inputText"
                         onChange={(e) => {
-                          change_depth_three("진행중교재", i, "최근진도", parseInt(e.target.value));
+                          change_depth_three(
+                            "진행중교재",
+                            i,
+                            "최근진도",
+                            parseInt(e.target.value)
+                          );
                         }}
                       />
                     </td>
@@ -530,7 +603,12 @@ function StudentAdd(props) {
                       <Form.Select
                         size="sm"
                         onChange={(e) => {
-                          change_depth_three("완료된교재", i, "과목", e.target.value);
+                          change_depth_three(
+                            "완료된교재",
+                            i,
+                            "과목",
+                            e.target.value
+                          );
                         }}
                       >
                         <option>선택</option>
@@ -546,7 +624,12 @@ function StudentAdd(props) {
                         placeholder="ex)독사, 기탄수학 등"
                         className="inputText"
                         onChange={(e) => {
-                          change_depth_three("완료된교재", i, "교재", e.target.value);
+                          change_depth_three(
+                            "완료된교재",
+                            i,
+                            "교재",
+                            e.target.value
+                          );
                         }}
                       />
                     </td>
@@ -557,7 +640,12 @@ function StudentAdd(props) {
                         className="inputText"
                         onChange={(e) => {
                           // const regex = /[^0-9]/g;
-                          change_depth_three("완료된교재", i, "총교재량", e.target.value);
+                          change_depth_three(
+                            "완료된교재",
+                            i,
+                            "총교재량",
+                            e.target.value
+                          );
                           // change_depth_three("완료된교재", i, "총교재량숫자", parseInt(e.target.value.replace(regex, "")));
                         }}
                       />
@@ -568,7 +656,12 @@ function StudentAdd(props) {
                         type="date"
                         className="inputText"
                         onChange={(e) => {
-                          change_depth_three("완료된교재", i, "교재시작일", e.target.value);
+                          change_depth_three(
+                            "완료된교재",
+                            i,
+                            "교재시작일",
+                            e.target.value
+                          );
                         }}
                       />
                     </td>
@@ -578,7 +671,12 @@ function StudentAdd(props) {
                         type="date"
                         className="inputText"
                         onChange={(e) => {
-                          change_depth_three("완료된교재", i, "교재종료일", e.target.value);
+                          change_depth_three(
+                            "완료된교재",
+                            i,
+                            "교재종료일",
+                            e.target.value
+                          );
                         }}
                       />
                     </td>
@@ -649,7 +747,10 @@ function StudentAdd(props) {
               );
             })}
           </h4>
-          <InputGroup className="mt-3 mb-3" style={{ maxWidth: "500px", margin: "auto" }}>
+          <InputGroup
+            className="mt-3 mb-3"
+            style={{ maxWidth: "500px", margin: "auto" }}
+          >
             <FormControl
               id="inputProgram"
               placeholder="ex) 동기부여 등의 해당 학생의 프로그램"
@@ -681,14 +782,18 @@ function StudentAdd(props) {
               if (stuDB.이름 === "") {
                 return window.alert("학생의 이름이 입력되지 않았습니다.");
               }
-              if (window.confirm(`${stuDB.이름} 학생의 DB를 저장하시겠습니까?`)) {
+              if (
+                window.confirm(`${stuDB.이름} 학생의 DB를 저장하시겠습니까?`)
+              ) {
                 axios
                   .post("/api/StudentAdd", stuDB)
                   .then(function (response) {
                     window.alert("저장되었습니다");
                   })
                   .catch(function (err) {
-                    window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
+                    window.alert(
+                      "저장에 실패했습니다 개발/데이터 팀에게 문의해주세요"
+                    );
                   })
                   .then(function () {
                     history.push("/studentList");
