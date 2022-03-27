@@ -1,12 +1,12 @@
-import "./Practice.scss";
+import "./FirstPage.scss";
 import { Form, Button } from "react-bootstrap";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
-import Loginpage from "./routes/Loginpage";
+import Loginpage from "./LoginModal";
 
 const versionInfo = "2.0 (배포 이전)";
 
-function Practice() {
+function FirstPage() {
   const [loginModal, loginModalChange] = useState(false);
   return (
     <div className="main-background text-center">
@@ -14,25 +14,26 @@ function Practice() {
         <h1>
           <strong>Zwon Center Manager</strong>
         </h1>
-        {loginModal === true ? <Loginpage/> : null}
+        {loginModal === true ? <Loginpage /> : null}
       </div>
-      {loginModal === false
-      ? <Button variant="dark" size="lg"
-        id="main-button"
-        className="m-3"
-        onClick={() => {
-          loginModalChange(true);
-        }}
-      >
-        <strong>시작하기</strong>
-      </Button>
-      : null}
+      {loginModal === false ? (
+        <Button
+          variant="dark"
+          size="lg"
+          className="m-3"
+          onClick={() => {
+            loginModalChange(true);
+          }}
+        >
+          <strong>시작하기</strong>
+        </Button>
+      ) : null}
       <div className="versionInfo">
         <p>
           <strong>ver. {versionInfo}</strong>
         </p>
-        </div>
+      </div>
     </div>
   );
 }
-export default Practice;
+export default FirstPage;

@@ -1,7 +1,7 @@
 .main-background {
   width: 100vw;
   height: 100vh;
-  background: url("../public/blurry-gradient-haikei.png");
+  background: url("../../public/blurry-gradient-haikei.png");
   background-size: cover;
   padding: 1px;
 
@@ -41,7 +41,7 @@
   opacity: 1;
 }
 
-.versionInfo{
+.versionInfo {
   width: 100%;
   height: 25px;
   text-align: right;
@@ -49,7 +49,7 @@
   right: 10px;
   bottom: 20px;
   font-size: 21px;
-  p{
+  p {
     margin: 0;
   }
 }

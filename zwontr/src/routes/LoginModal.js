@@ -1,4 +1,4 @@
-import "../Practice.scss";
+import "./FirstPage.scss";
 import { Form, Button } from "react-bootstrap";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
@@ -30,10 +30,10 @@ function Loginpage() {
 
   async function loginClick() {
     const result = await loginRequest();
-    if (result == false) {
+    if (result === false) {
       return window.alert("로그인에 실패했습니다. 데이터 / 개발 팀에 문의해주세요");
     }
-    if (result.user == true) {
+    if (result.user === true) {
       return history.push("/studentList");
     } else {
       window.alert(result.message);
@@ -42,7 +42,7 @@ function Loginpage() {
 
   return (
     <div className={loginModal === true ? "loginModal loginModal-active" : "loginModal"}>
-      <Form className="loginBox">
+      <Form>
         <Form.Group className="mb-3" controlId="formBasicEmail">
           <Form.Label>ID</Form.Label>
           <Form.Control
@@ -74,7 +74,6 @@ function Loginpage() {
             }}
           />
         </Form.Group>
-        <Form.Group className="mb-3" controlId="formBasicCheckbox"></Form.Group>
         <Button
           variant="dark"
           type="button"

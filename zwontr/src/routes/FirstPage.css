@@ -18,12 +18,12 @@
   transition: transform 1s;
   transition: transform 1s, -webkit-transform 1s;
   -webkit-transform: translateY(0px);
-          transform: translateY(0px);
+  transform: translateY(0px);
 }
 
 .box-active {
   -webkit-transform: translateY(-200px);
-          transform: translateY(-200px);
+  transform: translateY(-200px);
 }
 
 .loginModal {
@@ -37,13 +37,13 @@
   margin-top: 50px;
   opacity: 0;
   -webkit-transition-delay: 0.5s;
-          transition-delay: 0.5s;
+  transition-delay: 0.5s;
   -webkit-transition: opacity 0.5s;
   transition: opacity 0.5s;
   -webkit-transition-duration: 0.5s;
-          transition-duration: 0.5s;
+  transition-duration: 0.5s;
   -webkit-box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
-          box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 
 .loginModal-active {

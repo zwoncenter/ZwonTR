@@ -73,9 +73,9 @@ function TRedit(props) {
     let [목표시간, 목표분] = 목표.split(":");
     let [실제시간, 실제분] = 실제.split(":");
     let diff = parseInt(목표시간) - parseInt(실제시간) + (parseInt(목표분) - parseInt(실제분)) / 60;
-    if (diff < -12) {
+    if (diff < -15) {
       diff += 24;
-    } else if (diff > 12) {
+    } else if (diff > 15) {
       diff -= 24;
     }
 
@@ -83,15 +83,15 @@ function TRedit(props) {
   }
 
   function 차이출력(stayup, diff, 종류) {
-    if (stayup == true && (종류 == '취침'|| 종류 == '기상')) {
+    if (stayup == true && (종류 == "취침" || 종류 == "기상")) {
       return "밤샘";
-    } else{
+    } else {
       if (diff < 0) {
         diff = -diff;
         return Math.round(diff * 10) / 10 + "시간 늦게 " + 종류;
-    } else if (diff > 0) {
+      } else if (diff > 0) {
         return Math.round(diff * 10) / 10 + "시간 일찍 " + 종류;
-    } else {
+      } else {
         return "정시 " + 종류;
       }
     }
@@ -116,36 +116,17 @@ function TRedit(props) {
   }
 
   function delete_depth_one(category, index) {
-    const newTR = JSON.parse(JSON.stringify(TR));
-    newTR[category].splice(index, 1);
-    TR변경(newTR);
+    if (window.confirm("삭제하시겠습니까?")) {
+      const newstuDB = JSON.parse(JSON.stringify(stuDB));
+      newstuDB[category].splice(index, 1);
+      setstuDB(newstuDB);
+    }
   }
 
   function push_depth_one(category, content) {
     const newTR = JSON.parse(JSON.stringify(TR));
     newTR[category].push(content);
     TR변경(newTR);
-  }
-
-  function 컨디션변환(num) {
-    if (num == 5) {
-      return "매우 좋음";
-    }
-    if (num == 4) {
-      return "좋음";
-    }
-    if (num == 3) {
-      return "보통";
-    }
-    if (num == 2) {
-      return "안좋음";
-    }
-    if (num == 1) {
-      return "매우 안좋음";
-    }
-    if (num === "-") {
-      return "-";
-    }
   }
 
   const isInitialMount = useRef(true);
@@ -224,16 +205,6 @@ function TRedit(props) {
       setCuberatio(Math.round((cnt / TR["큐브책"].length) * 1000) / 10);
     }
   }, [TR.큐브책]);
-
-  useEffect(() => {
-    if (!isInitialMount.current) {
-      const newTR = JSON.parse(JSON.stringify(TR));
-      newTR.센터내시간 = 차이계산(newTR.실제귀가, newTR.실제등원);
-      newTR.센터활용률 = Math.round(((newTR.프로그램시간 + newTR.실제학습) / TR.센터내시간) * 1000) / 10;
-      newTR.센터학습활용률 = Math.round((newTR.실제학습 / newTR.센터내시간) * 1000) / 10;
-      TR변경(newTR);
-    }
-  }, [TR.실제학습, TR.프로그램시간, TR.센터내시간, TR.실제등원, TR.실제귀가]);
 
   return (
     <div className="trEdit-background">
@@ -319,7 +290,6 @@ function TRedit(props) {
                           change_depth_one("신체컨디션", parseInt(e.target.value));
                         }}
                       >
-                        <option value={props.existTR.신체컨디션}>{컨디션변환(props.existTR.신체컨디션)}</option>
                         <option value={5}>매우 좋음</option>
                         <option value={4}> 좋음</option>
                         <option value={3}>보통</option>
@@ -340,7 +310,6 @@ function TRedit(props) {
                           change_depth_one("정서컨디션", parseInt(e.target.value));
                         }}
                       >
-                        <option value={props.existTR.정서컨디션}>{컨디션변환(props.existTR.정서컨디션)}</option>
                         <option value={5}>매우 좋음</option>
                         <option value={4}> 좋음</option>
                         <option value={3}>보통</option>
@@ -393,28 +362,27 @@ function TRedit(props) {
                                 }}
                               ></TimePicker>
                             </td>
-                            <td>{차이출력(TR['밤샘여부'], TR[`${a}차이`], a)}</td>
+                            <td>{차이출력(TR["밤샘여부"], TR[`${a}차이`], a)}</td>
                           </tr>
                         );
                       })}
                     </tbody>
                   </Table>
                   <Form.Check
-                  className="stayUpCheck"
-                  type = "checkbox"
-                  label = "* 학생 밤샘 시 체크해주세요."
-                  checked = {TR['밤샘여부']}
-                  onChange={(e)=>{
-                    var newTR = JSON.parse(JSON.stringify(TR));
-                    newTR['밤샘여부'] = e.target.checked;
-                    if (e.target.checked == true){
-                      let 목표기상시간 = newTR["목표기상"];
-                      newTR["실제취침"] = 목표기상시간;
-                      newTR["실제기상"] = 목표기상시간;
+                    className="stayUpCheck"
+                    type="checkbox"
+                    label="* 학생 밤샘 시 체크해주세요."
+                    checked={TR["밤샘여부"]}
+                    onChange={(e) => {
+                      var newTR = JSON.parse(JSON.stringify(TR));
+                      newTR["밤샘여부"] = e.target.checked;
+                      if (e.target.checked == true) {
+                        let 목표기상시간 = newTR["목표기상"];
+                        newTR["실제취침"] = 목표기상시간;
+                        newTR["실제기상"] = 목표기상시간;
                       }
-                    TR변경(newTR);
-                    }
-                  }
+                      TR변경(newTR);
+                    }}
                   />
                   <p style={{ fontSize: "17px" }} className="mt-2 btn-add program-add">
                     센터내시간 : {TR.센터내시간}시간 / 센터활용률 : {TR.센터활용률}% / 센터학습활용률: {TR.센터학습활용률}%
@@ -741,30 +709,6 @@ function TRedit(props) {
           </div>
         </div>
         <div className="col-xl-2 trCol">
-          {TR.결석여부 === false ? (
-            // <div className="trCard">
-            //   <>
-            //     <p className="fw-bold mt-3 mb-3">
-            //       <strong>[ 학습태도 ]</strong>
-            //     </p>
-            //     {TR.학습태도.map((prob, i) => (
-            //       <div key={`study-${prob.분류}`} className="mb-1 mt-1 checkBox">
-            //         <Form.Check
-            //           checked={prob.문제여부}
-            //           className="border-bottom"
-            //           type="checkbox"
-            //           id={`study-${prob.분류}`}
-            //           label={`${prob.분류}`}
-            //           onChange={(e) => {
-            //             change_depth_three("학습태도", i, "문제여부", e.target.checked);
-            //           }}
-            //         />
-            //       </div>
-            //     ))}
-            //   </>
-            // </div>
-            null
-          ) : null}
           <div className="trCard">
             <p className="fw-bold mt-3 mb-3">
               <strong>[ 문제행동 ]</strong>
@@ -793,16 +737,32 @@ function TRedit(props) {
             </h5>
             {TR.큐브책.map((a, i) => (
               <div key={`cube-${i}`} className="mb-1 mt-1 checkBox">
-                <Form.Check
-                  className="border-bottom tmp2"
-                  checked={a.완료여부}
-                  type="checkbox"
-                  id={`cube-${i}`}
-                  label={`${a.구분} - ${a.할일}`}
-                  onChange={(e) => {
-                    change_depth_three("큐브책", i, "완료여부", e.target.checked);
-                  }}
-                />
+                <Form.Group as={Row}>
+                  <Col sm="10">
+                    <Form.Check
+                      className="border-bottom tmp2"
+                      checked={a.완료여부}
+                      type="checkbox"
+                      id={`cube-${i}`}
+                      label={`${a.구분} - ${a.할일}`}
+                      onChange={(e) => {
+                        change_depth_three("큐브책", i, "완료여부", e.target.checked);
+                      }}
+                    />
+                  </Col>
+                  <Form.Label column sm="2">
+                    <Button
+                      className="btn-delete"
+                      onClick={() => {
+                        if (i > -1) {
+                          delete_depth_one("큐브책", i);
+                        }
+                      }}
+                    >
+                      x
+                    </Button>
+                  </Form.Label>
+                </Form.Group>
               </div>
             ))}
 

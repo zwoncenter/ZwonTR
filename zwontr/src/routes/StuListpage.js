@@ -1,5 +1,5 @@
 import "../App.scss";
-import "./StuListpage practice.scss";
+import "./StuListpage.scss";
 import { Button, Card, ListGroup, Modal } from "react-bootstrap";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
@@ -95,7 +95,6 @@ function StuListpage(props) {
                   return (
                     <div className="stuListItem" key={index}>
                       <ListGroup.Item
-                        key={index}
                         onClick={() => {
                           nameClick(db, index);
                         }}
@@ -114,37 +113,41 @@ function StuListpage(props) {
               <Modal.Title>{ready ? props.studentList[props.선택된index].이름 : ""}</Modal.Title>
             </Modal.Header>
             <Modal.Body className="text-center">
-              <button
-                className="btn btn-secondary me-3 stuButton"
-                onClick={()=>{
+              <Button
+                variant="secondary"
+                className="me-3 stuButton"
+                onClick={() => {
                   history.push(`/StuInfo/${props.studentList[props.선택된index].이름}`);
                 }}
               >
                 학생기본정보
-              </button>
+              </Button>
 
-              <button
-                className="btn btn-secondary me-3 stuButton"
+              <Button
+                variant="secondary"
+                className="me-3 stuButton"
                 onClick={() => {
                   history.push(`/StudentEdit/${props.studentList[props.선택된index].이름}`);
                 }}
               >
                 학생DB조회/변경
-              </button>
+              </Button>
 
-              <button
-                className="btn btn-secondary me-3 stuButton"
+              <Button
+                variant="secondary"
+                className="me-3 stuButton"
                 onClick={() => {
                   setTRlistShow(!TRlistShow);
                 }}
               >
                 TR(일간하루)
-              </button>
+              </Button>
             </Modal.Body>
             {TRlistShow === true ? (
               <div className="text-center mb-3">
                 <Button
-                  className="btn-secondary createTRButton"
+                  variant="secondary"
+                  className="createTRButton"
                   onClick={() => {
                     history.push(`/TR/${props.studentList[props.선택된index].이름}/write`);
                   }}
@@ -160,7 +163,6 @@ function StuListpage(props) {
                       <div key={index}>
                         <ListGroup.Item
                           className="stuTRItem"
-                          key={index}
                           onClick={async () => {
                             await props.선택된TRindex변경(index);
                             history.push(`TR/${tr.이름}/edit/${tr.날짜}`);
