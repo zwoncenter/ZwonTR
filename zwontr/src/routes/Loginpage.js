@@ -76,8 +76,9 @@ function Loginpage() {
         </Form.Group>
         <Form.Group className="mb-3" controlId="formBasicCheckbox"></Form.Group>
         <Button
-          variant="primary"
+          variant="dark"
           type="button"
+          className="stuButton"
           onClick={() => {
             loginClick();
           }}

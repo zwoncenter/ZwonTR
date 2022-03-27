@@ -11,6 +11,7 @@ import TRwrite from "./routes/TRwrite";
 import TRedit from "./routes/TRedit";
 import StudentEdit from "./routes/StudentEdit";
 import Practice from "./Practice";
+import StuInfo from "./routes/StuInfo";
 
 function App() {
   let history = useHistory();
@@ -53,6 +54,9 @@ function App() {
       </Route>
       <Route exact path="/TR/:name/edit/:date">
         <TRedit stuDB={studentList[선택된index]} existTR={trList[선택된TRindex]} managerList={managerList}></TRedit>
+      </Route>
+      <Route exact path="/StuInfo/:name">
+        <StuInfo/>
       </Route>
     </div>
   );

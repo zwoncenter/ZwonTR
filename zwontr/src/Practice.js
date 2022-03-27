@@ -4,6 +4,8 @@ import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import Loginpage from "./routes/Loginpage";
 
+const versionInfo = "2.0 (배포 이전)";
+
 function Practice() {
   const [loginModal, loginModalChange] = useState(false);
   return (
@@ -25,7 +27,11 @@ function Practice() {
         <strong>시작하기</strong>
       </Button>
       : null}
-      
+      <div className="versionInfo">
+        <p>
+          <strong>ver. {versionInfo}</strong>
+        </p>
+        </div>
     </div>
   );
 }

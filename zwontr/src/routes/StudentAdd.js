@@ -46,6 +46,16 @@ function StudentAdd(props) {
     ],
   };
 
+  function phoneNumber(value) {
+    value = value.replace(/[^0-9]/g, "");
+    return value.replace(/[^0-9]/, "").replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, `$1-$2-$3`);
+  }
+  const [contact, setContact] = useState("");
+
+  useEffect(() => {
+    change_depth_one("연락처", contact);
+  }, [contact]);
+
   const [stuDB, setstuDB] = useState(writeform);
   const [inputProgram, setinputProgram] = useState("");
 
@@ -102,12 +112,7 @@ function StudentAdd(props) {
       <h2 className="fw-bold text-center">
         <strong>학생 DB 신규 작성</strong>
       </h2>
-      <Form
-        className="stuDB-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-        }}
-      >
+      <div className="stuDB-form">
         <div className="stuedit-cat-box">
           <h3 className="stuedit-cat-title mb-4">
             <strong>[ 작성매니저 / 작성일자 ]</strong>
@@ -135,6 +140,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="date"
+                value={stuDB.작성일자}
                 onChange={(e) => {
                   change_depth_one("작성일자", e.target.value);
                 }}
@@ -156,6 +162,7 @@ function StudentAdd(props) {
               <Form.Control
                 type="text"
                 placeholder="OOO"
+                value={stuDB.이름}
                 onChange={(e) => {
                   change_depth_one("이름", e.target.value);
                 }}
@@ -170,6 +177,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="date"
+                value={stuDB.생년월일}
                 onChange={(e) => {
                   change_depth_one("생년월일", e.target.value);
                 }}
@@ -183,12 +191,12 @@ function StudentAdd(props) {
             </Form.Label>
             <Col sm="10">
               <Form.Control
-                type="text" 
-                onChange={ (e)=>{
-                  setNumber(phoneNumber(e.target.value));
-                  change_depth_one("연락처", number);
-                  } }
-                value={number}
+                type="text"
+                onChange={(e) => {
+                  setContact(phoneNumber(e.target.value));
+                  change_depth_one("연락처", contact);
+                }}
+                value={contact}
                 maxLength="13"
                 placeholder="숫자만 입력해주세요"
               />
@@ -212,7 +220,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="time"
-                defaultValue="00:00"
+                value={stuDB.생활학습목표.평일취침}
                 onChange={(e) => {
                   change_depth_two("생활학습목표", "평일취침", e.target.value);
                 }}
@@ -227,7 +235,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="time"
-                defaultValue="08:00"
+                value={stuDB.생활학습목표.평일기상}
                 onChange={(e) => {
                   change_depth_two("생활학습목표", "평일기상", e.target.value);
                 }}
@@ -242,7 +250,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="time"
-                defaultValue="13:00"
+                value={stuDB.생활학습목표.평일등원}
                 onChange={(e) => {
                   change_depth_two("생활학습목표", "평일등원", e.target.value);
                 }}
@@ -257,7 +265,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="time"
-                defaultValue="19:00"
+                value={stuDB.생활학습목표.평일귀가}
                 onChange={(e) => {
                   change_depth_two("생활학습목표", "평일귀가", e.target.value);
                 }}
@@ -273,6 +281,7 @@ function StudentAdd(props) {
               <Form.Control
                 type="number"
                 placeholder="ex) 1.5"
+                value={stuDB.생활학습목표.평일학습}
                 step="0.1"
                 onChange={(e) => {
                   change_depth_two("생활학습목표", "평일학습", e.target.value);
@@ -292,7 +301,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="time"
-                defaultValue="00:00"
+                value={stuDB.생활학습목표.일요일취침}
                 onChange={(e) => {
                   change_depth_two(
                     "생활학습목표",
@@ -311,7 +320,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="time"
-                defaultValue="08:00"
+                value={stuDB.생활학습목표.일요일기상}
                 onChange={(e) => {
                   change_depth_two(
                     "생활학습목표",
@@ -330,7 +339,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="time"
-                defaultValue="13:00"
+                value={stuDB.생활학습목표.일요일등원}
                 onChange={(e) => {
                   change_depth_two(
                     "생활학습목표",
@@ -349,7 +358,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="time"
-                defaultValue="19:00"
+                value={stuDB.생활학습목표.일요일귀가}
                 onChange={(e) => {
                   change_depth_two(
                     "생활학습목표",
@@ -368,6 +377,7 @@ function StudentAdd(props) {
             <Col sm="10">
               <Form.Control
                 type="number"
+                value={stuDB.생활학습목표.일요일학습}
                 placeholder="ex) 1.5"
                 step="0.1"
                 onChange={(e) => {
@@ -387,22 +397,39 @@ function StudentAdd(props) {
           <h3 className="stuedit-cat-title mb-4">
             <strong>[ 큐브책 체크리스트 ]</strong>
           </h3>
-
           <div className="cube-box">
             {stuDB.큐브책.map(function (a, i) {
               return (
                 <Form.Group as={Row} className="mb-3 me-3 ms-3" key={i}>
-                  <Col sm="11">
+                  <Col sm="3">
+                    <Form.Control
+                      className="mb-2"
+                      type="text"
+                      placeholder="큐브책 구분 입력"
+                      value={a.구분}
+                      onChange={(e) => {
+                        change_depth_three("큐브책", i, "구분", e.target.value);
+                      }}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                        }
+                      }}
+                    />
+                  </Col>
+
+                  <Col sm="8">
                     <Form.Control
                       className="mb-2"
                       type="text"
                       placeholder="큐브책 체크리스트 입력"
+                      value={a.내용}
                       onChange={(e) => {
-                        change_depth_two("큐브책", i, e.target.value);
+                        change_depth_three("큐브책", i, "내용", e.target.value);
                       }}
                       onKeyPress={(e) => {
-                        if (e.key == "Enter") {
-                          push_depth_one("큐브책", "");
+                        if (e.key === "Enter") {
+                          e.preventDefault();
                         }
                       }}
                     />
@@ -414,7 +441,7 @@ function StudentAdd(props) {
                         delete_depth_one("큐브책", i);
                       }}
                     >
-                      x
+                      <strong>X</strong>
                     </button>
                   </Col>
                 </Form.Group>
@@ -424,16 +451,15 @@ function StudentAdd(props) {
               className="btn-add"
               variant="dark"
               onClick={() => {
-                push_depth_one("큐브책", "");
+                push_depth_one("큐브책", { 구분: "", 내용: "" });
               }}
             >
-              +
+              <strong>+</strong>
             </Button>
           </div>
         </div>
 
         {/* 진행중 교재 */}
-
         <div className="stuedit-cat-box">
           <h3 className="stuedit-cat-title mb-4">
             <strong>[ 진행중교재 ]</strong>
@@ -457,6 +483,7 @@ function StudentAdd(props) {
                     <td>
                       <Form.Select
                         size="sm"
+                        value={a.과목}
                         onChange={(e) => {
                           change_depth_three(
                             "진행중교재",
@@ -466,7 +493,7 @@ function StudentAdd(props) {
                           );
                         }}
                       >
-                        <option>선택</option>
+                        <option value="선택">선택</option>
                         <option value="국어">국어</option>
                         <option value="수학">수학</option>
                         <option value="영어">영어</option>
@@ -477,6 +504,7 @@ function StudentAdd(props) {
                       <input
                         type="text"
                         placeholder="ex)독사, 기탄수학 등"
+                        value={a.교재}
                         className="inputText"
                         onChange={(e) => {
                           change_depth_three(
@@ -493,6 +521,7 @@ function StudentAdd(props) {
                         type="text"
                         placeholder="ex)100p, 250문제"
                         className="inputText"
+                        value={a.총교재량}
                         onChange={async (e) => {
                           change_depth_three(
                             "진행중교재",
@@ -510,6 +539,7 @@ function StudentAdd(props) {
                       <input
                         type="date"
                         className="inputText"
+                        value={a.교재시작일}
                         onChange={(e) => {
                           change_depth_three(
                             "진행중교재",
@@ -524,7 +554,8 @@ function StudentAdd(props) {
                     <td>
                       <input
                         type="number"
-                        placeholder={a.최근진도}
+                        placeholder="ex)70, 100"
+                        value={a.최근진도}
                         className="inputText"
                         onChange={(e) => {
                           change_depth_three(
@@ -561,7 +592,7 @@ function StudentAdd(props) {
                     type="button"
                     onClick={() => {
                       push_depth_one("진행중교재", {
-                        과목: "",
+                        과목: "선택",
                         교재: "",
                         총교재량: "",
                         총교재량숫자: 0,
@@ -602,6 +633,7 @@ function StudentAdd(props) {
                     <td>
                       <Form.Select
                         size="sm"
+                        value={a.과목}
                         onChange={(e) => {
                           change_depth_three(
                             "완료된교재",
@@ -611,7 +643,7 @@ function StudentAdd(props) {
                           );
                         }}
                       >
-                        <option>선택</option>
+                        <option value="선택">선택</option>
                         <option value="국어">국어</option>
                         <option value="수학">수학</option>
                         <option value="영어">영어</option>
@@ -622,6 +654,7 @@ function StudentAdd(props) {
                       <input
                         type="text"
                         placeholder="ex)독사, 기탄수학 등"
+                        value={a.교재}
                         className="inputText"
                         onChange={(e) => {
                           change_depth_three(
@@ -637,6 +670,7 @@ function StudentAdd(props) {
                       <input
                         type="text"
                         placeholder="ex)100p, 250문제"
+                        value={a.총교재량}
                         className="inputText"
                         onChange={(e) => {
                           // const regex = /[^0-9]/g;
@@ -655,6 +689,7 @@ function StudentAdd(props) {
                       <input
                         type="date"
                         className="inputText"
+                        value={a.교재시작일}
                         onChange={(e) => {
                           change_depth_three(
                             "완료된교재",
@@ -670,6 +705,7 @@ function StudentAdd(props) {
                       <input
                         type="date"
                         className="inputText"
+                        value={a.교재종료일}
                         onChange={(e) => {
                           change_depth_three(
                             "완료된교재",
@@ -706,7 +742,7 @@ function StudentAdd(props) {
                     type="button"
                     onClick={() => {
                       push_depth_one("완료된교재", {
-                        과목: "",
+                        과목: "선택",
                         교재: "",
                         총교재량: "",
                         총교재량숫자: 0,
@@ -730,7 +766,7 @@ function StudentAdd(props) {
           <h4 className="mt-3">
             {stuDB.프로그램분류.map(function (a, i) {
               return (
-                <Badge pill bg="dark" className="me-2" key={i}>
+                <Badge pill bg="dark" className="me-2 m t-2" key={i}>
                   {a}
                   <span
                     className="program-delete"
@@ -758,19 +794,20 @@ function StudentAdd(props) {
                 setinputProgram(e.target.value);
               }}
               onKeyPress={(e) => {
-                if (e.key == "Enter") {
+                if (e.key === "Enter") {
                   programAdd();
                 }
               }}
             />
-            <Button className="btn-secondary program-add" onClick={programAdd}>
-              +
+            <Button className="btn-secondary program-add" onClick={programAdd} type="button">
+              <strong>+</strong>
             </Button>
           </InputGroup>
         </div>
 
         <ul className="commit-btns">
           <Button
+            variant="secondary"
             className="btn-DBcommit btn-edit"
             onClick={() => {
               if (stuDB.작성매니저 === "") {
@@ -787,13 +824,16 @@ function StudentAdd(props) {
               ) {
                 axios
                   .post("/api/StudentAdd", stuDB)
-                  .then(function (response) {
+                  .then(function (result) {
+                    if (result.data === "로그인필요") {
+                      window.alert("로그인이 필요합니다.");
+                      return history.push("/");
+                    }
                     window.alert("저장되었습니다");
                   })
                   .catch(function (err) {
-                    window.alert(
-                      "저장에 실패했습니다 개발/데이터 팀에게 문의해주세요"
-                    );
+                    console.log(err);
+                    window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
                   })
                   .then(function () {
                     history.push("/studentList");
@@ -805,7 +845,7 @@ function StudentAdd(props) {
             <strong>신규 DB 등록</strong>
           </Button>
         </ul>
-      </Form>
+      </div>
     </div>
   );
 }

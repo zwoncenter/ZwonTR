@@ -1,5 +1,4 @@
 @import url(https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/nanumsquare.css);
-
 * p,
 span,
 h2,
@@ -13,7 +12,8 @@ th,
 strong,
 td {
   font-family: "NanumSquare" !important;
-  transform: rotate(-0.1deg);
+  -webkit-transform: rotate(-0.1deg);
+          transform: rotate(-0.1deg);
 }
 
 .stuDB-form {
@@ -26,29 +26,22 @@ td {
 .stuedit-background {
   width: 100%;
   height: 100%;
-
   background-attachment: fixed;
   background-size: cover;
   padding: 1px;
   text-align: center;
-  label {
-    color: white;
-    background-color: #675ec2;
-    border-radius: 30px;
-    margin-bottom: 10px;
-  }
-  h2 {
-    margin-top: 50px;
-    font-size: 3rem;
-  }
-  // div:hover {
-  //   background-color: #484554;
-  //   h3,
-  //   h5,
-  //   label {
-  //     color: white;
-  //   }
-  // }
+}
+
+.stuedit-background label {
+  color: white;
+  background-color: #675ec2;
+  border-radius: 30px;
+  margin-bottom: 10px;
+}
+
+.stuedit-background h2 {
+  margin-top: 50px;
+  font-size: 3rem;
 }
 
 .stuedit-cat-box {
@@ -56,7 +49,8 @@ td {
   padding: 20px;
   border-radius: 30px;
   margin: 20px;
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  -webkit-box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+          box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 
 .stuedit-cat-title {
@@ -86,13 +80,15 @@ Table {
   background-color: white;
   border-radius: 5px;
   padding: 10px;
-  td {
-    border-bottom: 0px;
-  }
-  input,
-  option {
-    width: 100%;
-  }
+}
+
+Table td {
+  border-bottom: 0px;
+}
+
+Table input,
+Table option {
+  width: 100%;
 }
 
 .program-add {
@@ -101,8 +97,12 @@ Table {
 }
 
 .commit-btns {
+  display: -webkit-box;
+  display: -ms-flexbox;
   display: flex;
-  justify-content: center;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
 }
 
 .btn-DBcommit {
@@ -111,7 +111,8 @@ Table {
   font-size: 20px;
   border-radius: 20px;
   border: 0px;
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  -webkit-box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+          box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 
 .btn-edit {
@@ -125,3 +126,4 @@ Table {
 .program-delete:hover {
   cursor: pointer;
 }
+/*# sourceMappingURL=StudentAddEdit.css.map */
