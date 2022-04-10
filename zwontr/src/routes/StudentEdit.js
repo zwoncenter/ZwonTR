@@ -6,6 +6,8 @@ import axios from "axios";
 
 function StudentAdd(props) {
   const history = useHistory();
+  const managerList = props.managerList;
+  const today = new Date().toISOString().split("T")[0];
   const [stuDB, setstuDB] = useState(props.existstuDB);
   const [inputProgram, setinputProgram] = useState("");
 
@@ -62,15 +64,6 @@ function StudentAdd(props) {
     const newstuDB = JSON.parse(JSON.stringify(stuDB));
     newstuDB.작성매니저 = "";
     newstuDB.작성일자 = new Date().toISOString().split("T")[0];
-    if (newstuDB["큐브책"].length !== 0 && typeof newstuDB["큐브책"][0] === "string") {
-      for (let i = 0; i < newstuDB["큐브책"].length; i++) {
-        const tmp = newstuDB["큐브책"][i];
-        newstuDB["큐브책"][i] = {
-          구분: "구분",
-          내용: tmp,
-        };
-      }
-    }
     setstuDB(newstuDB);
   }, []);
 
@@ -93,13 +86,23 @@ function StudentAdd(props) {
               작성매니저
             </Form.Label>
             <Col sm="10">
-              <Form.Control
-                type="text"
-                placeholder="본명입력 : ex)유재석"
+              <Form.Select
+                value={stuDB.작성매니저}
                 onChange={(e) => {
                   change_depth_one("작성매니저", e.target.value);
                 }}
-              />
+              >
+                <option value="">선택</option>
+                {managerList
+                  ? managerList.map((manager, i) => {
+                      return (
+                        <option value={manager} key={i}>
+                          {manager}
+                        </option>
+                      );
+                    })
+                  : null}
+              </Form.Select>
             </Col>
           </Form.Group>
 
@@ -172,6 +175,425 @@ function StudentAdd(props) {
               />
             </Col>
           </Form.Group>
+        </div>
+
+        {/* 매니징목표 */}
+        <div className="stuedit-cat-box">
+          <h3 className="stuedit-cat-title mb-4">
+            <strong>[ 학생 매니징 목표 ]</strong>
+          </h3>
+
+          <Table striped hover className="mt-3">
+            <thead>
+              <tr>
+                <th>매니징 목표</th>
+                <th width="13%">설정 매니저</th>
+                <th width="19%">설정일</th>
+                <th width="60px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {stuDB.매니징목표.map(function (goal, index) {
+                return (
+                  <tr key={index}>
+                    <td>
+                      <textarea
+                        className="textArea"
+                        name=""
+                        id=""
+                        rows="2"
+                        placeholder="ex) 다른 학생들에 대한 배려를 기르는 것"
+                        value={goal.목표}
+                        onChange={(e) => {
+                          change_depth_three("매니징목표", index, "목표", e.target.value);
+                        }}
+                      ></textarea>
+                    </td>
+                    <td>
+                      <Form.Select
+                        size="sm"
+                        value={goal.설정매니저}
+                        onChange={(e) => {
+                          change_depth_three("매니징목표", index, "설정매니저", e.target.value);
+                        }}
+                      >
+                        <option value="선택">선택</option>
+                        {managerList
+                          ? managerList.map((manager, i) => {
+                              return (
+                                <option value={manager} key={i}>
+                                  {manager}
+                                </option>
+                              );
+                            })
+                          : null}
+                      </Form.Select>
+                    </td>
+
+                    <td>
+                      <input
+                        type="date"
+                        className="inputText"
+                        value={goal.설정일}
+                        onChange={(e) => {
+                          change_depth_three("매니징목표", index, "설정일", e.target.value);
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-delete"
+                        type="button"
+                        onClick={() => {
+                          if (index > -1) {
+                            delete_depth_one("매니징목표", index);
+                          }
+                        }}
+                      >
+                        <strong>X</strong>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              <tr>
+                <td colSpan={4}>
+                  {" "}
+                  <button
+                    className="btn btn-dark btn-add"
+                    type="button"
+                    onClick={() => {
+                      push_depth_one("매니징목표", {
+                        목표: "",
+                        설정매니저: "선택",
+                        설정일: today,
+                      });
+                    }}
+                  >
+                    <strong>+</strong>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </Table>
+        </div>
+
+        {/* 약속 구조 */}
+        <div className="stuedit-cat-box">
+          <h3 className="stuedit-cat-title mb-4">
+            <strong>[ 약속 구조 ]</strong>
+          </h3>
+
+          <Table striped hover className="mt-3">
+            <thead>
+              <tr>
+                <th>약속 구조 </th>
+                <th width="13%">설정 매니저</th>
+                <th width="19%">설정일</th>
+                <th width="60px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {stuDB.약속구조.map(function (promise, index) {
+                return (
+                  <tr key={index}>
+                    <td>
+                      <textarea
+                        className="textArea"
+                        name=""
+                        id=""
+                        rows="2"
+                        placeholder="ex) 학교 등원 시에도 최소 3시간 / 일, 비등원시 최소 4시간 ~ 최대 8시간 / 일 자기계발 시간을 갖습니다"
+                        value={promise.약속}
+                        onChange={(e) => {
+                          change_depth_three("약속구조", index, "약속", e.target.value);
+                        }}
+                      ></textarea>
+                    </td>
+                    <td>
+                      <Form.Select
+                        size="sm"
+                        value={promise.설정매니저}
+                        onChange={(e) => {
+                          change_depth_three("약속구조", index, "설정매니저", e.target.value);
+                        }}
+                      >
+                        <option value="선택">선택</option>
+                        {managerList
+                          ? managerList.map((manager, i) => {
+                              return (
+                                <option value={manager} key={i}>
+                                  {manager}
+                                </option>
+                              );
+                            })
+                          : null}
+                      </Form.Select>
+                    </td>
+
+                    <td>
+                      <input
+                        type="date"
+                        className="inputText"
+                        value={promise.설정일}
+                        onChange={(e) => {
+                          change_depth_three("약속구조", index, "설정일", e.target.value);
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-delete"
+                        type="button"
+                        onClick={() => {
+                          if (index > -1) {
+                            delete_depth_one("약속구조", index);
+                          }
+                        }}
+                      >
+                        <strong>X</strong>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              <tr>
+                <td colSpan={4}>
+                  {" "}
+                  <button
+                    className="btn btn-dark btn-add"
+                    type="button"
+                    onClick={() => {
+                      push_depth_one("약속구조", {
+                        약속: "",
+                        설정매니저: "선택",
+                        설정일: today,
+                      });
+                    }}
+                  >
+                    <strong>+</strong>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </Table>
+        </div>
+
+        {/* 용돈 구조 */}
+        <div className="stuedit-cat-box">
+          <h3 className="stuedit-cat-title mb-4">
+            <strong>[ 용돈 구조 ]</strong>
+          </h3>
+
+          <Table striped hover className="mt-3">
+            <thead>
+              <tr>
+                <th width="13%">금액</th>
+                <th>용돈 구조</th>
+                <th width="13%">설정 매니저</th>
+                <th width="19%">설정일</th>
+                <th width="60px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {stuDB.용돈구조.map(function (pocketmoney, index) {
+                return (
+                  <tr key={index}>
+                    <td>
+                      <input
+                        type="number"
+                        placeholder="ex) 2000"
+                        value={pocketmoney.금액}
+                        className="inputText"
+                        onChange={(e) => {
+                          change_depth_three("용돈구조", index, "금액", e.target.value);
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        placeholder="ex) 학습 1시간당 2,000 지급"
+                        value={pocketmoney.구조}
+                        className="inputText"
+                        onChange={(e) => {
+                          change_depth_three("용돈구조", index, "구조", e.target.value);
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <Form.Select
+                        size="sm"
+                        value={pocketmoney.설정매니저}
+                        onChange={(e) => {
+                          change_depth_three("용돈구조", index, "설정매니저", e.target.value);
+                        }}
+                      >
+                        <option value="선택">선택</option>
+                        {managerList
+                          ? managerList.map((manager, i) => {
+                              return (
+                                <option value={manager} key={i}>
+                                  {manager}
+                                </option>
+                              );
+                            })
+                          : null}
+                      </Form.Select>
+                    </td>
+
+                    <td>
+                      <input
+                        type="date"
+                        className="inputText"
+                        value={pocketmoney.설정일}
+                        onChange={(e) => {
+                          change_depth_three("용돈구조", index, "설정일", e.target.value);
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-delete"
+                        type="button"
+                        onClick={() => {
+                          if (index > -1) {
+                            delete_depth_one("용돈구조", index);
+                          }
+                        }}
+                      >
+                        <strong>X</strong>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              <tr>
+                <td colSpan={5}>
+                  {" "}
+                  <button
+                    className="btn btn-dark btn-add"
+                    type="button"
+                    onClick={() => {
+                      push_depth_one("용돈구조", {
+                        금액: "",
+                        구조: "",
+                        설정매니저: "선택",
+                        설정일: today,
+                      });
+                    }}
+                  >
+                    <strong>+</strong>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </Table>
+        </div>
+
+        {/* 매니징 방법 */}
+        <div className="stuedit-cat-box">
+          <h3 className="stuedit-cat-title mb-4">
+            <strong>[ 매니징 방법 ]</strong>
+          </h3>
+
+          <Table striped hover className="mt-3">
+            <thead>
+              <tr>
+                <th>매니징 방법</th>
+                <th width="13%">작성 매니저</th>
+                <th width="19%">작성일</th>
+                <th width="60px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {stuDB.매니징방법.map(function (method, index) {
+                return (
+                  <tr key={index}>
+                    <td>
+                      <textarea
+                        className="textArea"
+                        name=""
+                        id=""
+                        rows="2"
+                        placeholder="ex) 논리적인 근거에 따라 설득을 하면 잘 따라옵니다."
+                        value={method.방법}
+                        onChange={(e) => {
+                          change_depth_three("매니징방법", index, "방법", e.target.value);
+                        }}
+                      ></textarea>
+                    </td>
+                    <td>
+                      <Form.Select
+                        size="sm"
+                        value={method.설정매니저}
+                        onChange={(e) => {
+                          change_depth_three("매니징방법", index, "설정매니저", e.target.value);
+                        }}
+                      >
+                        <option value="선택">선택</option>
+                        {managerList
+                          ? managerList.map((manager, i) => {
+                              return (
+                                <option value={manager} key={i}>
+                                  {manager}
+                                </option>
+                              );
+                            })
+                          : null}
+                      </Form.Select>
+                    </td>
+
+                    <td>
+                      <input
+                        type="date"
+                        className="inputText"
+                        value={method.설정일}
+                        onChange={(e) => {
+                          change_depth_three("매니징방법", index, "설정일", e.target.value);
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-delete"
+                        type="button"
+                        onClick={() => {
+                          if (index > -1) {
+                            delete_depth_one("매니징방법", index);
+                          }
+                        }}
+                      >
+                        <strong>X</strong>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              <tr>
+                <td colSpan={4}>
+                  {" "}
+                  <button
+                    className="btn btn-dark btn-add"
+                    type="button"
+                    onClick={() => {
+                      push_depth_one("매니징방법", {
+                        방법: "",
+                        설정매니저: "선택",
+                        설정일: today,
+                      });
+                    }}
+                  >
+                    <strong>+</strong>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </Table>
         </div>
 
         <div className="stuedit-cat-box">
@@ -708,14 +1130,22 @@ function StudentAdd(props) {
             variant="secondary"
             className="btn-DBcommit btn-edit"
             onClick={() => {
-              if (stuDB.작성매니저 === "") {
-                return window.alert("작성매니저가 입력되지 않았습니다.");
+              const tmp = ["작성매니저", "작성일자", "이름"];
+              for (let j = 0; j < tmp.length; j++) {
+                if (stuDB[tmp[j]] === "") {
+                  return window.alert(`${tmp[j]}가 입력되지 않았습니다.`);
+                }
               }
-              if (stuDB.작성일자 === "") {
-                return window.alert("작성일자가 입력되지 않았습니다.");
-              }
-              if (stuDB.이름 === "") {
-                return window.alert("학생의 이름이 입력되지 않았습니다.");
+
+              const tmp2 = ["매니징목표", "약속구조", "용돈구조", "매니징방법"];
+              for (let j = 0; j < tmp2.length; j++) {
+                if (stuDB[tmp2[j]]) {
+                  for (let i = 0; i < stuDB[tmp2[j]].length; i++) {
+                    if (stuDB[tmp2[j]][i].설정매니저 == "선택") {
+                      return window.alert(`${i + 1}번째 ${tmp2[j]}의 설정 매니저가 선택되지 않았습니다.`);
+                    }
+                  }
+                }
               }
               if (window.confirm(`${stuDB.이름} 학생의 DB를 수정하시겠습니까?`)) {
                 axios

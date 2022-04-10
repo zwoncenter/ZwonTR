@@ -11,6 +11,7 @@ import TRedit from "./routes/TRedit";
 import StudentEdit from "./routes/StudentEdit";
 import FirstPage from "./routes/FirstPage";
 import StuInfo from "./routes/StuInfo";
+import StudyChart from "./routes/StudyChart";
 
 function App() {
   let history = useHistory();
@@ -43,10 +44,10 @@ function App() {
         />
       </Route>
       <Route exact path="/studentAdd">
-        <StudentAdd></StudentAdd>
+        <StudentAdd managerList={managerList}></StudentAdd>
       </Route>
       <Route exact path="/StudentEdit/:name">
-        <StudentEdit existstuDB={studentList[선택된index]}></StudentEdit>
+        <StudentEdit managerList={managerList} existstuDB={studentList[선택된index]}></StudentEdit>
       </Route>
       <Route exact path="/TR/:name/write">
         <TRwrite stuDB={studentList[선택된index]} managerList={managerList}></TRwrite>
@@ -56,6 +57,10 @@ function App() {
       </Route>
       <Route exact path="/StuInfo/:name">
         <StuInfo />
+      </Route>
+
+      <Route exact path="/Chart/:name">
+        <StudyChart stuDB={studentList[선택된index]} trList={trList} />
       </Route>
     </div>
   );

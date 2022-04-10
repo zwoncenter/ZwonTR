@@ -113,7 +113,7 @@ function StuListpage(props) {
               <Modal.Title>{ready ? props.studentList[props.선택된index].이름 : ""}</Modal.Title>
             </Modal.Header>
             <Modal.Body className="text-center">
-              <Button
+              {/* <Button
                 variant="secondary"
                 className="me-3 stuButton"
                 onClick={() => {
@@ -121,7 +121,7 @@ function StuListpage(props) {
                 }}
               >
                 학생기본정보
-              </Button>
+              </Button> */}
 
               <Button
                 variant="secondary"
@@ -131,6 +131,16 @@ function StuListpage(props) {
                 }}
               >
                 학생DB조회/변경
+              </Button>
+
+              <Button
+                variant="secondary"
+                className="me-3 stuButton"
+                onClick={() => {
+                  history.push(`/Chart/${props.studentList[props.선택된index].이름}`);
+                }}
+              >
+                차트{" "}
               </Button>
 
               <Button
