@@ -113,9 +113,10 @@ function StuListpage(props) {
               <Modal.Title>{ready ? props.studentList[props.선택된index].이름 : ""}</Modal.Title>
             </Modal.Header>
             <Modal.Body className="text-center">
+              <div className="stumap">
               <Button
                 variant="secondary"
-                className="me-3 stuButton"
+                className="m-1 stuButton"
                 onClick={() => {
                   history.push(`/StuInfo/${props.studentList[props.선택된index].이름}`);
                 }}
@@ -125,7 +126,7 @@ function StuListpage(props) {
 
               <Button
                 variant="secondary"
-                className="me-3 stuButton"
+                className="m-1 stuButton"
                 onClick={() => {
                   history.push(`/StudentEdit/${props.studentList[props.선택된index].이름}`);
                 }}
@@ -135,7 +136,7 @@ function StuListpage(props) {
 
               <Button
                 variant="secondary"
-                className="me-3 stuButton"
+                className="m-1 stuButton"
                 onClick={() => {
                   history.push(`/Chart/${props.studentList[props.선택된index].이름}`);
                 }}
@@ -145,13 +146,17 @@ function StuListpage(props) {
 
               <Button
                 variant="secondary"
-                className="me-3 stuButton"
+                className="m-1 stuButton"
                 onClick={() => {
                   setTRlistShow(!TRlistShow);
                 }}
               >
                 TR(일간하루)
               </Button>
+
+
+              </div>
+
             </Modal.Body>
             {TRlistShow === true ? (
               <div className="text-center mb-3">

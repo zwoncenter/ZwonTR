@@ -95,6 +95,7 @@ h6 {
   background-color: #5500d3;
   border-radius: 10px;
   border: 0;
+  font-size: 15px;
 }
 
 .createTRButton {
@@ -113,4 +114,10 @@ h6 {
 
 .TRModal{
   padding: 30px;
+}
+
+.stumap{
+  display: flex;
+  justify-content: center;
+  text-align: center;
 }

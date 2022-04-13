@@ -1138,7 +1138,33 @@ function StuInfo(props) {
       </div>
       <Button
             variant="danger"
-            className="btn-Infocommit btn-edit">
+            className="btn-Infocommit btn-edit"
+            // onClick={() => {
+            //   console.log(writeform);
+            //   if (입력확인()) {
+            //     if (window.confirm(`${writeform.이름}학생의 기본정보를 저장하시겠습니까?`)) {
+            //       axios
+            //         .post("/api/TR/write", writeform)
+            //         .then(function (result) {
+            //           if (result.data === true) {
+            //             window.alert("저장되었습니다.");
+            //             history.push("/studentList");
+            //           } else if (result.data === "로그인필요") {
+            //             window.alert("로그인이 필요합니다.");
+            //             return history.push("/");
+            //           } else {
+            //             console.log(result.data);
+            //             window.alert(result.data);
+            //           }
+            //         })
+            //         .catch(function (err) {
+            //           console.log("저장 실패 : ", err);
+            //           window.alert(err);
+            //         });
+            //     }
+            //   }
+            // }}
+            >
             <strong>학생정보 저장</strong>
           </Button>
     </div>
