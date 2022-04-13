@@ -27,7 +27,7 @@ function StuListpage(props) {
 
   const addClick = () => {
     if (window.confirm("학생 신규 DB 등록을 진행하시겠습니까?")) {
-      history.push("/studentAdd");
+      history.push("/StuInfoAdd");
     }
   };
 
@@ -114,49 +114,46 @@ function StuListpage(props) {
             </Modal.Header>
             <Modal.Body className="text-center">
               <div className="stumap">
-              <Button
-                variant="secondary"
-                className="m-1 stuButton"
-                onClick={() => {
-                  history.push(`/StuInfo/${props.studentList[props.선택된index].이름}`);
-                }}
-              >
-                학생기본정보
-              </Button>
+                <Button
+                  variant="secondary"
+                  className="m-1 stuButton"
+                  onClick={() => {
+                    history.push(`/StuInfo/${props.studentList[props.선택된index].이름}`);
+                  }}
+                >
+                  학생기본정보
+                </Button>
 
-              <Button
-                variant="secondary"
-                className="m-1 stuButton"
-                onClick={() => {
-                  history.push(`/StudentEdit/${props.studentList[props.선택된index].이름}`);
-                }}
-              >
-                학생DB조회/변경
-              </Button>
+                <Button
+                  variant="secondary"
+                  className="m-1 stuButton"
+                  onClick={() => {
+                    history.push(`/StudentEdit/${props.studentList[props.선택된index].이름}`);
+                  }}
+                >
+                  학생DB조회/변경
+                </Button>
 
-              <Button
-                variant="secondary"
-                className="m-1 stuButton"
-                onClick={() => {
-                  history.push(`/Chart/${props.studentList[props.선택된index].이름}`);
-                }}
-              >
-                차트{" "}
-              </Button>
+                <Button
+                  variant="secondary"
+                  className="m-1 stuButton"
+                  onClick={() => {
+                    history.push(`/Chart/${props.studentList[props.선택된index].이름}`);
+                  }}
+                >
+                  차트{" "}
+                </Button>
 
-              <Button
-                variant="secondary"
-                className="m-1 stuButton"
-                onClick={() => {
-                  setTRlistShow(!TRlistShow);
-                }}
-              >
-                TR(일간하루)
-              </Button>
-
-
+                <Button
+                  variant="secondary"
+                  className="m-1 stuButton"
+                  onClick={() => {
+                    setTRlistShow(!TRlistShow);
+                  }}
+                >
+                  TR(일간하루)
+                </Button>
               </div>
-
             </Modal.Body>
             {TRlistShow === true ? (
               <div className="text-center mb-3">

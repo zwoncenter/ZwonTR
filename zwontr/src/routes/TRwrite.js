@@ -576,7 +576,7 @@ function TRwrite(props) {
                               <TimePicker
                                 className="timepicker"
                                 locale="sv-sv"
-                                value="00:00"
+                                value={a.학습시간}
                                 openClockOnFocus={false}
                                 clearIcon={null}
                                 clockIcon={null}

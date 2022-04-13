@@ -4,7 +4,7 @@ import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import Loginpage from "./LoginModal";
 
-const versionInfo = "1.11";
+const versionInfo = "1.2";
 
 function FirstPage() {
   const [loginModal, loginModalChange] = useState(false);
