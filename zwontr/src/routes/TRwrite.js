@@ -176,9 +176,9 @@ function TRwrite(props) {
 
   function delete_depth_one(category, index) {
     if (window.confirm("삭제하시겠습니까?")) {
-      const newstuDB = JSON.parse(JSON.stringify(stuDB));
-      newstuDB[category].splice(index, 1);
-      setstuDB(newstuDB);
+      const newTR = JSON.parse(JSON.stringify(TR));
+      newTR[category].splice(index, 1);
+      setTR(newTR);
     }
   }
 
@@ -365,19 +365,21 @@ function TRwrite(props) {
               </div>
 
               <div className="col-2 p-0">
-                <button
-                  className="btn btn-TRcommit btn-attend"
+                <Button
+                  variant="danger"
+                  className="btn-TRcommit btn-attend"
                   onClick={() => {
                     console.log(TR);
                     change_depth_one("결석여부", false);
                   }}
                 >
                   <strong>등원</strong>
-                </button>
+                </Button>
               </div>
               <div className="col-2 p-0">
-                <button
-                  className="btn btn-TRcommit btn-absent"
+                <Button
+                  variant="danger"
+                  className="btn-TRcommit btn-absent"
                   onClick={() => {
                     if (window.confirm("미등원으로 전환하시겠습니까?")) {
                       console.log(TR);
@@ -386,7 +388,7 @@ function TRwrite(props) {
                   }}
                 >
                   <strong>미등원</strong>
-                </button>
+                </Button>
               </div>
             </div>
 

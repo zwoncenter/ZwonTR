@@ -291,3 +291,7 @@ app.delete("/api/TR/delete/:id", loginCheck, function (req, res) {
     return res.send(false);
   });
 });
+
+app.get("*", function (req, res) {
+  req.sendFile(path.join(__dirname, "../zwontr/build/index.html"));
+});

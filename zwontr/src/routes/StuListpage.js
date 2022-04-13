@@ -120,7 +120,7 @@ function StuListpage(props) {
                   history.push(`/StuInfo/${props.studentList[props.선택된index].이름}`);
                 }}
               >
-                학생정보
+                학생기본정보
               </Button>
 
               <Button
@@ -131,6 +131,16 @@ function StuListpage(props) {
                 }}
               >
                 학생DB조회/변경
+              </Button>
+
+              <Button
+                variant="secondary"
+                className="me-3 stuButton"
+                onClick={() => {
+                  history.push(`/Chart/${props.studentList[props.선택된index].이름}`);
+                }}
+              >
+                차트{" "}
               </Button>
 
               <Button

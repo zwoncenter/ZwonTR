@@ -9,7 +9,7 @@ function TRedit(props) {
   let history = useHistory();
   var managerList = props.managerList;
   const [stuDB, setstuDB] = useState(props.stuDB);
-  const [TR, TR변경] = useState(props.existTR);
+  const [TR, setTR] = useState(props.existTR);
   const [cuberaito, setCuberatio] = useState(0);
   const [failCnt, setFailCnt] = useState(0);
 
@@ -100,33 +100,33 @@ function TRedit(props) {
   function change_depth_one(category, data) {
     const newTR = JSON.parse(JSON.stringify(TR));
     newTR[category] = data;
-    TR변경(newTR);
+    setTR(newTR);
   }
 
   function change_depth_two(category1, category2, data) {
     const newTR = JSON.parse(JSON.stringify(TR));
     newTR[category1][category2] = data;
-    TR변경(newTR);
+    setTR(newTR);
   }
 
   function change_depth_three(category1, category2, category3, data) {
     const newTR = JSON.parse(JSON.stringify(TR));
     newTR[category1][category2][category3] = data;
-    TR변경(newTR);
+    setTR(newTR);
   }
 
   function delete_depth_one(category, index) {
     if (window.confirm("삭제하시겠습니까?")) {
-      const newstuDB = JSON.parse(JSON.stringify(stuDB));
-      newstuDB[category].splice(index, 1);
-      setstuDB(newstuDB);
+      const newTR = JSON.parse(JSON.stringify(TR));
+      newTR[category].splice(index, 1);
+      setTR(newTR);
     }
   }
 
   function push_depth_one(category, content) {
     const newTR = JSON.parse(JSON.stringify(TR));
     newTR[category].push(content);
-    TR변경(newTR);
+    setTR(newTR);
   }
 
   const isInitialMount = useRef(true);
@@ -149,7 +149,7 @@ function TRedit(props) {
       newTR["센터활용률"] = 0;
       newTR["센터학습활용률"] = 0;
     }
-    await TR변경(newTR);
+    await setTR(newTR);
 
     isInitialMount.current = false;
   }, []);
@@ -160,7 +160,7 @@ function TRedit(props) {
       const tmp = new Date(TR.날짜);
       const ls = ["일", "월", "화", "수", "목", "금", "토"];
       newTR["요일"] = ls[tmp.getDay()] + "요일";
-      TR변경(newTR);
+      setTR(newTR);
     }
   }, [TR.날짜]);
 
@@ -173,7 +173,7 @@ function TRedit(props) {
       newTR.센터내시간 = 차이계산(newTR.실제귀가, newTR.실제등원);
       newTR.센터활용률 = Math.round(((newTR.프로그램시간 + newTR.실제학습) / TR.센터내시간) * 1000) / 10;
       newTR.센터학습활용률 = Math.round((newTR.실제학습 / newTR.센터내시간) * 1000) / 10;
-      TR변경(newTR);
+      setTR(newTR);
     }
   }, [
     TR.목표취침,
@@ -251,19 +251,21 @@ function TRedit(props) {
               </div>
 
               <div className="col-2 pe-0">
-                <button
-                  className="btn btn-TRcommit btn-attend"
+                <Button
+                  variant="danger"
+                  className="btn-TRcommit btn-attend"
                   onClick={() => {
                     console.log(TR);
                     change_depth_one("결석여부", false);
                   }}
                 >
                   <strong>등원</strong>
-                </button>
+                </Button>
               </div>
-              <div className="col-2 ps-0">
-                <button
-                  className="btn btn-TRcommit btn-absent"
+              <div className="col-2 p-0">
+                <Button
+                  variant="danger"
+                  className="btn-TRcommit btn-absent"
                   onClick={() => {
                     if (window.confirm("미등원으로 전환하시겠습니까?")) {
                       console.log(TR);
@@ -272,7 +274,7 @@ function TRedit(props) {
                   }}
                 >
                   <strong>미등원</strong>
-                </button>
+                </Button>
               </div>
             </div>
             {TR.결석여부 === false ? (
@@ -342,7 +344,7 @@ function TRedit(props) {
                                 onChange={(value) => {
                                   const newTR = JSON.parse(JSON.stringify(TR));
                                   newTR[`목표${a}`] = value;
-                                  TR변경(newTR);
+                                  setTR(newTR);
                                 }}
                               ></TimePicker>
                             </td>
@@ -358,7 +360,7 @@ function TRedit(props) {
                                 onChange={(value) => {
                                   const newTR = JSON.parse(JSON.stringify(TR));
                                   newTR[`실제${a}`] = value;
-                                  TR변경(newTR);
+                                  setTR(newTR);
                                 }}
                               ></TimePicker>
                             </td>
@@ -381,7 +383,7 @@ function TRedit(props) {
                         newTR["실제취침"] = 목표기상시간;
                         newTR["실제기상"] = 목표기상시간;
                       }
-                      TR변경(newTR);
+                      setTR(newTR);
                     }}
                   />
                   <p style={{ fontSize: "17px" }} className="mt-2 btn-add program-add">
@@ -476,7 +478,7 @@ function TRedit(props) {
                                     }
                                   });
                                   newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
-                                  TR변경(newTR);
+                                  setTR(newTR);
                                 }}
                               ></TimePicker>
                             </td>
@@ -497,7 +499,7 @@ function TRedit(props) {
                                         }
                                       });
                                       newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
-                                      TR변경(newTR);
+                                      setTR(newTR);
                                     }
                                   }
                                 }}
@@ -608,7 +610,7 @@ function TRedit(props) {
                                     }
                                   });
                                   newTR.프로그램시간 = Math.round((실제시간 + 실제분 / 60) * 10) / 10;
-                                  TR변경(newTR);
+                                  setTR(newTR);
                                 }}
                               ></TimePicker>
                             </td>
@@ -642,7 +644,7 @@ function TRedit(props) {
                                         }
                                       });
                                       newTR.프로그램시간 = Math.round((실제시간 + 실제분 / 60) * 10) / 10;
-                                      TR변경(newTR);
+                                      setTR(newTR);
                                     }
                                   }
                                 }}
