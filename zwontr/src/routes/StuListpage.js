@@ -120,7 +120,7 @@ function StuListpage(props) {
                   history.push(`/StuInfo/${props.studentList[props.선택된index].이름}`);
                 }}
               >
-                학생기본정보
+                학생정보
               </Button>
 
               <Button

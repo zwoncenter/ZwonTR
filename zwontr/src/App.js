@@ -55,7 +55,7 @@ function App() {
         <TRedit stuDB={studentList[선택된index]} existTR={trList[선택된TRindex]} managerList={managerList}></TRedit>
       </Route>
       <Route exact path="/StuInfo/:name">
-        <StuInfo />
+        <StuInfo managerList={managerList}></StuInfo>
       </Route>
     </div>
   );
