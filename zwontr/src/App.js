@@ -59,6 +59,10 @@ function App() {
         <StuInfoAdd managerList={managerList}></StuInfoAdd>
       </Route>
 
+      <Route exact path="/StuInfoEdit">
+        <StuInfoAdd managerList={managerList}></StuInfoAdd>
+      </Route>
+
       <Route exact path="/Chart/:name">
         <StudyChart stuDB={studentList[선택된index]} trList={trList} />
       </Route>

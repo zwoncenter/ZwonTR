@@ -8,6 +8,8 @@ import axios from "axios";
 function StuListpage(props) {
   let history = useHistory();
 
+  const [choosenName, setChoosenName] = useState("");
+
   const [modalShow, setmodalShow] = useState(false);
   const [TRlistShow, setTRlistShow] = useState(false);
   let [stuListShow, stuListShowChange] = useState(false);
@@ -67,16 +69,6 @@ function StuListpage(props) {
     await props.선택된index변경(0);
     await props.setstudentList(result.data);
     setready(true);
-
-    const managerList = await axios
-      .get("/api/managerList")
-      .then((result) => {
-        return result;
-      })
-      .catch((err) => {
-        return err;
-      });
-    props.setmanagerList(managerList.data);
   }, []);
 
   return (

@@ -7,96 +7,10 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import stupic from "../student.png";
 
-function StuInfoAdd() {
+function StuInfoEdit() {
   // 공통 CODE
   let history = useHistory();
   const [managerList, setmanagerList] = useState([]);
-  const writeform = {
-    ID: "",
-    이름: "",
-    생년월일: "",
-    연락처: "",
-    프로그램시작일: "",
-    부연락처: "",
-    모연락처: "",
-    주소: "",
-    혈액형: "",
-    최종학력: "",
-
-    부직업: "",
-    모직업: "",
-    학생과더친한분: "",
-    학생과사이가더나쁜분: "",
-    형제자매및관계: "",
-    조부모와의관계: "",
-    재산: "",
-    부모성향_부: "",
-    부모성향_모: "",
-    부모감정_부: "",
-    부모감정_모: "",
-    부모수용수준_부: "",
-    부모수용수준_모: "",
-    부모님고민_생활: "",
-    부모님고민_목표및동기: "",
-    부모님고민_학습: "",
-    부모님고민_인성: "",
-    부모님고민_현재폰기종: "",
-    부모님고민_현재1주용돈: "",
-    부모님고민_불법행위여부: "",
-
-    키: "",
-    몸무게: "",
-    체지방률: "",
-    BMI: "",
-    운동량: "",
-    평균수면시간: "",
-    식습관: "",
-    정신건강: "",
-    과거병력: "",
-
-    연인: "",
-    친구: "",
-    친구들_성향: "",
-    매니저와의_관계: "",
-    가장_친한_매니저: "",
-    센터내_가장_친한_학생: "",
-
-    MBTI: "",
-    애니어그램: "",
-    별자리: "",
-    IQ: "",
-
-    히스토리: [],
-
-    작성매니저: "",
-    작성일자: "",
-    이름: "",
-    생년월일: "",
-    연락처: "",
-    생활학습목표: {
-      평일취침: "00:00",
-      평일기상: "08:00",
-      평일등원: "10:00",
-      평일귀가: "19:00",
-      평일학습: 0,
-      일요일취침: "00:00",
-      일요일기상: "08:00",
-      일요일등원: "10:00",
-      일요일귀가: "19:00",
-      일요일학습: 0,
-    },
-    큐브책: [],
-
-    매니징목표: [],
-    약속구조: [],
-    용돈구조: [],
-    매니징방법: [],
-
-    진행중교재: [],
-    완료된교재: [],
-    프로그램분류: ["자기인식", "진로탐색", "헬스", "외부활동", "독서", "외국어"],
-  };
-  const [stuInfo, setstuInfo] = useState(writeform);
 
   function phoneNumber(value) {
     value = value.replace(/[^0-9]/g, "");
@@ -148,46 +62,11 @@ function StuInfoAdd() {
     }
   }, [stuInfo["이름"], stuInfo["생년월일"]]);
 
-  useEffect(async () => {
-    const tmp = await axios
-      .get("/api/managerList")
-      .then((result) => {
-        return result["data"];
-      })
-      .catch((err) => {
-        return err;
-      });
-
-    setmanagerList(tmp);
-  }, []);
-
-  // 이름, 프로그램 시작일, 생년월일, 연락처, 연락처 (부) 와 연락처 (모) 중 하나
-  function inputCheck() {
-    const need_to_check = ["이름", "프로그램시작일", "생년월일"];
-    for (let i = 0; i < need_to_check.length; i++) {
-      if (!stuInfo[need_to_check[i]]) {
-        window.alert(`${need_to_check[i]}이(가) 입력되지 않았습니다.`);
-        return false;
-      }
-    }
-    if (stuInfo["연락처"].length !== 13) {
-      window.alert("학생 연락처가 입력되지 않았습니다. 13자리의 휴대폰 번호로 입력 부탁드립니다.");
-      return false;
-    }
-    if (!stuInfo["부연락처"] && !stuInfo["모연락처"]) {
-      window.alert("연락처 (부) 또는 연락처 (모) 중 하나는 반드시 기입되어야합니다.");
-      return false;
-    }
-
-    return true;
-  }
-
   return (
     <div className="stuInfo-background">
       <h1 className="fw-bold text-center">
         <strong>학생 정보</strong>
       </h1>
-
       <Button
         onClick={() => {
           console.log(stuInfo);
@@ -195,7 +74,6 @@ function StuInfoAdd() {
       >
         stuInfo Check
       </Button>
-
       <div className="row">
         <div className="col-12">
           <Card className="stuInfoCard mt-3">
@@ -730,28 +608,31 @@ function StuInfoAdd() {
           </Card>
         </div>
       </div>
-
       <Button
         variant="danger"
         className="btn-Infocommit btn-edit"
         onClick={() => {
-          if (inputCheck()) {
+          if (!stuInfo["이름"]) {
+            window.alert("학생의 이름이 입력되지 않았습니다.");
+          } else {
             if (window.confirm(`${stuInfo.이름}학생의 기본정보를 저장하시겠습니까?`)) {
               axios
-                .post("/api/StudentAdd", stuInfo)
+                .post("/api/StuInfo/add", stuInfo)
                 .then(function (result) {
-                  if (result.data === "로그인필요") {
+                  if (result.data === true) {
+                    window.alert("저장되었습니다.");
+                    history.push("/studentList");
+                  } else if (result.data === "로그인필요") {
                     window.alert("로그인이 필요합니다.");
                     return history.push("/");
+                  } else {
+                    console.log(result.data);
+                    window.alert(result.data);
                   }
-                  window.alert("저장되었습니다");
                 })
                 .catch(function (err) {
-                  console.log(err);
-                  window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
-                })
-                .then(function () {
-                  history.push("/studentList");
+                  console.log("저장 실패 : ", err);
+                  window.alert(err);
                 });
             }
           }
@@ -763,4 +644,4 @@ function StuInfoAdd() {
   );
 }
 
-export default StuInfoAdd;
+export default StuInfoEdit;

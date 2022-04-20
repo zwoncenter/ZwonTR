@@ -6,7 +6,7 @@ import axios from "axios";
 
 function StudentAdd(props) {
   const history = useHistory();
-  const managerList = props.managerList;
+  const [managerList, setmanagerList] = useState([]);
   const today = new Date().toISOString().split("T")[0];
   const [stuDB, setstuDB] = useState(props.existstuDB);
   const [inputProgram, setinputProgram] = useState("");
@@ -25,7 +25,12 @@ function StudentAdd(props) {
   const [contact, setContact] = useState(props.existstuDB["연락처"]);
 
   useEffect(() => {
-    change_depth_one("연락처", contact);
+    const newstuDB = JSON.parse(JSON.stringify(stuDB));
+    newstuDB["연락처"] = contact;
+    if (contact.length >= 13) {
+      newstuDB["ID"] = `${newstuDB["이름"]}_${contact.slice(-4)}`;
+    }
+    setstuDB(newstuDB);
   }, [contact]);
 
   function change_depth_one(category, data) {
@@ -60,12 +65,93 @@ function StudentAdd(props) {
     setstuDB(newstuDB);
   }
 
-  useEffect(() => {
+  const infoform = {
+    프로그램시작일: "",
+    부연락처: "",
+    모연락처: "",
+    주소: "",
+    혈액형: "",
+    최종학력: "",
+
+    부직업: "",
+    모직업: "",
+    학생과더친한분: "",
+    학생과사이가더나쁜분: "",
+    형제자매및관계: "",
+    조부모와의관계: "",
+    재산: "",
+    부모성향_부: "",
+    부모성향_모: "",
+    부모감정_부: "",
+    부모감정_모: "",
+    부모수용수준_부: "",
+    부모수용수준_모: "",
+    부모님고민_생활: "",
+    부모님고민_목표및동기: "",
+    부모님고민_학습: "",
+    부모님고민_인성: "",
+    부모님고민_현재폰기종: "",
+    부모님고민_현재1주용돈: "",
+    부모님고민_불법행위여부: "",
+
+    키: "",
+    몸무게: "",
+    체지방률: "",
+    BMI: "",
+    운동량: "",
+    평균수면시간: "",
+    식습관: "",
+    정신건강: "",
+    과거병력: "",
+
+    연인: "",
+    친구: "",
+    친구들_성향: "",
+    매니저와의_관계: "",
+    가장_친한_매니저: "",
+    센터내_가장_친한_학생: "",
+
+    MBTI: "",
+    애니어그램: "",
+    별자리: "",
+    IQ: "",
+
+    히스토리: [],
+  };
+
+  useEffect(async () => {
     const newstuDB = JSON.parse(JSON.stringify(stuDB));
-    newstuDB.작성매니저 = "";
-    newstuDB.작성일자 = new Date().toISOString().split("T")[0];
-    setstuDB(newstuDB);
+    // newstuDB.작성매니저 = "";
+    // newstuDB.작성일자 = new Date().toISOString().split("T")[0];
+    const tmp = await axios
+      .get("/api/managerList")
+      .then((result) => {
+        return result["data"];
+      })
+      .catch((err) => {
+        return err;
+      });
+
+    setmanagerList(tmp);
+
+    if (contact.length >= 13) {
+      newstuDB["ID"] = `${newstuDB["이름"]}_${contact.slice(-4)}`;
+    }
+    if (!newstuDB["IQ"]) {
+      const infoDB = Object.assign({}, newstuDB, infoform);
+      setstuDB(infoDB);
+    } else {
+      setstuDB(newstuDB);
+    }
   }, []);
+
+  useEffect(() => {
+    if (stuDB["이름"] && stuDB["생년월일"]) {
+      const newstuDB = JSON.parse(JSON.stringify(stuDB));
+      newstuDB["ID"] = stuDB["이름"] + "_" + stuDB["생년월일"].replace(/-/gi, "").slice(-6);
+      setstuDB(newstuDB);
+    }
+  }, [stuDB["이름"], stuDB["생년월일"]]);
 
   return (
     <div className="stuedit-background">
@@ -74,6 +160,58 @@ function StudentAdd(props) {
       </h2>
       <p>최근 작성매니저 : {props.existstuDB.작성매니저}</p>
       <p>최근 수정일 : {props.existstuDB.작성일자}</p>
+
+      <Button
+        onClick={() => {
+          console.log(stuDB["ID"]);
+        }}
+      >
+        {" "}
+        StuDB check
+      </Button>
+
+      <Button
+        variant="secondary"
+        className="btn-DBcommit btn-edit"
+        onClick={() => {
+          const tmp = ["작성매니저", "작성일자", "이름"];
+          for (let j = 0; j < tmp.length; j++) {
+            if (stuDB[tmp[j]] === "") {
+              return window.alert(`${tmp[j]}가 입력되지 않았습니다.`);
+            }
+          }
+
+          const tmp2 = ["매니징목표", "약속구조", "용돈구조", "매니징방법"];
+          for (let j = 0; j < tmp2.length; j++) {
+            if (stuDB[tmp2[j]]) {
+              for (let i = 0; i < stuDB[tmp2[j]].length; i++) {
+                if (stuDB[tmp2[j]][i].설정매니저 == "선택") {
+                  return window.alert(`${i + 1}번째 ${tmp2[j]}의 설정 매니저가 선택되지 않았습니다.`);
+                }
+              }
+            }
+          }
+          if (window.confirm(`${stuDB.이름} 학생의 DB를 수정하시겠습니까?`)) {
+            axios
+              .put("/api/StudentEdit", stuDB)
+              .then(function (result) {
+                if (result.data === "로그인필요") {
+                  window.alert("로그인이 필요합니다.");
+                  return history.push("/");
+                }
+                window.alert("수정되었습니다");
+              })
+              .catch(function (err) {
+                window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
+              })
+              .then(function () {
+                history.push("/studentList");
+              });
+          }
+        }}
+      >
+        <strong>DB 수정</strong>
+      </Button>
 
       <div className="stuDB-form">
         <div className="stuedit-cat-box">
@@ -93,7 +231,7 @@ function StudentAdd(props) {
                 }}
               >
                 <option value="">선택</option>
-                {managerList
+                {managerList.length > 0
                   ? managerList.map((manager, i) => {
                       return (
                         <option value={manager} key={i}>
@@ -218,7 +356,7 @@ function StudentAdd(props) {
                         }}
                       >
                         <option value="선택">선택</option>
-                        {managerList
+                        {managerList.length > 0
                           ? managerList.map((manager, i) => {
                               return (
                                 <option value={manager} key={i}>
@@ -320,7 +458,7 @@ function StudentAdd(props) {
                         }}
                       >
                         <option value="선택">선택</option>
-                        {managerList
+                        {managerList.length > 0
                           ? managerList.map((manager, i) => {
                               return (
                                 <option value={manager} key={i}>
@@ -432,7 +570,7 @@ function StudentAdd(props) {
                         }}
                       >
                         <option value="선택">선택</option>
-                        {managerList
+                        {managerList.length > 0
                           ? managerList.map((manager, i) => {
                               return (
                                 <option value={manager} key={i}>
@@ -535,7 +673,7 @@ function StudentAdd(props) {
                         }}
                       >
                         <option value="선택">선택</option>
-                        {managerList
+                        {managerList.length > 0
                           ? managerList.map((manager, i) => {
                               return (
                                 <option value={manager} key={i}>
