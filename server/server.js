@@ -228,7 +228,7 @@ app.delete("/api/StudentDB/delete/:ID", loginCheck, function (req, res) {
   });
 });
 
-// collection 중 TR의 모든 Document find 및 전송
+// collection 중 TR의 해당 날짜의 Document find 및 전송
 app.get("/api/TRlist/:date", loginCheck, function (req, res) {
   const paramDate = req.params.date;
   console.log(paramDate);
@@ -255,6 +255,18 @@ app.get("/api/TR/:ID", loginCheck, function (req, res) {
       console.log(`${paramID}의 TR 리스트 조회 결과수 : `, result.length);
       return res.json(result);
     });
+});
+
+app.get("/api/TR/:ID/:date", loginCheck, function (req, res) {
+  const paramID = decodeURIComponent(req.params.ID);
+  const paramDate = decodeURIComponent(req.params.date);
+  console.log(`${paramID}의 ${paramDate} 날짜 TR 조회 시도`);
+  db.collection("TR").findOne({ ID: paramID, 날짜: paramDate }, function (err, result) {
+    if (err) {
+      return console.log("/api/TR/:ID/:date - findOne Error : ", err);
+    }
+    return res.json(result);
+  });
 });
 
 app.post("/api/TR/write", loginCheck, function (req, res) {

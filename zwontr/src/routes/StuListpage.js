@@ -26,7 +26,7 @@ function StuListpage() {
 
   const [studentDBlist, setstudentDBlist] = useState([]);
   const [chosenID, setchosenID] = useState("");
-  const [TRlist, setTRlist] = useState([]);
+  const [todayTRlist, settodayTRlist] = useState([]);
   const [studentTRlist, setstudentTRlist] = useState([]);
 
   const addClick = () => {
@@ -35,9 +35,9 @@ function StuListpage() {
     }
   };
 
+  // 학생 이름을 클릭 시, 선택된 ID를 바꾸고, 해당 ID의 TR리스트 조회
   async function nameClick(db, index) {
     setchosenID(db["ID"]);
-
     modalOpen();
     axios
       .get(`/api/TR/${db["ID"]}`)
@@ -45,7 +45,6 @@ function StuListpage() {
         await result.data.sort(function (a, b) {
           return +(new Date(a.날짜) < new Date(b.날짜)) - 0.5;
         });
-        console.log(result);
         setstudentTRlist(result.data);
       })
       .catch(function (err) {
@@ -53,40 +52,39 @@ function StuListpage() {
       });
   }
 
+  // 첫 로딩 시, studentDBlist/todayTRlist 업데이트
   useEffect(async () => {
-    const result = await axios
+    const newstudentDBlist = await axios
       .get("/api/studentList")
       .then((result) => {
-        return result;
+        return result.data;
       })
       .catch((err) => {
         return err;
       });
 
-    if (result.data && result.data == "로그인필요") {
+    if (newstudentDBlist && newstudentDBlist == "로그인필요") {
       window.alert("로그인이 필요합니다.");
       return history.push("/");
     }
-    result.data.sort(function (a, b) {
+    newstudentDBlist.sort(function (a, b) {
       return +(a.이름 > b.이름) - 0.5;
     });
-    setstudentDBlist(result.data);
-    setready(true);
+    setstudentDBlist(newstudentDBlist);
 
-    const result2 = await axios
+    const newtodayTRlist = await axios
       .get(`/api/TRlist/${today}`)
       .then((result) => {
-        return result;
+        return result.data;
       })
       .catch((err) => {
         return err;
       });
-    console.log(result2);
-    if (result2.data && result2.data == "로그인필요") {
+    if (newtodayTRlist && newtodayTRlist == "로그인필요") {
       window.alert("로그인이 필요합니다.");
       return history.push("/");
     }
-    setstudentTRlist(result2.data);
+    settodayTRlist(newtodayTRlist);
   }, []);
 
   return (
@@ -95,19 +93,12 @@ function StuListpage() {
         <h2>
           <strong>지원센터 학생 목록</strong>
         </h2>
-        <Button
-          onClick={() => {
-            console.log(studentTRlist);
-          }}
-        >
-          studentTRlist 확인
-        </Button>
         <Card className="stuCard">
           <Button variant="secondary" className="stuAddbtn" onClick={addClick}>
             <strong>+</strong>
           </Button>
           <ListGroup variant="flush" className="stuCardstuList">
-            {ready
+            {studentDBlist
               ? studentDBlist.map(function (db, index) {
                   return (
                     <div className="stuListItem" key={index}>
@@ -127,7 +118,7 @@ function StuListpage() {
         {modalShow === true ? (
           <Modal show={modalShow} onHide={modalClose} className="TRModal">
             <Modal.Header closeButton>
-              <Modal.Title>{ready ? chosenID.split("_")[0] : ""}</Modal.Title>
+              <Modal.Title>{chosenID ? chosenID.split("_")[0] : ""}</Modal.Title>
             </Modal.Header>
             <Modal.Body className="text-center">
               <div className="stumap">
