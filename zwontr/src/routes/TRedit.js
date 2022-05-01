@@ -1,17 +1,163 @@
 import "./TRWriteEdit.scss";
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
-import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
+import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import TimePicker from "react-time-picker";
 
-function TRedit(props) {
+function TRedit() {
+  // 공통 code
   let history = useHistory();
-  var managerList = props.managerList;
-  const [stuDB, setstuDB] = useState(props.stuDB);
-  const [TR, setTR] = useState(props.existTR);
+  let paramID = useParams()["ID"];
+  const [managerList, setmanagerList] = useState([]);
+  const [stuDB, setstuDB] = useState({
+    ID: "",
+    이름: "",
+    생년월일: "",
+    연락처: "",
+    프로그램시작일: "",
+    부연락처: "",
+    모연락처: "",
+    주소: "",
+    혈액형: "",
+    최종학력: "",
+
+    부직업: "",
+    모직업: "",
+    학생과더친한분: "",
+    학생과사이가더나쁜분: "",
+    형제자매및관계: "",
+    조부모와의관계: "",
+    재산: "",
+    부모성향_부: "",
+    부모성향_모: "",
+    부모감정_부: "",
+    부모감정_모: "",
+    부모수용수준_부: "",
+    부모수용수준_모: "",
+    부모님고민_생활: "",
+    부모님고민_목표및동기: "",
+    부모님고민_학습: "",
+    부모님고민_인성: "",
+    부모님고민_현재폰기종: "",
+    부모님고민_현재1주용돈: "",
+    부모님고민_불법행위여부: "",
+
+    키: "",
+    몸무게: "",
+    체지방률: "",
+    BMI: "",
+    운동량: "",
+    평균수면시간: "",
+    식습관: "",
+    정신건강: "",
+    과거병력: "",
+
+    연인: "",
+    친구: "",
+    친구들_성향: "",
+    매니저와의_관계: "",
+    가장_친한_매니저: "",
+    센터내_가장_친한_학생: "",
+
+    MBTI: "",
+    애니어그램: "",
+    별자리: "",
+    IQ: "",
+
+    히스토리: [],
+
+    작성매니저: "",
+    작성일자: "",
+    이름: "",
+    생년월일: "",
+    연락처: "",
+    생활학습목표: {
+      평일취침: "00:00",
+      평일기상: "08:00",
+      평일등원: "10:00",
+      평일귀가: "19:00",
+      평일학습: 0,
+      일요일취침: "00:00",
+      일요일기상: "08:00",
+      일요일등원: "10:00",
+      일요일귀가: "19:00",
+      일요일학습: 0,
+    },
+    큐브책: [],
+
+    매니징목표: [],
+    약속구조: [],
+    용돈구조: [],
+    매니징방법: [],
+
+    진행중교재: [],
+    완료된교재: [],
+    프로그램분류: ["자기인식", "진로탐색", "헬스", "외부활동", "독서", "외국어"],
+  });
   const [cuberaito, setCuberatio] = useState(0);
   const [failCnt, setFailCnt] = useState(0);
+  const [TR, setTR] = useState({
+    ID: paramID,
+    이름: paramID.split("_")[0],
+    날짜: new Date().toISOString().split("T")[0],
+    요일: "",
+    작성매니저: "",
+
+    결석여부: false,
+    결석사유: "",
+    결석상세내용: "",
+
+    신체컨디션: "",
+    정서컨디션: "",
+
+    목표취침: "",
+    실제취침: "",
+    목표기상: "",
+    실제기상: "",
+    목표등원: "",
+    실제등원: "",
+    목표귀가: "",
+    실제귀가: "",
+    목표학습: "",
+    실제학습: 0,
+
+    취침차이: 0,
+    기상차이: 0,
+    등원차이: 0,
+    귀가차이: 0,
+    학습차이: 0,
+    밤샘여부: false,
+
+    학습: [],
+
+    문제행동: [
+      { 분류: "자해", 문제여부: false },
+      { 분류: "자기비하", 문제여부: false },
+      { 분류: "감정기복", 문제여부: false },
+      { 분류: "메타인지 부족", 문제여부: false },
+      { 분류: "중도포기 / 탈주", 문제여부: false },
+      { 분류: "TR작성 미흡", 문제여부: false },
+      { 분류: "불법행위", 문제여부: false },
+      { 분류: "거짓말/핑계/변명", 문제여부: false },
+      { 분류: "위생문제", 문제여부: false },
+      { 분류: "지각", 문제여부: false },
+      { 분류: "괴롭힘/싸움", 문제여부: false },
+      { 분류: "부모님께 무례", 문제여부: false },
+      { 분류: "연락무시/잠수", 문제여부: false },
+      { 분류: "자리정리 안함", 문제여부: false },
+    ],
+
+    프로그램시간: 0,
+
+    센터내시간: 0,
+    센터활용률: 0,
+    센터학습활용률: 0,
+
+    프로그램: [],
+    매니저피드백: "",
+    큐브책: [],
+  });
 
   function 입력확인() {
     if (!TR.날짜) {
@@ -49,7 +195,7 @@ function TRedit(props) {
           return false;
         }
         if (!TR.학습[i].학습시간 || TR.학습[i].학습시간 === "00:00") {
-          window.alert(`${i + 1}번째 학습의 학습시간이 입력되지 않았습니다. 학습이 진행되지 않은 경우, 해당 항목을 삭제해주세요.`);
+          window.alert(`${i + 1}번째 학습의 학습시간이 입력되지 않았습니다. \n 학습이 진행되지 않은 경우, 해당 항목을 삭제해주세요.`);
           return false;
         }
       }
@@ -129,26 +275,46 @@ function TRedit(props) {
     setTR(newTR);
   }
 
+  // Edit code
+  let paramDate = useParams()["date"];
+  const [existManager, setexistManager] = useState("");
   const isInitialMount = useRef(true);
 
   useEffect(async () => {
-    const newTR = JSON.parse(JSON.stringify(TR));
+    const newstuDB = await axios
+      .get(`/api/StudentDB/find/${paramID}`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        }
+        return result["data"];
+      })
+      .catch((err) => {
+        return err;
+      });
+    setstuDB(newstuDB);
+
+    const newmanagerList = await axios
+      .get("/api/managerList")
+      .then((result) => {
+        return result["data"];
+      })
+      .catch((err) => {
+        return err;
+      });
+    setmanagerList(newmanagerList);
+
+    const newTR = await axios
+      .get(`/api/TR/${paramID}/${paramDate}`)
+      .then((result) => {
+        return result["data"];
+      })
+      .catch((err) => {
+        return err;
+      });
+    setexistManager(newTR["작성매니저"]);
     newTR.작성매니저 = "";
-    if (newTR["큐브책"].length !== 0 && !("구분" in newTR["큐브책"][0])) {
-      for (let i = 0; i < newTR["큐브책"].length; i++) {
-        const tmp = newTR["큐브책"][i];
-        newTR["큐브책"][i] = {
-          구분: "구분",
-          할일: tmp["할일"],
-          완료여부: tmp["완료여부"],
-        };
-      }
-    }
-    if (!("센터내시간" in newTR)) {
-      newTR["센터내시간"] = 0;
-      newTR["센터활용률"] = 0;
-      newTR["센터학습활용률"] = 0;
-    }
     await setTR(newTR);
 
     isInitialMount.current = false;
@@ -237,7 +403,7 @@ function TRedit(props) {
                     change_depth_one("작성매니저", e.target.value);
                   }}
                 >
-                  <option value="기존">{"기존 : " + props.existTR.작성매니저}</option>
+                  <option value="기존">{"기존 : " + existManager}</option>
                   {managerList
                     ? managerList.map((manager, index) => {
                         return (
@@ -404,92 +570,72 @@ function TRedit(props) {
                       </tr>
                     </thead>
                     <tbody>
-                      {TR.학습.map(function (a, i) {
-                        return (
-                          <tr key={i}>
-                            <td>
-                              <Form.Select
-                                size="sm"
-                                value={a.과목}
-                                onChange={(e) => {
-                                  change_depth_three("학습", i, "과목", e.target.value);
-                                }}
-                              >
-                                <option value="선택">선택</option>
-                                <option value="국어">국어</option>
-                                <option value="수학">수학</option>
-                                <option value="영어">영어</option>
-                                <option value="탐구">탐구</option>
-                                <option value="기타">기타</option>
-                              </Form.Select>
-                            </td>
-                            <td>
-                              <Form.Select
-                                size="sm"
-                                value={a.교재}
-                                onChange={(e) => {
-                                  change_depth_three("학습", i, "교재", e.target.value);
-                                }}
-                              >
-                                <option value="선택">선택</option>
-                                {stuDB.진행중교재.map(function (book, index) {
-                                  return (
-                                    <option value={book.교재} key={index}>
-                                      {book.교재}
-                                    </option>
-                                  );
-                                })}
-                                <option value="모의고사">모의고사</option>
-                                <option value="테스트">테스트</option>
-                                <option value="기타">기타</option>
-                              </Form.Select>
-                            </td>
-                            <td>
-                              <p className="fs-13px">{a.총교재량}</p>
-                            </td>
-                            <td>
-                              <input
-                                type="number"
-                                placeholder="-1"
-                                value={a.최근진도}
-                                className="inputText"
-                                onChange={(e) => {
-                                  change_depth_three("학습", i, "최근진도", parseInt(e.target.value));
-                                }}
-                              />
-                            </td>
-                            <td>
-                              <TimePicker
-                                className="timepicker"
-                                locale="sv-sv"
-                                value={a.학습시간}
-                                openClockOnFocus={false}
-                                clearIcon={null}
-                                clockIcon={null}
-                                onChange={(value) => {
-                                  var newTR = JSON.parse(JSON.stringify(TR));
-                                  newTR.학습[i].학습시간 = value;
-                                  let 실제학습시간 = 0;
-                                  let 실제학습분 = 0;
-                                  newTR.학습.map(function (b, j) {
-                                    if (b.학습시간) {
-                                      실제학습시간 += parseInt(b.학습시간.split(":")[0]);
-                                      실제학습분 += parseInt(b.학습시간.split(":")[1]);
-                                    }
-                                  });
-                                  newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
-                                  setTR(newTR);
-                                }}
-                              ></TimePicker>
-                            </td>
-                            <td>
-                              <button
-                                className="btn btn-delete"
-                                onClick={() => {
-                                  if (i > -1) {
-                                    if (window.confirm("삭제하시겠습니까?")) {
+                      {TR.학습
+                        ? TR.학습.map(function (a, i) {
+                            return (
+                              <tr key={i}>
+                                <td>
+                                  <Form.Select
+                                    size="sm"
+                                    value={a.과목}
+                                    onChange={(e) => {
+                                      change_depth_three("학습", i, "과목", e.target.value);
+                                    }}
+                                  >
+                                    <option value="선택">선택</option>
+                                    <option value="국어">국어</option>
+                                    <option value="수학">수학</option>
+                                    <option value="영어">영어</option>
+                                    <option value="탐구">탐구</option>
+                                    <option value="기타">기타</option>
+                                  </Form.Select>
+                                </td>
+                                <td>
+                                  <Form.Select
+                                    size="sm"
+                                    value={a.교재}
+                                    onChange={(e) => {
+                                      change_depth_three("학습", i, "교재", e.target.value);
+                                    }}
+                                  >
+                                    <option value="선택">선택</option>
+                                    {stuDB.진행중교재.map(function (book, index) {
+                                      return (
+                                        <option value={book.교재} key={index}>
+                                          {book.교재}
+                                        </option>
+                                      );
+                                    })}
+                                    <option value="모의고사">모의고사</option>
+                                    <option value="테스트">테스트</option>
+                                    <option value="기타">기타</option>
+                                  </Form.Select>
+                                </td>
+                                <td>
+                                  <p className="fs-13px">{a.총교재량}</p>
+                                </td>
+                                <td>
+                                  <input
+                                    type="number"
+                                    placeholder="-1"
+                                    value={a.최근진도}
+                                    className="inputText"
+                                    onChange={(e) => {
+                                      change_depth_three("학습", i, "최근진도", parseInt(e.target.value));
+                                    }}
+                                  />
+                                </td>
+                                <td>
+                                  <TimePicker
+                                    className="timepicker"
+                                    locale="sv-sv"
+                                    value={a.학습시간}
+                                    openClockOnFocus={false}
+                                    clearIcon={null}
+                                    clockIcon={null}
+                                    onChange={(value) => {
                                       var newTR = JSON.parse(JSON.stringify(TR));
-                                      newTR.학습.splice(i, 1);
+                                      newTR.학습[i].학습시간 = value;
                                       let 실제학습시간 = 0;
                                       let 실제학습분 = 0;
                                       newTR.학습.map(function (b, j) {
@@ -500,16 +646,38 @@ function TRedit(props) {
                                       });
                                       newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
                                       setTR(newTR);
-                                    }
-                                  }
-                                }}
-                              >
-                                <strong>x</strong>
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                                    }}
+                                  ></TimePicker>
+                                </td>
+                                <td>
+                                  <button
+                                    className="btn btn-delete"
+                                    onClick={() => {
+                                      if (i > -1) {
+                                        if (window.confirm("삭제하시겠습니까?")) {
+                                          var newTR = JSON.parse(JSON.stringify(TR));
+                                          newTR.학습.splice(i, 1);
+                                          let 실제학습시간 = 0;
+                                          let 실제학습분 = 0;
+                                          newTR.학습.map(function (b, j) {
+                                            if (b.학습시간) {
+                                              실제학습시간 += parseInt(b.학습시간.split(":")[0]);
+                                              실제학습분 += parseInt(b.학습시간.split(":")[1]);
+                                            }
+                                          });
+                                          newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
+                                          setTR(newTR);
+                                        }
+                                      }
+                                    }}
+                                  >
+                                    <strong>x</strong>
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        : null}
 
                       <tr>
                         <td colSpan={4}>목표 학습 - {TR.목표학습} 시간</td>
