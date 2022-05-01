@@ -97,7 +97,6 @@ function StuInfoAdd() {
     프로그램분류: ["자기인식", "진로탐색", "헬스", "외부활동", "독서", "외국어"],
   };
   const [stuInfo, setstuInfo] = useState(writeform);
-
   function phoneNumber(value) {
     value = value.replace(/[^0-9]/g, "");
     return value.replace(/[^0-9]/, "").replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, `$1-$2-$3`);
@@ -105,16 +104,6 @@ function StuInfoAdd() {
   const [contact, setContact] = useState("");
   const [dadcontact, setdadContact] = useState("");
   const [momcontact, setmomContact] = useState("");
-
-  useEffect(() => {
-    change_depth_one("연락처", contact);
-  }, [contact]);
-  useEffect(() => {
-    change_depth_one("부연락처", dadcontact);
-  }, [dadcontact]);
-  useEffect(() => {
-    change_depth_one("모연락처", momcontact);
-  }, [momcontact]);
 
   function change_depth_one(category, data) {
     const newstuInfo = JSON.parse(JSON.stringify(stuInfo));
@@ -141,13 +130,36 @@ function StuInfoAdd() {
   }
 
   useEffect(() => {
-    if (stuInfo["이름"] && stuInfo["생년월일"]) {
-      const newstuInfo = JSON.parse(JSON.stringify(stuInfo));
-      newstuInfo["ID"] = stuInfo["이름"] + "_" + stuInfo["생년월일"].replace(/-/gi, "").slice(-6);
-      setstuInfo(newstuInfo);
-    }
-  }, [stuInfo["이름"], stuInfo["생년월일"]]);
+    change_depth_one("연락처", contact);
+  }, [contact]);
+  useEffect(() => {
+    change_depth_one("부연락처", dadcontact);
+  }, [dadcontact]);
+  useEffect(() => {
+    change_depth_one("모연락처", momcontact);
+  }, [momcontact]);
 
+  // 이름, 프로그램 시작일, 생년월일, 연락처, 연락처 (부) 와 연락처 (모) 중 하나
+  function inputCheck() {
+    const need_to_check = ["이름", "프로그램시작일", "생년월일"];
+    for (let i = 0; i < need_to_check.length; i++) {
+      if (!stuInfo[need_to_check[i]]) {
+        window.alert(`${need_to_check[i]}이(가) 입력되지 않았습니다.`);
+        return false;
+      }
+    }
+    if (stuInfo["연락처"].length !== 13) {
+      window.alert("학생 연락처가 입력되지 않았습니다. 휴대폰 번호 13자리를 입력해주세요.");
+      return false;
+    }
+    if (!stuInfo["부연락처"] && !stuInfo["모연락처"]) {
+      window.alert("연락처 (부) 또는 연락처 (모) 중 하나는 반드시 기입되어야합니다.");
+      return false;
+    }
+    return true;
+  }
+
+  // Add CODE
   useEffect(async () => {
     const tmp = await axios
       .get("/api/managerList")
@@ -161,26 +173,13 @@ function StuInfoAdd() {
     setmanagerList(tmp);
   }, []);
 
-  // 이름, 프로그램 시작일, 생년월일, 연락처, 연락처 (부) 와 연락처 (모) 중 하나
-  function inputCheck() {
-    const need_to_check = ["이름", "프로그램시작일", "생년월일"];
-    for (let i = 0; i < need_to_check.length; i++) {
-      if (!stuInfo[need_to_check[i]]) {
-        window.alert(`${need_to_check[i]}이(가) 입력되지 않았습니다.`);
-        return false;
-      }
+  useEffect(() => {
+    if (stuInfo["이름"] && stuInfo["생년월일"]) {
+      const newstuInfo = JSON.parse(JSON.stringify(stuInfo));
+      newstuInfo["ID"] = stuInfo["이름"] + "_" + stuInfo["생년월일"].replace(/-/gi, "").slice(-6);
+      setstuInfo(newstuInfo);
     }
-    if (stuInfo["연락처"].length !== 13) {
-      window.alert("학생 연락처가 입력되지 않았습니다. 13자리의 휴대폰 번호로 입력 부탁드립니다.");
-      return false;
-    }
-    if (!stuInfo["부연락처"] && !stuInfo["모연락처"]) {
-      window.alert("연락처 (부) 또는 연락처 (모) 중 하나는 반드시 기입되어야합니다.");
-      return false;
-    }
-
-    return true;
-  }
+  }, [stuInfo]);
 
   return (
     <div className="stuInfo-background">
@@ -738,7 +737,7 @@ function StuInfoAdd() {
           if (inputCheck()) {
             if (window.confirm(`${stuInfo.이름}학생의 기본정보를 저장하시겠습니까?`)) {
               axios
-                .post("/api/StudentAdd", stuInfo)
+                .post("/api/StudentDB/add", stuInfo)
                 .then(function (result) {
                   if (result.data === "로그인필요") {
                     window.alert("로그인이 필요합니다.");

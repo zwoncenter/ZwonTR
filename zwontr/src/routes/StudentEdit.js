@@ -1,14 +1,101 @@
 import "./StudentAddEdit.scss";
 import { Form, Table, Row, Col, Button, Badge, InputGroup, FormControl } from "react-bootstrap";
-import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
+import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-function StudentAdd(props) {
+function StudentEdit() {
   const history = useHistory();
-  const [managerList, setmanagerList] = useState([]);
   const today = new Date().toISOString().split("T")[0];
-  const [stuDB, setstuDB] = useState(props.existstuDB);
+  const writeform = {
+    ID: "",
+    이름: "",
+    생년월일: "",
+    연락처: "",
+    프로그램시작일: "",
+    부연락처: "",
+    모연락처: "",
+    주소: "",
+    혈액형: "",
+    최종학력: "",
+
+    부직업: "",
+    모직업: "",
+    학생과더친한분: "",
+    학생과사이가더나쁜분: "",
+    형제자매및관계: "",
+    조부모와의관계: "",
+    재산: "",
+    부모성향_부: "",
+    부모성향_모: "",
+    부모감정_부: "",
+    부모감정_모: "",
+    부모수용수준_부: "",
+    부모수용수준_모: "",
+    부모님고민_생활: "",
+    부모님고민_목표및동기: "",
+    부모님고민_학습: "",
+    부모님고민_인성: "",
+    부모님고민_현재폰기종: "",
+    부모님고민_현재1주용돈: "",
+    부모님고민_불법행위여부: "",
+
+    키: "",
+    몸무게: "",
+    체지방률: "",
+    BMI: "",
+    운동량: "",
+    평균수면시간: "",
+    식습관: "",
+    정신건강: "",
+    과거병력: "",
+
+    연인: "",
+    친구: "",
+    친구들_성향: "",
+    매니저와의_관계: "",
+    가장_친한_매니저: "",
+    센터내_가장_친한_학생: "",
+
+    MBTI: "",
+    애니어그램: "",
+    별자리: "",
+    IQ: "",
+
+    히스토리: [],
+
+    작성매니저: "",
+    작성일자: "",
+    이름: "",
+    생년월일: "",
+    연락처: "",
+    생활학습목표: {
+      평일취침: "00:00",
+      평일기상: "08:00",
+      평일등원: "10:00",
+      평일귀가: "19:00",
+      평일학습: 0,
+      일요일취침: "00:00",
+      일요일기상: "08:00",
+      일요일등원: "10:00",
+      일요일귀가: "19:00",
+      일요일학습: 0,
+    },
+    큐브책: [],
+
+    매니징목표: [],
+    약속구조: [],
+    용돈구조: [],
+    매니징방법: [],
+
+    진행중교재: [],
+    완료된교재: [],
+    프로그램분류: ["자기인식", "진로탐색", "헬스", "외부활동", "독서", "외국어"],
+  };
+  const [stuDB, setstuDB] = useState(writeform);
+  const [managerList, setmanagerList] = useState([]);
+  const [manager, setmanager] = useState("");
+  const [date, setdate] = useState("");
   const [inputProgram, setinputProgram] = useState("");
 
   const programAdd = () => {
@@ -17,21 +104,6 @@ function StudentAdd(props) {
     setstuDB(newstuDB);
     document.querySelector("#inputProgram").value = "";
   };
-
-  function phoneNumber(value) {
-    value = value.replace(/[^0-9]/g, "");
-    return value.replace(/[^0-9]/, "").replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, `$1-$2-$3`);
-  }
-  const [contact, setContact] = useState(props.existstuDB["연락처"]);
-
-  useEffect(() => {
-    const newstuDB = JSON.parse(JSON.stringify(stuDB));
-    newstuDB["연락처"] = contact;
-    if (contact.length >= 13) {
-      newstuDB["ID"] = `${newstuDB["이름"]}_${contact.slice(-4)}`;
-    }
-    setstuDB(newstuDB);
-  }, [contact]);
 
   function change_depth_one(category, data) {
     const newstuDB = JSON.parse(JSON.stringify(stuDB));
@@ -118,11 +190,24 @@ function StudentAdd(props) {
 
     히스토리: [],
   };
-
+  const param = useParams();
   useEffect(async () => {
-    const newstuDB = JSON.parse(JSON.stringify(stuDB));
-    // newstuDB.작성매니저 = "";
-    // newstuDB.작성일자 = new Date().toISOString().split("T")[0];
+    const newstuDB = await axios
+      .get(`/api/StudentDB/find/${param["ID"]}`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        }
+        return result["data"];
+      })
+      .catch((err) => {
+        return err;
+      });
+    setmanager(newstuDB["작성매니저"]);
+    setdate(newstuDB["작성일자"]);
+    newstuDB.작성매니저 = "";
+    newstuDB.작성일자 = new Date().toISOString().split("T")[0];
     const tmp = await axios
       .get("/api/managerList")
       .then((result) => {
@@ -131,12 +216,8 @@ function StudentAdd(props) {
       .catch((err) => {
         return err;
       });
-
     setmanagerList(tmp);
 
-    if (contact.length >= 13) {
-      newstuDB["ID"] = `${newstuDB["이름"]}_${contact.slice(-4)}`;
-    }
     if (!newstuDB["IQ"]) {
       const infoDB = Object.assign({}, newstuDB, infoform);
       setstuDB(infoDB);
@@ -145,21 +226,13 @@ function StudentAdd(props) {
     }
   }, []);
 
-  useEffect(() => {
-    if (stuDB["이름"] && stuDB["생년월일"]) {
-      const newstuDB = JSON.parse(JSON.stringify(stuDB));
-      newstuDB["ID"] = stuDB["이름"] + "_" + stuDB["생년월일"].replace(/-/gi, "").slice(-6);
-      setstuDB(newstuDB);
-    }
-  }, [stuDB["이름"], stuDB["생년월일"]]);
-
   return (
     <div className="stuedit-background">
       <h2 className="fw-bold text-center">
-        <strong>학생 DB 조회 및 변경</strong>
+        <strong>{stuDB["이름"]} 학생 DB 조회/변경</strong>
       </h2>
-      <p>최근 작성매니저 : {props.existstuDB.작성매니저}</p>
-      <p>최근 수정일 : {props.existstuDB.작성일자}</p>
+      <p>최근 작성매니저 : {manager}</p>
+      <p>최근 수정일 : {date}</p>
 
       <Button
         onClick={() => {
@@ -174,7 +247,7 @@ function StudentAdd(props) {
         variant="secondary"
         className="btn-DBcommit btn-edit"
         onClick={() => {
-          const tmp = ["작성매니저", "작성일자", "이름"];
+          const tmp = ["작성매니저", "작성일자"];
           for (let j = 0; j < tmp.length; j++) {
             if (stuDB[tmp[j]] === "") {
               return window.alert(`${tmp[j]}가 입력되지 않았습니다.`);
@@ -193,7 +266,7 @@ function StudentAdd(props) {
           }
           if (window.confirm(`${stuDB.이름} 학생의 DB를 수정하시겠습니까?`)) {
             axios
-              .put("/api/StudentEdit", stuDB)
+              .put("/api/StudentDB/edit", stuDB)
               .then(function (result) {
                 if (result.data === "로그인필요") {
                   window.alert("로그인이 필요합니다.");
@@ -255,61 +328,6 @@ function StudentAdd(props) {
                 onChange={(e) => {
                   change_depth_one("작성일자", e.target.value);
                 }}
-              />
-            </Col>
-          </Form.Group>
-        </div>
-
-        <div className="stuedit-cat-box">
-          <h3 className="stuedit-cat-title mb-4">
-            <strong>[ 기본정보 ]</strong>
-          </h3>
-
-          <Form.Group as={Row} className="mb-3 me-3 ms-3">
-            <Form.Label column sm="2">
-              이름
-            </Form.Label>
-            <Col sm="10">
-              <Form.Control
-                type="text"
-                placeholder="OOO"
-                value={stuDB.이름}
-                onChange={(e) => {
-                  change_depth_one("이름", e.target.value);
-                }}
-              />
-            </Col>
-          </Form.Group>
-
-          <Form.Group as={Row} className="mb-3 me-3 ms-3">
-            <Form.Label column sm="2">
-              생년월일
-            </Form.Label>
-            <Col sm="10">
-              <Form.Control
-                type="date"
-                value={stuDB.생년월일}
-                onChange={(e) => {
-                  change_depth_one("생년월일", e.target.value);
-                }}
-              />
-            </Col>
-          </Form.Group>
-
-          <Form.Group as={Row} className="mb-3 me-3 ms-3">
-            <Form.Label column sm="2">
-              연락처
-            </Form.Label>
-            <Col sm="10">
-              <Form.Control
-                type="text"
-                onChange={(e) => {
-                  setContact(phoneNumber(e.target.value));
-                  change_depth_one("연락처", contact);
-                }}
-                value={contact}
-                maxLength="13"
-                placeholder="숫자만 입력해주세요"
               />
             </Col>
           </Form.Group>
@@ -1287,7 +1305,7 @@ function StudentAdd(props) {
               }
               if (window.confirm(`${stuDB.이름} 학생의 DB를 수정하시겠습니까?`)) {
                 axios
-                  .put("/api/StudentEdit", stuDB)
+                  .put("/api/StudentDB/edit", stuDB)
                   .then(function (result) {
                     if (result.data === "로그인필요") {
                       window.alert("로그인이 필요합니다.");
@@ -1313,7 +1331,7 @@ function StudentAdd(props) {
             onClick={() => {
               if (window.confirm(`${stuDB.이름} 학생의 DB를 정말 삭제하시겠습니까?`)) {
                 axios
-                  .delete(`/api/StudentDelete/${stuDB.이름}`)
+                  .delete(`/api/StudentDB/delete/${stuDB["ID"]}`)
                   .then(function (result) {
                     if (result.data === "로그인필요") {
                       window.alert("로그인이 필요합니다.");
@@ -1338,4 +1356,4 @@ function StudentAdd(props) {
   );
 }
 
-export default StudentAdd;
+export default StudentEdit;

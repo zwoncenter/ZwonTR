@@ -137,8 +137,8 @@ app.get("/api/managerList", loginCheck, (req, res) => {
     });
 });
 
-// collection 중 StudentDB에 새로운 stuDB 추가 요청
-app.post("/api/studentDB/add", loginCheck, function (req, res) {
+// StudentDB에 새로운 stuDB 추가 요청
+app.post("/api/StudentDB/add", loginCheck, function (req, res) {
   const newDB = req.body;
   db.collection("StudentDB").findOne({ 이름: newDB.이름 }, function (err, result) {
     if (err) {
@@ -164,13 +164,16 @@ app.post("/api/studentDB/add", loginCheck, function (req, res) {
   });
 });
 
-app.get("/api/studentDB/:ID", loginCheck, function (req, res) {
+// StudentDB에서 해당 ID의 document 조회
+app.get("/api/StudentDB/find/:ID", loginCheck, function (req, res) {
+  // const paramID = "강진영_050525";
   const paramID = decodeURIComponent(req.params.ID);
-  console.log(`${paramName}의 studentDB 조회 시도`);
-  db.collection("studentDB").findOne({ ID: paramID }, function (err, result) {
+  console.log(`${paramID}의 studentDB 조회 시도`);
+  db.collection("StudentDB").findOne({ ID: paramID }, function (err, result) {
     if (err) {
       return console.log("/api/studentDB/:ID - findOne Error : ", err);
     }
+    console.log("결과 :", result["ID"]);
     if (result === null) {
       return res.send("동일한 ID의 학생DB가 존재하지 않습니다. 개발 / 데이터 팀에 문의해주세요");
     }
@@ -179,19 +182,20 @@ app.get("/api/studentDB/:ID", loginCheck, function (req, res) {
 });
 
 // StudentDB에 수정 요청
-app.put("/api/StudentEdit", loginCheck, function (req, res) {
+app.put("/api/StudentDB/edit", loginCheck, function (req, res) {
   const newstuDB = req.body;
-  const findID = ObjectId(newstuDB._id);
+  const findID = newstuDB["ID"];
   delete newstuDB._id;
-  console.log("기존 학생DB 수정 시도");
-  db.collection(`StudentDB`).findOne({ _id: findID }, function (err, result) {
+  console.log("기존 학생DB 수정 시도", findID);
+  db.collection(`StudentDB`).findOne({ ID: findID }, function (err, result) {
+    console.log(result);
     if (err) {
       return console.log(`/api/StudentEdit - findOne Error : `, err);
     }
     if (result === null) {
-      return res.send("동일한 _id의 학생DB가 존재하지 않습니다. 개발 / 데이터 팀에 문의해주세요");
+      return res.send("동일한 ID의 학생DB가 존재하지 않습니다. 개발 / 데이터 팀에 문의해주세요");
     }
-    db.collection("StudentDB").updateOne({ _id: findID }, { $set: newstuDB }, function (err2, result2) {
+    db.collection("StudentDB").updateOne({ ID: findID }, { $set: newstuDB }, function (err2, result2) {
       if (err2) {
         return console.log("/api/StudentEdit - updateOne Error : ", err2);
       }
@@ -208,7 +212,7 @@ app.put("/api/StudentEdit", loginCheck, function (req, res) {
 });
 
 // StudentDB에 삭제 요청
-app.delete("/api/StudentDelete/:name", loginCheck, function (req, res) {
+app.delete("/api/StudentDB/delete/:ID", loginCheck, function (req, res) {
   const stuName = req.params.name;
   console.log(stuName + "학생의 DB 삭제 시도");
   db.collection("StudentDB").deleteOne({ 이름: stuName }, (err, result) => {
@@ -225,16 +229,16 @@ app.delete("/api/StudentDelete/:name", loginCheck, function (req, res) {
   });
 });
 
-app.get("/api/TR/:name", loginCheck, function (req, res) {
-  const paramName = decodeURIComponent(req.params.name);
-  console.log(`${paramName}의 TR 리스트 조회 시도`);
+app.get("/api/TR/:ID", loginCheck, function (req, res) {
+  const paramID = decodeURIComponent(req.params.ID);
+  console.log(`${paramID}의 TR 리스트 조회 시도`);
   db.collection("TR")
-    .find({ 이름: paramName })
+    .find({ ID: paramID })
     .toArray(function (err, result) {
       if (err) {
-        return console.log("/api/TR/:name - find Error : ", err);
+        return console.log("/api/TR/:ID - find Error : ", err);
       }
-      console.log(`${paramName}의 TR 리스트 조회 결과수 : `, result.length);
+      console.log(`${paramID}의 TR 리스트 조회 결과수 : `, result.length);
       return res.json(result);
     });
 });

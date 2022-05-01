@@ -11,6 +11,7 @@ import TRedit from "./routes/TRedit";
 import StudentEdit from "./routes/StudentEdit";
 import FirstPage from "./routes/FirstPage";
 import StuInfoAdd from "./routes/StuInfoAdd";
+import StuInfoEdit from "./routes/StuInfoEdit";
 import StudyChart from "./routes/StudyChart";
 
 function App() {
@@ -30,41 +31,30 @@ function App() {
         <FirstPage />
       </Route>
       <Route exact path="/studentList">
-        <StuListpage
-          trList={trList}
-          settrList={settrList}
-          선택된TRindex={선택된TRindex}
-          선택된TRindex변경={선택된TRindex변경}
-          studentList={studentList}
-          setstudentList={setstudentList}
-          선택된index={선택된index}
-          선택된index변경={선택된index변경}
-          managerList={managerList}
-          setmanagerList={setmanagerList}
-        />
+        <StuListpage />
       </Route>
       <Route exact path="/studentAdd">
-        <StudentAdd managerList={managerList}></StudentAdd>
+        <StudentAdd />
       </Route>
-      <Route exact path="/StudentEdit/:name">
-        <StudentEdit managerList={managerList} existstuDB={studentList[선택된index]}></StudentEdit>
+      <Route exact path="/StudentEdit/:ID">
+        <StudentEdit />
       </Route>
-      <Route exact path="/TR/:name/write">
-        <TRwrite stuDB={studentList[선택된index]} managerList={managerList}></TRwrite>
+      <Route exact path="/TR/:ID/write">
+        <TRwrite />
       </Route>
-      <Route exact path="/TR/:name/edit/:date">
-        <TRedit stuDB={studentList[선택된index]} existTR={trList[선택된TRindex]} managerList={managerList}></TRedit>
+      <Route exact path="/TR/:ID/edit/:date">
+        <TRedit />
       </Route>
       <Route exact path="/StuInfoAdd">
-        <StuInfoAdd managerList={managerList}></StuInfoAdd>
+        <StuInfoAdd />
       </Route>
 
-      <Route exact path="/StuInfoEdit">
-        <StuInfoAdd managerList={managerList}></StuInfoAdd>
+      <Route exact path="/StuInfoEdit/:ID">
+        <StuInfoEdit />
       </Route>
 
-      <Route exact path="/Chart/:name">
-        <StudyChart stuDB={studentList[선택된index]} trList={trList} />
+      <Route exact path="/Chart/:ID">
+        <StudyChart />
       </Route>
     </div>
   );
