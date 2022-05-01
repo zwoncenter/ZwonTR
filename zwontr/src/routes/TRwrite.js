@@ -1,18 +1,19 @@
 import "./TRWriteEdit.scss";
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
-import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
+import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import TimePicker from "react-time-picker";
 
-function TRwrite(props) {
+function TRwrite() {
   let history = useHistory();
-  const managerList = props.managerList;
-  const [stuDB, setstuDB] = useState(props.stuDB);
+  let paramID = useParams()["ID"];
+  const [managerList, setmanagerList] = useState([]);
+  const [stuDB, setstuDB] = useState([]);
   const [cuberaito, setCuberatio] = useState(0);
   const [failCnt, setFailCnt] = useState(0);
   const [TR, setTR] = useState({
-    이름: stuDB.이름,
+    이름: paramID.split("_")[0],
     날짜: new Date().toISOString().split("T")[0],
     요일: "",
     작성매니저: "",
@@ -192,8 +193,35 @@ function TRwrite(props) {
   const isInitialMount = useRef(true);
 
   useEffect(async () => {
+    // 자신의 ID에 맞는 studentDB 조회해서 가져오기
+    // managerList 불러오기
+    const tmp = await axios
+      .get(`/api/StudentDB/find/${paramID}`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        }
+        return result["data"];
+      })
+      .catch((err) => {
+        return err;
+      });
+    setstuDB(tmp);
+
+    const tmp2 = await axios
+      .get("/api/managerList")
+      .then((result) => {
+        return result["data"];
+      })
+      .catch((err) => {
+        return err;
+      });
+
+    setmanagerList(tmp2);
+
     const newTR = JSON.parse(JSON.stringify(TR));
-    stuDB.진행중교재.map(function (a, i) {
+    tmp.진행중교재.map(function (a, i) {
       newTR.학습.push({
         과목: a.과목,
         교재: a.교재,
@@ -202,7 +230,7 @@ function TRwrite(props) {
         학습시간: "00:00",
       });
     });
-    stuDB.큐브책.map(function (a, i) {
+    tmp.큐브책.map(function (a, i) {
       newTR.큐브책.push({
         구분: a.구분,
         할일: a.내용,
@@ -210,31 +238,31 @@ function TRwrite(props) {
       });
     });
 
-    const tmp = new Date(newTR.날짜);
+    const date = new Date(newTR.날짜);
 
     const ls = ["일", "월", "화", "수", "목", "금", "토"];
-    newTR["요일"] = ls[tmp.getDay()] + "요일";
+    newTR["요일"] = ls[date.getDay()] + "요일";
 
-    if (tmp.getDay() === 0) {
-      newTR["목표취침"] = stuDB.생활학습목표.일요일취침;
-      newTR["실제취침"] = stuDB.생활학습목표.일요일취침;
-      newTR["목표기상"] = stuDB.생활학습목표.일요일기상;
-      newTR["실제기상"] = stuDB.생활학습목표.일요일기상;
-      newTR["목표등원"] = stuDB.생활학습목표.일요일등원;
-      newTR["실제등원"] = stuDB.생활학습목표.일요일등원;
-      newTR["목표귀가"] = stuDB.생활학습목표.일요일귀가;
-      newTR["실제귀가"] = stuDB.생활학습목표.일요일귀가;
-      newTR["목표학습"] = stuDB.생활학습목표.일요일학습;
+    if (date.getDay() === 0) {
+      newTR["목표취침"] = tmp.생활학습목표.일요일취침;
+      newTR["실제취침"] = tmp.생활학습목표.일요일취침;
+      newTR["목표기상"] = tmp.생활학습목표.일요일기상;
+      newTR["실제기상"] = tmp.생활학습목표.일요일기상;
+      newTR["목표등원"] = tmp.생활학습목표.일요일등원;
+      newTR["실제등원"] = tmp.생활학습목표.일요일등원;
+      newTR["목표귀가"] = tmp.생활학습목표.일요일귀가;
+      newTR["실제귀가"] = tmp.생활학습목표.일요일귀가;
+      newTR["목표학습"] = tmp.생활학습목표.일요일학습;
     } else {
-      newTR["목표취침"] = stuDB.생활학습목표.평일취침;
-      newTR["실제취침"] = stuDB.생활학습목표.평일취침;
-      newTR["목표기상"] = stuDB.생활학습목표.평일기상;
-      newTR["실제기상"] = stuDB.생활학습목표.평일기상;
-      newTR["목표등원"] = stuDB.생활학습목표.평일등원;
-      newTR["실제등원"] = stuDB.생활학습목표.평일등원;
-      newTR["목표귀가"] = stuDB.생활학습목표.평일귀가;
-      newTR["실제귀가"] = stuDB.생활학습목표.평일귀가;
-      newTR["목표학습"] = stuDB.생활학습목표.평일학습;
+      newTR["목표취침"] = tmp.생활학습목표.평일취침;
+      newTR["실제취침"] = tmp.생활학습목표.평일취침;
+      newTR["목표기상"] = tmp.생활학습목표.평일기상;
+      newTR["실제기상"] = tmp.생활학습목표.평일기상;
+      newTR["목표등원"] = tmp.생활학습목표.평일등원;
+      newTR["실제등원"] = tmp.생활학습목표.평일등원;
+      newTR["목표귀가"] = tmp.생활학습목표.평일귀가;
+      newTR["실제귀가"] = tmp.생활학습목표.평일귀가;
+      newTR["목표학습"] = tmp.생활학습목표.평일학습;
     }
 
     ["취침", "기상", "등원", "귀가"].forEach((a) => {

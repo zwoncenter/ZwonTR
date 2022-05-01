@@ -166,7 +166,6 @@ app.post("/api/StudentDB/add", loginCheck, function (req, res) {
 
 // StudentDB에서 해당 ID의 document 조회
 app.get("/api/StudentDB/find/:ID", loginCheck, function (req, res) {
-  // const paramID = "강진영_050525";
   const paramID = decodeURIComponent(req.params.ID);
   console.log(`${paramID}의 studentDB 조회 시도`);
   db.collection("StudentDB").findOne({ ID: paramID }, function (err, result) {
@@ -227,6 +226,21 @@ app.delete("/api/StudentDB/delete/:ID", loginCheck, function (req, res) {
       return res.send("deleteOne의 결과가 null입니다. 개발/데이터 팀에 문의해주세요.");
     }
   });
+});
+
+// collection 중 TR의 모든 Document find 및 전송
+app.get("/api/TRlist/:date", loginCheck, function (req, res) {
+  const paramDate = req.params.date;
+  console.log(paramDate);
+  db.collection("TR")
+    .find({ 날짜: paramDate })
+    .toArray(function (err, result) {
+      if (err) {
+        return console.log("api/TRlist/:date - find Error : ", err);
+      }
+      console.log("api/TRlist/:date - find result length   :", result.length);
+      res.json(result);
+    });
 });
 
 app.get("/api/TR/:ID", loginCheck, function (req, res) {
