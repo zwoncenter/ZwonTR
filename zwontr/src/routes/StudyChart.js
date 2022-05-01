@@ -1,43 +1,71 @@
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
-import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
+import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import TimePicker from "react-time-picker";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine } from "recharts";
 import "./StudyChart.scss";
 
-function StudyChart(props) {
+function StudyChart() {
   let history = useHistory();
+  const param = useParams();
+  const [stuDB, setstuDB] = useState({});
+  const [TRlist, setTRlist] = useState([]);
+  const [data, setdata] = useState([]);
 
-  const managerList = props.managerList;
-  const [stuDB, setstuDB] = useState(props.stuDB);
-  const [data, setdata] = useState(props.trList);
-
-  const [startday, setstartday] = useState(props.trList[props.trList.length - 1].날짜);
-  const [lastday, setlastday] = useState(props.trList[0].날짜);
+  const [startday, setstartday] = useState("");
+  const [lastday, setlastday] = useState("");
   const [aver, setaver] = useState(0);
   const [include, setinclude] = useState(true);
 
-  useEffect(() => {
-    var newdata = [...props.trList];
+  const isInitialMount = useRef(true);
 
-    if (!include) {
-      newdata = newdata.filter((data) => {
-        return new Date(data.날짜) >= new Date(startday) && new Date(data.날짜) <= new Date(lastday) && data.결석여부 == false;
+  useEffect(async () => {
+    console.log("TRlist 요청");
+    const foundTRlist = await axios
+      .get(`/api/TR/${param["ID"]}`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        }
+        return result.data;
+      })
+      .catch(function (err) {
+        console.log("/api/TR/:ID fail : ", err);
       });
-    } else {
-      newdata = newdata.filter((data) => {
-        return new Date(data.날짜) >= new Date(startday) && new Date(data.날짜) <= new Date(lastday);
-      });
-    }
 
-    newdata.sort(function (a, b) {
+    foundTRlist.sort(function (a, b) {
       return +(new Date(a.날짜) > new Date(b.날짜)) - 0.5;
     });
+    setTRlist(foundTRlist);
+    setdata(foundTRlist);
+    setstartday(foundTRlist[0].날짜);
+    setlastday(foundTRlist[foundTRlist.length - 1].날짜);
+    isInitialMount.current = false;
+  }, []);
 
-    const sum = newdata.reduce((total, current) => total + current["실제학습"], 0);
-    setaver(parseInt((sum / newdata.length) * 10) / 10);
-    setdata(newdata);
+  useEffect(() => {
+    if (!isInitialMount.current) {
+      var newdata = [...TRlist];
+      if (!include) {
+        newdata = newdata.filter((data) => {
+          return new Date(data.날짜) >= new Date(startday) && new Date(data.날짜) <= new Date(lastday) && data.결석여부 == false;
+        });
+      } else {
+        newdata = newdata.filter((data) => {
+          return new Date(data.날짜) >= new Date(startday) && new Date(data.날짜) <= new Date(lastday);
+        });
+      }
+
+      newdata.sort(function (a, b) {
+        return +(new Date(a.날짜) > new Date(b.날짜)) - 0.5;
+      });
+
+      const sum = newdata.reduce((total, current) => total + current["실제학습"], 0);
+      setaver(parseInt((sum / newdata.length) * 10) / 10);
+      setdata(newdata);
+    }
   }, [startday, lastday, include]);
   return (
     <div>

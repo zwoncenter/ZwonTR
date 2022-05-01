@@ -5,9 +5,8 @@ import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-function StuListpage(props) {
+function StuListpage() {
   let history = useHistory();
-
   const [modalShow, setmodalShow] = useState(false);
   const [TRlistShow, setTRlistShow] = useState(false);
   let [stuListShow, stuListShowChange] = useState(false);
@@ -16,7 +15,6 @@ function StuListpage(props) {
       stuListShowChange(true);
     }, 250);
   }, []);
-
   const modalOpen = () => setmodalShow(true);
   const modalClose = () => {
     setmodalShow(false);
@@ -25,22 +23,27 @@ function StuListpage(props) {
 
   const [ready, setready] = useState(false);
 
+  const [studentDBlist, setstudentDBlist] = useState([]);
+  const [chosenID, setchosenID] = useState("");
+  const [TRlist, setTRlist] = useState([]);
+  const [studentTRlist, setstudentTRlist] = useState([]);
+
   const addClick = () => {
-    if (window.confirm("학생 신규 DB 등록을 진행하시겠습니까?")) {
+    if (window.confirm("학생 신규 등록을 진행하시겠습니까?")) {
       history.push("/StuInfoAdd");
     }
   };
 
   async function nameClick(db, index) {
-    await props.선택된index변경(index);
+    setchosenID(db["ID"]);
     modalOpen();
     axios
-      .get(`/api/TR/${db.이름}`)
+      .get(`/api/TR/${db["ID"]}`)
       .then(async function (result) {
         await result.data.sort(function (a, b) {
           return +(new Date(a.날짜) < new Date(b.날짜)) - 0.5;
         });
-        props.settrList(result.data);
+        setstudentTRlist(result);
       })
       .catch(function (err) {
         console.log("/api/TR/:name fail : ", err);
@@ -64,19 +67,8 @@ function StuListpage(props) {
     result.data.sort(function (a, b) {
       return +(a.이름 > b.이름) - 0.5;
     });
-    await props.선택된index변경(0);
-    await props.setstudentList(result.data);
+    setstudentDBlist(result.data);
     setready(true);
-
-    const managerList = await axios
-      .get("/api/managerList")
-      .then((result) => {
-        return result;
-      })
-      .catch((err) => {
-        return err;
-      });
-    props.setmanagerList(managerList.data);
   }, []);
 
   return (
@@ -91,7 +83,7 @@ function StuListpage(props) {
           </Button>
           <ListGroup variant="flush" className="stuCardstuList">
             {ready
-              ? props.studentList.map(function (db, index) {
+              ? studentDBlist.map(function (db, index) {
                   return (
                     <div className="stuListItem" key={index}>
                       <ListGroup.Item
@@ -110,7 +102,7 @@ function StuListpage(props) {
         {modalShow === true ? (
           <Modal show={modalShow} onHide={modalClose} className="TRModal">
             <Modal.Header closeButton>
-              <Modal.Title>{ready ? props.studentList[props.선택된index].이름 : ""}</Modal.Title>
+              <Modal.Title>{ready ? chosenID.split("_")[0] : ""}</Modal.Title>
             </Modal.Header>
             <Modal.Body className="text-center">
               <div className="stumap">
@@ -118,7 +110,7 @@ function StuListpage(props) {
                   variant="secondary"
                   className="m-1 stuButton"
                   onClick={() => {
-                    history.push(`/StuInfoEdit/${props.studentList[props.선택된index].이름}`);
+                    history.push(`/StuInfoEdit/${chosenID}`);
                   }}
                 >
                   학생기본정보
@@ -127,7 +119,7 @@ function StuListpage(props) {
                   variant="secondary"
                   className="m-1 stuButton"
                   onClick={() => {
-                    history.push(`/StudentEdit/${props.studentList[props.선택된index].이름}`);
+                    history.push(`/StudentEdit/${chosenID}`);
                   }}
                 >
                   학생DB조회/변경
@@ -137,7 +129,7 @@ function StuListpage(props) {
                   variant="secondary"
                   className="m-1 stuButton"
                   onClick={() => {
-                    history.push(`/Chart/${props.studentList[props.선택된index].이름}`);
+                    history.push(`/Chart/${chosenID}`);
                   }}
                 >
                   차트{" "}
@@ -160,7 +152,7 @@ function StuListpage(props) {
                   variant="secondary"
                   className="createTRButton"
                   onClick={() => {
-                    history.push(`/TR/${props.studentList[props.선택된index].이름}/write`);
+                    history.push(`/TR/${chosenID}/write`);
                   }}
                 >
                   + 새 TR 작성 +
@@ -169,14 +161,13 @@ function StuListpage(props) {
                   <strong>[ 기존 TR ]</strong>
                 </p>
                 <ListGroup variant="flush" className="dateContainer">
-                  {props.trList.map(function (tr, index) {
+                  {studentTRlist.map(function (tr, index) {
                     return (
                       <div key={index}>
                         <ListGroup.Item
                           className="stuTRItem"
                           onClick={async () => {
-                            await props.선택된TRindex변경(index);
-                            history.push(`TR/${tr.이름}/edit/${tr.날짜}`);
+                            history.push(`TR/${chosenID}/edit/${tr.날짜}`);
                           }}
                         >
                           <p>{tr.날짜}</p>

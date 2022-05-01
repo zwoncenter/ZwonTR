@@ -1,35 +1,109 @@
 import "./StuInfo.scss";
 import "./StuListpage.scss";
 import { Form, Table, Row, Col, Button, Card, ListGroup, Modal, Badge, InputGroup, FormControl, Accordion } from "react-bootstrap";
-
+import { useParams } from "react-router-dom";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import stupic from "../student.png";
 
-function StuInfoEdit(props) {
-  const [historyTextarea, setHistoryTextarea] = useState(false);
+function StuInfoEdit() {
+  // 공통 CODE
   let history = useHistory();
-  const managerList = props.managerList;
-  const [stuInfo, setstuInfo] = useState(props.existstuInfo);
+  const [managerList, setmanagerList] = useState([]);
+  const writeform = {
+    ID: "",
+    이름: "",
+    생년월일: "",
+    연락처: "",
+    프로그램시작일: "",
+    부연락처: "",
+    모연락처: "",
+    주소: "",
+    혈액형: "",
+    최종학력: "",
 
+    부직업: "",
+    모직업: "",
+    학생과더친한분: "",
+    학생과사이가더나쁜분: "",
+    형제자매및관계: "",
+    조부모와의관계: "",
+    재산: "",
+    부모성향_부: "",
+    부모성향_모: "",
+    부모감정_부: "",
+    부모감정_모: "",
+    부모수용수준_부: "",
+    부모수용수준_모: "",
+    부모님고민_생활: "",
+    부모님고민_목표및동기: "",
+    부모님고민_학습: "",
+    부모님고민_인성: "",
+    부모님고민_현재폰기종: "",
+    부모님고민_현재1주용돈: "",
+    부모님고민_불법행위여부: "",
+
+    키: "",
+    몸무게: "",
+    체지방률: "",
+    BMI: "",
+    운동량: "",
+    평균수면시간: "",
+    식습관: "",
+    정신건강: "",
+    과거병력: "",
+
+    연인: "",
+    친구: "",
+    친구들_성향: "",
+    매니저와의_관계: "",
+    가장_친한_매니저: "",
+    센터내_가장_친한_학생: "",
+
+    MBTI: "",
+    애니어그램: "",
+    별자리: "",
+    IQ: "",
+
+    히스토리: [],
+
+    작성매니저: "",
+    작성일자: "",
+    이름: "",
+    생년월일: "",
+    연락처: "",
+    생활학습목표: {
+      평일취침: "00:00",
+      평일기상: "08:00",
+      평일등원: "10:00",
+      평일귀가: "19:00",
+      평일학습: 0,
+      일요일취침: "00:00",
+      일요일기상: "08:00",
+      일요일등원: "10:00",
+      일요일귀가: "19:00",
+      일요일학습: 0,
+    },
+    큐브책: [],
+
+    매니징목표: [],
+    약속구조: [],
+    용돈구조: [],
+    매니징방법: [],
+
+    진행중교재: [],
+    완료된교재: [],
+    프로그램분류: ["자기인식", "진로탐색", "헬스", "외부활동", "독서", "외국어"],
+  };
+  const [stuInfo, setstuInfo] = useState(writeform);
   function phoneNumber(value) {
     value = value.replace(/[^0-9]/g, "");
     return value.replace(/[^0-9]/, "").replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, `$1-$2-$3`);
   }
-  const [contact, setContact] = useState(props.existstuInfo["연락처"]);
-  const [dadcontact, setdadContact] = useState(props.existstuInfo["부연락처"]);
-  const [momcontact, setmomContact] = useState(props.existstuInfo["모연락처"]);
-
-  useEffect(() => {
-    change_depth_one("연락처", contact);
-  }, [contact]);
-  useEffect(() => {
-    change_depth_one("부연락처", dadcontact);
-  }, [dadcontact]);
-  useEffect(() => {
-    change_depth_one("모연락처", momcontact);
-  }, [momcontact]);
+  const [contact, setContact] = useState("");
+  const [dadcontact, setdadContact] = useState("");
+  const [momcontact, setmomContact] = useState("");
 
   function change_depth_one(category, data) {
     const newstuInfo = JSON.parse(JSON.stringify(stuInfo));
@@ -54,6 +128,69 @@ function StuInfoEdit(props) {
     newstuInfo[category].unshift(content);
     setstuInfo(newstuInfo);
   }
+
+  useEffect(() => {
+    change_depth_one("연락처", contact);
+  }, [contact]);
+  useEffect(() => {
+    change_depth_one("부연락처", dadcontact);
+  }, [dadcontact]);
+  useEffect(() => {
+    change_depth_one("모연락처", momcontact);
+  }, [momcontact]);
+
+  // 이름, 프로그램 시작일, 생년월일, 연락처, 연락처 (부) 와 연락처 (모) 중 하나
+  function inputCheck() {
+    const need_to_check = ["이름", "프로그램시작일", "생년월일"];
+    for (let i = 0; i < need_to_check.length; i++) {
+      if (!stuInfo[need_to_check[i]]) {
+        window.alert(`${need_to_check[i]}이(가) 입력되지 않았습니다.`);
+        return false;
+      }
+    }
+    if (stuInfo["연락처"].length !== 13) {
+      window.alert("학생 연락처가 입력되지 않았습니다. 휴대폰 번호 13자리를 입력해주세요.");
+      return false;
+    }
+    if (!stuInfo["부연락처"] && !stuInfo["모연락처"]) {
+      window.alert("연락처 (부) 또는 연락처 (모) 중 하나는 반드시 기입되어야합니다.");
+      return false;
+    }
+    return true;
+  }
+
+  // Edit CODE
+  const [name, setname] = useState("");
+  const [birth, setbirth] = useState("");
+  const param = useParams();
+  useEffect(async () => {
+    const tmp = await axios
+      .get("/api/managerList")
+      .then((result) => {
+        return result["data"];
+      })
+      .catch((err) => {
+        return err;
+      });
+
+    setmanagerList(tmp);
+
+    const existstuInfo = await axios
+      .get(`/api/StudentDB/find/${param["ID"]}`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        }
+        return result["data"];
+      })
+      .catch((err) => {
+        return err;
+      });
+    setname(existstuInfo["이름"]);
+    setbirth(existstuInfo["생년월일"]);
+    setstuInfo(existstuInfo);
+  }, []);
 
   return (
     <div className="stuInfo-background">
@@ -86,12 +223,7 @@ function StuInfoEdit(props) {
                       </p>
                     </Form.Label>
                     <Col>
-                      <Form.Control
-                        type="text"
-                        onChange={(e) => {
-                          change_depth_one("이름", e.target.value);
-                        }}
-                      />
+                      <Form.Control type="text" defaultValue={name} readOnly />
                     </Col>
                   </Form.Group>
 
@@ -102,12 +234,7 @@ function StuInfoEdit(props) {
                       </p>
                     </Form.Label>
                     <Col>
-                      <Form.Control
-                        type="date"
-                        onChange={(e) => {
-                          change_depth_one("생년월일", e.target.value);
-                        }}
-                      />
+                      <Form.Control type="date" defaultValue={birth} readOnly />
                     </Col>
                   </Form.Group>
 
@@ -120,6 +247,7 @@ function StuInfoEdit(props) {
                     <Col>
                       <Form.Control
                         type="date"
+                        value={stuInfo["프로그램시작일"]}
                         onChange={(e) => {
                           change_depth_one("프로그램시작일", e.target.value);
                         }}
@@ -136,11 +264,11 @@ function StuInfoEdit(props) {
                     <Col>
                       <Form.Control
                         type="text"
+                        value={stuInfo["연락처"]}
                         onChange={(e) => {
                           setContact(phoneNumber(e.target.value));
                           change_depth_one("연락처", contact);
                         }}
-                        value={contact}
                         maxLength="13"
                         placeholder="숫자만 입력해주세요"
                       />
@@ -160,7 +288,7 @@ function StuInfoEdit(props) {
                           setdadContact(phoneNumber(e.target.value));
                           change_depth_one("부연락처", dadcontact);
                         }}
-                        value={dadcontact}
+                        value={stuInfo["부연락처"]}
                         maxLength="13"
                         placeholder="숫자만 입력해주세요"
                       />
@@ -180,7 +308,7 @@ function StuInfoEdit(props) {
                           setmomContact(phoneNumber(e.target.value));
                           change_depth_one("모연락처", momcontact);
                         }}
-                        value={momcontact}
+                        value={stuInfo["모연락처"]}
                         maxLength="13"
                         placeholder="숫자만 입력해주세요"
                       />
@@ -196,6 +324,7 @@ function StuInfoEdit(props) {
                     <Col>
                       <Form.Control
                         type="text"
+                        value={stuInfo["주소"]}
                         onChange={(e) => {
                           change_depth_one("주소", e.target.value);
                         }}
@@ -212,6 +341,7 @@ function StuInfoEdit(props) {
                     <Col>
                       <Form.Select
                         type="text"
+                        value={stuInfo["혈액형"]}
                         onChange={(e) => {
                           change_depth_one("혈액형", e.target.value);
                         }}
@@ -234,6 +364,7 @@ function StuInfoEdit(props) {
                     <Col>
                       <Form.Control
                         type="text"
+                        value={stuInfo["최종학력"]}
                         onChange={(e) => {
                           change_depth_one("최종학력", e.target.value);
                         }}
@@ -266,6 +397,7 @@ function StuInfoEdit(props) {
                     <Col>
                       <Form.Control
                         type="text"
+                        value={stuInfo[category.split(" ").join("")]}
                         onChange={(e) => {
                           change_depth_one(category.split(" ").join(""), e.target.value);
                         }}
@@ -312,6 +444,7 @@ function StuInfoEdit(props) {
                               <textarea
                                 className="textArea"
                                 rows="2"
+                                value={stuInfo["부모성향_부"]}
                                 onChange={(e) => {
                                   change_depth_one("부모성향_부", e.target.value);
                                 }}
@@ -321,6 +454,7 @@ function StuInfoEdit(props) {
                               <textarea
                                 className="textArea"
                                 rows="2"
+                                value={stuInfo["부모성향_모"]}
                                 onChange={(e) => {
                                   change_depth_one("부모성향_모", e.target.value);
                                 }}
@@ -337,6 +471,7 @@ function StuInfoEdit(props) {
                               <textarea
                                 className="textArea"
                                 rows="2"
+                                value={stuInfo["부모감정_부"]}
                                 onChange={(e) => {
                                   change_depth_one("부모감정_부", e.target.value);
                                 }}
@@ -346,6 +481,7 @@ function StuInfoEdit(props) {
                               <textarea
                                 className="textArea"
                                 rows="2"
+                                value={stuInfo["부모감정_모"]}
                                 onChange={(e) => {
                                   change_depth_one("부모감정_모", e.target.value);
                                 }}
@@ -362,6 +498,7 @@ function StuInfoEdit(props) {
                               <textarea
                                 className="textArea"
                                 rows="2"
+                                value={stuInfo["부모수용수준_부"]}
                                 onChange={(e) => {
                                   change_depth_one("부모수용수준_부", e.target.value);
                                 }}
@@ -371,6 +508,7 @@ function StuInfoEdit(props) {
                               <textarea
                                 className="textArea"
                                 rows="2"
+                                value={stuInfo["부모수용수준_모"]}
                                 onChange={(e) => {
                                   change_depth_one("부모수용수준_모", e.target.value);
                                 }}
@@ -410,6 +548,7 @@ function StuInfoEdit(props) {
                                   <textarea
                                     className="textArea"
                                     rows="2"
+                                    value={stuInfo[`부모님고민_${category.split(" ").join("")}`]}
                                     onChange={(e) => {
                                       change_depth_one(`부모님고민_${category.split(" ").join("")}`, e.target.value);
                                     }}
@@ -445,6 +584,7 @@ function StuInfoEdit(props) {
                     <Col>
                       <Form.Control
                         type="text"
+                        value={stuInfo[category.split(" ").join("")]}
                         onChange={(e) => {
                           change_depth_one(category.split(" ").join(""), e.target.value);
                         }}
@@ -474,6 +614,7 @@ function StuInfoEdit(props) {
                     <Col>
                       <Form.Control
                         type="text"
+                        value={stuInfo[category.split(" ").join("")]}
                         onChange={(e) => {
                           change_depth_one(category.split(" ").join(""), e.target.value);
                         }}
@@ -503,6 +644,7 @@ function StuInfoEdit(props) {
                     <Col>
                       <Form.Control
                         type="text"
+                        value={stuInfo[category]}
                         onChange={(e) => {
                           change_depth_one(category, e.target.value);
                         }}
@@ -604,31 +746,30 @@ function StuInfoEdit(props) {
       <Button
         variant="danger"
         className="btn-Infocommit btn-edit"
-        // onClick={() => {
-        //   console.log(writeform);
-        //   if (입력확인()) {
-        //     if (window.confirm(`${writeform.이름}학생의 기본정보를 저장하시겠습니까?`)) {
-        //       axios
-        //         .post("/api/TR/write", writeform)
-        //         .then(function (result) {
-        //           if (result.data === true) {
-        //             window.alert("저장되었습니다.");
-        //             history.push("/studentList");
-        //           } else if (result.data === "로그인필요") {
-        //             window.alert("로그인이 필요합니다.");
-        //             return history.push("/");
-        //           } else {
-        //             console.log(result.data);
-        //             window.alert(result.data);
-        //           }
-        //         })
-        //         .catch(function (err) {
-        //           console.log("저장 실패 : ", err);
-        //           window.alert(err);
-        //         });
-        //     }
-        //   }
-        // }}
+        onClick={() => {
+          if (inputCheck()) {
+            if (window.confirm(`${stuInfo.이름}학생의 기본정보를 저장하시겠습니까?`)) {
+              axios
+                .put("/api/StudentDB/edit", stuInfo)
+                .then(function (result) {
+                  if (result.data === true) {
+                    window.alert("저장되었습니다.");
+                    history.push("/studentList");
+                  } else if (result.data === "로그인필요") {
+                    window.alert("로그인이 필요합니다.");
+                    return history.push("/");
+                  } else {
+                    console.log(result.data);
+                    window.alert(result.data);
+                  }
+                })
+                .catch(function (err) {
+                  console.log("저장 실패 : ", err);
+                  window.alert(err);
+                });
+            }
+          }
+        }}
       >
         <strong>학생정보 저장</strong>
       </Button>
