@@ -86,6 +86,12 @@ h6 {
   }
 }
 
+.stuListItem-written{
+  @extend .stuListItem;
+  background-color: darkgrey;
+  color: white;
+}
+
 .stuTRItem{
   @extend .stuListItem;
   width: 100%;
