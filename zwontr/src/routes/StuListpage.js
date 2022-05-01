@@ -7,6 +7,7 @@ import axios from "axios";
 
 function StuListpage() {
   let history = useHistory();
+  const today = new Date().toISOString().split("T")[0];
   const [modalShow, setmodalShow] = useState(false);
   const [TRlistShow, setTRlistShow] = useState(false);
   let [stuListShow, stuListShowChange] = useState(false);
@@ -36,6 +37,7 @@ function StuListpage() {
 
   async function nameClick(db, index) {
     setchosenID(db["ID"]);
+
     modalOpen();
     axios
       .get(`/api/TR/${db["ID"]}`)
@@ -43,7 +45,8 @@ function StuListpage() {
         await result.data.sort(function (a, b) {
           return +(new Date(a.날짜) < new Date(b.날짜)) - 0.5;
         });
-        setstudentTRlist(result);
+        console.log(result);
+        setstudentTRlist(result.data);
       })
       .catch(function (err) {
         console.log("/api/TR/:name fail : ", err);
@@ -69,6 +72,21 @@ function StuListpage() {
     });
     setstudentDBlist(result.data);
     setready(true);
+
+    const result2 = await axios
+      .get(`/api/TRlist/${today}`)
+      .then((result) => {
+        return result;
+      })
+      .catch((err) => {
+        return err;
+      });
+    console.log(result2);
+    if (result2.data && result2.data == "로그인필요") {
+      window.alert("로그인이 필요합니다.");
+      return history.push("/");
+    }
+    setstudentTRlist(result2.data);
   }, []);
 
   return (
@@ -77,6 +95,13 @@ function StuListpage() {
         <h2>
           <strong>지원센터 학생 목록</strong>
         </h2>
+        <Button
+          onClick={() => {
+            console.log(studentTRlist);
+          }}
+        >
+          studentTRlist 확인
+        </Button>
         <Card className="stuCard">
           <Button variant="secondary" className="stuAddbtn" onClick={addClick}>
             <strong>+</strong>
