@@ -11,6 +11,7 @@ import TRedit from "./routes/TRedit";
 import StudentEdit from "./routes/StudentEdit";
 import FirstPage from "./routes/FirstPage";
 import StuInfoAdd from "./routes/StuInfoAdd";
+import StuInfoEdit from "./routes/StuInfoEdit";
 import StudyChart from "./routes/StudyChart";
 
 function App() {
@@ -58,7 +59,9 @@ function App() {
       <Route exact path="/StuInfoAdd">
         <StuInfoAdd managerList={managerList}></StuInfoAdd>
       </Route>
-
+      <Route exact path="/StuInfoEdit/:name">
+        <StuInfoEdit managerList={managerList} existstuInfo={studentList[선택된index]}></StuInfoEdit>
+      </Route>
       <Route exact path="/Chart/:name">
         <StudyChart stuDB={studentList[선택된index]} trList={trList} />
       </Route>

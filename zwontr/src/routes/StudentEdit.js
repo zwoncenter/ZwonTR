@@ -4,7 +4,7 @@ import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-function StudentAdd(props) {
+function StudentEdit(props) {
   const history = useHistory();
   const managerList = props.managerList;
   const today = new Date().toISOString().split("T")[0];
@@ -1200,4 +1200,4 @@ function StudentAdd(props) {
   );
 }
 
-export default StudentAdd;
+export default StudentEdit;

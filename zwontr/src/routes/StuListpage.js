@@ -118,12 +118,11 @@ function StuListpage(props) {
                   variant="secondary"
                   className="m-1 stuButton"
                   onClick={() => {
-                    history.push(`/StuInfo/${props.studentList[props.선택된index].이름}`);
+                    history.push(`/StuInfoEdit/${props.studentList[props.선택된index].이름}`);
                   }}
                 >
                   학생기본정보
                 </Button>
-
                 <Button
                   variant="secondary"
                   className="m-1 stuButton"

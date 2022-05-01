@@ -7,75 +7,19 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import stupic from "../student.png";
 
-function StuInfoAdd(props) {
+function StuInfoEdit(props) {
   const [historyTextarea, setHistoryTextarea] = useState(false);
   let history = useHistory();
   const managerList = props.managerList;
-
-  const writeform = {
-    이름: "",
-    생년월일: "",
-    프로그램시작일: "",
-    연락처: "",
-    부연락처: "",
-    모연락처: "",
-    주소: "",
-    혈액형: "",
-    최종학력: "",
-
-    부직업: "",
-    모직업: "",
-    학생과더친한분: "",
-    학생과사이가더나쁜분: "",
-    형제자매및관계: "",
-    조부모와의관계: "",
-    재산: "",
-    부모성향_부: "",
-    부모성향_모: "",
-    부모감정_부: "",
-    부모감정_모: "",
-    부모수용수준_부: "",
-    부모수용수준_모: "",
-    부모님고민_생활: "",
-    부모님고민_목표및동기: "",
-    부모님고민_학습: "",
-    부모님고민_인성: "",
-    부모님고민_현재폰기종: "",
-    부모님고민_현재1주용돈: "",
-    부모님고민_불법행위여부: "",
-
-    키: "",
-    몸무게: "",
-    체지방률: "",
-    BMI: "",
-    운동량: "",
-    평균수면시간: "",
-    식습관: "",
-    정신건강: "",
-    과거병력: "",
-
-    연인: "",
-    친구: "",
-    친구들_성향: "",
-    매니저와의_관계: "",
-    가장_친한_매니저: "",
-    센터내_가장_친한_학생: "",
-
-    MBTI: "",
-    애니어그램: "",
-    별자리: "",
-    IQ: "",
-
-    히스토리: [],
-  };
+  const [stuInfo, setstuInfo] = useState(props.existstuInfo);
 
   function phoneNumber(value) {
     value = value.replace(/[^0-9]/g, "");
     return value.replace(/[^0-9]/, "").replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, `$1-$2-$3`);
   }
-  const [contact, setContact] = useState("");
-  const [dadcontact, setdadContact] = useState("");
-  const [momcontact, setmomContact] = useState("");
+  const [contact, setContact] = useState(props.existstuInfo["연락처"]);
+  const [dadcontact, setdadContact] = useState(props.existstuInfo["부연락처"]);
+  const [momcontact, setmomContact] = useState(props.existstuInfo["모연락처"]);
 
   useEffect(() => {
     change_depth_one("연락처", contact);
@@ -86,8 +30,6 @@ function StuInfoAdd(props) {
   useEffect(() => {
     change_depth_one("모연락처", momcontact);
   }, [momcontact]);
-
-  const [stuInfo, setstuInfo] = useState(writeform);
 
   function change_depth_one(category, data) {
     const newstuInfo = JSON.parse(JSON.stringify(stuInfo));
@@ -663,11 +605,11 @@ function StuInfoAdd(props) {
         variant="danger"
         className="btn-Infocommit btn-edit"
         // onClick={() => {
-        //   console.log(stuInfo);
+        //   console.log(writeform);
         //   if (입력확인()) {
-        //     if (window.confirm(`${stuInfo.이름}학생의 기본정보를 저장하시겠습니까?`)) {
+        //     if (window.confirm(`${writeform.이름}학생의 기본정보를 저장하시겠습니까?`)) {
         //       axios
-        //         .post("/api/TR/write", stuInfo)
+        //         .post("/api/TR/write", writeform)
         //         .then(function (result) {
         //           if (result.data === true) {
         //             window.alert("저장되었습니다.");
@@ -694,4 +636,4 @@ function StuInfoAdd(props) {
   );
 }
 
-export default StuInfoAdd;
+export default StuInfoEdit;
