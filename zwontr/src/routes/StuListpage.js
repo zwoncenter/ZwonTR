@@ -10,6 +10,7 @@ function StuListpage() {
   const today = new Date().toISOString().split("T")[0];
   const [modalShow, setmodalShow] = useState(false);
   const [TRlistShow, setTRlistShow] = useState(false);
+  const [Written, setWritten] = useState([]);
   let [stuListShow, stuListShowChange] = useState(false);
   useEffect(() => {
     let timer = setTimeout(() => {
@@ -81,6 +82,20 @@ function StuListpage() {
       .catch((err) => {
         return err;
       });
+    
+    const newWritten = [];
+    for (var i =0; i<result.data.length; i++){
+      var tmp = false;
+      for (var j=0; j<result2.data.length; j++){
+        if (result.data[i]["ID"] == result2.data[j]["ID"]){
+          tmp = true;
+          break;
+        }
+      }
+      newWritten.push(tmp);
+    }
+    setWritten(newWritten);
+
     console.log(result2);
     if (result2.data && result2.data == "로그인필요") {
       window.alert("로그인이 필요합니다.");
@@ -97,7 +112,9 @@ function StuListpage() {
         </h2>
         <Button
           onClick={() => {
-            console.log(studentTRlist);
+            // console.log(studentTRlist);
+            console.log(studentDBlist);
+            console.log(Written);
           }}
         >
           studentTRlist 확인
@@ -112,6 +129,7 @@ function StuListpage() {
                   return (
                     <div className="stuListItem" key={index}>
                       <ListGroup.Item
+                        className={Written[index]==true ? "IsWritten" : "NotWritten"}
                         onClick={() => {
                           nameClick(db, index);
                         }}

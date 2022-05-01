@@ -86,10 +86,21 @@ h6 {
   }
 }
 
-.stuListItem-written{
-  @extend .stuListItem;
-  background-color: darkgrey;
+.IsWritten{
+  background-color: rgb(124, 130, 136);
   color: white;
+  border: 0;
+}
+
+.NotWritten{
+  background-color: white;
+}
+
+
+.stuListItemWritten{
+  @extend .stuListItem;
+  background-color: black;
+  color: #eee;
 }
 
 .stuTRItem{
