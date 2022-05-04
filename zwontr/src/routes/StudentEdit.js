@@ -234,58 +234,6 @@ function StudentEdit() {
       <p>최근 작성매니저 : {manager}</p>
       <p>최근 수정일 : {date}</p>
 
-      <Button
-        onClick={() => {
-          console.log(stuDB["ID"]);
-        }}
-      >
-        {" "}
-        StuDB check
-      </Button>
-
-      <Button
-        variant="secondary"
-        className="btn-DBcommit btn-edit"
-        onClick={() => {
-          const tmp = ["작성매니저", "작성일자"];
-          for (let j = 0; j < tmp.length; j++) {
-            if (stuDB[tmp[j]] === "") {
-              return window.alert(`${tmp[j]}가 입력되지 않았습니다.`);
-            }
-          }
-
-          const tmp2 = ["매니징목표", "약속구조", "용돈구조", "매니징방법"];
-          for (let j = 0; j < tmp2.length; j++) {
-            if (stuDB[tmp2[j]]) {
-              for (let i = 0; i < stuDB[tmp2[j]].length; i++) {
-                if (stuDB[tmp2[j]][i].설정매니저 == "선택") {
-                  return window.alert(`${i + 1}번째 ${tmp2[j]}의 설정 매니저가 선택되지 않았습니다.`);
-                }
-              }
-            }
-          }
-          if (window.confirm(`${stuDB.이름} 학생의 DB를 수정하시겠습니까?`)) {
-            axios
-              .put("/api/StudentDB/edit", stuDB)
-              .then(function (result) {
-                if (result.data === "로그인필요") {
-                  window.alert("로그인이 필요합니다.");
-                  return history.push("/");
-                }
-                window.alert("수정되었습니다");
-              })
-              .catch(function (err) {
-                window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
-              })
-              .then(function () {
-                history.push("/studentList");
-              });
-          }
-        }}
-      >
-        <strong>DB 수정</strong>
-      </Button>
-
       <div className="stuDB-form">
         <div className="stuedit-cat-box">
           <h3 className="stuedit-cat-title mb-4">
@@ -1323,32 +1271,6 @@ function StudentEdit() {
             }}
           >
             <strong>DB 수정</strong>
-          </Button>
-
-          <Button
-            variant="secondary"
-            className="btn-DBcommit btn-cancel"
-            onClick={() => {
-              if (window.confirm(`${stuDB.이름} 학생의 DB를 정말 삭제하시겠습니까?`)) {
-                axios
-                  .delete(`/api/StudentDB/delete/${stuDB["ID"]}`)
-                  .then(function (result) {
-                    if (result.data === "로그인필요") {
-                      window.alert("로그인이 필요합니다.");
-                      return history.push("/");
-                    }
-                    window.alert("삭제되었습니다");
-                  })
-                  .catch(function (err) {
-                    window.alert("삭제에 실패했습니다 개발/데이터 팀에게 문의해주세요");
-                  })
-                  .then(function () {
-                    history.push("/studentList");
-                  });
-              }
-            }}
-          >
-            <strong>DB 삭제</strong>
           </Button>
         </ul>
       </div>

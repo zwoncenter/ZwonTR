@@ -37,7 +37,7 @@ h6 {
   position: fixed;
   // float: left;
   z-index: 1;
-  width: 300px;
+  width: 330px;
   height: 100vh;
   background-color:rgba( 0, 0, 0, 0 );
   transform: translateX(-250px);
@@ -70,7 +70,7 @@ h6 {
   background-color: rgba( 0, 0, 0, 0);
   border: 0;
   outline: 0;
-  vertical-align: middle;
+  vertical-align: middle; 
 }
 
 .menuArrow {
@@ -78,7 +78,7 @@ h6 {
   width: 40px;
   position: absolute;
   bottom: 8px;
-  right: 7px;
+  right: 27px;
   img {
     width: 100%;
   }
@@ -191,4 +191,15 @@ h6 {
   display: flex;
   justify-content: center;
   text-align: center;
+}
+
+.stulistComment{
+  color: white;
+  font-weight: bold;
+  text-align: right;
+  width: 90%;
+  max-width: 600px;
+  margin: auto;
+  display: block;
+  text-shadow: 1px 1px 1px black;
 }
