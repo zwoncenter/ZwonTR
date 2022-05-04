@@ -692,7 +692,7 @@ function StuInfoAdd() {
                         }}
                       />
                     </Col>
-                    <Col className="col-2">
+                    <Col className="col-1">
                       <Form.Select
                         value={a.매니저}
                         onChange={(e) => {
