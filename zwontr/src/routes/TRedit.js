@@ -9,6 +9,7 @@ function TRedit() {
   // 공통 code
   let history = useHistory();
   let paramID = useParams()["ID"];
+  const [modalShow, setmodalShow] = useState(false);
   const [managerList, setmanagerList] = useState([]);
   const [stuDB, setstuDB] = useState({
     ID: "",
@@ -1009,6 +1010,29 @@ function TRedit() {
           >
             <strong>일간하루 삭제</strong>
           </Button>
+
+          <Button
+          variant="danger"
+          className="btn-TRcommit btn-load"
+          onClick={() => {setmodalShow(true)}}>
+            불러오기
+          </Button>
+
+          {modalShow === true ? <Modal show={modalShow} onHide={() => {setmodalShow(false)}} className="TRModal">
+            <Modal.Header closeButton>
+              <Modal.Title>Modal title</Modal.Title>
+            </Modal.Header>
+
+            <Modal.Body>
+              <p>데이트피커</p>
+              {/* onchange e.target.value api 요청 현재 학생의 ID, 작성되지않은 날짜에는 뭐가 리턴되는지 보고  */}
+            </Modal.Body>
+
+            <Modal.Footer>
+              <Button variant="secondary">Close</Button>
+              <Button variant="primary">Save changes</Button>
+            </Modal.Footer>
+          </Modal> : null}
         </div>
       </div>
     </div>
