@@ -4,6 +4,7 @@ import { Button, Card, ListGroup, Modal } from "react-bootstrap";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import menuarrow from "../next.png";
 
 function StuListpage() {
   let history = useHistory();
@@ -104,7 +105,50 @@ function StuListpage() {
 
   return (
     <div className="stuList-background">
-      <div className={stuListShow === true ? "stuListShow stuListShowActive text-center" : "stuListShow text-center"}>
+      <div className="menu">
+        <div className="menu-map">
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              history.push("/studentList");
+            }}
+          >
+            <h5>
+              <strong>학생 관리</strong>
+            </h5>
+          </Button>
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              window.alert("준비중입니다!");
+            }}
+          >
+            <h5>
+              <strong>매니저 업무리스트</strong>
+            </h5>
+          </Button>
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              window.alert("준비중입니다!");
+            }}
+          >
+            <h5>
+              <strong>대시보드</strong>
+            </h5>
+          </Button>
+        </div>
+        <div className="menuArrow">
+          <img src={menuarrow} alt="menuarrow" />
+        </div>
+      </div>
+      <div
+        className={
+          stuListShow === true
+            ? "stuListShow stuListShowActive text-center"
+            : "stuListShow text-center"
+        }
+      >
         <h2>
           <strong>지원센터 학생 목록</strong>
         </h2>
@@ -118,7 +162,9 @@ function StuListpage() {
                   return (
                     <div className="stuListItem" key={index}>
                       <ListGroup.Item
-                        className={Written[index] == true ? "IsWritten" : "NotWritten"}
+                        className={
+                          Written[index] == true ? "IsWritten" : "NotWritten"
+                        }
                         onClick={() => {
                           nameClick(db, index);
                         }}
@@ -134,7 +180,9 @@ function StuListpage() {
         {modalShow === true ? (
           <Modal show={modalShow} onHide={modalClose} className="TRModal">
             <Modal.Header closeButton>
-              <Modal.Title>{chosenID ? chosenID.split("_")[0] : ""}</Modal.Title>
+              <Modal.Title>
+                {chosenID ? chosenID.split("_")[0] : ""}
+              </Modal.Title>
             </Modal.Header>
             <Modal.Body className="text-center">
               <div className="stumap">
@@ -142,7 +190,11 @@ function StuListpage() {
                   variant="secondary"
                   className="m-1 stuButton"
                   onClick={() => {
-                    if (window.confirm("학생의 개인정보를 열람합니다. 유출되지 않도록 주의하십시오. \n진행하시겠습니까?")) {
+                    if (
+                      window.confirm(
+                        "학생의 개인정보를 열람합니다. 유출되지 않도록 주의하십시오. \n진행하시겠습니까?"
+                      )
+                    ) {
                       history.push(`/StuInfoEdit/${chosenID}`);
                     }
                   }}
@@ -214,9 +266,11 @@ function StuListpage() {
             ) : null}
           </Modal>
         ) : null}
-        <p className="mt-1">
-          <strong>*회색 {"=>"} 금일 TR 작성 완료</strong>
-        </p>
+        <div className="stulistComment">
+          <p className="mt-1">
+            <strong>※ 금일 TR 작성 완료 시 회색으로 바뀝니다. </strong>
+          </p>
+        </div>
       </div>
     </div>
   );
