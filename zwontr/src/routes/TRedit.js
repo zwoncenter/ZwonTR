@@ -1084,7 +1084,42 @@ function TRedit() {
               }}
             ></textarea>
           </div>
-          <Button
+    
+          <div className="row">
+          <Button variant="secondary" className="btn-TRcommit btn-load">
+            <div className="row m-0">
+              <div className="col-xl-7">
+                <strong>다른 날 불러오기</strong>
+              </div>
+              <div className="col-xl-5">
+                <input
+                  type="date"
+                  className="w-100"
+                  onChange={(e) => {
+                    axios
+                      .get(`/api/TR/${paramID}/${e.target.value}`)
+                      .then((result) => {
+                        if (result["data"] === null) {
+                          window.alert("해당 날짜의 TR이 존재하지 않습니다.");
+                        }
+                        else {
+                          history.push(`/TR/${paramID}/edit/${e.target.value}`);
+                          window.location.reload();
+                        }
+                      })
+                      .catch((err) => {
+                        console.log(err);
+                      });
+                  }}
+                />
+              </div>
+            </div>
+          </Button>
+          </div>
+
+          <div className="row">
+            <div className="col-xl-6 m-0 p-0">
+            <Button
             variant="secondary"
             className="btn-TRcommit btn-edit"
             onClick={() => {
@@ -1119,8 +1154,9 @@ function TRedit() {
           >
             <strong>일간하루 수정</strong>
           </Button>
-
-          <Button
+            </div>
+            <div className="col-xl-6 m-0 p-0">
+            <Button
             variant="secondary"
             className="btn-TRcommit btn-cancel"
             onClick={() => {
@@ -1152,36 +1188,9 @@ function TRedit() {
           >
             <strong>일간하루 삭제</strong>
           </Button>
-
-          <Button variant="secondary" className="btn-TRcommit btn-load">
-            <div className="row m-0">
-              <div className="col-xl-7">
-                <strong>다른 날 불러오기</strong>
-              </div>
-              <div className="col-xl-5">
-                <input
-                  type="date"
-                  className="w-100"
-                  onChange={(e) => {
-                    axios
-                      .get(`/api/TR/${paramID}/${e.target.value}`)
-                      .then((result) => {
-                        if (result["data"] === null) {
-                          window.alert("해당 날짜의 TR이 존재하지 않습니다.");
-                        }
-                        else {
-                          history.push(`/TR/${paramID}/edit/${e.target.value}`);
-                          window.location.reload();
-                        }
-                      })
-                      .catch((err) => {
-                        console.log(err);
-                      });
-                  }}
-                />
-              </div>
             </div>
-          </Button>
+          </div>
+          
         </div>
       </div>
     </div>
