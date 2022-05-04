@@ -476,7 +476,7 @@ function TRwrite() {
 
               <div className="col-2 p-0">
                 <Button
-                  variant="danger"
+                  variant="secondary"
                   className="btn-TRcommit btn-attend"
                   onClick={() => {
                     console.log(TR);
@@ -488,7 +488,7 @@ function TRwrite() {
               </div>
               <div className="col-2 p-0">
                 <Button
-                  variant="danger"
+                  variant="secondary"
                   className="btn-TRcommit btn-absent"
                   onClick={() => {
                     if (window.confirm("미등원으로 전환하시겠습니까?")) {
@@ -1010,7 +1010,7 @@ function TRwrite() {
             ></textarea>
           </div>
           <Button
-            variant="danger"
+            variant="secondary"
             className="btn-TRcommit btn-edit"
             onClick={() => {
               console.log(TR);
