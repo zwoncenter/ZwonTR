@@ -129,6 +129,14 @@ function StuInfoAdd() {
     setstuInfo(newstuInfo);
   }
 
+  function delete_depth_one(category, index) {
+    if (window.confirm("삭제하시겠습니까?")) {
+      const newstuInfo = JSON.parse(JSON.stringify(stuInfo));
+      newstuInfo[category].splice(index, 1);
+      setstuInfo(newstuInfo);
+    }
+  }
+
   useEffect(() => {
     change_depth_one("연락처", contact);
   }, [contact]);
@@ -179,21 +187,13 @@ function StuInfoAdd() {
       newstuInfo["ID"] = stuInfo["이름"] + "_" + stuInfo["생년월일"].replace(/-/gi, "").slice(-6);
       setstuInfo(newstuInfo);
     }
-  }, [stuInfo]);
+  }, [stuInfo["이름"], stuInfo["생년월일"]]);
 
   return (
     <div className="stuInfo-background">
       <h1 className="fw-bold text-center">
         <strong>학생 정보</strong>
       </h1>
-
-      <Button
-        onClick={() => {
-          console.log(stuInfo);
-        }}
-      >
-        stuInfo Check
-      </Button>
 
       <div className="row">
         <div className="col-12">
@@ -216,6 +216,7 @@ function StuInfoAdd() {
                     <Col>
                       <Form.Control
                         type="text"
+                        value={stuInfo["이름"]}
                         onChange={(e) => {
                           change_depth_one("이름", e.target.value);
                         }}
@@ -232,6 +233,7 @@ function StuInfoAdd() {
                     <Col>
                       <Form.Control
                         type="date"
+                        value={stuInfo["생년월일"]}
                         onChange={(e) => {
                           change_depth_one("생년월일", e.target.value);
                         }}
@@ -248,6 +250,7 @@ function StuInfoAdd() {
                     <Col>
                       <Form.Control
                         type="date"
+                        value={stuInfo["프로그램시작일"]}
                         onChange={(e) => {
                           change_depth_one("프로그램시작일", e.target.value);
                         }}
@@ -264,11 +267,10 @@ function StuInfoAdd() {
                     <Col>
                       <Form.Control
                         type="text"
+                        value={contact}
                         onChange={(e) => {
                           setContact(phoneNumber(e.target.value));
-                          change_depth_one("연락처", contact);
                         }}
-                        value={contact}
                         maxLength="13"
                         placeholder="숫자만 입력해주세요"
                       />
@@ -286,7 +288,6 @@ function StuInfoAdd() {
                         type="text"
                         onChange={(e) => {
                           setdadContact(phoneNumber(e.target.value));
-                          change_depth_one("부연락처", dadcontact);
                         }}
                         value={dadcontact}
                         maxLength="13"
@@ -306,7 +307,6 @@ function StuInfoAdd() {
                         type="text"
                         onChange={(e) => {
                           setmomContact(phoneNumber(e.target.value));
-                          change_depth_one("모연락처", momcontact);
                         }}
                         value={momcontact}
                         maxLength="13"
@@ -324,6 +324,7 @@ function StuInfoAdd() {
                     <Col>
                       <Form.Control
                         type="text"
+                        value={stuInfo["주소"]}
                         onChange={(e) => {
                           change_depth_one("주소", e.target.value);
                         }}
@@ -687,6 +688,7 @@ function StuInfoAdd() {
                     <Col className="col-2">
                       <Form.Control
                         type="date"
+                        value={a.날짜}
                         onChange={(e) => {
                           change_depth_three("히스토리", i, "날짜", e.target.value);
                         }}
@@ -694,7 +696,7 @@ function StuInfoAdd() {
                     </Col>
                     <Col className="col-1">
                       <Form.Select
-                        value={a.매니저}
+                        value={a.작성매니저}
                         onChange={(e) => {
                           change_depth_three("히스토리", i, "작성매니저", e.target.value);
                         }}
@@ -721,6 +723,18 @@ function StuInfoAdd() {
                           change_depth_three("히스토리", i, "내용", e.target.value);
                         }}
                       />
+                    </Col>
+                    <Col className="col-1">
+                      <Button
+                        className="btn-delete"
+                        onClick={() => {
+                          if (i > -1) {
+                            delete_depth_one("히스토리", i);
+                          }
+                        }}
+                      >
+                        <strong>x</strong>
+                      </Button>
                     </Col>
                   </div>
                 );
