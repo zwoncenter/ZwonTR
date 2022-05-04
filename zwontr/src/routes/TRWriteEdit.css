@@ -64,7 +64,7 @@ textarea {
 
 .btn-commit {
   margin: 10px;
-  width: 80%;
+  width: 90%;
   font-size: 20px;
   border-radius: 20px;
   border: 0px;
@@ -72,20 +72,29 @@ textarea {
   color: white;
 }
 
-.btn-attend {
+.btn-attend, .btn-edit {
   background-color: #5500d3;
 }
 
-.btn-absent {
-  background-color: black;
-}
-
-.btn-edit {
-  background-color: #5500d3;
+.btn-absent, .btn-cancel {
+  background-color: #4B4453;
 }
 
 .btn-load {
-  background-color: #b6359a;
+  background-color: #B1A8B9;
+  margin: 0 auto;
+  width: 95%;
+}
+.btn-load strong {
+  font-size: 20px;
+}
+.btn-load input {
+  height: 90%;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 0.9rem;
+  vertical-align: middle;
+  margin-bottom: 0px;
 }
 
 .inputTime {
@@ -114,7 +123,7 @@ textarea {
 }
 
 .program-add {
-  background-color: black;
+  background-color: #4B4453;
   border: 0px;
   margin: auto;
 }

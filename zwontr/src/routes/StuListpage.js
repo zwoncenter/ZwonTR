@@ -120,6 +120,16 @@ function StuListpage() {
           <Button
             className="menu-map-btn btn-secondary"
             onClick={() => {
+              history.push("/Closemeeting/Write");
+            }}
+          >
+            <h5>
+              <strong>마감 회의</strong>
+            </h5>
+          </Button>
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
               window.alert("준비중입니다!");
             }}
           >
@@ -271,12 +281,12 @@ function StuListpage() {
             <strong>※ 금일 TR 작성 완료 시 회색으로 바뀝니다. </strong>
           </p>
         </div>
-        <Button
+        {/* <Button
         variant="secondary"
         onClick={() => {
           history.push("/Closemeeting/Write")
         }}
-        >{today} 마감 회의</Button>
+        >{today} 마감 회의</Button> */}
       </div>
     </div>
   );

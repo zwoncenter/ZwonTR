@@ -62,12 +62,12 @@ h6 {
 }
 
 .menu-map-btn {
+  display: block;
   text-align: center;
   margin-top: 50px;
   background-color: rgba(0, 0, 0, 0);
   border: 0;
   outline: 0;
-  vertical-align: middle;
 }
 
 .menuArrow {
@@ -163,7 +163,7 @@ h6 {
 }
 
 .createTRButton {
-  background-color: black;
+  background-color: #4B4453;
   border-radius: 10px;
   border: 0;
   margin-bottom: 10px;
