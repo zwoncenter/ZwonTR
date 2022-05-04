@@ -21,7 +21,7 @@ h6 {
 .stuList-background{
   width: 100vw;
   height: 100vh;
-  background: url("../../public/blurry-gradient-haikei.png");
+  background: url("../../public/layered-waves-haikei.png");
   background-size: cover;
   padding: 1px;
   overflow: hidden;
@@ -29,6 +29,58 @@ h6 {
     color: white;
     margin-top: 180px;
     font-size: 4rem;
+    text-shadow: 3px 2px 2px gray;
+  }
+}
+
+.menu {
+  position: fixed;
+  // float: left;
+  z-index: 1;
+  width: 300px;
+  height: 100vh;
+  background-color:rgba( 0, 0, 0, 0 );
+  transform: translateX(-250px);
+  color: white;
+  padding: 5px;
+  transition-property: transform, background-color;
+  transition-duration: 0.6s;
+}
+
+.menu:hover {
+  transform: translateX(-5px);
+  background-color:rgba( 0, 0, 0, 0.7);
+
+  img {
+    transform: rotate( 180deg );
+  }
+}
+
+.menu-map{
+  padding: 50px;
+  h5{
+    margin:0;
+    padding: 0;
+  }
+}
+
+.menu-map-btn{
+  text-align: center;
+  margin-top: 50px;
+  background-color: rgba( 0, 0, 0, 0);
+  border: 0;
+  outline: 0;
+  vertical-align: middle;
+}
+
+.menuArrow {
+  filter: invert(100%);
+  width: 40px;
+  position: absolute;
+  bottom: 8px;
+  right: 7px;
+  img {
+    width: 100%;
   }
 }
 
@@ -79,6 +131,7 @@ h6 {
   border-radius: 10px;
   p {
     margin: 0;
+    font-weight: bold;
   }
   div:hover {
     background-color: #5500d3;
@@ -113,6 +166,7 @@ h6 {
   border-radius: 10px;
   border: 0;
   font-size: 15px;
+  // font-weight: bold;
 }
 
 .createTRButton {

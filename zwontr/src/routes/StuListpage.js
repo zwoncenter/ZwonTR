@@ -4,6 +4,7 @@ import { Button, Card, ListGroup, Modal } from "react-bootstrap";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import menuarrow from "../next.png";
 
 function StuListpage() {
   let history = useHistory();
@@ -81,12 +82,12 @@ function StuListpage() {
       .catch((err) => {
         return err;
       });
-    
+
     const newWritten = [];
-    for (var i =0; i<newstudentDBlist.length; i++){
+    for (var i = 0; i < newstudentDBlist.length; i++) {
       var tmp = false;
-      for (var j=0; j<newtodayTRlist.length; j++){
-        if (newstudentDBlist[i]["ID"] == newtodayTRlist[j]["ID"]){
+      for (var j = 0; j < newtodayTRlist.length; j++) {
+        if (newstudentDBlist[i]["ID"] == newtodayTRlist[j]["ID"]) {
           tmp = true;
           break;
         }
@@ -104,7 +105,50 @@ function StuListpage() {
 
   return (
     <div className="stuList-background">
-      <div className={stuListShow === true ? "stuListShow stuListShowActive text-center" : "stuListShow text-center"}>
+      <div className="menu">
+        <div className="menu-map">
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              history.push("/studentList");
+            }}
+          >
+            <h5>
+              <strong>학생 관리</strong>
+            </h5>
+          </Button>
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              window.alert("준비중입니다!");
+            }}
+          >
+            <h5>
+              <strong>매니저 업무리스트</strong>
+            </h5>
+          </Button>
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              window.alert("준비중입니다!");
+            }}
+          >
+            <h5>
+              <strong>대시보드</strong>
+            </h5>
+          </Button>
+        </div>
+        <div className="menuArrow">
+          <img src={menuarrow} alt="menuarrow" />
+        </div>
+      </div>
+      <div
+        className={
+          stuListShow === true
+            ? "stuListShow stuListShowActive text-center"
+            : "stuListShow text-center"
+        }
+      >
         <h2>
           <strong>지원센터 학생 목록</strong>
         </h2>
@@ -118,7 +162,9 @@ function StuListpage() {
                   return (
                     <div className="stuListItem" key={index}>
                       <ListGroup.Item
-                        className={Written[index]==true ? "IsWritten" : "NotWritten"}
+                        className={
+                          Written[index] == true ? "IsWritten" : "NotWritten"
+                        }
                         onClick={() => {
                           nameClick(db, index);
                         }}
@@ -134,7 +180,9 @@ function StuListpage() {
         {modalShow === true ? (
           <Modal show={modalShow} onHide={modalClose} className="TRModal">
             <Modal.Header closeButton>
-              <Modal.Title>{chosenID ? chosenID.split("_")[0] : ""}</Modal.Title>
+              <Modal.Title>
+                {chosenID ? chosenID.split("_")[0] : ""}
+              </Modal.Title>
             </Modal.Header>
             <Modal.Body className="text-center">
               <div className="stumap">
