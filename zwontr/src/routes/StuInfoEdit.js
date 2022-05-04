@@ -129,6 +129,14 @@ function StuInfoEdit() {
     setstuInfo(newstuInfo);
   }
 
+  function delete_depth_one(category, index) {
+    if (window.confirm("삭제하시겠습니까?")) {
+      const newstuInfo = JSON.parse(JSON.stringify(stuInfo));
+      newstuInfo[category].splice(index, 1);
+      setstuInfo(newstuInfo);
+    }
+  }
+
   useEffect(() => {
     change_depth_one("연락처", contact);
   }, [contact]);
@@ -197,13 +205,6 @@ function StuInfoEdit() {
       <h1 className="fw-bold text-center">
         <strong>학생 정보</strong>
       </h1>
-      <Button
-        onClick={() => {
-          console.log(stuInfo);
-        }}
-      >
-        stuInfo Check
-      </Button>
       <div className="row">
         <div className="col-12">
           <Card className="stuInfoCard mt-3">
@@ -701,14 +702,15 @@ function StuInfoEdit() {
                     <Col className="col-2">
                       <Form.Control
                         type="date"
+                        value={a.날짜}
                         onChange={(e) => {
                           change_depth_three("히스토리", i, "날짜", e.target.value);
                         }}
                       />
                     </Col>
-                    <Col className="col-2">
+                    <Col className="col-1">
                       <Form.Select
-                        value={a.매니저}
+                        value={a.작성매니저}
                         onChange={(e) => {
                           change_depth_three("히스토리", i, "작성매니저", e.target.value);
                         }}
@@ -735,6 +737,18 @@ function StuInfoEdit() {
                           change_depth_three("히스토리", i, "내용", e.target.value);
                         }}
                       />
+                    </Col>
+                    <Col className="col-1">
+                      <Button
+                        className="btn-delete"
+                        onClick={() => {
+                          if (i > -1) {
+                            delete_depth_one("히스토리", i);
+                          }
+                        }}
+                      >
+                        <strong>x</strong>
+                      </Button>
                     </Col>
                   </div>
                 );
@@ -772,6 +786,31 @@ function StuInfoEdit() {
         }}
       >
         <strong>학생정보 저장</strong>
+      </Button>
+      <Button
+        variant="secondary"
+        className="btn-Infocommit btn-cancel"
+        onClick={() => {
+          if (window.confirm(`${stuInfo.이름} 학생의 정보를 정말 삭제하시겠습니까?`)) {
+            axios
+              .delete(`/api/StudentDB/delete/${stuInfo["ID"]}`)
+              .then(function (result) {
+                if (result.data === "로그인필요") {
+                  window.alert("로그인이 필요합니다.");
+                  return history.push("/");
+                }
+                window.alert("삭제되었습니다");
+              })
+              .catch(function (err) {
+                window.alert("삭제에 실패했습니다 개발/데이터 팀에게 문의해주세요");
+              })
+              .then(function () {
+                history.push("/studentList");
+              });
+          }
+        }}
+      >
+        <strong>학생정보 삭제</strong>
       </Button>
     </div>
   );

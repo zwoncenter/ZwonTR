@@ -81,12 +81,12 @@ function StuListpage() {
       .catch((err) => {
         return err;
       });
-    
+
     const newWritten = [];
-    for (var i =0; i<newstudentDBlist.length; i++){
+    for (var i = 0; i < newstudentDBlist.length; i++) {
       var tmp = false;
-      for (var j=0; j<newtodayTRlist.length; j++){
-        if (newstudentDBlist[i]["ID"] == newtodayTRlist[j]["ID"]){
+      for (var j = 0; j < newtodayTRlist.length; j++) {
+        if (newstudentDBlist[i]["ID"] == newtodayTRlist[j]["ID"]) {
           tmp = true;
           break;
         }
@@ -118,7 +118,7 @@ function StuListpage() {
                   return (
                     <div className="stuListItem" key={index}>
                       <ListGroup.Item
-                        className={Written[index]==true ? "IsWritten" : "NotWritten"}
+                        className={Written[index] == true ? "IsWritten" : "NotWritten"}
                         onClick={() => {
                           nameClick(db, index);
                         }}
@@ -142,7 +142,9 @@ function StuListpage() {
                   variant="secondary"
                   className="m-1 stuButton"
                   onClick={() => {
-                    history.push(`/StuInfoEdit/${chosenID}`);
+                    if (window.confirm("학생의 개인정보를 열람합니다. 유출되지 않도록 주의하십시오. \n진행하시겠습니까?")) {
+                      history.push(`/StuInfoEdit/${chosenID}`);
+                    }
                   }}
                 >
                   학생기본정보
@@ -212,6 +214,9 @@ function StuListpage() {
             ) : null}
           </Modal>
         ) : null}
+        <p className="mt-1">
+          <strong>*회색 {"=>"} 금일 TR 작성 완료</strong>
+        </p>
       </div>
     </div>
   );

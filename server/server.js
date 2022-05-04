@@ -212,15 +212,15 @@ app.put("/api/StudentDB/edit", loginCheck, function (req, res) {
 
 // StudentDB에 삭제 요청
 app.delete("/api/StudentDB/delete/:ID", loginCheck, function (req, res) {
-  const stuName = req.params.name;
-  console.log(stuName + "학생의 DB 삭제 시도");
-  db.collection("StudentDB").deleteOne({ 이름: stuName }, (err, result) => {
+  const paramID = req.params.ID;
+  console.log(paramID + "학생의 DB 삭제 시도");
+  db.collection("StudentDB").deleteOne({ ID: paramID }, (err, result) => {
     if (err) {
       console.log("/api/StudentDelete - deleteOne error : ", err);
       return res.send("/api/StudentDelete - deleteOne error : ", err);
     }
     if (result !== null) {
-      console.log(`${stuName}의 DB 삭제 완료`);
+      console.log(`${paramID}의 DB 삭제 완료`);
       return res.send(true);
     } else {
       return res.send("deleteOne의 결과가 null입니다. 개발/데이터 팀에 문의해주세요.");
