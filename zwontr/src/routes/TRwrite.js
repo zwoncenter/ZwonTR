@@ -477,7 +477,7 @@ function TRwrite() {
               <div className="col-2 p-0">
                 <Button
                   variant="danger"
-                  className="btn-TRcommit btn-attend"
+                  className="btn-commit btn-attend"
                   onClick={() => {
                     console.log(TR);
                     change_depth_one("결석여부", false);
@@ -489,7 +489,7 @@ function TRwrite() {
               <div className="col-2 p-0">
                 <Button
                   variant="danger"
-                  className="btn-TRcommit btn-absent"
+                  className="btn-commit btn-absent"
                   onClick={() => {
                     if (window.confirm("미등원으로 전환하시겠습니까?")) {
                       console.log(TR);
@@ -1011,7 +1011,7 @@ function TRwrite() {
           </div>
           <Button
             variant="danger"
-            className="btn-TRcommit btn-edit"
+            className="btn-commit btn-edit"
             onClick={() => {
               console.log(TR);
               if (입력확인()) {

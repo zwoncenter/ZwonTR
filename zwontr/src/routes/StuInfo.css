@@ -1,0 +1,124 @@
+@import url(https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/nanumsquare.css);
+* p,
+span,
+h2,
+h3,
+a,
+h4,
+h5,
+h6,
+label,
+select,
+th,
+td,
+button,
+textarea {
+  font-family: "NanumSquare" !important;
+  transform: rotate(0.04deg);
+}
+
+.stuInfo-background {
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  text-align: center;
+  background-color: #F0EDFF;
+}
+
+.stuInfoCard {
+  width: 80vw;
+  padding: 15px;
+  margin-bottom: 2px;
+  border-radius: 20px;
+  border: 0px;
+  background-color: white;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  margin: auto;
+  display: block;
+}
+.stuInfoCard p,
+.stuInfoCard label,
+.stuInfoCard select,
+.stuInfoCard td,
+.stuInfoCard th,
+.stuInfoCard input,
+.stuInfoCard textarea,
+.stuInfoCard h5,
+.stuInfoCard button {
+  vertical-align: middle;
+  margin-bottom: 0px;
+}
+.stuInfoCard input,
+.stuInfoCard select,
+.stuInfoCard textArea {
+  border-radius: 10px;
+  text-align: center;
+}
+.stuInfoCard Table {
+  table-layout: fixed;
+  background-color: white;
+  border-radius: 5px;
+  padding: 10px;
+}
+.stuInfoCard Table td {
+  border-bottom: 0px;
+}
+.stuInfoCard label {
+  margin-bottom: 10px;
+}
+.stuInfoCard p {
+  font-size: 15px;
+  margin-top: 5px;
+}
+
+.stuInfoCard-title {
+  font-size: 18px;
+}
+
+.studentImage {
+  height: 200px;
+  padding: 5px;
+  border: 1px solid black;
+  border-width: 5px;
+  border-radius: 10px;
+}
+
+.test {
+  border-radius: 20px;
+}
+
+.accordion-button {
+  width: 100%;
+  height: 40px;
+}
+
+.btn-add {
+  background-color: black;
+  border: 0px;
+  margin: auto;
+  display: block;
+  height: auto;
+  width: 95%;
+  border-radius: 20px;
+  font-size: 20px;
+  padding: 0px;
+}
+
+.historyCard {
+  overflow: auto;
+  max-height: 400px;
+}
+
+.btn-Infocommit {
+  margin: 30px;
+  width: 300px;
+  font-size: 20px;
+  border-radius: 20px;
+  border: 0px;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  color: white;
+}
+
+.btn-edit {
+  background-color: #5500d3;
+}/*# sourceMappingURL=StuInfo.css.map */

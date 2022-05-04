@@ -13,6 +13,7 @@ import FirstPage from "./routes/FirstPage";
 import StuInfoAdd from "./routes/StuInfoAdd";
 import StuInfoEdit from "./routes/StuInfoEdit";
 import StudyChart from "./routes/StudyChart";
+import ClosemeetingWrite from "./routes/ClosemeetingWrite";
 
 function App() {
   let history = useHistory();
@@ -55,6 +56,10 @@ function App() {
 
       <Route exact path="/Chart/:ID">
         <StudyChart />
+      </Route>
+
+      <Route exact path="/Closemeeting/Write">
+        <ClosemeetingWrite/>
       </Route>
     </div>
   );

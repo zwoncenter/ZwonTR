@@ -82,7 +82,7 @@ function StuListpage() {
       .catch((err) => {
         return err;
       });
-
+      settodayTRlist(newtodayTRlist);
     const newWritten = [];
     for (var i = 0; i < newstudentDBlist.length; i++) {
       var tmp = false;
@@ -100,7 +100,7 @@ function StuListpage() {
       window.alert("로그인이 필요합니다.");
       return history.push("/");
     }
-    settodayTRlist(newtodayTRlist);
+    
   }, []);
 
   return (
@@ -271,6 +271,12 @@ function StuListpage() {
             <strong>※ 금일 TR 작성 완료 시 회색으로 바뀝니다. </strong>
           </p>
         </div>
+        <Button
+        variant="secondary"
+        onClick={() => {
+          history.push("/Closemeeting/Write")
+        }}
+        >{today} 마감 회의</Button>
       </div>
     </div>
   );
