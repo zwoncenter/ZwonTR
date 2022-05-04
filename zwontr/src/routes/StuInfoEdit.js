@@ -758,7 +758,7 @@ function StuInfoEdit() {
         </div>
       </div>
       <Button
-        variant="danger"
+        variant="secondary"
         className="btn-Infocommit btn-edit"
         onClick={() => {
           if (inputCheck()) {

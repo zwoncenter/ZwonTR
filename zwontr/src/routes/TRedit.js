@@ -1,6 +1,18 @@
 import "./TRWriteEdit.scss";
-import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
-import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
+import {
+  Form,
+  Button,
+  Card,
+  ListGroup,
+  Table,
+  Modal,
+  Row,
+  Col,
+} from "react-bootstrap";
+import {
+  useHistory,
+  useParams,
+} from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import TimePicker from "react-time-picker";
@@ -94,7 +106,14 @@ function TRedit() {
 
     진행중교재: [],
     완료된교재: [],
-    프로그램분류: ["자기인식", "진로탐색", "헬스", "외부활동", "독서", "외국어"],
+    프로그램분류: [
+      "자기인식",
+      "진로탐색",
+      "헬스",
+      "외부활동",
+      "독서",
+      "외국어",
+    ],
   });
   const [cuberaito, setCuberatio] = useState(0);
   const [failCnt, setFailCnt] = useState(0);
@@ -196,7 +215,11 @@ function TRedit() {
           return false;
         }
         if (!TR.학습[i].학습시간 || TR.학습[i].학습시간 === "00:00") {
-          window.alert(`${i + 1}번째 학습의 학습시간이 입력되지 않았습니다. \n 학습이 진행되지 않은 경우, 해당 항목을 삭제해주세요.`);
+          window.alert(
+            `${
+              i + 1
+            }번째 학습의 학습시간이 입력되지 않았습니다. \n 학습이 진행되지 않은 경우, 해당 항목을 삭제해주세요.`
+          );
           return false;
         }
       }
@@ -207,7 +230,9 @@ function TRedit() {
     }
 
     if (isNaN(TR.프로그램시간)) {
-      window.alert("프로그램 시간의 값이 NaN입니다. 수정 후 다시시도해 주세요.");
+      window.alert(
+        "프로그램 시간의 값이 NaN입니다. 수정 후 다시시도해 주세요."
+      );
       return false;
     }
     return true;
@@ -219,7 +244,10 @@ function TRedit() {
     }
     let [목표시간, 목표분] = 목표.split(":");
     let [실제시간, 실제분] = 실제.split(":");
-    let diff = parseInt(목표시간) - parseInt(실제시간) + (parseInt(목표분) - parseInt(실제분)) / 60;
+    let diff =
+      parseInt(목표시간) -
+      parseInt(실제시간) +
+      (parseInt(목표분) - parseInt(실제분)) / 60;
     if (diff < -15) {
       diff += 24;
     } else if (diff > 15) {
@@ -338,8 +366,12 @@ function TRedit() {
         newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
       });
       newTR.센터내시간 = 차이계산(newTR.실제귀가, newTR.실제등원);
-      newTR.센터활용률 = Math.round(((newTR.프로그램시간 + newTR.실제학습) / TR.센터내시간) * 1000) / 10;
-      newTR.센터학습활용률 = Math.round((newTR.실제학습 / newTR.센터내시간) * 1000) / 10;
+      newTR.센터활용률 =
+        Math.round(
+          ((newTR.프로그램시간 + newTR.실제학습) / TR.센터내시간) * 1000
+        ) / 10;
+      newTR.센터학습활용률 =
+        Math.round((newTR.실제학습 / newTR.센터내시간) * 1000) / 10;
       setTR(newTR);
     }
   }, [
@@ -419,8 +451,8 @@ function TRedit() {
 
               <div className="col-2 pe-0">
                 <Button
-                  variant="danger"
-                  className="btn-TRcommit btn-attend"
+                  variant="secondary"
+                  className="btn-commit btn-attend"
                   onClick={() => {
                     console.log(TR);
                     change_depth_one("결석여부", false);
@@ -431,8 +463,8 @@ function TRedit() {
               </div>
               <div className="col-2 p-0">
                 <Button
-                  variant="danger"
-                  className="btn-TRcommit btn-absent"
+                  variant="secondary"
+                  className="btn-commit btn-absent"
                   onClick={() => {
                     if (window.confirm("미등원으로 전환하시겠습니까?")) {
                       console.log(TR);
@@ -456,7 +488,10 @@ function TRedit() {
                         size="sm"
                         value={TR.신체컨디션}
                         onChange={(e) => {
-                          change_depth_one("신체컨디션", parseInt(e.target.value));
+                          change_depth_one(
+                            "신체컨디션",
+                            parseInt(e.target.value)
+                          );
                         }}
                       >
                         <option value={5}>매우 좋음</option>
@@ -476,7 +511,10 @@ function TRedit() {
                         size="sm"
                         value={TR.정서컨디션}
                         onChange={(e) => {
-                          change_depth_one("정서컨디션", parseInt(e.target.value));
+                          change_depth_one(
+                            "정서컨디션",
+                            parseInt(e.target.value)
+                          );
                         }}
                       >
                         <option value={5}>매우 좋음</option>
@@ -531,7 +569,9 @@ function TRedit() {
                                 }}
                               ></TimePicker>
                             </td>
-                            <td>{차이출력(TR["밤샘여부"], TR[`${a}차이`], a)}</td>
+                            <td>
+                              {차이출력(TR["밤샘여부"], TR[`${a}차이`], a)}
+                            </td>
                           </tr>
                         );
                       })}
@@ -553,8 +593,12 @@ function TRedit() {
                       setTR(newTR);
                     }}
                   />
-                  <p style={{ fontSize: "17px" }} className="mt-2 btn-add program-add">
-                    센터내시간 : {TR.센터내시간}시간 / 센터활용률 : {TR.센터활용률}% / 센터학습활용률: {TR.센터학습활용률}%
+                  <p
+                    style={{ fontSize: "17px" }}
+                    className="mt-2 btn-add program-add"
+                  >
+                    센터내시간 : {TR.센터내시간}시간 / 센터활용률 :{" "}
+                    {TR.센터활용률}% / 센터학습활용률: {TR.센터학습활용률}%
                   </p>
                 </div>
 
@@ -580,7 +624,12 @@ function TRedit() {
                                     size="sm"
                                     value={a.과목}
                                     onChange={(e) => {
-                                      change_depth_three("학습", i, "과목", e.target.value);
+                                      change_depth_three(
+                                        "학습",
+                                        i,
+                                        "과목",
+                                        e.target.value
+                                      );
                                     }}
                                   >
                                     <option value="선택">선택</option>
@@ -596,11 +645,19 @@ function TRedit() {
                                     size="sm"
                                     value={a.교재}
                                     onChange={(e) => {
-                                      change_depth_three("학습", i, "교재", e.target.value);
+                                      change_depth_three(
+                                        "학습",
+                                        i,
+                                        "교재",
+                                        e.target.value
+                                      );
                                     }}
                                   >
                                     <option value="선택">선택</option>
-                                    {stuDB.진행중교재.map(function (book, index) {
+                                    {stuDB.진행중교재.map(function (
+                                      book,
+                                      index
+                                    ) {
                                       return (
                                         <option value={book.교재} key={index}>
                                           {book.교재}
@@ -622,7 +679,12 @@ function TRedit() {
                                     value={a.최근진도}
                                     className="inputText"
                                     onChange={(e) => {
-                                      change_depth_three("학습", i, "최근진도", parseInt(e.target.value));
+                                      change_depth_three(
+                                        "학습",
+                                        i,
+                                        "최근진도",
+                                        parseInt(e.target.value)
+                                      );
                                     }}
                                   />
                                 </td>
@@ -635,17 +697,26 @@ function TRedit() {
                                     clearIcon={null}
                                     clockIcon={null}
                                     onChange={(value) => {
-                                      var newTR = JSON.parse(JSON.stringify(TR));
+                                      var newTR = JSON.parse(
+                                        JSON.stringify(TR)
+                                      );
                                       newTR.학습[i].학습시간 = value;
                                       let 실제학습시간 = 0;
                                       let 실제학습분 = 0;
                                       newTR.학습.map(function (b, j) {
                                         if (b.학습시간) {
-                                          실제학습시간 += parseInt(b.학습시간.split(":")[0]);
-                                          실제학습분 += parseInt(b.학습시간.split(":")[1]);
+                                          실제학습시간 += parseInt(
+                                            b.학습시간.split(":")[0]
+                                          );
+                                          실제학습분 += parseInt(
+                                            b.학습시간.split(":")[1]
+                                          );
                                         }
                                       });
-                                      newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
+                                      newTR.실제학습 =
+                                        Math.round(
+                                          (실제학습시간 + 실제학습분 / 60) * 10
+                                        ) / 10;
                                       setTR(newTR);
                                     }}
                                   ></TimePicker>
@@ -655,18 +726,30 @@ function TRedit() {
                                     className="btn btn-delete"
                                     onClick={() => {
                                       if (i > -1) {
-                                        if (window.confirm("삭제하시겠습니까?")) {
-                                          var newTR = JSON.parse(JSON.stringify(TR));
+                                        if (
+                                          window.confirm("삭제하시겠습니까?")
+                                        ) {
+                                          var newTR = JSON.parse(
+                                            JSON.stringify(TR)
+                                          );
                                           newTR.학습.splice(i, 1);
                                           let 실제학습시간 = 0;
                                           let 실제학습분 = 0;
                                           newTR.학습.map(function (b, j) {
                                             if (b.학습시간) {
-                                              실제학습시간 += parseInt(b.학습시간.split(":")[0]);
-                                              실제학습분 += parseInt(b.학습시간.split(":")[1]);
+                                              실제학습시간 += parseInt(
+                                                b.학습시간.split(":")[0]
+                                              );
+                                              실제학습분 += parseInt(
+                                                b.학습시간.split(":")[1]
+                                              );
                                             }
                                           });
-                                          newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
+                                          newTR.실제학습 =
+                                            Math.round(
+                                              (실제학습시간 + 실제학습분 / 60) *
+                                                10
+                                            ) / 10;
                                           setTR(newTR);
                                         }
                                       }
@@ -683,7 +766,10 @@ function TRedit() {
                       <tr>
                         <td colSpan={4}>목표 학습 - {TR.목표학습} 시간</td>
                         <td> {TR.실제학습} 시간</td>
-                        <td>{Math.round((TR.실제학습 - TR.목표학습) * 10) / 10}시간</td>
+                        <td>
+                          {Math.round((TR.실제학습 - TR.목표학습) * 10) / 10}
+                          시간
+                        </td>
                       </tr>
                       <tr>
                         <td colSpan={6}>
@@ -728,7 +814,12 @@ function TRedit() {
                                 size="sm"
                                 value={a.프로그램분류}
                                 onChange={(e) => {
-                                  change_depth_three("프로그램", i, "프로그램분류", e.target.value);
+                                  change_depth_three(
+                                    "프로그램",
+                                    i,
+                                    "프로그램분류",
+                                    e.target.value
+                                  );
                                 }}
                               >
                                 <option value="선택">선택</option>
@@ -746,7 +837,12 @@ function TRedit() {
                                 size="sm"
                                 value={a.매니저}
                                 onChange={(e) => {
-                                  change_depth_three("프로그램", i, "매니저", e.target.value);
+                                  change_depth_three(
+                                    "프로그램",
+                                    i,
+                                    "매니저",
+                                    e.target.value
+                                  );
                                 }}
                               >
                                 <option value="선택">선택</option>
@@ -774,11 +870,17 @@ function TRedit() {
                                   let 실제분 = 0;
                                   newTR.프로그램.map(function (c, k) {
                                     if (c.소요시간) {
-                                      실제시간 += parseInt(c.소요시간.split(":")[0]);
-                                      실제분 += parseInt(c.소요시간.split(":")[1]);
+                                      실제시간 += parseInt(
+                                        c.소요시간.split(":")[0]
+                                      );
+                                      실제분 += parseInt(
+                                        c.소요시간.split(":")[1]
+                                      );
                                     }
                                   });
-                                  newTR.프로그램시간 = Math.round((실제시간 + 실제분 / 60) * 10) / 10;
+                                  newTR.프로그램시간 =
+                                    Math.round((실제시간 + 실제분 / 60) * 10) /
+                                    10;
                                   setTR(newTR);
                                 }}
                               ></TimePicker>
@@ -792,7 +894,12 @@ function TRedit() {
                                 placeholder="프로그램 진행 내용"
                                 value={a.상세내용}
                                 onChange={(e) => {
-                                  change_depth_three("프로그램", i, "상세내용", e.target.value);
+                                  change_depth_three(
+                                    "프로그램",
+                                    i,
+                                    "상세내용",
+                                    e.target.value
+                                  );
                                 }}
                               ></textarea>
                             </td>
@@ -802,17 +909,26 @@ function TRedit() {
                                 onClick={() => {
                                   if (i > -1) {
                                     if (window.confirm("삭제하시겠습니까?")) {
-                                      var newTR = JSON.parse(JSON.stringify(TR));
+                                      var newTR = JSON.parse(
+                                        JSON.stringify(TR)
+                                      );
                                       newTR.프로그램.splice(i, 1);
                                       let 실제시간 = 0;
                                       let 실제분 = 0;
                                       newTR.프로그램.map(function (c, k) {
                                         if (c.소요시간) {
-                                          실제시간 += parseInt(c.소요시간.split(":")[0]);
-                                          실제분 += parseInt(c.소요시간.split(":")[1]);
+                                          실제시간 += parseInt(
+                                            c.소요시간.split(":")[0]
+                                          );
+                                          실제분 += parseInt(
+                                            c.소요시간.split(":")[1]
+                                          );
                                         }
                                       });
-                                      newTR.프로그램시간 = Math.round((실제시간 + 실제분 / 60) * 10) / 10;
+                                      newTR.프로그램시간 =
+                                        Math.round(
+                                          (실제시간 + 실제분 / 60) * 10
+                                        ) / 10;
                                       setTR(newTR);
                                     }
                                   }
@@ -826,7 +942,9 @@ function TRedit() {
                       })}
 
                       <tr>
-                        <td colSpan={5}>프로그램 진행 시간 : {TR.프로그램시간}시간</td>
+                        <td colSpan={5}>
+                          프로그램 진행 시간 : {TR.프로그램시간}시간
+                        </td>
                       </tr>
                       <tr>
                         <td colSpan={5}>
@@ -893,7 +1011,12 @@ function TRedit() {
                   id={`study-${prob.분류}`}
                   label={`${prob.분류}`}
                   onChange={(e) => {
-                    change_depth_three("문제행동", i, "문제여부", e.target.checked);
+                    change_depth_three(
+                      "문제행동",
+                      i,
+                      "문제여부",
+                      e.target.checked
+                    );
                   }}
                 />
               </div>
@@ -917,7 +1040,12 @@ function TRedit() {
                       id={`cube-${i}`}
                       label={`${a.구분} - ${a.할일}`}
                       onChange={(e) => {
-                        change_depth_three("큐브책", i, "완료여부", e.target.checked);
+                        change_depth_three(
+                          "큐브책",
+                          i,
+                          "완료여부",
+                          e.target.checked
+                        );
                       }}
                     />
                   </Col>
@@ -937,7 +1065,10 @@ function TRedit() {
               </div>
             ))}
 
-            <p style={{ fontSize: "17px" }} className="mt-2 btn-add program-add">
+            <p
+              style={{ fontSize: "17px" }}
+              className="mt-2 btn-add program-add"
+            >
               큐브책 달성률 : {cuberaito}% / 달성 실패 : {failCnt}개
             </p>
 
@@ -954,12 +1085,16 @@ function TRedit() {
             ></textarea>
           </div>
           <Button
-            variant="danger"
-            className="btn-TRcommit btn-edit"
+            variant="secondary"
+            className="btn-commit btn-edit"
             onClick={() => {
               console.log(TR);
               if (입력확인()) {
-                if (window.confirm(`수정된 ${TR.이름}학생의 ${TR.날짜} 일간하루를 저장하시겠습니까?`)) {
+                if (
+                  window.confirm(
+                    `수정된 ${TR.이름}학생의 ${TR.날짜} 일간하루를 저장하시겠습니까?`
+                  )
+                ) {
                   axios
                     .put("/api/TR/edit", TR)
                     .then(function (result) {
@@ -982,14 +1117,18 @@ function TRedit() {
               }
             }}
           >
-            일간하루 수정
+            <strong>일간하루 수정</strong>
           </Button>
 
           <Button
-            variant="danger"
-            className="btn-TRcommit btn-cancel"
+            variant="secondary"
+            className="btn-commit btn-cancel"
             onClick={() => {
-              if (window.confirm(`현재 작성중인 일간하루를 정말 삭제하시겠습니까?`)) {
+              if (
+                window.confirm(
+                  `현재 작성중인 일간하루를 정말 삭제하시겠습니까?`
+                )
+              ) {
                 axios
                   .delete(`/api/TR/delete/${TR._id}`)
                   .then(function (result) {
@@ -1000,7 +1139,10 @@ function TRedit() {
                     }
                   })
                   .catch(function (err) {
-                    window.alert(err, "삭제에 실패했습니다 개발/데이터 팀에게 문의해주세요");
+                    window.alert(
+                      err,
+                      "삭제에 실패했습니다 개발/데이터 팀에게 문의해주세요"
+                    );
                   })
                   .then(function () {
                     history.push("/studentList");
@@ -1011,28 +1153,35 @@ function TRedit() {
             <strong>일간하루 삭제</strong>
           </Button>
 
-          <Button
-          variant="danger"
-          className="btn-TRcommit btn-load"
-          onClick={() => {setmodalShow(true)}}>
-            불러오기
+          <Button variant="secondary" className="btn-commit btn-load">
+            <div className="row m-0">
+              <div className="col-xl-7">
+                <strong>다른 날 불러오기</strong>
+              </div>
+              <div className="col-xl-5">
+                <input
+                  type="date"
+                  className="w-100"
+                  onChange={(e) => {
+                    axios
+                      .get(`/api/TR/${paramID}/${e.target.value}`)
+                      .then((result) => {
+                        if (result["data"] === null) {
+                          window.alert("해당 날짜의 TR이 존재하지 않습니다.");
+                        }
+                        else {
+                          history.push(`/TR/${paramID}/edit/${e.target.value}`);
+                          window.location.reload();
+                        }
+                      })
+                      .catch((err) => {
+                        console.log(err);
+                      });
+                  }}
+                />
+              </div>
+            </div>
           </Button>
-
-          {modalShow === true ? <Modal show={modalShow} onHide={() => {setmodalShow(false)}} className="TRModal">
-            <Modal.Header closeButton>
-              <Modal.Title>Modal title</Modal.Title>
-            </Modal.Header>
-
-            <Modal.Body>
-              <p>데이트피커</p>
-              {/* onchange e.target.value api 요청 현재 학생의 ID, 작성되지않은 날짜에는 뭐가 리턴되는지 보고  */}
-            </Modal.Body>
-
-            <Modal.Footer>
-              <Button variant="secondary">Close</Button>
-              <Button variant="primary">Save changes</Button>
-            </Modal.Footer>
-          </Modal> : null}
         </div>
       </div>
     </div>
