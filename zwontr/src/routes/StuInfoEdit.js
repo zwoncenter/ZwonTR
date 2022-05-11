@@ -396,8 +396,8 @@ function StuInfoEdit() {
                       </p>
                     </Form.Label>
                     <Col>
-                      <Form.Control
-                        type="text"
+                      <textarea
+                        className="textArea"
                         value={stuInfo[category.split(" ").join("")]}
                         onChange={(e) => {
                           change_depth_one(category.split(" ").join(""), e.target.value);

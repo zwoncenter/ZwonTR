@@ -1104,7 +1104,6 @@ function TRedit() {
                         }
                         else {
                           history.push(`/TR/${paramID}/edit/${e.target.value}`);
-                          window.location.reload();
                         }
                       })
                       .catch((err) => {
@@ -1190,7 +1189,7 @@ function TRedit() {
           </Button>
             </div>
           </div>
-          
+
         </div>
       </div>
     </div>
