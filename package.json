@@ -1,4 +1,3 @@
-
 {
   "name": "zwon-tr",
   "version": "1.0.0",
@@ -27,5 +26,8 @@
     "url": "https://github.com/Zeka-0337/ZwonTR/issues"
   },
   "homepage": "https://github.com/Zeka-0337/ZwonTR#readme",
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "webpack-dev-server": "^4.9.0"
+  }
 }

@@ -149,7 +149,7 @@ function StuInfoEdit() {
 
   // 이름, 프로그램 시작일, 생년월일, 연락처, 연락처 (부) 와 연락처 (모) 중 하나
   function inputCheck() {
-    const need_to_check = ["이름", "프로그램시작일", "생년월일"];
+    const need_to_check = ["이름", "생년월일"];
     for (let i = 0; i < need_to_check.length; i++) {
       if (!stuInfo[need_to_check[i]]) {
         window.alert(`${need_to_check[i]}이(가) 입력되지 않았습니다.`);
@@ -396,8 +396,8 @@ function StuInfoEdit() {
                       </p>
                     </Form.Label>
                     <Col>
-                      <Form.Control
-                        type="text"
+                      <textarea
+                        className="textArea"
                         value={stuInfo[category.split(" ").join("")]}
                         onChange={(e) => {
                           change_depth_one(category.split(" ").join(""), e.target.value);
