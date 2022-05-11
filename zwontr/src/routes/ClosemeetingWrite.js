@@ -4,6 +4,7 @@ import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import TimePicker from "react-time-picker";
+import menuarrow from "../next.png";
 
 function ClosemeetingWrite() {
   let history = useHistory();
@@ -11,7 +12,7 @@ function ClosemeetingWrite() {
   const [todayTRlist, settodayTRlist] = useState([]);
   useEffect(async () => {
     const newtodayTRlist = await axios
-      .get(`/api/TRlist/${date}`)
+      .get(`/api/TRlist/2022-05-10`)
       .then((result) => {
         if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다");
@@ -22,11 +23,66 @@ function ClosemeetingWrite() {
       .catch((err) => {
         return err;
       });
+
+    if (newtodayTRlist && newtodayTRlist == "로그인필요") {
+      window.alert("로그인이 필요합니다.");
+      return history.push("/");
+    }
+    newtodayTRlist.sort(function (a, b) {
+      return +(a.이름 > b.이름) - 0.5;
+    });
     settodayTRlist(newtodayTRlist);
   }, []);
 
   return (
     <div className="trEdit-background">
+      <div className="menu">
+        <div className="menu-map">
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              history.push("/studentList");
+            }}
+          >
+            <h5>
+              <strong>학생 관리</strong>
+            </h5>
+          </Button>
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              history.push("/Closemeeting/Write");
+            }}
+          >
+            <h5>
+              <strong>마감 회의</strong>
+            </h5>
+          </Button>
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              window.alert("준비중입니다!");
+            }}
+          >
+            <h5>
+              <strong>매니저 업무리스트</strong>
+            </h5>
+          </Button>
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              window.alert("준비중입니다!");
+            }}
+          >
+            <h5>
+              <strong>대시보드</strong>
+            </h5>
+          </Button>
+        </div>
+        <div className="menuArrow">
+          <img src={menuarrow} alt="menuarrow" />
+        </div>
+      </div>
       <h3>{date} 마감 회의</h3>
       <h4>현재는 저장이 불가능하며, 참고용으로 사용하시길 바랍니다.</h4>
       {/* <Button

@@ -336,8 +336,9 @@ app.delete("/api/TR/delete/:id", loginCheck, function (req, res) {
   });
 });
 
+app.use("*", express.static(path.join(__dirname, "../zwontr/build")));
 app.get("*", function (req, res) {
-  req.sendFile(path.join(__dirname, "../zwontr/build/index.html"));
+  res.sendFile(path.join(__dirname, "../zwontr/build/index.html"));
 });
 
 // app.get("/api/StuInfo/:name", loginCheck, function (req, res) {
