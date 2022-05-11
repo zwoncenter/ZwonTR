@@ -263,7 +263,7 @@ function StuListpage() {
                         <ListGroup.Item
                           className="stuTRItem"
                           onClick={async () => {
-                            history.push(`TR/${chosenID}/edit/${tr.날짜}`);
+                            history.push(`/TR/${chosenID}/edit/${tr.날짜}`);
                           }}
                         >
                           <p>{tr.날짜}</p>

@@ -12,7 +12,7 @@ function ClosemeetingWrite() {
   const [todayTRlist, settodayTRlist] = useState([]);
   useEffect(async () => {
     const newtodayTRlist = await axios
-      .get(`/api/TRlist/2022-05-10`)
+      .get(`/api/TRlist/${date}`)
       .then((result) => {
         if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다");
@@ -35,7 +35,7 @@ function ClosemeetingWrite() {
   }, []);
 
   return (
-    <div className="trEdit-background">
+    <div>    
       <div className="menu">
         <div className="menu-map">
           <Button
@@ -83,6 +83,8 @@ function ClosemeetingWrite() {
           <img src={menuarrow} alt="menuarrow" />
         </div>
       </div>
+    <div className="trEdit-background">
+      
       <h3>{date} 마감 회의</h3>
       <h4>현재는 저장이 불가능하며, 참고용으로 사용하시길 바랍니다.</h4>
       {/* <Button
@@ -122,7 +124,10 @@ function ClosemeetingWrite() {
                 <td>
                   <p>{tr["이름"]}</p>
                 </td>
-                <td>
+                {tr["결석여부"] ? 
+                <td colSpan={6}>미등원 - {tr["결석사유"]}</td> :
+                <>
+                  <td>
                   <p>{tr["실제취침"]}</p>
                 </td>
                 <td>
@@ -140,6 +145,9 @@ function ClosemeetingWrite() {
                 <td>
                   <p>{tr["프로그램시간"]}</p>
                 </td>
+                </>
+                }
+                
                 <td>
                 <p>{tr["작성매니저"] + " : " + tr["매니저피드백"]}</p>
                 </td>
@@ -151,6 +159,7 @@ function ClosemeetingWrite() {
           })}
         </tbody>
       </Table>
+    </div>
     </div>
   );
 }
