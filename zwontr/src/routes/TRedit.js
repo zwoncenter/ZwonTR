@@ -325,7 +325,7 @@ function TRedit() {
     await setTR(newTR);
 
     isInitialMount.current = false;
-  }, []);
+  }, [paramDate]);
 
   useEffect(() => {
     if (!isInitialMount.current) {
@@ -978,7 +978,6 @@ function TRedit() {
                           window.alert("해당 날짜의 TR이 존재하지 않습니다.");
                         } else {
                           history.push(`/TR/${paramID}/edit/${selectedDate}`);
-                          window.location.reload();
                         }
                       })
                       .catch((err) => {
