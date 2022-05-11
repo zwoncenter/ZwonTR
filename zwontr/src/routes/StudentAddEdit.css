@@ -12,8 +12,7 @@ th,
 strong,
 td {
   font-family: "NanumSquare" !important;
-  -webkit-transform: rotate(-0.1deg);
-          transform: rotate(-0.1deg);
+  transform: rotate(-0.1deg);
 }
 
 .stuDB-form {
@@ -26,19 +25,18 @@ td {
 .stuedit-background {
   width: 100%;
   height: 100%;
+  background-color: #F0EDFF;
   background-attachment: fixed;
   background-size: cover;
   padding: 1px;
   text-align: center;
 }
-
 .stuedit-background label {
   color: white;
   background-color: #675ec2;
   border-radius: 30px;
   margin-bottom: 10px;
 }
-
 .stuedit-background h2 {
   margin-top: 50px;
   font-size: 3rem;
@@ -49,8 +47,7 @@ td {
   padding: 20px;
   border-radius: 30px;
   margin: 20px;
-  -webkit-box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
-          box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 
 .stuedit-cat-title {
@@ -58,8 +55,8 @@ td {
 }
 
 .btn-delete {
-  height: 70%;
-  width: 50%;
+  width: 25px;
+  height: 23px;
   background-color: #675ec2;
   color: white;
   padding: 0px;
@@ -81,11 +78,9 @@ Table {
   border-radius: 5px;
   padding: 10px;
 }
-
 Table td {
   border-bottom: 0px;
 }
-
 Table input,
 Table option {
   width: 100%;
@@ -97,12 +92,8 @@ Table option {
 }
 
 .commit-btns {
-  display: -webkit-box;
-  display: -ms-flexbox;
   display: flex;
-  -webkit-box-pack: center;
-      -ms-flex-pack: center;
-          justify-content: center;
+  justify-content: center;
 }
 
 .btn-DBcommit {
@@ -111,8 +102,7 @@ Table option {
   font-size: 20px;
   border-radius: 20px;
   border: 0px;
-  -webkit-box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
-          box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 
 .btn-edit {
@@ -125,5 +115,4 @@ Table option {
 
 .program-delete:hover {
   cursor: pointer;
-}
-/*# sourceMappingURL=StudentAddEdit.css.map */
+}/*# sourceMappingURL=StudentAddEdit.css.map */

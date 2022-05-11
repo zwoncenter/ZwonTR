@@ -1,0 +1,15 @@
+.graph {
+  border: 2px rgba(184, 184, 184, 0.267) solid;
+  margin: auto;
+  border-radius: 7px;
+}
+
+.graph-box {
+  box-sizing: border-box;
+  padding: 10px;
+}
+
+.dateselctbox {
+  width: 60%;
+  margin: auto;
+}/*# sourceMappingURL=StudyChart.css.map */

@@ -1,5 +1,4 @@
 @import url(https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/nanumsquare.css);
-
 * p,
 span,
 h2,
@@ -18,28 +17,27 @@ h6 {
   margin-top: 50px;
 }
 
-.stuList-background{
+.stuList-background {
   width: 100vw;
   height: 100vh;
   background: url("../../public/layered-waves-haikei.png");
   background-size: 100% 100%;
   padding: 1px;
   overflow: hidden;
-  h2 {
-    color: white;
-    margin-top: 180px;
-    font-size: 3rem;
-    text-shadow: 3px 2px 2px gray;
-  }
+}
+.stuList-background h2 {
+  color: white;
+  margin-top: 180px;
+  font-size: 3rem;
+  text-shadow: 3px 2px 2px gray;
 }
 
 .menu {
   position: fixed;
-  // float: left;
   z-index: 1;
   width: 330px;
   height: 100vh;
-  background-color:rgba( 0, 0, 0, 0 );
+  background-color: rgba(0, 0, 0, 0);
   transform: translateX(-250px);
   color: white;
   padding: 5px;
@@ -49,26 +47,25 @@ h6 {
 
 .menu:hover {
   transform: translateX(-5px);
-  background-color:rgba( 0, 0, 0, 0.7);
-
-  img {
-    transform: rotate( 180deg );
-  }
+  background-color: rgba(0, 0, 0, 0.7);
+}
+.menu:hover img {
+  transform: rotate(180deg);
 }
 
-.menu-map{
+.menu-map {
   padding: 50px;
-  h5{
-    margin:0;
-    padding: 0;
-  }
+}
+.menu-map h5 {
+  margin: 0;
+  padding: 0;
 }
 
-.menu-map-btn{
+.menu-map-btn {
   display: block;
   text-align: center;
   margin-top: 50px;
-  background-color: rgba( 0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
   border: 0;
   outline: 0;
 }
@@ -79,9 +76,9 @@ h6 {
   position: absolute;
   bottom: 10px;
   right: 27px;
-  img {
-    width: 100%;
-  }
+}
+.menuArrow img {
+  width: 100%;
 }
 
 .stuListShow {
@@ -96,8 +93,8 @@ h6 {
   transform: translateY(-50px);
 }
 
-.stuCard{
-  font-family: 'NanumSquare';
+.stuCard {
+  font-family: "NanumSquare";
   font-size: 15px;
   width: 90%;
   max-width: 600px;
@@ -110,13 +107,13 @@ h6 {
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 
-.stuCardstuList{
+.stuCardstuList {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
 }
 
-.stuAddbtn{
+.stuAddbtn {
   width: 100%;
   border-radius: 10px;
   font-size: 20px;
@@ -124,49 +121,45 @@ h6 {
   background-color: #5500d3;
 }
 
-.stuListItem{
+.stuListItem, .dateContainer, .stuTRItem, .stuListItemWritten {
   width: 33%;
   height: 100%;
   padding: 2px;
   border-radius: 10px;
-  p {
-    margin: 0;
-    font-weight: bold;
-  }
-  div:hover {
-    background-color: #5500d3;
-    color: white;
-  }
+}
+.stuListItem p, .dateContainer p, .stuTRItem p, .stuListItemWritten p {
+  margin: 0;
+  font-weight: bold;
+}
+.stuListItem div:hover, .dateContainer div:hover, .stuTRItem div:hover, .stuListItemWritten div:hover {
+  background-color: #5500d3;
+  color: white;
 }
 
-.IsWritten{
+.IsWritten {
   background-color: rgb(124, 130, 136);
   color: white;
   border: 0;
 }
 
-.NotWritten{
+.NotWritten {
   background-color: white;
 }
 
-
-.stuListItemWritten{
-  @extend .stuListItem;
+.stuListItemWritten {
   background-color: black;
   color: #eee;
 }
 
-.stuTRItem{
-  @extend .stuListItem;
+.stuTRItem {
   width: 100%;
 }
 
-.stuButton{
+.stuButton {
   background-color: #5500d3;
   border-radius: 10px;
   border: 0;
   font-size: 15px;
-  // font-weight: bold;
 }
 
 .createTRButton {
@@ -176,24 +169,23 @@ h6 {
   margin-bottom: 10px;
 }
 
-.dateContainer{
-  @extend .stuListItem;
+.dateContainer {
   overflow: auto;
   height: 500px;
   width: 100%;
 }
 
-.TRModal{
+.TRModal {
   padding: 30px;
 }
 
-.stumap{
+.stumap {
   display: flex;
   justify-content: center;
   text-align: center;
 }
 
-.stulistComment{
+.stulistComment {
   color: white;
   font-weight: bold;
   text-align: right;
@@ -202,4 +194,4 @@ h6 {
   margin: auto;
   display: block;
   text-shadow: 1px 1px 1px black;
-}
+}/*# sourceMappingURL=StuListpage.css.map */
