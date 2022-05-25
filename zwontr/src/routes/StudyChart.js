@@ -68,8 +68,8 @@ function StudyChart() {
     }
   }, [startday, lastday, include]);
   return (
-    <div>
-      <Card className="dateselctbox">
+    <div className="studyChart-background">
+      <Card className="dateselctbox chartCard">
         <Form.Control
           type="date"
           value={startday}
@@ -93,7 +93,7 @@ function StudyChart() {
           }}
         />
       </Card>
-      <div className="graph-box">
+      <div className="graph-box chartCard">
         <LineChart className="graph" width={1000} height={500} data={data}>
           <Line type="monotone" dataKey="실제학습" stroke="#8884d8" />
           <CartesianGrid strokeDasharray="3 3" />
