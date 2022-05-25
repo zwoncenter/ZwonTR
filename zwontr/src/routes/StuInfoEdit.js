@@ -1,6 +1,19 @@
 import "./StuInfo.scss";
 import "./StuListpage.scss";
-import { Form, Table, Row, Col, Button, Card, ListGroup, Modal, Badge, InputGroup, FormControl, Accordion } from "react-bootstrap";
+import {
+  Form,
+  Table,
+  Row,
+  Col,
+  Button,
+  Card,
+  ListGroup,
+  Modal,
+  Badge,
+  InputGroup,
+  FormControl,
+  Accordion,
+} from "react-bootstrap";
 import { useParams } from "react-router-dom";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
@@ -384,10 +397,15 @@ function StuInfoEdit() {
               <strong>[ 가족관계 ]</strong>
             </h4>
             <div className="row">
-              {["부 직업", "모 직업", "학생과 더 친한 분", "학생과 사이가 더 나쁜 분", "형제 자매 및 관계", "조부모와의 관계", "재산"].map(function (
-                category,
-                index
-              ) {
+              {[
+                "부 직업",
+                "모 직업",
+                "학생과 더 친한 분",
+                "학생과 사이가 더 나쁜 분",
+                "형제 자매 및 관계",
+                "조부모와의 관계",
+                "재산",
+              ].map(function (category, index) {
                 return (
                   <Form.Group as={Row} className="col-xl-6" key={index}>
                     <Form.Label column sm="4" className="fs-6">
@@ -537,27 +555,29 @@ function StuInfoEdit() {
                       </Accordion.Header>
                       <Accordion.Body>
                         <div className="me-3">
-                          {["생활", "목표 및 동기", "학습", "인성", "현재 폰기종", "현재1주용돈", "불법행위여부"].map(function (category, index) {
-                            return (
-                              <Form.Group as={Row} className="mb-2" key={index}>
-                                <Form.Label column sm="4" className="fs-6">
-                                  <p>
-                                    <strong>{category}</strong>
-                                  </p>
-                                </Form.Label>
-                                <Col>
-                                  <textarea
-                                    className="textArea"
-                                    rows="2"
-                                    value={stuInfo[`부모님고민_${category.split(" ").join("")}`]}
-                                    onChange={(e) => {
-                                      change_depth_one(`부모님고민_${category.split(" ").join("")}`, e.target.value);
-                                    }}
-                                  />
-                                </Col>
-                              </Form.Group>
-                            );
-                          })}
+                          {["생활", "목표 및 동기", "학습", "인성", "현재 폰기종", "현재1주용돈", "불법행위여부"].map(
+                            function (category, index) {
+                              return (
+                                <Form.Group as={Row} className="mb-2" key={index}>
+                                  <Form.Label column sm="4" className="fs-6">
+                                    <p>
+                                      <strong>{category}</strong>
+                                    </p>
+                                  </Form.Label>
+                                  <Col>
+                                    <textarea
+                                      className="textArea"
+                                      rows="2"
+                                      value={stuInfo[`부모님고민_${category.split(" ").join("")}`]}
+                                      onChange={(e) => {
+                                        change_depth_one(`부모님고민_${category.split(" ").join("")}`, e.target.value);
+                                      }}
+                                    />
+                                  </Col>
+                                </Form.Group>
+                              );
+                            }
+                          )}
                         </div>
                       </Accordion.Body>
                     </Accordion.Item>
@@ -574,26 +594,28 @@ function StuInfoEdit() {
               <strong>[ 건강상태 ]</strong>
             </h4>
             <div className="row">
-              {["키", "몸무게", "체지방률", "BMI", "운동량", "평균 수면시간", "식습관", "정신건강", "과거병력"].map(function (category, index) {
-                return (
-                  <Form.Group as={Row} className="col-xl-4" key={index}>
-                    <Form.Label column sm="4" className="fs-6">
-                      <p>
-                        <strong>{category}</strong>
-                      </p>
-                    </Form.Label>
-                    <Col>
-                      <Form.Control
-                        type="text"
-                        value={stuInfo[category.split(" ").join("")]}
-                        onChange={(e) => {
-                          change_depth_one(category.split(" ").join(""), e.target.value);
-                        }}
-                      />
-                    </Col>
-                  </Form.Group>
-                );
-              })}
+              {["키", "몸무게", "체지방률", "BMI", "운동량", "평균 수면시간", "식습관", "정신건강", "과거병력"].map(
+                function (category, index) {
+                  return (
+                    <Form.Group as={Row} className="col-xl-4" key={index}>
+                      <Form.Label column sm="4" className="fs-6">
+                        <p>
+                          <strong>{category}</strong>
+                        </p>
+                      </Form.Label>
+                      <Col>
+                        <Form.Control
+                          type="text"
+                          value={stuInfo[category.split(" ").join("")]}
+                          onChange={(e) => {
+                            change_depth_one(category.split(" ").join(""), e.target.value);
+                          }}
+                        />
+                      </Col>
+                    </Form.Group>
+                  );
+                }
+              )}
             </div>
           </Card>
         </div>
@@ -604,26 +626,28 @@ function StuInfoEdit() {
               <strong>[ 대인관계 ]</strong>
             </h4>
             <div className="row">
-              {["연인", "친구", "친구들 성향", "매니저와의 관계", "가장 친한 매니저", "센터 내 가장 친한 학생"].map(function (category, index) {
-                return (
-                  <Form.Group as={Row} className="col-xl-6" key={index}>
-                    <Form.Label column sm="4" className="fs-6">
-                      <p>
-                        <strong>{category}</strong>
-                      </p>
-                    </Form.Label>
-                    <Col>
-                      <Form.Control
-                        type="text"
-                        value={stuInfo[category.split(" ").join("")]}
-                        onChange={(e) => {
-                          change_depth_one(category.split(" ").join(""), e.target.value);
-                        }}
-                      />
-                    </Col>
-                  </Form.Group>
-                );
-              })}
+              {["연인", "친구", "친구들 성향", "매니저와의 관계", "가장 친한 매니저", "센터 내 가장 친한 학생"].map(
+                function (category, index) {
+                  return (
+                    <Form.Group as={Row} className="col-xl-6" key={index}>
+                      <Form.Label column sm="4" className="fs-6">
+                        <p>
+                          <strong>{category}</strong>
+                        </p>
+                      </Form.Label>
+                      <Col>
+                        <Form.Control
+                          type="text"
+                          value={stuInfo[category.split(" ").join("")]}
+                          onChange={(e) => {
+                            change_depth_one(category.split(" ").join(""), e.target.value);
+                          }}
+                        />
+                      </Col>
+                    </Form.Group>
+                  );
+                }
+              )}
             </div>
           </Card>
         </div>

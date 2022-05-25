@@ -1,5 +1,5 @@
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
-import { Link, Route, Switch } from "react-router-dom";
+import { Link, Route, Switch, useLocation, Redirect } from "react-router-dom";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -26,41 +26,44 @@ function App() {
 
   const [managerList, setmanagerList] = useState([]);
 
+  const { pathname } = useLocation();
+
   return (
     <div className="App">
-      <Route exact path="/">
-        <FirstPage />
-      </Route>
-      <Route exact path="/studentList">
-        <StuListpage />
-      </Route>
-      <Route exact path="/studentAdd">
-        <StudentAdd />
-      </Route>
-      <Route exact path="/StudentEdit/:ID">
-        <StudentEdit />
-      </Route>
-      <Route exact path="/TR/:ID/write">
-        <TRwrite />
-      </Route>
-      <Route exact path="/TR/:ID/edit/:date">
-        <TRedit />
-      </Route>
-      <Route exact path="/StuInfoAdd">
-        <StuInfoAdd />
-      </Route>
+      <Switch>
+        <Route exact path="/">
+          <FirstPage />
+        </Route>
+        <Route exact path="/studentList">
+          <StuListpage />
+        </Route>
+        <Route exact path="/studentAdd">
+          <StudentAdd />
+        </Route>
+        <Route exact path="/StudentEdit/:ID">
+          <StudentEdit />
+        </Route>
+        <Route exact path="/TR/:ID/write">
+          <TRwrite />
+        </Route>
+        <Route exact path="/TR/:ID/edit/:date">
+          <TRedit />
+        </Route>
+        <Route exact path="/StuInfoAdd">
+          <StuInfoAdd />
+        </Route>
 
-      <Route exact path="/StuInfoEdit/:ID">
-        <StuInfoEdit />
-      </Route>
-
-      <Route exact path="/Chart/:ID">
-        <StudyChart />
-      </Route>
-
-      <Route exact path="/Closemeeting/Write">
-        <ClosemeetingWrite/>
-      </Route>
+        <Route exact path="/StuInfoEdit/:ID">
+          <StuInfoEdit />
+        </Route>
+        <Route exact path="/Chart/:ID">
+          <StudyChart />
+        </Route>
+        <Route exact path="/Closemeeting/Write">
+          <ClosemeetingWrite />
+        </Route>
+        <Redirect from="/:url*(/+)" to={pathname.slice(0, -1)} />
+      </Switch>
     </div>
   );
 }

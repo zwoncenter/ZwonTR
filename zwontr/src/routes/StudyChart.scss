@@ -18,34 +18,88 @@ textarea {
 
 .studyChart-background{
   width: 100%;
+  text-align: center;
   height: 100vh;
-  padding: 20px;
   background-color: #F0EDFF;
+  padding: 1px;
+  overflow: hidden;
+  h2 {
+    color: black;
+    margin-top: 50px;
+    font-size: 2rem;
+  }
+}
+
+.menu {
+  position: fixed;
+  // float: left;
+  z-index: 1;
+  width: 330px;
+  height: 100vh;
+  background-color:rgba( 0, 0, 0, 0 );
+  transform: translateX(-250px);
+  color: white;
+  padding: 5px;
+  transition-property: transform, background-color;
+  transition-duration: 0.6s;
+}
+
+.menu:hover {
+  transform: translateX(-5px);
+  background-color:rgba( 0, 0, 0, 0.7);
+
+  img {
+    transform: rotate( 180deg );
+    filter: invert(100%);
+  }
+}
+
+.menu-map{
+  padding: 50px;
+  h5{
+    margin:0;
+    padding: 0;
+  }
+}
+
+.menu-map-btn{
+  display: block;
+  text-align: center;
+  margin-top: 50px;
+  background-color: rgba( 0, 0, 0, 0);
+  border: 0;
+  outline: 0;
+}
+
+.menuArrow {
+  filter: invert(0%);
+  width: 40px;
+  position: absolute;
+  bottom: 10px;
+  right: 27px;
+  img {
+    width: 100%;
+  }
 }
 
 
-.graph {
-  border: 2px rgba(184, 184, 184, 0.267) solid;
+
+.chartCard{
+  width: 90%;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
   margin: auto;
-  border-radius: 7px;
-}
-
-.graph-box {
-  box-sizing: border-box;
-  padding: 10px;
-}
-
-.dateselctbox {
-  width: 60%;
-  margin: auto;
-}
-
-
-.chartCard {
-  padding: 15px;
-  margin-bottom: 20px;
+  margin-top: 30px;
   border-radius: 20px;
   border: 0px;
   background-color: white;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+}
+
+.chartElement{
+  border-radius: 20px;
+  border: 2px black solid;
+  padding: 20px;
+  margin-inline: 10px;
 }
