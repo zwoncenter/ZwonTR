@@ -6,11 +6,10 @@ import axios from "axios";
 import TimePicker from "react-time-picker";
 import menuarrow from "../next.png";
 
-function ClosemeetingWrite() {
+function ClosemeetingEdit() {
   let history = useHistory();
   const [date, setdate] = useState(new Date().toISOString().split("T")[0]);
   const [todayTRlist, settodayTRlist] = useState([]);
-
   useEffect(async () => {
     const newtodayTRlist = await axios
       .get(`/api/TRlist/${date}`)
@@ -98,9 +97,9 @@ function ClosemeetingWrite() {
       <Button className="btn-commit btn-save"
       
       onClick={() => {
-        if (window.confirm("마감회의 내용을 저장하시겠습니까?")) {
-          
-        }
+        // if (window.confirm("마감회의 내용을 저장하시겠습니까?")) {
+          window.alert("베타 버전입니다. 저장이 불가능합니다.")
+        // }
       }}>
         마감 회의 저장
       </Button>
@@ -153,11 +152,7 @@ function ClosemeetingWrite() {
                 <p>{tr["작성매니저"] + " : " + tr["매니저피드백"]}</p>
                 </td>
                 <td>
-                  <textarea className="textArea" rows="3" onChange={(e) => {
-                    const newtodayTRlist = [...todayTRlist];
-                    newtodayTRlist[index]["마감회의피드백"] = e.target.value
-                    settodayTRlist(newtodayTRlist)
-                    }}></textarea>
+                  <textarea className="textArea" rows="3"></textarea>
                 </td>
               </tr>
             );
@@ -169,4 +164,4 @@ function ClosemeetingWrite() {
   );
 }
 
-export default ClosemeetingWrite;
+export default ClosemeetingEdit;

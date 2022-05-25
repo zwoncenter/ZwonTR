@@ -5,6 +5,7 @@ import axios from "axios";
 import TimePicker from "react-time-picker";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine } from "recharts";
 import "./StudyChart.scss";
+import menuarrow from "../next.png";
 
 function StudyChart() {
   let history = useHistory();
@@ -16,7 +17,8 @@ function StudyChart() {
   const [startday, setstartday] = useState("");
   const [lastday, setlastday] = useState("");
   const [aver, setaver] = useState(0);
-  const [include, setinclude] = useState(true);
+  const [include_abscent, setinclude_abscent] = useState(true);
+  const [include_sunday, setinclude_sunday] = useState(true);
 
   const isInitialMount = useRef(true);
 
@@ -48,13 +50,27 @@ function StudyChart() {
   useEffect(() => {
     if (!isInitialMount.current) {
       var newdata = [...TRlist];
-      if (!include) {
+      newdata = newdata.filter((data) => {
+        return new Date(data.날짜) >= new Date(startday) && new Date(data.날짜) <= new Date(lastday);
+      });
+
+      if (!include_abscent) {
         newdata = newdata.filter((data) => {
-          return new Date(data.날짜) >= new Date(startday) && new Date(data.날짜) <= new Date(lastday) && data.결석여부 == false;
+          return (
+            new Date(data.날짜) >= new Date(startday) &&
+            new Date(data.날짜) <= new Date(lastday) &&
+            data.결석여부 == false
+          );
         });
-      } else {
+      }
+
+      if (!include_sunday) {
         newdata = newdata.filter((data) => {
-          return new Date(data.날짜) >= new Date(startday) && new Date(data.날짜) <= new Date(lastday);
+          return (
+            new Date(data.날짜) >= new Date(startday) &&
+            new Date(data.날짜) <= new Date(lastday) &&
+            data.요일 !== "일요일"
+          );
         });
       }
 
@@ -66,9 +82,57 @@ function StudyChart() {
       setaver(parseInt((sum / newdata.length) * 10) / 10);
       setdata(newdata);
     }
-  }, [startday, lastday, include]);
+  }, [startday, lastday, include_abscent, include_sunday]);
+
   return (
     <div>
+      <div className="menu">
+        <div className="menu-map">
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              history.push("/studentList");
+            }}
+          >
+            <h5>
+              <strong>학생 관리</strong>
+            </h5>
+          </Button>
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              history.push("/Closemeeting/Write");
+            }}
+          >
+            <h5>
+              <strong>마감 회의</strong>
+            </h5>
+          </Button>
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              window.alert("준비중입니다!");
+            }}
+          >
+            <h5>
+              <strong>매니저 업무리스트</strong>
+            </h5>
+          </Button>
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              window.alert("준비중입니다!");
+            }}
+          >
+            <h5>
+              <strong>대시보드</strong>
+            </h5>
+          </Button>
+        </div>
+        <div className="menuArrow">
+          <img src={menuarrow} alt="menuarrow" />
+        </div>
+      </div>
       <Card className="dateselctbox">
         <Form.Control
           type="date"
@@ -87,9 +151,17 @@ function StudyChart() {
         <Form.Check
           type="checkbox"
           label="미등원 포함"
-          checked={include}
+          checked={include_abscent}
           onChange={(e) => {
-            setinclude(!include);
+            setinclude_abscent(!include_abscent);
+          }}
+        />
+        <Form.Check
+          type="checkbox"
+          label="일요일 포함"
+          checked={include_sunday}
+          onChange={(e) => {
+            setinclude_sunday(!include_sunday);
           }}
         />
       </Card>
