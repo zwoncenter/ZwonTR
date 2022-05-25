@@ -85,7 +85,7 @@ function StudyChart() {
   }, [startday, lastday, include_abscent, include_sunday]);
 
   return (
-    <div>
+    <div className="studyChart-background">
       <div className="menu">
         <div className="menu-map">
           <Button
@@ -133,51 +133,76 @@ function StudyChart() {
           <img src={menuarrow} alt="menuarrow" />
         </div>
       </div>
-      <Card className="dateselctbox">
-        <Form.Control
-          type="date"
-          value={startday}
-          onChange={(e) => {
-            setstartday(e.target.value);
-          }}
-        />
-        <Form.Control
-          type="date"
-          value={lastday}
-          onChange={(e) => {
-            setlastday(e.target.value);
-          }}
-        />
-        <Form.Check
-          type="checkbox"
-          label="미등원 포함"
-          checked={include_abscent}
-          onChange={(e) => {
-            setinclude_abscent(!include_abscent);
-          }}
-        />
-        <Form.Check
-          type="checkbox"
-          label="일요일 포함"
-          checked={include_sunday}
-          onChange={(e) => {
-            setinclude_sunday(!include_sunday);
-          }}
-        />
-      </Card>
-      <div className="center">
-        <p>총 등원일 - {data.length}일 </p>
+      <div>
+        <h2>
+          <strong>학습시간 차트</strong>
+        </h2>
       </div>
-      
-      <div className="graph-box">
-        <LineChart className="graph" width={1000} height={500} data={data}>
-          <Line type="monotone" dataKey="실제학습" stroke="#8884d8" />
-          <CartesianGrid strokeDasharray="3 3" />
-          <Tooltip />
-          <XAxis dataKey="날짜" />
-          <YAxis />
-          <ReferenceLine y={aver} label={`Average : ${aver}`} stroke="green" strokeDasharray="3 3" />
-        </LineChart>
+      <div className="chartCard">
+        <div className="chartElement">
+          <div>
+            <strong>
+              <p>[ 리모컨 ]</p>
+            </strong>
+          </div>
+          <Card className="p-2">
+            <Form.Control
+              type="date"
+              value={startday}
+              onChange={(e) => {
+                setstartday(e.target.value);
+              }}
+            />
+            <Form.Label>
+              <p className="mb-0">
+                <strong>부터</strong>
+              </p>
+            </Form.Label>
+            <Form.Control
+              type="date"
+              value={lastday}
+              onChange={(e) => {
+                setlastday(e.target.value);
+              }}
+            />
+            <Form.Label>
+              <p className="mb-0">
+                <strong>까지</strong>
+              </p>
+            </Form.Label>
+            <Form.Check
+              className="mb-2"
+              type="checkbox"
+              label="미등원 포함"
+              checked={include_abscent}
+              onChange={(e) => {
+                setinclude_abscent(!include_abscent);
+              }}
+            />
+            <Form.Check
+              className="mb-2"
+              type="checkbox"
+              label="일요일 포함"
+              checked={include_sunday}
+              onChange={(e) => {
+                setinclude_sunday(!include_sunday);
+              }}
+            />
+          </Card>
+          <div className="center">
+            <p>기간 내 등원일 - {data.length}일 </p>
+          </div>
+        </div>
+        <div className="chartElement">
+          <LineChart className="graph" width={1000} height={500} data={data}>
+            <Line type="monotone" dataKey="실제학습" stroke="#8884d8" />
+            <CartesianGrid strokeDasharray="3 3" />
+            <Tooltip />
+            <XAxis dataKey="날짜" />
+            <YAxis />
+            <ReferenceLine y={aver} label={`Average : ${aver}`} stroke="green" strokeDasharray="3 3" />
+          </LineChart>
+        </div>
       </div>
     </div>
   );
