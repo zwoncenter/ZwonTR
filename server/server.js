@@ -336,6 +336,89 @@ app.delete("/api/TR/delete/:id", loginCheck, function (req, res) {
   });
 });
 
+app.post("/api/Closemeeting/write/:date", loginCheck, function (req, res) {
+  const paramDate = decodeURIComponent(req.params.date);
+  const newClosemeeting = req.body;
+  console.log("마감회의 저장 시도 : ", paramDate);
+  db.collection("Closemeeting").findOne({ 날짜 : paramDate }, function (err, result) {
+    if (err) {
+      console.log(`/api/Closemeeting/write/:date - findOne Error : `, err);
+      return res.send(`/api/Closemeeting/write/:date - findOne Error : `, err);
+    }
+    if (result !== null) {
+      return res.send("findOne result is not null. 중복되는 날짜의 마감회의가 존재합니다.");
+    }
+    db.collection("Closemeeting").insertOne(newClosemeeting, function (err2, result2) {
+      if (err2) {
+        console.log("/api/Closemeeting/write/:date - insertOne Error : ", err2);
+        return res.send("/api/Closemeeting/write/:date - insertOne Error : ", err2);
+      }
+      console.log("터미널에 표시 : 마감회의 저장 완료");
+      return res.send(true);
+    });
+  });
+});
+
+app.get("/api/Closemeeting/find/:date", loginCheck, function (req, res) {
+  const paramDate = decodeURIComponent(req.params.date);
+  console.log(`${paramDate} 날짜 마감회의 조회 시도`);
+  db.collection("Closemeeting").findOne({ 날짜: paramDate }, function (err, result) {
+    if (err) {
+      return console.log("/api/Closemeeting/find/:date - findOne Error : ", err);
+    }
+    return res.json(result);
+  });
+});
+
+app.put("/api/Closemeeting/edit/:date", loginCheck, function (req, res) {
+  const paramDate = decodeURIComponent(req.params.date);
+  const newClosemeeting = req.body;
+  const findID = ObjectId(newClosemeeting._id);
+  delete newClosemeeting._id;
+  console.log("마감회의 수정 시도 : ", paramDate);
+  db.collection("Closemeeting").findOne({ 날짜 : paramDate }, function (err, result) {
+    if (err) {
+      return res.send(`/api/Closemeeting/edit/:date - findOne Error : `, err);
+    }
+    if (result !== null && !result._id.equals(findID)) {
+      return res.send("중복되는 날짜의 마감회의가 존재합니다.");
+    }
+    db.collection(`Closemeeting`).findOne({ _id: findID }, function (err2, result2) {
+      if (err2) {
+        return console.log(`/api/Closemeeting/edit/:date - findOne Error : `, err2);
+      }
+      if (result2 === null) {
+        return res.send("일치하는 _id의 마감회의를 찾지 못했습니다. 개발 / 데이터팀에 문의해주세요");
+      }
+      db.collection("Closemeeting").updateOne({ _id: findID }, { $set: newClosemeeting }, function (err3, result3) {
+        if (err3) {
+          return res.send("/api/Closemeeting/edit/:date - updateOne Error : ", err3);
+        }
+        console.log("터미널에 표시 : 마감회의 수정 완료");
+        return res.send(true);
+      });
+    });
+  });
+});
+
+app.delete("/api/Closemeeting/delete/:id", loginCheck, function (req, res) {
+  const ClosemeetingID = ObjectId(req.params.id);
+  console.log("마감회의 삭제 시도 :", ClosemeetingID);
+  db.collection("Closemeeting").deleteOne({ _id: ClosemeetingID }, (err, result) => {
+    if (err) {
+      return res.send("/api/Closemeeting/delete/:id - deleteOne error : ", err);
+    }
+    if (result.deletedCount === 1) {
+      console.log("마감회의 삭제 완료 : ", result);
+      return res.send(true);
+    }
+    return res.send(false);
+  });
+});
+
+
+
+
 app.use("*", express.static(path.join(__dirname, "../zwontr/build")));
 app.get("*", function (req, res) {
   res.sendFile(path.join(__dirname, "../zwontr/build/index.html"));

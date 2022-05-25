@@ -6,4 +6,12 @@
 .btn-save {
   background-color: #5500d3;
   max-width: 200px;
+}
+
+.green {
+  color: rgb(51, 173, 51) !important;
+}
+
+.red {
+  color: red !important;
 }/*# sourceMappingURL=Closemeeting.css.map */

@@ -37,6 +37,7 @@ function ClosemeetingWrite() {
 
   return (
     <div>    
+      {/* 좌측 메뉴바 */}
       <div className="menu">
         <div className="menu-map">
           <Button
@@ -84,26 +85,40 @@ function ClosemeetingWrite() {
           <img src={menuarrow} alt="menuarrow" />
         </div>
       </div>
+
     <div className="trEdit-background">
       
       <h3>{date} 마감 회의</h3>
-      <h4>현재는 저장이 불가능하며, 참고용으로 사용하시길 바랍니다.</h4>
-      {/* <Button
-        onClick={() => {
-          console.log(todayTRlist[0]);
-        }}
-      >
-        TR 첫번째 확인
-      </Button> */}
+
       <Button className="btn-commit btn-save"
-      
       onClick={() => {
         if (window.confirm("마감회의 내용을 저장하시겠습니까?")) {
-          
+          const newClosemeeting = {
+            날짜 : date,
+            trlist : todayTRlist
+          };
+          axios
+            .post(`/api/Closemeeting/write/${date}`, newClosemeeting)
+            .then(function (result) {
+              if (result.data === true) {
+                window.alert("저장되었습니다.");
+              } else if (result.data === "로그인필요") {
+                window.alert("로그인이 필요합니다.");
+                return history.push("/");
+              } else {
+                console.log(result.data);
+                window.alert(result.data);
+              }
+            })
+            .catch(function (err) {
+              console.log("저장 실패 : ", err);
+              window.alert(err);
+            });
         }
       }}>
         마감 회의 저장
       </Button>
+      
       <Table striped hover size="sm" className="mt-3">
         <thead>
           <tr>
@@ -128,19 +143,19 @@ function ClosemeetingWrite() {
                 {tr["결석여부"] ? 
                 <td colSpan={6}>미등원 - {tr["결석사유"]}</td> :
                 <>
-                  <td>
+                  <td className={tr["취침차이"] >= 0 ? "green" : "red"}>
                   <p>{tr["실제취침"]}</p>
                 </td>
-                <td>
+                <td className={tr["기상차이"] >= 0 ? "green" : "red"}>
                   <p>{tr["실제기상"]}</p>
                 </td>
-                <td>
+                <td className={tr["등원차이"] >= 0 ? "green" : "red"}>
                   <p>{tr["실제등원"]}</p>
                 </td>
                 <td>
                   <p>{tr["실제귀가"]}</p>
                 </td>
-                <td>
+                <td className={tr["학습차이"] >= 0 ? "green" : "red"}>
                   <p>{tr["실제학습"]}</p>
                 </td>
                 <td>

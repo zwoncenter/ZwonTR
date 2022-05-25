@@ -343,6 +343,7 @@ function TRedit() {
       ["취침", "기상", "등원", "귀가"].forEach((a) => {
         newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
       });
+      newTR.학습차이 = Math.round((TR.실제학습 - TR.목표학습) * 10) / 10
       newTR.센터내시간 = 차이계산(newTR.실제귀가, newTR.실제등원);
       newTR.센터활용률 = Math.round(((newTR.프로그램시간 + newTR.실제학습) / TR.센터내시간) * 1000) / 10;
       newTR.센터학습활용률 = Math.round((newTR.실제학습 / newTR.센터내시간) * 1000) / 10;
@@ -691,7 +692,7 @@ function TRedit() {
                         <td colSpan={4}>목표 학습 - {TR.목표학습} 시간</td>
                         <td> {TR.실제학습} 시간</td>
                         <td>
-                          {Math.round((TR.실제학습 - TR.목표학습) * 10) / 10}
+                          {TR.학습차이}
                           시간
                         </td>
                       </tr>

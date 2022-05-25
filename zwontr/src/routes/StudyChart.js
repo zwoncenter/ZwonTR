@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import TimePicker from "react-time-picker";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine } from "recharts";
-import "./StudyChart.scss";
+import "./StudyChart.css";
 import menuarrow from "../next.png";
 
 function StudyChart() {
@@ -165,6 +165,10 @@ function StudyChart() {
           }}
         />
       </Card>
+      <div className="center">
+        <p>총 등원일 - {data.length}일 </p>
+      </div>
+      
       <div className="graph-box">
         <LineChart className="graph" width={1000} height={500} data={data}>
           <Line type="monotone" dataKey="실제학습" stroke="#8884d8" />

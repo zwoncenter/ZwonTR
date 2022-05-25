@@ -53,6 +53,7 @@ textarea {
 .stuInfoCard textArea {
   border-radius: 10px;
   text-align: center;
+  margin-bottom: 5px;
 }
 .stuInfoCard Table {
   table-layout: fixed;
@@ -93,7 +94,7 @@ textarea {
 }
 
 .btn-add {
-  background-color: black;
+  background-color: #4B4453;
   border: 0px;
   margin: auto;
   display: block;

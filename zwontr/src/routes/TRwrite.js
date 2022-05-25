@@ -212,7 +212,7 @@ function TRwrite() {
     return true;
   }
 
-  function 차이계산(목표, 실제) {
+  function 차이계산(목표, 실제, 종류) {
     if (!목표 || !실제) {
       return NaN;
     }
@@ -231,16 +231,17 @@ function TRwrite() {
   function 차이출력(stayup, diff, 종류) {
     if (stayup == true && (종류 == "취침" || 종류 == "기상")) {
       return "밤샘";
-    } else {
-      if (diff < 0) {
-        diff = -diff;
-        return Math.round(diff * 10) / 10 + "시간 늦게 " + 종류;
-      } else if (diff > 0) {
-        return Math.round(diff * 10) / 10 + "시간 일찍 " + 종류;
-      } else {
-        return "정시 " + 종류;
-      }
     }
+
+    if (diff < 0) {
+      diff = -diff;
+      return Math.round(diff * 10) / 10 + "시간 늦게 " + 종류;
+    } else if (diff > 0) {
+      return Math.round(diff * 10) / 10 + "시간 일찍 " + 종류;
+    } else {
+      return "정시 " + 종류;
+    }
+    
   }
 
   function change_depth_one(category, data) {
@@ -395,6 +396,7 @@ function TRwrite() {
       ["취침", "기상", "등원", "귀가"].forEach((a) => {
         newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
       });
+      newTR.학습차이 = Math.round((TR.실제학습 - TR.목표학습) * 10) / 10
       newTR.센터내시간 = 차이계산(newTR.실제귀가, newTR.실제등원);
       newTR.센터활용률 = Math.round(((newTR.프로그램시간 + newTR.실제학습) / TR.센터내시간) * 1000) / 10;
       newTR.센터학습활용률 = Math.round((newTR.실제학습 / newTR.센터내시간) * 1000) / 10;
@@ -739,7 +741,7 @@ function TRwrite() {
                       <tr>
                         <td colSpan={4}>목표 학습 - {TR.목표학습} 시간</td>
                         <td> {TR.실제학습} 시간</td>
-                        <td>{Math.round((TR.실제학습 - TR.목표학습) * 10) / 10}시간</td>
+                        <td>{TR.학습차이}시간</td>
                       </tr>
                       <tr>
                         <td colSpan={6}>
