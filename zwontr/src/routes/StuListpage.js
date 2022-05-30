@@ -85,10 +85,13 @@ function StuListpage() {
       settodayTRlist(newtodayTRlist);
     const newWritten = [];
     for (var i = 0; i < newstudentDBlist.length; i++) {
-      var tmp = false;
+      var tmp = "a";
       for (var j = 0; j < newtodayTRlist.length; j++) {
         if (newstudentDBlist[i]["ID"] == newtodayTRlist[j]["ID"]) {
-          tmp = true;
+          tmp = "b";
+          if (newtodayTRlist[j]["작성매니저"] && newtodayTRlist[j]["작성매니저"] !== "선택") {
+            tmp = "c"
+          }
           break;
         }
       }
@@ -126,7 +129,7 @@ function StuListpage() {
                     <div className="stuListItem" key={index}>
                       <ListGroup.Item
                         className={
-                          Written[index] == true ? "IsWritten" : "NotWritten"
+                          Written[index] === "c" ? "IsWritten" : (Written[index] === "b" ? "Writing" : "NotWritten")
                         }
                         onClick={() => {
                           nameClick(db, index);

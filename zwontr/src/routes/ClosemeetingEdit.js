@@ -1,4 +1,4 @@
-import "./Closemeeting.css"
+import "./Closemeeting.css";
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
@@ -8,14 +8,15 @@ import menuarrow from "../next.png";
 
 function ClosemeetingEdit() {
   let history = useHistory();
-  const [objectid, setobjectid] = useState("");
-  const [date, setdate] = useState(useParams()["date"]);
+  let paramDate = useParams()["date"];
   const [todayTRlist, settodayTRlist] = useState([]);
+  const [closeFeedback, setcloseFeedback] = useState({});
   const [selectedDate, setselectedDate] = useState("");
+  const [objectid, setobjectid] = useState("");
 
   useEffect(async () => {
     const document = await axios
-      .get(`/api/Closemeeting/find/${date}`)
+      .get(`/api/Closemeeting/find/${paramDate}`)
       .then((result) => {
         if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다");
@@ -26,57 +27,65 @@ function ClosemeetingEdit() {
       .catch((err) => {
         return err;
       });
-    console.log(document)
-    const closemeeting = document["trlist"];
-    setobjectid(document["_id"])
-  
-    if (closemeeting && closemeeting == "로그인필요") {
-      window.alert("로그인이 필요합니다.");
-      return history.push("/");
-    }
-    console.log(closemeeting);
-    closemeeting.sort(function (a, b) {
+    setobjectid(document["_id"]);
+    setcloseFeedback(document["closeFeedback"]);
+
+    const newtodayTRlist = await axios
+      .get(`/api/TRlist/${paramDate}`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다");
+          return history.push("/");
+        }
+        return result.data;
+      })
+      .catch((err) => {
+        return err;
+      });
+
+    newtodayTRlist.sort(function (a, b) {
       return +(a.이름 > b.이름) - 0.5;
     });
-    settodayTRlist(closemeeting);
-  }, []);
+    settodayTRlist(newtodayTRlist);
+  }, [paramDate]);
 
   return (
     <div>
+      <div className="trEdit-background">
+        <h3>{paramDate} 일일 결산</h3>
+        <Button
+          className="btn-commit btn-save"
+          onClick={() => {
+            if (window.confirm("일일결산 내용을 저장하시겠습니까?")) {
+              axios
+                .put(`/api/Closemeeting/edit/${paramDate}`, {
+                  _id: objectid,
+                  날짜: paramDate,
+                  closeFeedback: closeFeedback,
+                })
+                .then(function (result) {
+                  if (result.data === true) {
+                    window.alert("저장되었습니다.");
+                    return window.location.reload();
+                  } else if (result.data === "로그인필요") {
+                    window.alert("로그인이 필요합니다.");
+                    return history.push("/");
+                  } else {
+                    console.log(result.data);
+                    window.alert(result.data);
+                  }
+                })
+                .catch(function (err) {
+                  console.log("저장 실패 : ", err);
+                  window.alert(err);
+                });
+            }
+          }}
+        >
+          일일결산 저장
+        </Button>
 
-    <div className="trEdit-background">
-      
-      <h3>{date} 마감 회의</h3>
-      <Button className="btn-commit btn-save"
-      onClick={() => {
-        if (window.confirm("마감회의 내용을 저장하시겠습니까?")) {
-          axios
-            .put(`/api/Closemeeting/edit/${date}`, {
-              _id : objectid,
-              날짜 : date,
-              trlist : todayTRlist
-            })
-            .then(function (result) {
-              if (result.data === true) {
-                window.alert("저장되었습니다.");
-              } else if (result.data === "로그인필요") {
-                window.alert("로그인이 필요합니다.");
-                return history.push("/");
-              } else {
-                console.log(result.data);
-                window.alert(result.data);
-              }
-            })
-            .catch(function (err) {
-              console.log("저장 실패 : ", err);
-              window.alert(err);
-            });
-        }
-      }}>
-        마감 회의 저장
-      </Button>
-
-      <Button
+        <Button
           variant="secondary"
           className="btn-commit btn-load loadButton"
           onClick={() => {
@@ -85,11 +94,11 @@ function ClosemeetingEdit() {
                 .get(`/api/Closemeeting/find/${selectedDate}`)
                 .then((result) => {
                   if (result["data"] === null) {
-                    if (window.confirm("해당 날짜의 마감회의가 존재하지 않습니다. 새로 작성하시겠습니까?")) {
+                    if (window.confirm("해당 날짜의 일일결산이 존재하지 않습니다. 새로 작성하시겠습니까?")) {
                       history.push(`/Closemeeting/Write/${selectedDate}`);
                     }
                   } else {
-                    if (window.confirm(`${selectedDate}의 마감회의로 이동하시겠습니까?`)) {
+                    if (window.confirm(`${selectedDate}의 일일결산으로 이동하시겠습니까?`)) {
                       history.push(`/Closemeeting/Edit/${selectedDate}`);
                     }
                   }
@@ -120,68 +129,85 @@ function ClosemeetingEdit() {
             </div>
           </div>
         </Button>
-      
-      <Table striped hover size="sm" className="mt-3">
-        <thead>
-          <tr>
-            <th width="3%">이름</th>
-            <th width="3%">취침</th>
-            <th width="3%">기상</th>
-            <th width="3%">등원</th>
-            <th width="3%">귀가</th>
-            <th width="2%">학습</th>
-            <th width="2%">자기계발</th>
-            <th width="15%">매니저 피드백</th>
-            <th width="15%">마감 회의 피드백</th>
-          </tr>
-        </thead>
-        <tbody>
-          {todayTRlist.map(function (tr, index) {
-            return (
-              <tr key={index}>
-                <td>
-                  <p>{tr["이름"]}</p>
-                </td>
-                {tr["결석여부"] ? 
-                <td colSpan={6}>미등원 - {tr["결석사유"]}</td> :
-                <>
+
+        <Table striped hover size="sm" className="mt-3">
+          <thead>
+            <tr>
+              <th width="4%">이름</th>
+              <th width="4%">취침</th>
+              <th width="4%">기상</th>
+              <th width="4%">등원</th>
+              <th width="4%">귀가</th>
+              <th width="4%">학습</th>
+              <th width="4%">자기계발</th>
+              <th width="23%">매니저 피드백</th>
+              <th>일일결산 피드백</th>
+            </tr>
+          </thead>
+          <tbody>
+            {todayTRlist.map(function (tr, index) {
+              return (
+                <tr key={index}>
                   <td>
-                    <p className={tr["취침차이"] >= 0 ? "green" : "red"}>{tr["실제취침"]}</p>
+                    <p>{tr["이름"]}</p>
                   </td>
-                  <td >
-                    <p className={tr["기상차이"] >= 0 ? "green" : "red"}>{tr["실제기상"]}</p>
-                  </td>
-                  <td >
-                    <p className={tr["등원차이"] >= 0 ? "green" : "red"}>{tr["실제등원"]}</p>
+                  {tr["결석여부"] ? (
+                    <td colSpan={6}>미등원 - {tr["결석사유"]}</td>
+                  ) : (
+                    <>
+                      <td>
+                        <p className={tr["취침차이"] >= 0 ? "green" : "red"}>{tr["실제취침"]}</p>
+                      </td>
+                      <td>
+                        <p className={tr["기상차이"] >= 0 ? "green" : "red"}>{tr["실제기상"]}</p>
+                      </td>
+                      <td>
+                        <p className={tr["등원차이"] >= 0 ? "green" : "red"}>{tr["실제등원"]}</p>
+                        <p className="targetattend">{tr["목표등원"]}</p>
+                      </td>
+                      <td>
+                        <p>{tr["실제귀가"]}</p>
+                        
+                      </td>
+                      <td>
+                        <p className={tr["학습차이"] >= 0 ? "green" : "red"}>{tr["실제학습"]}</p>
+                      </td>
+                      <td>
+                        <p>{tr["프로그램시간"]}</p>
+                      </td>
+                    </>
+                  )}
+
+                  <td>{tr["중간피드백"] ? <>
+                  <p>
+                      (중간) {tr["중간매니저"]} : {tr["중간피드백"]}
+                    </p>
+                    <br />
+                  </> : null}
+                    {tr["매니저피드백"] ? <>
+                  <p>
+                      {tr["작성매니저"]} : {tr["매니저피드백"]}
+                    </p>
+                  </> : null}
                   </td>
                   <td>
-                    <p>{tr["실제귀가"]}</p>
+                    <textarea
+                      className="textArea"
+                      rows="3"
+                      value={closeFeedback[tr["이름"]]}
+                      onChange={(e) => {
+                        const newcloseFeedback = JSON.parse(JSON.stringify(closeFeedback));
+                        newcloseFeedback[tr["이름"]] = e.target.value;
+                        setcloseFeedback(newcloseFeedback);
+                      }}
+                    ></textarea>
                   </td>
-                  <td >
-                    <p className={tr["학습차이"] >= 0 ? "green" : "red"}>{tr["실제학습"]}</p>
-                  </td>
-                  <td>
-                    <p>{tr["프로그램시간"]}</p>
-                  </td>
-                </>
-                }
-                
-                <td>
-                <p>{tr["작성매니저"] + " : " + tr["매니저피드백"]}</p>
-                </td>
-                <td>
-                  <textarea className="textArea" rows="3" value={tr["마감회의피드백"]} onChange={(e) => {
-                    const newtodayTRlist = [...todayTRlist];
-                    newtodayTRlist[index]["마감회의피드백"] = e.target.value
-                    settodayTRlist(newtodayTRlist)
-                    }}></textarea>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </Table>
-    </div>
+                </tr>
+              );
+            })}
+          </tbody>
+        </Table>
+      </div>
     </div>
   );
 }

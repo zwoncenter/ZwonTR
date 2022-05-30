@@ -5,8 +5,8 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import TimePicker from "react-time-picker";
 
-
 function TRwrite() {
+  // 공통 code
   let history = useHistory();
   let paramID = useParams()["ID"];
   const [managerList, setmanagerList] = useState([]);
@@ -155,6 +155,8 @@ function TRwrite() {
     센터학습활용률: 0,
 
     프로그램: [],
+    중간매니저: "",
+    중간피드백: "",
     매니저피드백: "",
     큐브책: [],
   });
@@ -164,10 +166,20 @@ function TRwrite() {
       window.alert("일간하루 날짜가 입력되지 않았습니다.");
       return false;
     }
-    if (!TR.작성매니저) {
+    if ((!TR.중간매니저 && !TR.작성매니저)) {
+      window.alert("중간 혹은 귀가 작성매니저 중 하나는 선택되어야합니다.")
+      return false
+    }
+    if (TR.중간피드백 && !TR.중간매니저) {
+      window.alert("중간피드백 작성매니저가 선택되지 않았습니다.");
+      return false;
+    }
+    if ((TR.매니저피드백 && !TR.작성매니저)) {
       window.alert("일간하루 작성매니저가 선택되지 않았습니다.");
       return false;
     }
+
+
     if (TR.결석여부) {
       if (!TR.결석사유) {
         window.alert("미등원 사유가 선택되지 않았습니다.");
@@ -175,15 +187,17 @@ function TRwrite() {
       }
       return true;
     }
-    if (!TR.신체컨디션) {
+
+    if (TR.매니저피드백 && !TR.신체컨디션) {
       window.alert("신체컨디션이 선택되지 않았습니다.");
       return false;
     }
 
-    if (!TR.정서컨디션) {
+    if (TR.매니저피드백 && !TR.정서컨디션) {
       window.alert("정서컨디션이 선택되지 않았습니다.");
       return false;
     }
+
     if (TR.학습) {
       for (let i = 0; i < TR.학습.length; i++) {
         if (TR.학습[i].과목 == "선택") {
@@ -241,7 +255,6 @@ function TRwrite() {
     } else {
       return "정시 " + 종류;
     }
-    
   }
 
   function change_depth_one(category, data) {
@@ -276,10 +289,11 @@ function TRwrite() {
     setTR(newTR);
   }
 
+  // Write code
   const isInitialMount = useRef(true);
 
   useEffect(async () => {
-    const tmp = await axios
+    const newstuDB = await axios
       .get(`/api/StudentDB/find/${paramID}`)
       .then((result) => {
         if (result.data === "로그인필요") {
@@ -291,9 +305,9 @@ function TRwrite() {
       .catch((err) => {
         return err;
       });
-    setstuDB(tmp);
+    setstuDB(newstuDB);
 
-    const tmp2 = await axios
+    const newmanagerList = await axios
       .get("/api/managerList")
       .then((result) => {
         return result["data"];
@@ -301,11 +315,10 @@ function TRwrite() {
       .catch((err) => {
         return err;
       });
-
-    setmanagerList(tmp2);
+    setmanagerList(newmanagerList);
 
     const newTR = JSON.parse(JSON.stringify(TR));
-    tmp.진행중교재.map(function (a, i) {
+    newstuDB.진행중교재.map(function (a, i) {
       newTR.학습.push({
         과목: a.과목,
         교재: a.교재,
@@ -314,7 +327,7 @@ function TRwrite() {
         학습시간: "00:00",
       });
     });
-    tmp.큐브책.map(function (a, i) {
+    newstuDB.큐브책.map(function (a, i) {
       newTR.큐브책.push({
         구분: a.구분,
         할일: a.내용,
@@ -328,25 +341,25 @@ function TRwrite() {
     newTR["요일"] = ls[date.getDay()] + "요일";
 
     if (date.getDay() === 0) {
-      newTR["목표취침"] = tmp.생활학습목표.일요일취침;
-      newTR["실제취침"] = tmp.생활학습목표.일요일취침;
-      newTR["목표기상"] = tmp.생활학습목표.일요일기상;
-      newTR["실제기상"] = tmp.생활학습목표.일요일기상;
-      newTR["목표등원"] = tmp.생활학습목표.일요일등원;
-      newTR["실제등원"] = tmp.생활학습목표.일요일등원;
-      newTR["목표귀가"] = tmp.생활학습목표.일요일귀가;
-      newTR["실제귀가"] = tmp.생활학습목표.일요일귀가;
-      newTR["목표학습"] = tmp.생활학습목표.일요일학습;
+      newTR["목표취침"] = newstuDB.생활학습목표.일요일취침;
+      newTR["실제취침"] = newstuDB.생활학습목표.일요일취침;
+      newTR["목표기상"] = newstuDB.생활학습목표.일요일기상;
+      newTR["실제기상"] = newstuDB.생활학습목표.일요일기상;
+      newTR["목표등원"] = newstuDB.생활학습목표.일요일등원;
+      newTR["실제등원"] = newstuDB.생활학습목표.일요일등원;
+      newTR["목표귀가"] = newstuDB.생활학습목표.일요일귀가;
+      newTR["실제귀가"] = newstuDB.생활학습목표.일요일귀가;
+      newTR["목표학습"] = newstuDB.생활학습목표.일요일학습;
     } else {
-      newTR["목표취침"] = tmp.생활학습목표.평일취침;
-      newTR["실제취침"] = tmp.생활학습목표.평일취침;
-      newTR["목표기상"] = tmp.생활학습목표.평일기상;
-      newTR["실제기상"] = tmp.생활학습목표.평일기상;
-      newTR["목표등원"] = tmp.생활학습목표.평일등원;
-      newTR["실제등원"] = tmp.생활학습목표.평일등원;
-      newTR["목표귀가"] = tmp.생활학습목표.평일귀가;
-      newTR["실제귀가"] = tmp.생활학습목표.평일귀가;
-      newTR["목표학습"] = tmp.생활학습목표.평일학습;
+      newTR["목표취침"] = newstuDB.생활학습목표.평일취침;
+      newTR["실제취침"] = newstuDB.생활학습목표.평일취침;
+      newTR["목표기상"] = newstuDB.생활학습목표.평일기상;
+      newTR["실제기상"] = newstuDB.생활학습목표.평일기상;
+      newTR["목표등원"] = newstuDB.생활학습목표.평일등원;
+      newTR["실제등원"] = newstuDB.생활학습목표.평일등원;
+      newTR["목표귀가"] = newstuDB.생활학습목표.평일귀가;
+      newTR["실제귀가"] = newstuDB.생활학습목표.평일귀가;
+      newTR["목표학습"] = newstuDB.생활학습목표.평일학습;
     }
 
     ["취침", "기상", "등원", "귀가"].forEach((a) => {
@@ -361,11 +374,11 @@ function TRwrite() {
   useEffect(() => {
     if (!isInitialMount.current) {
       const newTR = JSON.parse(JSON.stringify(TR));
-      const tmp = new Date(TR.날짜);
+      const trDate = new Date(TR.날짜);
       const ls = ["일", "월", "화", "수", "목", "금", "토"];
-      newTR["요일"] = ls[tmp.getDay()] + "요일";
+      newTR["요일"] = ls[trDate.getDay()] + "요일";
 
-      if (tmp.getDay() === 0) {
+      if (trDate.getDay() === 0) {
         newTR["목표취침"] = stuDB.생활학습목표.일요일취침;
         newTR["실제취침"] = stuDB.생활학습목표.일요일취침;
         newTR["목표기상"] = stuDB.생활학습목표.일요일기상;
@@ -396,7 +409,7 @@ function TRwrite() {
       ["취침", "기상", "등원", "귀가"].forEach((a) => {
         newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
       });
-      newTR.학습차이 = Math.round((TR.실제학습 - TR.목표학습) * 10) / 10
+      newTR.학습차이 = Math.round((TR.실제학습 - TR.목표학습) * 10) / 10;
       newTR.센터내시간 = 차이계산(newTR.실제귀가, newTR.실제등원);
       newTR.센터활용률 = Math.round(((newTR.프로그램시간 + newTR.실제학습) / TR.센터내시간) * 1000) / 10;
       newTR.센터학습활용률 = Math.round((newTR.실제학습 / newTR.센터내시간) * 1000) / 10;
@@ -455,27 +468,7 @@ function TRwrite() {
                   }}
                 />
               </div>
-              <div className="col-3">
-                <p className="fw-bold">[ 작성매니저 ]</p>
-                <Form.Select
-                  size="sm"
-                  value={TR.작성매니저}
-                  onChange={(e) => {
-                    change_depth_one("작성매니저", e.target.value);
-                  }}
-                >
-                  <option value="선택">선택</option>
-                  {managerList
-                    ? managerList.map((manager, index) => {
-                        return (
-                          <option value={manager} key={index}>
-                            {manager}
-                          </option>
-                        );
-                      })
-                    : null}
-                </Form.Select>
-              </div>
+              <div className="col-3"></div>
 
               <div className="col-2 p-0">
                 <Button
@@ -550,7 +543,7 @@ function TRwrite() {
                       </Form.Select>
                     </Col>
                   </Form.Group>
-                  <Table striped hover size="sm" className="mt-0">
+                  <Table striped hover size="sm" className="mt-3">
                     <thead>
                       <tr>
                         <th width="15%">생활</th>
@@ -586,9 +579,7 @@ function TRwrite() {
                                 clearIcon={null}
                                 clockIcon={null}
                                 onChange={(value) => {
-                                  const newTR = JSON.parse(JSON.stringify(TR));
-                                  newTR[`실제${a}`] = value;
-                                  setTR(newTR);
+                                  change_depth_one(`실제${a}`, value);
                                 }}
                               ></TimePicker>
                             </td>
@@ -919,6 +910,7 @@ function TRwrite() {
                 >
                   <option value="">미등원사유 선택</option>
                   <option value="등원일 아님">등원일 아님</option>
+                  <option value="외부프로그램">외부프로그램</option>
                   <option value="병가">병가</option>
                   <option value="무단">무단</option>
                   <option value="휴가">휴가</option>
@@ -970,7 +962,7 @@ function TRwrite() {
                 <Form.Group as={Row}>
                   <Col sm="10">
                     <Form.Check
-                      className="border-bottom tmp2"
+                      className="border-bottom cube-content"
                       checked={a.완료여부}
                       type="checkbox"
                       id={`cube-${i}`}
@@ -999,10 +991,72 @@ function TRwrite() {
             <p style={{ fontSize: "17px" }} className="mt-2 btn-add program-add">
               큐브책 달성률 : {cuberaito}% / 달성 실패 : {failCnt}개
             </p>
+            <div className="d-flex mt-3 mb-3 justify-content-center">
+              <div className="feedback-sub">
+                <h5 className="fw-bold">
+                  <strong>[ 중간 피드백 ]</strong>
+                </h5>
+              </div>
+              <div>
+                <Form.Select
+                  size="sm"
+                  className="feedback-sub"
+                  value={TR.중간매니저}
+                  onChange={(e) => {
+                    change_depth_one("중간매니저", e.target.value);
+                  }}
+                >
+                  <option value="선택">선택</option>
+                  {managerList
+                    ? managerList.map((manager, index) => {
+                        return (
+                          <option value={manager} key={index}>
+                            {manager}
+                          </option>
+                        );
+                      })
+                    : null}
+                </Form.Select>
+              </div>
+            </div>
 
-            <h5 className="fw-bold mt-5 mb-3">
-              <strong>[ 매니저 피드백 ]</strong>
-            </h5>
+            <textarea
+              rows="10"
+              className="textArea"
+              value={TR.중간피드백}
+              onChange={(e) => {
+                change_depth_one("중간피드백", e.target.value);
+              }}
+            ></textarea>
+
+            <div className="d-flex mt-3 mb-3 justify-content-center">
+              <div className="feedback-sub">
+                <h5 className="fw-bold">
+                  <strong>[ 매니저 피드백 ]</strong>
+                </h5>
+              </div>
+              <div>
+                <Form.Select
+                  size="sm"
+                  className="feedback-sub"
+                  value={TR.작성매니저}
+                  onChange={(e) => {
+                    change_depth_one("작성매니저", e.target.value);
+                  }}
+                >
+                  <option value="">선택</option>
+                  {managerList
+                    ? managerList.map((manager, index) => {
+                        return (
+                          <option value={manager} key={index}>
+                            {manager}
+                          </option>
+                        );
+                      })
+                    : null}
+                </Form.Select>
+              </div>
+            </div>
             <textarea
               rows="10"
               className="textArea"

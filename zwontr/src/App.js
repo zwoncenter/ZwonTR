@@ -50,7 +50,18 @@ function App() {
           <Button
             className="menu-map-btn btn-secondary"
             onClick={() => {
-              history.push(`/Closemeeting/Write/${today}`);
+              axios
+                .get(`/api/Closemeeting/find/${today}`)
+                .then((result) => {
+                  if (result["data"] === null) {
+                      history.push(`/Closemeeting/Write/${today}`);
+                  } else {
+                      history.push(`/Closemeeting/Edit/${today}`);
+                  }
+                })
+                .catch((err) => {
+                  console.log(err);
+                });
             }}
           >
             <h5>

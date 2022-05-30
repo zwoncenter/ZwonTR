@@ -8,24 +8,14 @@ import menuarrow from "../next.png";
 
 function ClosemeetingWrite() {
   let history = useHistory();
-  const [date, setdate] = useState(new Date().toISOString().split("T")[0]);
+  let paramDate = useParams()["date"];
   const [todayTRlist, settodayTRlist] = useState([]);
+  const [closeFeedback, setcloseFeedback] = useState({});
   const [selectedDate, setselectedDate] = useState("");
 
   useEffect(async () => {
-    const inquire = await axios
-      .get(`/api/Closemeeting/find/${date}`)
-      .then((result) => {
-        if (result["data"] !== null) {
-          history.push(`/Closemeeting/Edit/${date}`);
-        }
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-
     const newtodayTRlist = await axios
-      .get(`/api/TRlist/${date}`)
+      .get(`/api/TRlist/${paramDate}`)
       .then((result) => {
         if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다");
@@ -37,35 +27,30 @@ function ClosemeetingWrite() {
         return err;
       });
 
-    if (newtodayTRlist && newtodayTRlist == "로그인필요") {
-      window.alert("로그인이 필요합니다.");
-      return history.push("/");
-    }
     newtodayTRlist.sort(function (a, b) {
       return +(a.이름 > b.이름) - 0.5;
     });
     settodayTRlist(newtodayTRlist);
-  }, []);
+  }, [paramDate]);
 
   return (
     <div>
-
       <div className="trEdit-background">
-        <h3>{date} 마감 회의</h3>
+        <h3>{paramDate} 일일 결산</h3>
 
         <Button
           className="btn-commit btn-save"
           onClick={() => {
-            if (window.confirm("마감회의 내용을 저장하시겠습니까? \n모든 학생의 일간하루가 작성되었는지 확인 후 저장을 권장드립니다.")) {
-              const newClosemeeting = {
-                날짜: date,
-                trlist: todayTRlist,
-              };
+            if (window.confirm("일일결산 내용을 저장하시겠습니까?")) {
               axios
-                .post(`/api/Closemeeting/write/${date}`, newClosemeeting)
+                .post(`/api/Closemeeting/write/${paramDate}`, {
+                  날짜: paramDate,
+                  closeFeedback: closeFeedback,
+                })
                 .then(function (result) {
                   if (result.data === true) {
                     window.alert("저장되었습니다.");
+                    return window.location.reload();
                   } else if (result.data === "로그인필요") {
                     window.alert("로그인이 필요합니다.");
                     return history.push("/");
@@ -81,7 +66,7 @@ function ClosemeetingWrite() {
             }
           }}
         >
-          마감 회의 저장
+          일일결산 저장
         </Button>
 
         <Button
@@ -93,11 +78,11 @@ function ClosemeetingWrite() {
                 .get(`/api/Closemeeting/find/${selectedDate}`)
                 .then((result) => {
                   if (result["data"] === null) {
-                    if (window.confirm("해당 날짜의 마감회의가 존재하지 않습니다. 새로 작성하시겠습니까?")) {
+                    if (window.confirm("해당 날짜의 일일결산이 존재하지 않습니다. 새로 작성하시겠습니까?")) {
                       history.push(`/Closemeeting/Write/${selectedDate}`);
                     }
                   } else {
-                    if (window.confirm(`${selectedDate}의 마감회의로 이동하시겠습니까?`)) {
+                    if (window.confirm(`${selectedDate}의 일일결산으로 이동하시겠습니까?`)) {
                       history.push(`/Closemeeting/Edit/${selectedDate}`);
                     }
                   }
@@ -132,15 +117,15 @@ function ClosemeetingWrite() {
         <Table striped hover size="sm" className="mt-3">
           <thead>
             <tr>
-              <th width="3%">이름</th>
-              <th width="3%">취침</th>
-              <th width="3%">기상</th>
-              <th width="3%">등원</th>
-              <th width="3%">귀가</th>
-              <th width="2%">학습</th>
-              <th width="2%">자기계발</th>
-              <th width="15%">매니저 피드백</th>
-              <th width="15%">마감 회의 피드백</th>
+              <th width="4%">이름</th>
+              <th width="4%">취침</th>
+              <th width="4%">기상</th>
+              <th width="4%">등원</th>
+              <th width="4%">귀가</th>
+              <th width="4%">학습</th>
+              <th width="4%">자기계발</th>
+              <th width="23%">매니저 피드백</th>
+              <th>일일결산 피드백</th>
             </tr>
           </thead>
           <tbody>
@@ -157,16 +142,18 @@ function ClosemeetingWrite() {
                       <td>
                         <p className={tr["취침차이"] >= 0 ? "green" : "red"}>{tr["실제취침"]}</p>
                       </td>
-                      <td >
+                      <td>
                         <p className={tr["기상차이"] >= 0 ? "green" : "red"}>{tr["실제기상"]}</p>
                       </td>
-                      <td >
+                      <td>
                         <p className={tr["등원차이"] >= 0 ? "green" : "red"}>{tr["실제등원"]}</p>
+                        <p className="targetattend">{tr["목표등원"]}</p>
                       </td>
                       <td>
                         <p>{tr["실제귀가"]}</p>
+                        
                       </td>
-                      <td >
+                      <td>
                         <p className={tr["학습차이"] >= 0 ? "green" : "red"}>{tr["실제학습"]}</p>
                       </td>
                       <td>
@@ -175,17 +162,27 @@ function ClosemeetingWrite() {
                     </>
                   )}
 
-                  <td>
-                    <p>{tr["작성매니저"] + " : " + tr["매니저피드백"]}</p>
+                  <td>{tr["중간피드백"] ? <>
+                  <p>
+                      (중간) {tr["중간매니저"]} : {tr["중간피드백"]}
+                    </p>
+                    <br />
+                  </> : null}
+                  {tr["매니저피드백"] ? <>
+                  <p>
+                      {tr["작성매니저"]} : {tr["매니저피드백"]}
+                    </p>
+                  </> : null}
                   </td>
                   <td>
                     <textarea
                       className="textArea"
                       rows="3"
+                      value={closeFeedback[tr["이름"]]}
                       onChange={(e) => {
-                        const newtodayTRlist = [...todayTRlist];
-                        newtodayTRlist[index]["마감회의피드백"] = e.target.value;
-                        settodayTRlist(newtodayTRlist);
+                        const newcloseFeedback = JSON.parse(JSON.stringify(closeFeedback));
+                        newcloseFeedback[tr["이름"]] = e.target.value;
+                        setcloseFeedback(newcloseFeedback);
                       }}
                     ></textarea>
                   </td>
