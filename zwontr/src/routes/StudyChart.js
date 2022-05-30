@@ -86,53 +86,6 @@ function StudyChart() {
 
   return (
     <div className="studyChart-background">
-      <div className="menu">
-        <div className="menu-map">
-          <Button
-            className="menu-map-btn btn-secondary"
-            onClick={() => {
-              history.push("/studentList");
-            }}
-          >
-            <h5>
-              <strong>학생 관리</strong>
-            </h5>
-          </Button>
-          <Button
-            className="menu-map-btn btn-secondary"
-            onClick={() => {
-              history.push("/Closemeeting/Write");
-            }}
-          >
-            <h5>
-              <strong>마감 회의</strong>
-            </h5>
-          </Button>
-          <Button
-            className="menu-map-btn btn-secondary"
-            onClick={() => {
-              window.alert("준비중입니다!");
-            }}
-          >
-            <h5>
-              <strong>매니저 업무리스트</strong>
-            </h5>
-          </Button>
-          <Button
-            className="menu-map-btn btn-secondary"
-            onClick={() => {
-              window.alert("준비중입니다!");
-            }}
-          >
-            <h5>
-              <strong>대시보드</strong>
-            </h5>
-          </Button>
-        </div>
-        <div className="menuArrow">
-          <img src={menuarrow} alt="menuarrow" />
-        </div>
-      </div>
       <div>
         <h2>
           <strong>학습시간 차트</strong>

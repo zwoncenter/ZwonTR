@@ -416,6 +416,27 @@ app.delete("/api/Closemeeting/delete/:id", loginCheck, function (req, res) {
   });
 });
 
+app.get("/api/Todolist", loginCheck, function (req, res) {
+  db.collection("Todolist").find()
+  .toArray((err, result) => {
+    if (err) {
+      return console.log("api/Todolist - find Error : ", err);
+    }
+    res.send(result[0]["Todolist"]);
+  });
+});
+
+app.put("/api/Todolist/edit", loginCheck, function (req, res) {
+  const newTodolist = { Todolist : req.body}; 
+  const findID = ObjectId("629317f4aca8d25d84a7d0e0");
+  db.collection("Todolist").updateOne({ _id: findID }, { $set: newTodolist }, function (err3, result3) {
+    if (err3) {
+      return res.send("/api/Closemeeting/edit/:date - updateOne Error : ", err3);
+    }
+    console.log("터미널에 표시 : 마감회의 수정 완료");
+    return res.send(true);
+  });
+});
 
 
 

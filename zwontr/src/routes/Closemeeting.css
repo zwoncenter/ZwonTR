@@ -9,9 +9,15 @@
 }
 
 .green {
-  color: rgb(51, 173, 51) !important;
+  background-color: rgb(75, 190, 75);
+  color: rgb(240, 240, 240);
 }
 
 .red {
-  color: red !important;
+  background-color: rgb(245, 110, 110);
+  color: rgb(240, 240, 240);
+}
+
+.loadButton {
+  max-width: 400px;
 }/*# sourceMappingURL=Closemeeting.css.map */
