@@ -136,7 +136,7 @@ function ClosemeetingWrite() {
                     <p>{tr["이름"]}</p>
                   </td>
                   {tr["결석여부"] ? (
-                    <td colSpan={6}>미등원 - {tr["결석사유"]}</td>
+                    <td colSpan={6}> <p  className="abscent"> 미등원 - {tr["결석사유"]} : {tr["결석상세내용"]}</p></td>
                   ) : (
                     <>
                       <td>
@@ -150,7 +150,7 @@ function ClosemeetingWrite() {
                         <p className="targetattend">{tr["목표등원"]}</p>
                       </td>
                       <td>
-                        <p>{tr["실제귀가"]}</p>
+                        <p>{tr["매니저피드백"] ? tr["실제귀가"] : "귀가 전"}</p>
                         
                       </td>
                       <td>

@@ -234,7 +234,7 @@ function StuListpage() {
         ) : null}
         <div className="stulistComment">
           <p className="mt-1">
-            <strong>※ 금일 TR 작성 완료 시 회색으로 바뀝니다. </strong>
+            <strong> - 중간피드백 작성 시 옅은 회색 <br /> - 매니저(귀가)피드백 작성 시 짙은 회색</strong>
           </p>
         </div>
         {/* <Button
