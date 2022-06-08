@@ -5,6 +5,7 @@ import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import menuarrow from "../next.png";
+import absent from "./absent.png";
 
 function StuListpage() {
   let history = useHistory();
@@ -138,6 +139,7 @@ function StuListpage() {
                         }}
                       >
                         <p>{db.이름}</p>
+                        {Written[index] ==="미등원" && <img src={absent} alt="absent" className="absent-sign" />}
                       </ListGroup.Item>
                     </div>
                   );
@@ -235,9 +237,18 @@ function StuListpage() {
           </Modal>
         ) : null}
         <div className="stulistComment">
-          <p className="mt-1">
-            <strong> - 중간피드백 작성 시 옅은 회색 <br /> - 매니저(귀가)피드백 작성 시 짙은 회색</strong>
-          </p>
+          <div className="mt-1">
+            <div className="commentbox">
+              <div className="colorcomment colorcomment-lightgrey"></div><p><strong>중간 피드백 작성 완료</strong></p>
+              </div>
+              <div className="commentbox">
+              <div className="colorcomment colorcomment-darkgrey"></div><p><strong>마감 피드백 작성 완료</strong></p>
+              </div>
+              <div className="commentbox">
+                <div className="absentcomment-sign"><img src={absent} alt="absent"/></div>
+              <p><strong>미등원 시 표시됩니다.</strong></p>
+              </div>
+          </div>
         </div>
         {/* <Button
         variant="secondary"
