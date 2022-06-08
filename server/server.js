@@ -416,6 +416,88 @@ app.delete("/api/Closemeeting/delete/:id", loginCheck, function (req, res) {
   });
 });
 
+// Middle Meeting
+
+app.post("/api/Middlemeeting/write/:date", loginCheck, function (req, res) {
+  const paramDate = decodeURIComponent(req.params.date);
+  const newMiddlemeeting = req.body;
+  console.log("중간희 저장 시도 : ", paramDate);
+  db.collection("Middlemeeting").findOne({ 날짜 : paramDate }, function (err, result) {
+    if (err) {
+      console.log(`/api/Middlemeeting/write/:date - findOne Error : `, err);
+      return res.send(`/api/Middlemeeting/write/:date - findOne Error : `, err);
+    }
+    if (result !== null) {
+      return res.send("findOne result is not null. 중복되는 날짜의 중간 회의가 존재합니다.");
+    }
+    db.collection("Middlemeeting").insertOne(newMiddlemeeting, function (err2, result2) {
+      if (err2) {
+        console.log("/api/Middlemeeting/write/:date - insertOne Error : ", err2);
+        return res.send("/api/Middlemeeting/write/:date - insertOne Error : ", err2);
+      }
+      console.log("터미널에 표시 : 중간회의 저장 완료");
+      return res.send(true);
+    });
+  });
+});
+
+app.get("/api/Middlemeeting/find/:date", loginCheck, function (req, res) {
+  const paramDate = decodeURIComponent(req.params.date);
+  console.log(`${paramDate} 날짜 중간회의 조회 시도`);
+  db.collection("Middlemeeting").findOne({ 날짜: paramDate }, function (err, result) {
+    if (err) {
+      return console.log("/api/Middlemeeting/find/:date - findOne Error : ", err);
+    }
+    return res.json(result);
+  });
+});
+
+app.put("/api/Middlemeeting/edit/:date", loginCheck, function (req, res) {
+  const paramDate = decodeURIComponent(req.params.date);
+  const newMiddlemeeting = req.body;
+  const findID = ObjectId(newMiddlemeeting._id);
+  delete newMiddlemeeting._id;
+  console.log("중간회의 수정 시도 : ", paramDate);
+  db.collection("Middlemeeting").findOne({ 날짜 : paramDate }, function (err, result) {
+    if (err) {
+      return res.send(`/api/Middlemeeting/edit/:date - findOne Error : `, err);
+    }
+    if (result !== null && !result._id.equals(findID)) {
+      return res.send("중복되는 날짜의 중간회의가 존재합니다.");
+    }
+    db.collection(`Middlemeeting`).findOne({ _id: findID }, function (err2, result2) {
+      if (err2) {
+        return console.log(`/api/Middlemeeting/edit/:date - findOne Error : `, err2);
+      }
+      if (result2 === null) {
+        return res.send("일치하는 _id의 중간회의를 찾지 못했습니다. 개발 / 데이터팀에 문의해주세요");
+      }
+      db.collection("Middlemeeting").updateOne({ _id: findID }, { $set: newMiddlemeeting }, function (err3, result3) {
+        if (err3) {
+          return res.send("/api/Middlemeeting/edit/:date - updateOne Error : ", err3);
+        }
+        console.log("터미널에 표시 : 중간회의 수정 완료");
+        return res.send(true);
+      });
+    });
+  });
+});
+
+app.delete("/api/Middlemeeting/delete/:id", loginCheck, function (req, res) {
+  const MiddlemeetingID = ObjectId(req.params.id);
+  console.log("중간회의 삭제 시도 :", MiddlemeetingID);
+  db.collection("Middlemeeting").deleteOne({ _id: MiddlemeetingID }, (err, result) => {
+    if (err) {
+      return res.send("/api/Middlemeeting/delete/:id - deleteOne error : ", err);
+    }
+    if (result.deletedCount === 1) {
+      console.log("중간회의 삭제 완료 : ", result);
+      return res.send(true);
+    }
+    return res.send(false);
+  });
+});
+
 app.get("/api/Todolist", loginCheck, function (req, res) {
   db.collection("Todolist").find()
   .toArray((err, result) => {

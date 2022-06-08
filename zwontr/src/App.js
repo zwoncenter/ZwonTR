@@ -18,10 +18,16 @@ import StudyChart from "./routes/StudyChart";
 import ClosemeetingWrite from "./routes/ClosemeetingWrite";
 import ClosemeetingEdit from "./routes/ClosemeetingEdit";
 import Todolist from "./routes/Todolist.js"
+import MiddlemeetingWrite from "./routes/MiddlemeetingWrite";
+import MiddlemeetingEdit from "./routes/MiddlemeetingEdit";
 
 function App() {
   let history = useHistory();
-  const today = new Date().toISOString().split("T")[0];
+  const now = new Date(); // 현재 시간
+  const utcNow = now.getTime() + (now.getTimezoneOffset() * 60 * 1000);
+  const koreaTimeDiff = 9 * 60 * 60 * 1000;
+  const koreaNow = new Date(utcNow + koreaTimeDiff);
+  const today = koreaNow.toISOString().split("T")[0];
 
   const [studentList, setstudentList] = useState([]); // 학생 DB 리스트
   const [선택된index, 선택된index변경] = useState(0);
@@ -47,6 +53,30 @@ function App() {
               <strong>학생 관리</strong>
             </h5>
           </Button>
+
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              axios
+                .get(`/api/Middlemeeting/find/${today}`)
+                .then((result) => {
+                  if (result["data"] === null) {
+                      history.push(`/Middlemeeting/Write/${today}`);
+                  } else {
+                      history.push(`/Middlemeeting/Edit/${today}`);
+                  }
+                })
+                .catch((err) => {
+                  console.log(err);
+                });
+            }}
+          >
+            <h5>
+              <strong>중간 회의</strong>
+            </h5>
+          </Button>
+
+
           <Button
             className="menu-map-btn btn-secondary"
             onClick={() => {
@@ -125,8 +155,15 @@ function App() {
         <Route exact path="/Closemeeting/Write/:date">
           <ClosemeetingWrite />
         </Route>
+        
         <Route exact path="/Closemeeting/Edit/:date">
           <ClosemeetingEdit />
+        </Route>
+        <Route exact path="/Middlemeeting/Write/:date">
+          <MiddlemeetingWrite />
+        </Route>
+        <Route exact path="/Middlemeeting/Edit/:date">
+          <MiddlemeetingEdit />
         </Route>
         <Route exact path="/Todolist">
           <Todolist />

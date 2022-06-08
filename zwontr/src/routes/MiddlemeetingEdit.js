@@ -1,4 +1,4 @@
-import "./Closemeeting.css";
+import "./Middlemeeting.css";
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
@@ -6,12 +6,15 @@ import axios from "axios";
 import TimePicker from "react-time-picker";
 import menuarrow from "../next.png";
 
-function ClosemeetingWrite() {
+function MiddlemeetingWrite() {
   let history = useHistory();
   let paramDate = useParams()["date"];
+  
   const [todayTRlist, settodayTRlist] = useState([]);
   const [closeFeedback, setcloseFeedback] = useState({});
+  const [middleFeedback, setmiddleFeedback] = useState({});
   const [selectedDate, setselectedDate] = useState("");
+  const [objectid, setobjectid] = useState("");
 
   useEffect(async () => {
     const newtodayTRlist = await axios
@@ -31,21 +34,56 @@ function ClosemeetingWrite() {
       return +(a.이름 > b.이름) - 0.5;
     });
     settodayTRlist(newtodayTRlist);
+
+    const paramToday = new Date(parseInt(paramDate.split("-")[0]), parseInt(paramDate.split("-")[1])-1, parseInt(paramDate.split("-")[2]));
+    let paramYesterday = new Date(paramToday.getTime() - 86400000)
+    if (paramYesterday.getDay() === 6) {
+        paramYesterday = new Date(paramToday.getTime() - (86400000 * 2));
+    }
+    const yesterday = paramYesterday.toISOString().split("T")[0];
+    const newcloseFeedback = await axios
+    .get(`/api/Closemeeting/find/${yesterday}`)
+    .then((result) => {
+      if (result.data === "로그인필요") {
+        window.alert("로그인이 필요합니다");
+        return history.push("/");
+      }
+      return result.data;
+    })
+    .catch((err) => {
+      return err;
+    });
+
+    setcloseFeedback(newcloseFeedback["closeFeedback"]);
+    const document = await axios
+      .get(`/api/Middlemeeting/find/${paramDate}`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다");
+          return history.push("/");
+        }
+        return result.data;
+      })
+      .catch((err) => {
+        return err;
+      });
+    setobjectid(document["_id"]);
+    setmiddleFeedback(document["middleFeedback"]);
   }, [paramDate]);
 
   return (
     <div>
       <div className="trEdit-background">
-        <h3>{paramDate} 일일 결산</h3>
-
+        <h3>{paramDate} 중간 회의</h3>
         <Button
           className="btn-commit btn-save"
           onClick={() => {
-            if (window.confirm("일일결산 내용을 저장하시겠습니까?")) {
+            if (window.confirm("중간회의 내용을 저장하시겠습니까?")) {
               axios
-                .post(`/api/Closemeeting/write/${paramDate}`, {
+                .put(`/api/Middlemeeting/edit/${paramDate}`, {
+                  _id: objectid,
                   날짜: paramDate,
-                  closeFeedback: closeFeedback,
+                  middleFeedback: middleFeedback,
                 })
                 .then(function (result) {
                   if (result.data === true) {
@@ -66,7 +104,7 @@ function ClosemeetingWrite() {
             }
           }}
         >
-          일일결산 저장
+          중간회의 저장
         </Button>
 
         <Button
@@ -75,15 +113,15 @@ function ClosemeetingWrite() {
           onClick={() => {
             if (selectedDate !== "") {
               axios
-                .get(`/api/Closemeeting/find/${selectedDate}`)
+                .get(`/api/Middlemeeting/find/${selectedDate}`)
                 .then((result) => {
                   if (result["data"] === null) {
-                    if (window.confirm("해당 날짜의 일일결산이 존재하지 않습니다. 새로 작성하시겠습니까?")) {
-                      history.push(`/Closemeeting/Write/${selectedDate}`);
+                    if (window.confirm("해당 날짜의 중간회의가 존재하지 않습니다. 새로 작성하시겠습니까?")) {
+                      history.push(`/Middlemeeting/Write/${selectedDate}`);
                     }
                   } else {
-                    if (window.confirm(`${selectedDate}의 일일결산으로 이동하시겠습니까?`)) {
-                      history.push(`/Closemeeting/Edit/${selectedDate}`);
+                    if (window.confirm(`${selectedDate}의 중간회의로 이동하시겠습니까?`)) {
+                      history.push(`/Middlemeeting/Edit/${selectedDate}`);
                     }
                   }
                 })
@@ -122,10 +160,9 @@ function ClosemeetingWrite() {
               <th width="4%">기상</th>
               <th width="4%">등원</th>
               <th width="4%">귀가</th>
-              <th width="4%">학습</th>
-              <th width="4%">자기계발</th>
-              <th width="23%">매니저 피드백</th>
-              <th>일일결산 피드백</th>
+              <th width="15%">전날 피드백</th>
+              <th width="15%">금일 피드백</th>
+              <th width="23%">회의 내용</th>
             </tr>
           </thead>
           <tbody>
@@ -136,7 +173,35 @@ function ClosemeetingWrite() {
                     <p>{tr["이름"]}</p>
                   </td>
                   {tr["결석여부"] ? (
-                    <td colSpan={6}> <p  className="abscent"> 미등원 - {tr["결석사유"]} : {tr["결석상세내용"]}</p></td>
+                    <>
+                      <td colSpan={4}>
+                        {" "}
+                        <p className="abscent">
+                          {" "}
+                          미등원 - {tr["결석사유"]} : {tr["결석상세내용"]}
+                        </p>
+                      </td>
+                      <td>
+                        <p>{closeFeedback[tr["이름"]]}</p>
+                      </td>
+                      <td>
+                          {tr["중간피드백"] ? (
+                            <>
+                              <p>
+                                (중간) {tr["중간매니저"]} : {tr["중간피드백"]}
+                              </p>
+                              <br />
+                            </>
+                          ) : null}
+                          {tr["매니저피드백"] ? (
+                            <>
+                              <p>
+                                {tr["작성매니저"]} : {tr["매니저피드백"]}
+                              </p>
+                            </>
+                          ) : null}
+                      </td>
+                    </>
                   ) : (
                     <>
                       <td>
@@ -153,35 +218,37 @@ function ClosemeetingWrite() {
                         <p>{tr["매니저피드백"] ? tr["실제귀가"] : "귀가 전"}</p>
                       </td>
                       <td>
-                        <p className={tr["학습차이"] >= 0 ? "green" : "red"}>{tr["실제학습"]}</p>
+                        <p>{closeFeedback[tr["이름"]]}</p>
                       </td>
                       <td>
-                        <p>{tr["프로그램시간"]}</p>
+                          {tr["중간피드백"] ? (
+                            <>
+                              <p>
+                                (중간) {tr["중간매니저"]} : {tr["중간피드백"]}
+                              </p>
+                              <br />
+                            </>
+                          ) : null}
+                          {tr["매니저피드백"] ? (
+                            <>
+                              <p>
+                                (귀가) {tr["작성매니저"]} : {tr["매니저피드백"]}
+                              </p>
+                            </>
+                          ) : null}
                       </td>
+
                     </>
                   )}
-
-                  <td>{tr["중간피드백"] ? <>
-                  <p>
-                      (중간) {tr["중간매니저"]} : {tr["중간피드백"]}
-                    </p>
-                    <br />
-                  </> : null}
-                  {tr["매니저피드백"] ? <>
-                  <p>
-                      {tr["작성매니저"]} : {tr["매니저피드백"]}
-                    </p>
-                  </> : null}
-                  </td>
                   <td>
                     <textarea
                       className="textArea"
                       rows="3"
-                      value={closeFeedback[tr["이름"]]}
+                      value={middleFeedback[tr["이름"]]}
                       onChange={(e) => {
-                        const newcloseFeedback = JSON.parse(JSON.stringify(closeFeedback));
-                        newcloseFeedback[tr["이름"]] = e.target.value;
-                        setcloseFeedback(newcloseFeedback);
+                        const newmiddleFeedback = JSON.parse(JSON.stringify(middleFeedback));
+                        newmiddleFeedback[tr["이름"]] = e.target.value;
+                        setmiddleFeedback(newmiddleFeedback);
                       }}
                     ></textarea>
                   </td>
@@ -195,4 +262,4 @@ function ClosemeetingWrite() {
   );
 }
 
-export default ClosemeetingWrite;
+export default MiddlemeetingWrite;
