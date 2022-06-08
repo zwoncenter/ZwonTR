@@ -9,7 +9,11 @@ import absent from "./absent.png";
 
 function StuListpage() {
   let history = useHistory();
-  const today = new Date().toISOString().split("T")[0];
+  const now = new Date(); // 현재 시간
+  const utcNow = now.getTime() + (now.getTimezoneOffset() * 60 * 1000);
+  const koreaTimeDiff = 9 * 60 * 60 * 1000;
+  const koreaNow = new Date(utcNow + koreaTimeDiff);
+  const today = koreaNow.toISOString().split("T")[0];
   const [modalShow, setmodalShow] = useState(false);
   const [TRlistShow, setTRlistShow] = useState(false);
   const [Written, setWritten] = useState([]);
