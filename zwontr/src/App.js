@@ -60,6 +60,7 @@ function App() {
               axios
                 .get(`/api/Middlemeeting/find/${today}`)
                 .then((result) => {
+
                   if (result["data"] === null) {
                       history.push(`/Middlemeeting/Write/${today}`);
                   } else {
@@ -83,6 +84,7 @@ function App() {
               axios
                 .get(`/api/Closemeeting/find/${today}`)
                 .then((result) => {
+                  console.log(result)
                   if (result["data"] === null) {
                       history.push(`/Closemeeting/Write/${today}`);
                   } else {
