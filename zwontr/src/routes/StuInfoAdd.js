@@ -409,223 +409,240 @@ function StuInfoAdd() {
             <h4 className="stuInfoCard-title mb-4">
               <strong>[ 가족관계 ]</strong>
             </h4>
-            <div className="row">
-              {[
-                "부 직업",
-                "모 직업",
-                "학생과 더 친한 분",
-                "학생과 사이가 더 나쁜 분",
-                "형제 자매 및 관계",
-                "조부모와의 관계",
-                "재산",
-              ].map(function (category, index) {
-                return (
-                  <Form.Group as={Row} className="col-xl-6" key={index}>
-                    <Form.Label column sm="4" className="fs-6">
-                      <p>
-                        <strong>{category}</strong>
-                      </p>
-                    </Form.Label>
-                    <Col>
-                      <textarea
-                        className="textArea"
-                        onChange={(e) => {
-                          change_depth_one(
-                            category.split(" ").join(""),
-                            e.target.value
-                          );
-                        }}
-                      />
-                    </Col>
-                  </Form.Group>
-                );
-              })}
+            <Accordion>
+              <Accordion.Item eventKey="0">
+                <Accordion.Header>
+                  <p>작성하려면 누르세요.</p>
+                </Accordion.Header>
+                <Accordion.Body>
+                  <div className="row">
+                    {[
+                      "부 직업",
+                      "모 직업",
+                      "학생과 더 친한 분",
+                      "학생과 사이가 더 나쁜 분",
+                      "형제 자매 및 관계",
+                      "조부모와의 관계",
+                      "재산",
+                    ].map(function (category, index) {
+                      return (
+                        <Form.Group as={Row} className="col-xl-6" key={index}>
+                          <Form.Label column sm="4" className="fs-6">
+                            <p>
+                              <strong>{category}</strong>
+                            </p>
+                          </Form.Label>
+                          <Col>
+                            <textarea
+                              className="textArea"
+                              onChange={(e) => {
+                                change_depth_one(
+                                  category.split(" ").join(""),
+                                  e.target.value
+                                );
+                              }}
+                            />
+                          </Col>
+                        </Form.Group>
+                      );
+                    })}
 
-              <Form.Group as={Row} className="col-xl-12">
-                <Form.Label column sm="2" className="fs-6">
-                  <p>
-                    <strong>부모 성향</strong>
-                  </p>
-                </Form.Label>
-                <Col>
-                  <Accordion>
-                    <Accordion.Item eventKey="0">
-                      <Accordion.Header>
-                        <p>작성하려면 누르세요.</p>
-                      </Accordion.Header>
-                      <Accordion.Body>
-                        <div>
-                          <Form.Group as={Row}>
-                            <Form.Label
-                              column
-                              sm="4"
-                              className="fs-6 mb-3"
-                            ></Form.Label>
-                            <Col>
-                              <p>
-                                <strong>부</strong>
-                              </p>
-                            </Col>
-                            <Col>
-                              <p>
-                                <strong>모</strong>
-                              </p>
-                            </Col>
-                          </Form.Group>
-                          <Form.Group as={Row} className="mb-3">
-                            <Form.Label column sm="4" className="fs-6">
-                              <p>
-                                <strong>성향</strong>
-                              </p>
-                            </Form.Label>
-                            <Col>
-                              <textarea
-                                className="textArea"
-                                rows="2"
-                                onChange={(e) => {
-                                  change_depth_one(
-                                    "부모성향_부",
-                                    e.target.value
-                                  );
-                                }}
-                              />
-                            </Col>
-                            <Col>
-                              <textarea
-                                className="textArea"
-                                rows="2"
-                                onChange={(e) => {
-                                  change_depth_one(
-                                    "부모성향_모",
-                                    e.target.value
-                                  );
-                                }}
-                              />
-                            </Col>
-                          </Form.Group>
-                          <Form.Group as={Row} className="mb-3">
-                            <Form.Label column sm="4" className="fs-6">
-                              <p>
-                                <strong>감정</strong>
-                              </p>
-                            </Form.Label>
-                            <Col>
-                              <textarea
-                                className="textArea"
-                                rows="2"
-                                onChange={(e) => {
-                                  change_depth_one(
-                                    "부모감정_부",
-                                    e.target.value
-                                  );
-                                }}
-                              />
-                            </Col>
-                            <Col>
-                              <textarea
-                                className="textArea"
-                                rows="2"
-                                onChange={(e) => {
-                                  change_depth_one(
-                                    "부모감정_모",
-                                    e.target.value
-                                  );
-                                }}
-                              />
-                            </Col>
-                          </Form.Group>
-                          <Form.Group as={Row} className="mb-3">
-                            <Form.Label column sm="4" className="fs-6">
-                              <p>
-                                <strong>수용 수준</strong>
-                              </p>
-                            </Form.Label>
-                            <Col>
-                              <textarea
-                                className="textArea"
-                                rows="2"
-                                onChange={(e) => {
-                                  change_depth_one(
-                                    "부모수용수준_부",
-                                    e.target.value
-                                  );
-                                }}
-                              />
-                            </Col>
-                            <Col>
-                              <textarea
-                                className="textArea"
-                                rows="2"
-                                onChange={(e) => {
-                                  change_depth_one(
-                                    "부모수용수준_모",
-                                    e.target.value
-                                  );
-                                }}
-                              />
-                            </Col>
-                          </Form.Group>
-                        </div>
-                      </Accordion.Body>
-                    </Accordion.Item>
-                  </Accordion>
-                </Col>
-              </Form.Group>
+                    <Form.Group as={Row} className="col-xl-12">
+                      <Form.Label column sm="2" className="fs-6">
+                        <p>
+                          <strong>부모 성향</strong>
+                        </p>
+                      </Form.Label>
+                      <Col>
+                        <Accordion>
+                          <Accordion.Item eventKey="0">
+                            <Accordion.Header>
+                              <p>작성하려면 누르세요.</p>
+                            </Accordion.Header>
+                            <Accordion.Body>
+                              <div>
+                                <Form.Group as={Row}>
+                                  <Form.Label
+                                    column
+                                    sm="4"
+                                    className="fs-6 mb-3"
+                                  ></Form.Label>
+                                  <Col>
+                                    <p>
+                                      <strong>부</strong>
+                                    </p>
+                                  </Col>
+                                  <Col>
+                                    <p>
+                                      <strong>모</strong>
+                                    </p>
+                                  </Col>
+                                </Form.Group>
+                                <Form.Group as={Row} className="mb-3">
+                                  <Form.Label column sm="4" className="fs-6">
+                                    <p>
+                                      <strong>성향</strong>
+                                    </p>
+                                  </Form.Label>
+                                  <Col>
+                                    <textarea
+                                      className="textArea"
+                                      rows="2"
+                                      onChange={(e) => {
+                                        change_depth_one(
+                                          "부모성향_부",
+                                          e.target.value
+                                        );
+                                      }}
+                                    />
+                                  </Col>
+                                  <Col>
+                                    <textarea
+                                      className="textArea"
+                                      rows="2"
+                                      onChange={(e) => {
+                                        change_depth_one(
+                                          "부모성향_모",
+                                          e.target.value
+                                        );
+                                      }}
+                                    />
+                                  </Col>
+                                </Form.Group>
+                                <Form.Group as={Row} className="mb-3">
+                                  <Form.Label column sm="4" className="fs-6">
+                                    <p>
+                                      <strong>감정</strong>
+                                    </p>
+                                  </Form.Label>
+                                  <Col>
+                                    <textarea
+                                      className="textArea"
+                                      rows="2"
+                                      onChange={(e) => {
+                                        change_depth_one(
+                                          "부모감정_부",
+                                          e.target.value
+                                        );
+                                      }}
+                                    />
+                                  </Col>
+                                  <Col>
+                                    <textarea
+                                      className="textArea"
+                                      rows="2"
+                                      onChange={(e) => {
+                                        change_depth_one(
+                                          "부모감정_모",
+                                          e.target.value
+                                        );
+                                      }}
+                                    />
+                                  </Col>
+                                </Form.Group>
+                                <Form.Group as={Row} className="mb-3">
+                                  <Form.Label column sm="4" className="fs-6">
+                                    <p>
+                                      <strong>수용 수준</strong>
+                                    </p>
+                                  </Form.Label>
+                                  <Col>
+                                    <textarea
+                                      className="textArea"
+                                      rows="2"
+                                      onChange={(e) => {
+                                        change_depth_one(
+                                          "부모수용수준_부",
+                                          e.target.value
+                                        );
+                                      }}
+                                    />
+                                  </Col>
+                                  <Col>
+                                    <textarea
+                                      className="textArea"
+                                      rows="2"
+                                      onChange={(e) => {
+                                        change_depth_one(
+                                          "부모수용수준_모",
+                                          e.target.value
+                                        );
+                                      }}
+                                    />
+                                  </Col>
+                                </Form.Group>
+                              </div>
+                            </Accordion.Body>
+                          </Accordion.Item>
+                        </Accordion>
+                      </Col>
+                    </Form.Group>
 
-              <Form.Group as={Row} className="col-xl-12">
-                <Form.Label column sm="2" className="fs-6">
-                  <p>
-                    <strong>부모님 고민</strong>
-                  </p>
-                </Form.Label>
-                <Col>
-                  <Accordion>
-                    <Accordion.Item eventKey="0">
-                      <Accordion.Header>
-                        <p>작성하려면 누르세요.</p>
-                      </Accordion.Header>
-                      <Accordion.Body>
-                        <div className="me-3">
-                          {[
-                            "생활",
-                            "목표 및 동기",
-                            "학습",
-                            "인성",
-                            "현재 폰기종",
-                            "현재1주용돈",
-                            "불법행위여부",
-                          ].map(function (category, index) {
-                            return (
-                              <Form.Group as={Row} className="mb-2" key={index}>
-                                <Form.Label column sm="4" className="fs-6">
-                                  <p>
-                                    <strong>{category}</strong>
-                                  </p>
-                                </Form.Label>
-                                <Col>
-                                  <textarea
-                                    className="textArea"
-                                    rows="2"
-                                    onChange={(e) => {
-                                      change_depth_one(
-                                        `부모님고민_${category
-                                          .split(" ")
-                                          .join("")}`,
-                                        e.target.value
-                                      );
-                                    }}
-                                  />
-                                </Col>
-                              </Form.Group>
-                            );
-                          })}
-                        </div>
-                      </Accordion.Body>
-                    </Accordion.Item>
-                  </Accordion>
-                </Col>
-              </Form.Group>
-            </div>
+                    <Form.Group as={Row} className="col-xl-12">
+                      <Form.Label column sm="2" className="fs-6">
+                        <p>
+                          <strong>부모님 고민</strong>
+                        </p>
+                      </Form.Label>
+                      <Col>
+                        <Accordion>
+                          <Accordion.Item eventKey="0">
+                            <Accordion.Header>
+                              <p>작성하려면 누르세요.</p>
+                            </Accordion.Header>
+                            <Accordion.Body>
+                              <div className="me-3">
+                                {[
+                                  "생활",
+                                  "목표 및 동기",
+                                  "학습",
+                                  "인성",
+                                  "현재 폰기종",
+                                  "현재1주용돈",
+                                  "불법행위여부",
+                                ].map(function (category, index) {
+                                  return (
+                                    <Form.Group
+                                      as={Row}
+                                      className="mb-2"
+                                      key={index}
+                                    >
+                                      <Form.Label
+                                        column
+                                        sm="4"
+                                        className="fs-6"
+                                      >
+                                        <p>
+                                          <strong>{category}</strong>
+                                        </p>
+                                      </Form.Label>
+                                      <Col>
+                                        <textarea
+                                          className="textArea"
+                                          rows="2"
+                                          onChange={(e) => {
+                                            change_depth_one(
+                                              `부모님고민_${category
+                                                .split(" ")
+                                                .join("")}`,
+                                              e.target.value
+                                            );
+                                          }}
+                                        />
+                                      </Col>
+                                    </Form.Group>
+                                  );
+                                })}
+                              </div>
+                            </Accordion.Body>
+                          </Accordion.Item>
+                        </Accordion>
+                      </Col>
+                    </Form.Group>
+                  </div>
+                </Accordion.Body>
+              </Accordion.Item>
+            </Accordion>
           </Card>
         </div>
 

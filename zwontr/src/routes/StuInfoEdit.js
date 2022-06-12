@@ -107,12 +107,21 @@ function StuInfoEdit() {
 
     진행중교재: [],
     완료된교재: [],
-    프로그램분류: ["자기인식", "진로탐색", "헬스", "외부활동", "독서", "외국어"],
+    프로그램분류: [
+      "자기인식",
+      "진로탐색",
+      "헬스",
+      "외부활동",
+      "독서",
+      "외국어",
+    ],
   };
   const [stuInfo, setstuInfo] = useState(writeform);
   function phoneNumber(value) {
     value = value.replace(/[^0-9]/g, "");
-    return value.replace(/[^0-9]/, "").replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, `$1-$2-$3`);
+    return value
+      .replace(/[^0-9]/, "")
+      .replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, `$1-$2-$3`);
   }
   const [contact, setContact] = useState("");
   const [dadcontact, setdadContact] = useState("");
@@ -170,11 +179,15 @@ function StuInfoEdit() {
       }
     }
     if (stuInfo["연락처"].length !== 13) {
-      window.alert("학생 연락처가 입력되지 않았습니다. 휴대폰 번호 13자리를 입력해주세요.");
+      window.alert(
+        "학생 연락처가 입력되지 않았습니다. 휴대폰 번호 13자리를 입력해주세요."
+      );
       return false;
     }
     if (!stuInfo["부연락처"] && !stuInfo["모연락처"]) {
-      window.alert("연락처 (부) 또는 연락처 (모) 중 하나는 반드시 기입되어야합니다.");
+      window.alert(
+        "연락처 (부) 또는 연락처 (모) 중 하나는 반드시 기입되어야합니다."
+      );
       return false;
     }
     return true;
@@ -396,195 +409,254 @@ function StuInfoEdit() {
             <h4 className="stuInfoCard-title mb-4">
               <strong>[ 가족관계 ]</strong>
             </h4>
-            <div className="row">
-              {[
-                "부 직업",
-                "모 직업",
-                "학생과 더 친한 분",
-                "학생과 사이가 더 나쁜 분",
-                "형제 자매 및 관계",
-                "조부모와의 관계",
-                "재산",
-              ].map(function (category, index) {
-                return (
-                  <Form.Group as={Row} className="col-xl-6" key={index}>
-                    <Form.Label column sm="4" className="fs-6">
-                      <p>
-                        <strong>{category}</strong>
-                      </p>
-                    </Form.Label>
-                    <Col>
-                      <textarea
-                        className="textArea"
-                        value={stuInfo[category.split(" ").join("")]}
-                        onChange={(e) => {
-                          change_depth_one(category.split(" ").join(""), e.target.value);
-                        }}
-                      />
-                    </Col>
-                  </Form.Group>
-                );
-              })}
+            <Accordion>
+              <Accordion.Item eventKey="0">
+                <Accordion.Header>
+                  <p>작성하려면 누르세요.</p>
+                </Accordion.Header>
+                <Accordion.Body>
+                  <div className="row">
+                    {[
+                      "부 직업",
+                      "모 직업",
+                      "학생과 더 친한 분",
+                      "학생과 사이가 더 나쁜 분",
+                      "형제 자매 및 관계",
+                      "조부모와의 관계",
+                      "재산",
+                    ].map(function (category, index) {
+                      return (
+                        <Form.Group as={Row} className="col-xl-6" key={index}>
+                          <Form.Label column sm="4" className="fs-6">
+                            <p>
+                              <strong>{category}</strong>
+                            </p>
+                          </Form.Label>
+                          <Col>
+                            <textarea
+                              className="textArea"
+                              value={stuInfo[category.split(" ").join("")]}
+                              onChange={(e) => {
+                                change_depth_one(
+                                  category.split(" ").join(""),
+                                  e.target.value
+                                );
+                              }}
+                            />
+                          </Col>
+                        </Form.Group>
+                      );
+                    })}
 
-              <Form.Group as={Row} className="col-xl-12">
-                <Form.Label column sm="2" className="fs-6">
-                  <p>
-                    <strong>부모 성향</strong>
-                  </p>
-                </Form.Label>
-                <Col>
-                  <Accordion>
-                    <Accordion.Item eventKey="0">
-                      <Accordion.Header>
-                        <p>작성하려면 누르세요.</p>
-                      </Accordion.Header>
-                      <Accordion.Body>
-                        <div>
-                          <Form.Group as={Row}>
-                            <Form.Label column sm="4" className="fs-6 mb-3"></Form.Label>
-                            <Col>
-                              <p>
-                                <strong>부</strong>
-                              </p>
-                            </Col>
-                            <Col>
-                              <p>
-                                <strong>모</strong>
-                              </p>
-                            </Col>
-                          </Form.Group>
-                          <Form.Group as={Row} className="mb-3">
-                            <Form.Label column sm="4" className="fs-6">
-                              <p>
-                                <strong>성향</strong>
-                              </p>
-                            </Form.Label>
-                            <Col>
-                              <textarea
-                                className="textArea"
-                                rows="2"
-                                value={stuInfo["부모성향_부"]}
-                                onChange={(e) => {
-                                  change_depth_one("부모성향_부", e.target.value);
-                                }}
-                              />
-                            </Col>
-                            <Col>
-                              <textarea
-                                className="textArea"
-                                rows="2"
-                                value={stuInfo["부모성향_모"]}
-                                onChange={(e) => {
-                                  change_depth_one("부모성향_모", e.target.value);
-                                }}
-                              />
-                            </Col>
-                          </Form.Group>
-                          <Form.Group as={Row} className="mb-3">
-                            <Form.Label column sm="4" className="fs-6">
-                              <p>
-                                <strong>감정</strong>
-                              </p>
-                            </Form.Label>
-                            <Col>
-                              <textarea
-                                className="textArea"
-                                rows="2"
-                                value={stuInfo["부모감정_부"]}
-                                onChange={(e) => {
-                                  change_depth_one("부모감정_부", e.target.value);
-                                }}
-                              />
-                            </Col>
-                            <Col>
-                              <textarea
-                                className="textArea"
-                                rows="2"
-                                value={stuInfo["부모감정_모"]}
-                                onChange={(e) => {
-                                  change_depth_one("부모감정_모", e.target.value);
-                                }}
-                              />
-                            </Col>
-                          </Form.Group>
-                          <Form.Group as={Row} className="mb-3">
-                            <Form.Label column sm="4" className="fs-6">
-                              <p>
-                                <strong>수용 수준</strong>
-                              </p>
-                            </Form.Label>
-                            <Col>
-                              <textarea
-                                className="textArea"
-                                rows="2"
-                                value={stuInfo["부모수용수준_부"]}
-                                onChange={(e) => {
-                                  change_depth_one("부모수용수준_부", e.target.value);
-                                }}
-                              />
-                            </Col>
-                            <Col>
-                              <textarea
-                                className="textArea"
-                                rows="2"
-                                value={stuInfo["부모수용수준_모"]}
-                                onChange={(e) => {
-                                  change_depth_one("부모수용수준_모", e.target.value);
-                                }}
-                              />
-                            </Col>
-                          </Form.Group>
-                        </div>
-                      </Accordion.Body>
-                    </Accordion.Item>
-                  </Accordion>
-                </Col>
-              </Form.Group>
-
-              <Form.Group as={Row} className="col-xl-12">
-                <Form.Label column sm="2" className="fs-6">
-                  <p>
-                    <strong>부모님 고민</strong>
-                  </p>
-                </Form.Label>
-                <Col>
-                  <Accordion>
-                    <Accordion.Item eventKey="0">
-                      <Accordion.Header>
-                        <p>작성하려면 누르세요.</p>
-                      </Accordion.Header>
-                      <Accordion.Body>
-                        <div className="me-3">
-                          {["생활", "목표 및 동기", "학습", "인성", "현재 폰기종", "현재1주용돈", "불법행위여부"].map(
-                            function (category, index) {
-                              return (
-                                <Form.Group as={Row} className="mb-2" key={index}>
+                    <Form.Group as={Row} className="col-xl-12">
+                      <Form.Label column sm="2" className="fs-6">
+                        <p>
+                          <strong>부모 성향</strong>
+                        </p>
+                      </Form.Label>
+                      <Col>
+                        <Accordion>
+                          <Accordion.Item eventKey="0">
+                            <Accordion.Header>
+                              <p>작성하려면 누르세요.</p>
+                            </Accordion.Header>
+                            <Accordion.Body>
+                              <div>
+                                <Form.Group as={Row}>
+                                  <Form.Label
+                                    column
+                                    sm="4"
+                                    className="fs-6 mb-3"
+                                  ></Form.Label>
+                                  <Col>
+                                    <p>
+                                      <strong>부</strong>
+                                    </p>
+                                  </Col>
+                                  <Col>
+                                    <p>
+                                      <strong>모</strong>
+                                    </p>
+                                  </Col>
+                                </Form.Group>
+                                <Form.Group as={Row} className="mb-3">
                                   <Form.Label column sm="4" className="fs-6">
                                     <p>
-                                      <strong>{category}</strong>
+                                      <strong>성향</strong>
                                     </p>
                                   </Form.Label>
                                   <Col>
                                     <textarea
                                       className="textArea"
                                       rows="2"
-                                      value={stuInfo[`부모님고민_${category.split(" ").join("")}`]}
+                                      value={stuInfo["부모성향_부"]}
                                       onChange={(e) => {
-                                        change_depth_one(`부모님고민_${category.split(" ").join("")}`, e.target.value);
+                                        change_depth_one(
+                                          "부모성향_부",
+                                          e.target.value
+                                        );
+                                      }}
+                                    />
+                                  </Col>
+                                  <Col>
+                                    <textarea
+                                      className="textArea"
+                                      rows="2"
+                                      value={stuInfo["부모성향_모"]}
+                                      onChange={(e) => {
+                                        change_depth_one(
+                                          "부모성향_모",
+                                          e.target.value
+                                        );
                                       }}
                                     />
                                   </Col>
                                 </Form.Group>
-                              );
-                            }
-                          )}
-                        </div>
-                      </Accordion.Body>
-                    </Accordion.Item>
-                  </Accordion>
-                </Col>
-              </Form.Group>
-            </div>
+                                <Form.Group as={Row} className="mb-3">
+                                  <Form.Label column sm="4" className="fs-6">
+                                    <p>
+                                      <strong>감정</strong>
+                                    </p>
+                                  </Form.Label>
+                                  <Col>
+                                    <textarea
+                                      className="textArea"
+                                      rows="2"
+                                      value={stuInfo["부모감정_부"]}
+                                      onChange={(e) => {
+                                        change_depth_one(
+                                          "부모감정_부",
+                                          e.target.value
+                                        );
+                                      }}
+                                    />
+                                  </Col>
+                                  <Col>
+                                    <textarea
+                                      className="textArea"
+                                      rows="2"
+                                      value={stuInfo["부모감정_모"]}
+                                      onChange={(e) => {
+                                        change_depth_one(
+                                          "부모감정_모",
+                                          e.target.value
+                                        );
+                                      }}
+                                    />
+                                  </Col>
+                                </Form.Group>
+                                <Form.Group as={Row} className="mb-3">
+                                  <Form.Label column sm="4" className="fs-6">
+                                    <p>
+                                      <strong>수용 수준</strong>
+                                    </p>
+                                  </Form.Label>
+                                  <Col>
+                                    <textarea
+                                      className="textArea"
+                                      rows="2"
+                                      value={stuInfo["부모수용수준_부"]}
+                                      onChange={(e) => {
+                                        change_depth_one(
+                                          "부모수용수준_부",
+                                          e.target.value
+                                        );
+                                      }}
+                                    />
+                                  </Col>
+                                  <Col>
+                                    <textarea
+                                      className="textArea"
+                                      rows="2"
+                                      value={stuInfo["부모수용수준_모"]}
+                                      onChange={(e) => {
+                                        change_depth_one(
+                                          "부모수용수준_모",
+                                          e.target.value
+                                        );
+                                      }}
+                                    />
+                                  </Col>
+                                </Form.Group>
+                              </div>
+                            </Accordion.Body>
+                          </Accordion.Item>
+                        </Accordion>
+                      </Col>
+                    </Form.Group>
+
+                    <Form.Group as={Row} className="col-xl-12">
+                      <Form.Label column sm="2" className="fs-6">
+                        <p>
+                          <strong>부모님 고민</strong>
+                        </p>
+                      </Form.Label>
+                      <Col>
+                        <Accordion>
+                          <Accordion.Item eventKey="0">
+                            <Accordion.Header>
+                              <p>작성하려면 누르세요.</p>
+                            </Accordion.Header>
+                            <Accordion.Body>
+                              <div className="me-3">
+                                {[
+                                  "생활",
+                                  "목표 및 동기",
+                                  "학습",
+                                  "인성",
+                                  "현재 폰기종",
+                                  "현재1주용돈",
+                                  "불법행위여부",
+                                ].map(function (category, index) {
+                                  return (
+                                    <Form.Group
+                                      as={Row}
+                                      className="mb-2"
+                                      key={index}
+                                    >
+                                      <Form.Label
+                                        column
+                                        sm="4"
+                                        className="fs-6"
+                                      >
+                                        <p>
+                                          <strong>{category}</strong>
+                                        </p>
+                                      </Form.Label>
+                                      <Col>
+                                        <textarea
+                                          className="textArea"
+                                          rows="2"
+                                          value={
+                                            stuInfo[
+                                              `부모님고민_${category
+                                                .split(" ")
+                                                .join("")}`
+                                            ]
+                                          }
+                                          onChange={(e) => {
+                                            change_depth_one(
+                                              `부모님고민_${category
+                                                .split(" ")
+                                                .join("")}`,
+                                              e.target.value
+                                            );
+                                          }}
+                                        />
+                                      </Col>
+                                    </Form.Group>
+                                  );
+                                })}
+                              </div>
+                            </Accordion.Body>
+                          </Accordion.Item>
+                        </Accordion>
+                      </Col>
+                    </Form.Group>
+                  </div>
+                </Accordion.Body>
+              </Accordion.Item>
+            </Accordion>
           </Card>
         </div>
 
@@ -594,28 +666,39 @@ function StuInfoEdit() {
               <strong>[ 건강상태 ]</strong>
             </h4>
             <div className="row">
-              {["키", "몸무게", "체지방률", "BMI", "운동량", "평균 수면시간", "식습관", "정신건강", "과거병력"].map(
-                function (category, index) {
-                  return (
-                    <Form.Group as={Row} className="col-xl-4" key={index}>
-                      <Form.Label column sm="4" className="fs-6">
-                        <p>
-                          <strong>{category}</strong>
-                        </p>
-                      </Form.Label>
-                      <Col>
-                        <Form.Control
-                          type="text"
-                          value={stuInfo[category.split(" ").join("")]}
-                          onChange={(e) => {
-                            change_depth_one(category.split(" ").join(""), e.target.value);
-                          }}
-                        />
-                      </Col>
-                    </Form.Group>
-                  );
-                }
-              )}
+              {[
+                "키",
+                "몸무게",
+                "체지방률",
+                "BMI",
+                "운동량",
+                "평균 수면시간",
+                "식습관",
+                "정신건강",
+                "과거병력",
+              ].map(function (category, index) {
+                return (
+                  <Form.Group as={Row} className="col-xl-4" key={index}>
+                    <Form.Label column sm="4" className="fs-6">
+                      <p>
+                        <strong>{category}</strong>
+                      </p>
+                    </Form.Label>
+                    <Col>
+                      <Form.Control
+                        type="text"
+                        value={stuInfo[category.split(" ").join("")]}
+                        onChange={(e) => {
+                          change_depth_one(
+                            category.split(" ").join(""),
+                            e.target.value
+                          );
+                        }}
+                      />
+                    </Col>
+                  </Form.Group>
+                );
+              })}
             </div>
           </Card>
         </div>
@@ -626,28 +709,36 @@ function StuInfoEdit() {
               <strong>[ 대인관계 ]</strong>
             </h4>
             <div className="row">
-              {["연인", "친구", "친구들 성향", "매니저와의 관계", "가장 친한 매니저", "센터 내 가장 친한 학생"].map(
-                function (category, index) {
-                  return (
-                    <Form.Group as={Row} className="col-xl-6" key={index}>
-                      <Form.Label column sm="4" className="fs-6">
-                        <p>
-                          <strong>{category}</strong>
-                        </p>
-                      </Form.Label>
-                      <Col>
-                        <Form.Control
-                          type="text"
-                          value={stuInfo[category.split(" ").join("")]}
-                          onChange={(e) => {
-                            change_depth_one(category.split(" ").join(""), e.target.value);
-                          }}
-                        />
-                      </Col>
-                    </Form.Group>
-                  );
-                }
-              )}
+              {[
+                "연인",
+                "친구",
+                "친구들 성향",
+                "매니저와의 관계",
+                "가장 친한 매니저",
+                "센터 내 가장 친한 학생",
+              ].map(function (category, index) {
+                return (
+                  <Form.Group as={Row} className="col-xl-6" key={index}>
+                    <Form.Label column sm="4" className="fs-6">
+                      <p>
+                        <strong>{category}</strong>
+                      </p>
+                    </Form.Label>
+                    <Col>
+                      <Form.Control
+                        type="text"
+                        value={stuInfo[category.split(" ").join("")]}
+                        onChange={(e) => {
+                          change_depth_one(
+                            category.split(" ").join(""),
+                            e.target.value
+                          );
+                        }}
+                      />
+                    </Col>
+                  </Form.Group>
+                );
+              })}
             </div>
           </Card>
         </div>
@@ -658,7 +749,10 @@ function StuInfoEdit() {
               <strong>[ 유형검사 ]</strong>
             </h4>
             <div className="row">
-              {["MBTI", "에니어그램", "별자리", "IQ"].map(function (category, index) {
+              {["MBTI", "에니어그램", "별자리", "IQ"].map(function (
+                category,
+                index
+              ) {
                 return (
                   <Form.Group as={Row} className="col-xl-6" key={index}>
                     <Form.Label column sm="4" className="fs-6">
@@ -728,7 +822,12 @@ function StuInfoEdit() {
                         type="date"
                         value={a.날짜}
                         onChange={(e) => {
-                          change_depth_three("히스토리", i, "날짜", e.target.value);
+                          change_depth_three(
+                            "히스토리",
+                            i,
+                            "날짜",
+                            e.target.value
+                          );
                         }}
                       />
                     </Col>
@@ -736,7 +835,12 @@ function StuInfoEdit() {
                       <Form.Select
                         value={a.작성매니저}
                         onChange={(e) => {
-                          change_depth_three("히스토리", i, "작성매니저", e.target.value);
+                          change_depth_three(
+                            "히스토리",
+                            i,
+                            "작성매니저",
+                            e.target.value
+                          );
                         }}
                       >
                         <option value="선택">선택</option>
@@ -758,7 +862,12 @@ function StuInfoEdit() {
                         rows="5"
                         value={a.내용}
                         onChange={(e) => {
-                          change_depth_three("히스토리", i, "내용", e.target.value);
+                          change_depth_three(
+                            "히스토리",
+                            i,
+                            "내용",
+                            e.target.value
+                          );
                         }}
                       />
                     </Col>
@@ -786,7 +895,11 @@ function StuInfoEdit() {
         className="btn-Infocommit btn-edit"
         onClick={() => {
           if (inputCheck()) {
-            if (window.confirm(`${stuInfo.이름}학생의 기본정보를 저장하시겠습니까?`)) {
+            if (
+              window.confirm(
+                `${stuInfo.이름}학생의 기본정보를 저장하시겠습니까?`
+              )
+            ) {
               axios
                 .put("/api/StudentDB/edit", stuInfo)
                 .then(function (result) {
@@ -815,7 +928,11 @@ function StuInfoEdit() {
         variant="secondary"
         className="btn-Infocommit btn-cancel"
         onClick={() => {
-          if (window.confirm(`${stuInfo.이름} 학생의 정보를 정말 삭제하시겠습니까?`)) {
+          if (
+            window.confirm(
+              `${stuInfo.이름} 학생의 정보를 정말 삭제하시겠습니까?`
+            )
+          ) {
             axios
               .delete(`/api/StudentDB/delete/${stuInfo["ID"]}`)
               .then(function (result) {
@@ -826,7 +943,9 @@ function StuInfoEdit() {
                 window.alert("삭제되었습니다");
               })
               .catch(function (err) {
-                window.alert("삭제에 실패했습니다 개발/데이터 팀에게 문의해주세요");
+                window.alert(
+                  "삭제에 실패했습니다 개발/데이터 팀에게 문의해주세요"
+                );
               })
               .then(function () {
                 history.push("/studentList");

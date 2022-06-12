@@ -1,5 +1,5 @@
 import "./TRWriteEdit.scss";
-import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
+import { Form, Button, Card, ListGroup, Table, Modal, Row, Col, Accordion } from "react-bootstrap";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
@@ -1019,7 +1019,12 @@ function TRwrite() {
                 </Form.Select>
               </div>
             </div>
-
+            <Accordion>
+              <Accordion.Item eventKey="0">
+                <Accordion.Header>
+                  <p>작성하려면 누르세요.</p>
+                </Accordion.Header>
+                <Accordion.Body>
             <textarea
               rows="10"
               className="textArea"
@@ -1028,6 +1033,9 @@ function TRwrite() {
                 change_depth_one("중간피드백", e.target.value);
               }}
             ></textarea>
+            </Accordion.Body>
+                </Accordion.Item>
+                </Accordion>
 
             <div className="d-flex mt-3 mb-3 justify-content-center">
               <div className="feedback-sub">
@@ -1057,6 +1065,12 @@ function TRwrite() {
                 </Form.Select>
               </div>
             </div>
+            <Accordion>
+              <Accordion.Item eventKey="0">
+                <Accordion.Header>
+                  <p>작성하려면 누르세요.</p>
+                </Accordion.Header>
+                <Accordion.Body>
             <textarea
               rows="10"
               className="textArea"
@@ -1065,6 +1079,9 @@ function TRwrite() {
                 change_depth_one("매니저피드백", e.target.value);
               }}
             ></textarea>
+            </Accordion.Body>
+                </Accordion.Item>
+                </Accordion>
           </div>
           <Button
             variant="secondary"

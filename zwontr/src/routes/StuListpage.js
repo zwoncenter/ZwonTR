@@ -10,7 +10,7 @@ import absent from "./absent.png";
 function StuListpage() {
   let history = useHistory();
   const now = new Date(); // 현재 시간
-  const utcNow = now.getTime() + (now.getTimezoneOffset() * 60 * 1000);
+  const utcNow = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
   const koreaTimeDiff = 9 * 60 * 60 * 1000;
   const koreaNow = new Date(utcNow + koreaTimeDiff);
   const today = koreaNow.toISOString().split("T")[0];
@@ -87,7 +87,7 @@ function StuListpage() {
       .catch((err) => {
         return err;
       });
-      settodayTRlist(newtodayTRlist);
+    settodayTRlist(newtodayTRlist);
     const newWritten = [];
     for (var i = 0; i < newstudentDBlist.length; i++) {
       var tmp = "미작성";
@@ -96,8 +96,11 @@ function StuListpage() {
           tmp = "등원";
           if (newtodayTRlist[j]["결석여부"] === true) {
             tmp = "미등원";
-          } else if (newtodayTRlist[j]["작성매니저"] && newtodayTRlist[j]["작성매니저"] !== "선택") {
-            tmp = "귀가"
+          } else if (
+            newtodayTRlist[j]["작성매니저"] &&
+            newtodayTRlist[j]["작성매니저"] !== "선택"
+          ) {
+            tmp = "귀가";
           }
           break;
         }
@@ -110,7 +113,6 @@ function StuListpage() {
       window.alert("로그인이 필요합니다.");
       return history.push("/");
     }
-    
   }, []);
 
   return (
@@ -122,6 +124,13 @@ function StuListpage() {
             : "stuListShow text-center"
         }
       >
+        <div className="statesBox">
+          <p>활동중: {Written.filter(element => '등원' === element).length}</p>
+          <p>귀가: {Written.filter(element => '귀가' === element).length}</p>
+          <p>미등원: {Written.filter(element => '미등원' === element).length}</p>
+          <p>등원예정: {Written.filter(element => '미작성' === element).length}</p>
+          <p className="mt-3"><strong>총  {studentDBlist.length} 명</strong></p>
+        </div>
         <h2>
           <strong>지원센터 학생 목록</strong>
         </h2>
@@ -136,14 +145,26 @@ function StuListpage() {
                     <div className="stuListItem" key={index}>
                       <ListGroup.Item
                         className={
-                         Written[index] === "귀가" ? "IsWritten" : (Written[index] === "등원" ? "Writing" : (Written[index] === "미등원" ? "Abscent" : "NotWritten"))
+                          Written[index] === "귀가"
+                            ? "IsWritten"
+                            : Written[index] === "등원"
+                            ? "Writing"
+                            : Written[index] === "미등원"
+                            ? "Abscent"
+                            : "NotWritten"
                         }
                         onClick={() => {
                           nameClick(db, index);
                         }}
                       >
                         <p>{db.이름}</p>
-                        {Written[index] ==="미등원" && <img src={absent} alt="absent" className="absent-sign" />}
+                        {Written[index] === "미등원" && (
+                          <img
+                            src={absent}
+                            alt="absent"
+                            className="absent-sign"
+                          />
+                        )}
                       </ListGroup.Item>
                     </div>
                   );
@@ -243,23 +264,27 @@ function StuListpage() {
         <div className="stulistComment">
           <div className="mt-1">
             <div className="commentbox">
-              <div className="colorcomment colorcomment-lightgrey"></div><p><strong>중간 피드백 작성 완료</strong></p>
+              <div className="colorcomment colorcomment-lightgrey"></div>
+              <p>
+                <strong>중간 피드백 작성 완료</strong>
+              </p>
+            </div>
+            <div className="commentbox">
+              <div className="colorcomment colorcomment-darkgrey"></div>
+              <p>
+                <strong>마감 피드백 작성 완료</strong>
+              </p>
+            </div>
+            <div className="commentbox">
+              <div className="absentcomment-sign">
+                <img src={absent} alt="absent" />
               </div>
-              <div className="commentbox">
-              <div className="colorcomment colorcomment-darkgrey"></div><p><strong>마감 피드백 작성 완료</strong></p>
-              </div>
-              <div className="commentbox">
-                <div className="absentcomment-sign"><img src={absent} alt="absent"/></div>
-              <p><strong>미등원 시 표시됩니다.</strong></p>
-              </div>
+              <p>
+                <strong>미등원 시 표시됩니다.</strong>
+              </p>
+            </div>
           </div>
         </div>
-        {/* <Button
-        variant="secondary"
-        onClick={() => {
-          history.push("/Closemeeting/Write")
-        }}
-        >{today} 마감 회의</Button> */}
       </div>
     </div>
   );
