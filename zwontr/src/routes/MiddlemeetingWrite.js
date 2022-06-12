@@ -37,7 +37,7 @@ function MiddlemeetingWrite() {
     const paramToday = new Date(parseInt(paramDate.split("-")[0]), parseInt(paramDate.split("-")[1])-1, parseInt(paramDate.split("-")[2]));
     let paramYesterday = new Date(paramToday.getTime() - 86400000)
     if (paramYesterday.getDay() === 6) {
-        paramYesterday = new Date(paramToday.getTime() - (86400000 * 2));
+        paramYesterday = new Date(paramToday.getTime() - (86400000));
     }
     const yesterday = paramYesterday.toISOString().split("T")[0];
     const newcloseFeedback = await axios
