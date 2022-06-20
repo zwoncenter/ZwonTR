@@ -20,6 +20,7 @@ import ClosemeetingEdit from "./routes/ClosemeetingEdit";
 import Todolist from "./routes/Todolist.js"
 import MiddlemeetingWrite from "./routes/MiddlemeetingWrite";
 import MiddlemeetingEdit from "./routes/MiddlemeetingEdit";
+import Dashboard from "./routes/Dashboard.js";
 
 function App() {
   let history = useHistory();
@@ -113,7 +114,8 @@ function App() {
           <Button
             className="menu-map-btn btn-secondary"
             onClick={() => {
-              window.alert("준비중입니다!");
+              history.push("/Dashboard");
+              // window.alert("준비중입니다!");
             }}
           >
             <h5>
@@ -169,6 +171,9 @@ function App() {
         </Route>
         <Route exact path="/Todolist">
           <Todolist />
+        </Route>
+        <Route exact path="/Dashboard">
+          <Dashboard />
         </Route>
       </Switch>
     </div>

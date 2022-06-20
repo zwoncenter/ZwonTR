@@ -440,28 +440,40 @@ function TRedit() {
                 />
               </div>
 
-              <div className="col-3"></div>
-
-              <div className="col-2 pe-0">
+              <div className="col-3 pe-0">
                 <Button
                   variant="secondary"
                   className="btn-commit btn-attend"
                   onClick={() => {
-                    console.log(TR);
                     change_depth_one("결석여부", false);
+                    console.log(TR);
                   }}
                 >
                   <strong>등원</strong>
                 </Button>
               </div>
+
+              <div className="col-2 p-0">
+              <Button
+                  variant="secondary"
+                  className="btn-commit btn-comeyet"
+                  onClick={() => {
+                    change_depth_one("결석여부", "등원예정");
+                    console.log(TR);
+                  }}
+                >
+                  <strong>등원예정</strong>
+                </Button>
+              </div>
+
               <div className="col-2 p-0">
                 <Button
                   variant="secondary"
                   className="btn-commit btn-absent"
                   onClick={() => {
                     if (window.confirm("미등원으로 전환하시겠습니까?")) {
-                      console.log(TR);
                       change_depth_one("결석여부", true);
+                      console.log(TR);
                     }
                   }}
                 >
@@ -945,13 +957,28 @@ function TRedit() {
                   </Table>
                 </div>
               </div>
-            ) : (
+            ) :
+            TR.결석여부 === "등원예정"? (
               <div className="trCard mt-3">
                 <Form.Select
                   size="sm"
                   value={TR.결석사유}
                   onChange={(e) => {
-                    push_depth_one("결석사유", e.target.value);
+                    change_depth_one("결석사유", e.target.value);
+                  }}
+                >
+                  <option value="">등원예정 사유 선택</option>
+                  <option value="등원시각이 아직 되지 않음">등원시각이 아직 되지 않음</option>
+                  <option value="등원시각이 되었으나 아직 미등원 (지각)">등원시각이 되었으나 아직 미등원 (지각)</option>
+                </Form.Select>
+              </div>
+            ):(
+              <div className="trCard mt-3">
+                <Form.Select
+                  size="sm"
+                  value={TR.결석사유}
+                  onChange={(e) => {
+                    change_depth_one("결석사유", e.target.value);
                   }}
                 >
                   <option value="">미등원사유 선택</option>
@@ -968,7 +995,7 @@ function TRedit() {
                   placeholder="미등원 사유를 입력"
                   value={TR.결석상세내용}
                   onChange={(e) => {
-                    push_depth_one("결석상세내용", e.target.value);
+                    change_depth_one("결석상세내용", e.target.value);
                   }}
                 ></textarea>
               </div>
