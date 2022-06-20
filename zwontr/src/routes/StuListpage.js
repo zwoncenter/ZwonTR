@@ -93,10 +93,14 @@ function StuListpage() {
       var tmp = "미작성";
       for (var j = 0; j < newtodayTRlist.length; j++) {
         if (newstudentDBlist[i]["ID"] == newtodayTRlist[j]["ID"]) {
-          tmp = "등원";
-          if (newtodayTRlist[j]["결석여부"] === true) {
-            tmp = "미등원";
-          } else if (
+          if (newtodayTRlist[j]["결석여부"] === false) {
+            tmp = "등원";
+          } else if (newtodayTRlist[j]["결석여부"] === true) {
+            tmp = "미등원"
+          } else if (newtodayTRlist[j]["결석여부"] === "등원예정") {
+            tmp = "등원예정"
+          }
+          else if (
             newtodayTRlist[j]["작성매니저"] &&
             newtodayTRlist[j]["작성매니저"] !== "선택"
           ) {
@@ -128,7 +132,7 @@ function StuListpage() {
           <p>활동중: {Written.filter(element => '등원' === element).length}</p>
           <p>귀가: {Written.filter(element => '귀가' === element).length}</p>
           <p>미등원: {Written.filter(element => '미등원' === element).length}</p>
-          <p>등원예정: {Written.filter(element => '미작성' === element).length}</p>
+          <p>등원예정: {Written.filter(element => '등원예정'=== element).length}</p>
           <p className="mt-3"><strong>총  {studentDBlist.length} 명</strong></p>
         </div>
         <h2>
@@ -146,11 +150,13 @@ function StuListpage() {
                       <ListGroup.Item
                         className={
                           Written[index] === "귀가"
-                            ? "IsWritten"
+                            ? "WentHome"
                             : Written[index] === "등원"
-                            ? "Writing"
+                            ? "AtHere"
+                            : Written[index] === "등원예정"
+                            ? "NotCame"
                             : Written[index] === "미등원"
-                            ? "Abscent"
+                            ? "Absent"
                             : "NotWritten"
                         }
                         onClick={() => {

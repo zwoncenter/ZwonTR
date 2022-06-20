@@ -137,7 +137,7 @@ h6 {
   color: white;
 }
 
-.IsWritten {
+.WentHome {
   background-color: rgb(74, 77, 80);
   color: white;
   border: 0;
@@ -145,7 +145,7 @@ h6 {
   justify-content: center;
 }
 
-.Writing {
+.AtHere {
   background-color: rgb(168, 174, 180);
   color: white;
   border: 0;
@@ -153,19 +153,25 @@ h6 {
   justify-content: center;
 }
 
-.NotWritten {
-  background-color: white;
+.NotCame {
+  background-color: rgb(233, 216, 141);
   display: flex;
   justify-content: center;
 }
 
-.Abscent {
+.NotWritten {
+  background-color: rgb(255, 255, 255);
+  display: flex;
+  justify-content: center;
+}
+
+.Absent {
   background-color: rgb(74, 77, 80);
   color: white;
   display: flex;
   vertical-align: middle;
 }
-.Abscent img, .Abscent p {
+.Absent img, .Absent p {
   transform: translateX(57px);
 }
 

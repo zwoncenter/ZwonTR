@@ -180,8 +180,8 @@ function TRwrite() {
     }
 
 
-    if (TR.결석여부) {
-      if (!TR.결석사유) {
+    if (TR.결석여부 !== false) {
+      if (TR.결석여부 === true) {
         window.alert("미등원 사유가 선택되지 않았습니다.");
         return false;
       }
@@ -912,19 +912,7 @@ function TRwrite() {
               </div>
             ) :
             TR.결석여부 === "등원예정"? (
-              <div className="trCard mt-3">
-                <Form.Select
-                  size="sm"
-                  value={TR.결석사유}
-                  onChange={(e) => {
-                    change_depth_one("결석사유", e.target.value);
-                  }}
-                >
-                  <option value="">등원예정 사유 선택</option>
-                  <option value="등원시각이 아직 되지 않음">등원시각이 아직 되지 않음</option>
-                  <option value="등원시각이 되었으나 아직 미등원 (지각)">등원시각이 되었으나 아직 미등원 (지각)</option>
-                </Form.Select>
-              </div>
+              <></>
             ):(
               <div className="trCard mt-3">
                 <Form.Select
