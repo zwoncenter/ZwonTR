@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import menuarrow from "../next.png";
 import absent from "./absent.png";
+import notcame from "./notcame.png";
 
 function StuListpage() {
   let history = useHistory();
@@ -171,6 +172,13 @@ function StuListpage() {
                             className="absent-sign"
                           />
                         )}
+                        {Written[index] === "등원예정" && (
+                          <img
+                            src={notcame}
+                            alt="notcame"
+                            className="absent-sign"
+                          />
+                        )}
                       </ListGroup.Item>
                     </div>
                   );
@@ -268,7 +276,8 @@ function StuListpage() {
           </Modal>
         ) : null}
         <div className="stulistComment">
-          <div className="mt-1">
+          <div className="mt-1 commentcontainer">
+            <div>
             <div className="commentbox">
               <div className="colorcomment colorcomment-lightgrey"></div>
               <p>
@@ -281,6 +290,9 @@ function StuListpage() {
                 <strong>마감 피드백 작성 완료</strong>
               </p>
             </div>
+            </div>
+            <div className="w-3 ms-2"></div>
+            <div>
             <div className="commentbox">
               <div className="absentcomment-sign">
                 <img src={absent} alt="absent" />
@@ -288,6 +300,15 @@ function StuListpage() {
               <p>
                 <strong>미등원 시 표시됩니다.</strong>
               </p>
+            </div>
+            <div className="commentbox">
+              <div className="absentcomment-sign">
+                <img src={notcame} alt="notcame" />
+              </div>
+              <p>
+                <strong>등원예정 시 표시됩니다.</strong>
+              </p>
+            </div>        
             </div>
           </div>
         </div>
