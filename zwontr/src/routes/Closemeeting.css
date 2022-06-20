@@ -13,6 +13,11 @@
   color: rgb(240, 240, 240);
 }
 
+.yellow {
+  background-color: rgb(219, 190, 26);
+  color: rgb(240, 240, 240);
+}
+
 .red {
   background-color: rgb(245, 110, 110);
   color: rgb(240, 240, 240);

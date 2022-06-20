@@ -38,7 +38,7 @@ h6 {
   width: 300px;
   height: 100vh;
   background-color: rgba(0, 0, 0, 0);
-  transform: translateX(-280px);
+  transform: translateX(-270px);
   color: white;
   padding: 5px;
   transition-property: transform, background-color;
@@ -51,6 +51,7 @@ h6 {
 }
 .menu:hover img {
   transform: rotate(180deg);
+  filter: invert(100%);
 }
 
 .menu-map {
@@ -71,11 +72,11 @@ h6 {
 }
 
 .menuArrow {
-  filter: invert(100%);
-  width: 40px;
+  filter: invert(0%);
+  width: 20px;
   position: absolute;
   bottom: 10px;
-  right: 27px;
+  right: 5px;
 }
 .menuArrow img {
   width: 100%;

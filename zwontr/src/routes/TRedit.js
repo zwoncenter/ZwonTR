@@ -951,7 +951,7 @@ function TRedit() {
                   size="sm"
                   value={TR.결석사유}
                   onChange={(e) => {
-                    push_depth_one("결석사유", e.target.value);
+                    change_depth_one("결석사유", e.target.value);
                   }}
                 >
                   <option value="">미등원사유 선택</option>

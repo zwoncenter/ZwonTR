@@ -198,7 +198,7 @@ function MiddlemeetingWrite() {
                         <p className={tr["기상차이"] >= 0 ? "green" : "red"}>{tr["실제기상"]}</p>
                       </td>
                       <td>
-                        <p className={tr["등원차이"] >= 0 ? "green" : "red"}>{tr["실제등원"]}</p>
+                        <p className={tr["등원차이"] >= -0.17 ? "green" : tr["등원차이"] >= -1 ? "yellow" : "red"}>{tr["실제등원"]}</p>
                         <p className="targetattend">{tr["목표등원"]}</p>
                       </td>
                       <td>
