@@ -179,7 +179,7 @@ function TRedit() {
       return false;
     }
     if (TR.결석여부 !== false) {
-      if (TR.결석여부 === true) {
+      if (TR.결석여부 === true && TR.결석사유.length === 0 ) {
         window.alert("미등원 사유가 선택되지 않았습니다.");
         return false;
       }

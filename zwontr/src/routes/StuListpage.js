@@ -96,18 +96,17 @@ function StuListpage() {
         if (newstudentDBlist[i]["ID"] == newtodayTRlist[j]["ID"]) {
           if (newtodayTRlist[j]["결석여부"] === false) {
             tmp = "등원";
+            if (
+              newtodayTRlist[j]["작성매니저"] &&
+              newtodayTRlist[j]["작성매니저"] !== "선택"
+            ) {
+              tmp = "귀가";
+            }
           } else if (newtodayTRlist[j]["결석여부"] === true) {
             tmp = "미등원"
           } else if (newtodayTRlist[j]["결석여부"] === "등원예정") {
             tmp = "등원예정"
           }
-          else if (
-            newtodayTRlist[j]["작성매니저"] &&
-            newtodayTRlist[j]["작성매니저"] !== "선택"
-          ) {
-            tmp = "귀가";
-          }
-          break;
         }
       }
       newWritten.push(tmp);
@@ -291,7 +290,7 @@ function StuListpage() {
               </p>
             </div>
             </div>
-            <div className="w-3 ms-2"></div>
+            <div className="w-3 ms-2 me-2"></div>
             <div>
             <div className="commentbox">
               <div className="absentcomment-sign">

@@ -154,9 +154,12 @@ h6 {
 }
 
 .NotCame {
-  background-color: rgb(233, 216, 141);
+  background-color: rgb(255, 255, 255);
   display: flex;
-  justify-content: center;
+  vertical-align: middle;
+}
+.NotCame img, .NotCame p {
+  transform: translateX(57px);
 }
 
 .NotWritten {
@@ -225,11 +228,17 @@ h6 {
   color: white;
   font-weight: bold;
   text-align: right;
+  justify-content: end;
   width: 90%;
   max-width: 600px;
   margin: auto;
   display: block;
   text-shadow: 1px 1px 1px black;
+}
+
+.commentcontainer {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .commentbox {

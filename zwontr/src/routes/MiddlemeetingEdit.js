@@ -174,13 +174,12 @@ function MiddlemeetingWrite() {
                   <td>
                     <p>{tr["이름"]}</p>
                   </td>
-                  {tr["결석여부"] ? (
+                  {tr["결석여부"] !== false? (
                     <>
                       <td colSpan={4}>
                         {" "}
                         <p className="abscent">
-                          {" "}
-                          미등원 - {tr["결석사유"]} : {tr["결석상세내용"]}
+                        {tr["결석여부"] === true ? <>미등원 - {tr["결석사유"]} : {tr["결석상세내용"]} </> :  <>등원예정</> }   
                         </p>
                       </td>
                       <td>
