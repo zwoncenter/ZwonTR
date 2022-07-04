@@ -27,31 +27,87 @@ textarea {
 
 .dashboard-bigbox {
   width: 100%;
-  padding: 15px;
+  height: 100%;
+  padding: 0px;
   border-radius: 20px;
   border: 0px;
-  background-color: white;
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
-  margin: auto;
+  background-color: None;
+  margin-top: 0px;
   display: block;
   display: flex;
 }
 
 .dashcard {
-  padding: 15px;
-  border: 0px;
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  border: 1px solid #eee;
   border-radius: 20px;
-  background-color: white;
-  margin: auto;
 }
 
 .profilebox {
-  width: 40%;
+  width: 15%;
   height: 100%;
+  background-color: #5500d3;
 }
 
 .contentbox {
-  width: 60%;
+  width: 85%;
   height: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  background-color: white;
+}
+
+.input-group {
+  padding: 10px;
+  border-radius: 30px;
+  margin-top: 10px;
+}
+.input-group input {
+  border: 1px solid black;
+}
+.input-group button {
+  border: 1px solid black;
+  color: white;
+  background-color: #4B4453;
+}
+
+.FlowChart {
+  padding: 20px;
+  margin: 0px;
+  grid-column: 1/span 3;
+  grid-row: 2/span 2;
+}
+
+.remoteController {
+  margin-top: 10px;
+  padding: 5px;
+  background-color: white;
+  border-radius: 20px;
+  border: 2px black solid;
+  margin-inline: 10px;
+}
+
+.lifecycleChartSleep {
+  grid-column: 1/span 1;
+  grid-row: 1/span 1;
+}
+
+.lifecycleChartWakeup {
+  grid-column: 2/span 1;
+  grid-row: 1/span 1;
+}
+
+.lifecycleChartAttend {
+  grid-column: 3/span 1;
+  grid-row: 1/span 1;
+}
+
+.modeBtn {
+  width: 24%;
+  height: 31px;
+  border-radius: 15px;
+  margin: 1px;
+  font-size: 15px;
+  background-color: black;
+  border: 0;
 }/*# sourceMappingURL=Dashboard.css.map */
