@@ -217,6 +217,7 @@ function Dashboard() {
             return (
               element["목표등원"] != null &&
               element["목표등원"] >= element["실제등원"]
+              && element['결석여부'] != true
             );
           }).length,
           fill: "rgb(164, 180, 255)",
@@ -227,6 +228,7 @@ function Dashboard() {
             return (
               element["목표등원"] != null &&
               element["목표등원"] < element["실제등원"]
+              &&element['결석여부'] != true
             );
           }).length,
           fill: "rgb(234, 153, 153)",
@@ -235,6 +237,7 @@ function Dashboard() {
       const temporal = data.map((element, i) => {
         return {
           indice: i,
+          결석여부: element['결석여부'],
           날짜: element["날짜"],
           목표취침: convertFromStringToDateTime(element["목표취침"]),
           실제취침: convertFromStringToDateTime(element["실제취침"]),
@@ -286,17 +289,24 @@ function Dashboard() {
               </span>
             </button>
           </div>
-          {/* <button
+          <button
             className="w-20"
             onClick={() => {
               console.log(data);
               console.log(sleepingTime);
+              console.log(sleepingTime.filter((element)=>{
+                return (element['결석여부'] === false);
+              })
+              .map((element) => {
+                return element["날짜"];
+              })
+              );
             }}
           >
             <span>
               <strong>확인</strong>
             </span>
-          </button> */}
+          </button>
 
           {searchStudent.length >= 10
             ? null
@@ -403,7 +413,11 @@ function Dashboard() {
               </div>
             </Card>
             <div className="center">
-              <p>기간 내 등원일 - {data.length}일 </p>
+              <p>기간 내 등원일 - {data.filter((element)=>{
+                      return (
+                        element['결석여부'] ===false
+                      );})
+                      .length}일 </p>
             </div>
           </div>
         </div>
@@ -433,10 +447,18 @@ function Dashboard() {
                     },
                   },
                   {
-                    x: sleepingTime.map((element) => {
+                    x: sleepingTime.filter((element)=>{
+                      return (
+                        element['결석여부'] ===false
+                      );
+                    }).map((element) => {
                       return element["날짜"];
                     }),
-                    y: sleepingTime.map((element) => {
+                    y: sleepingTime.filter((element)=>{
+                      return (
+                        element['결석여부'] ===false
+                      );
+                    }).map((element) => {
                       return element["실제취침"];
                     }),
                     type: "scatter",
@@ -494,10 +516,18 @@ function Dashboard() {
                     },
                   },
                   {
-                    x: sleepingTime.map((element) => {
+                    x: sleepingTime.filter((element)=>{
+                      return (
+                        element['결석여부'] ===false
+                      );
+                    }).map((element) => {
                       return element["날짜"];
                     }),
-                    y: sleepingTime.map((element) => {
+                    y: sleepingTime.filter((element)=>{
+                      return (
+                        element['결석여부'] ===false
+                      );
+                    }).map((element) => {
                       return element["실제기상"];
                     }),
                     type: "scatter",
@@ -569,6 +599,7 @@ function Dashboard() {
                     x: sleepingTime.map((element) => {
                       return element["날짜"];
                     }),
+
                     y: sleepingTime.map((element) => {
                       return element["목표등원"];
                     }),
@@ -582,10 +613,18 @@ function Dashboard() {
                     },
                   },
                   {
-                    x: sleepingTime.map((element) => {
+                    x: sleepingTime.filter((element)=>{
+                      return (
+                        element['결석여부'] ===false
+                      );
+                    }).map((element) => {
                       return element["날짜"];
                     }),
-                    y: sleepingTime.map((element) => {
+                    y: sleepingTime.filter((element)=>{
+                      return (
+                        element['결석여부'] ===false
+                      );
+                    }).map((element) => {
                       return element["실제등원"];
                     }),
                     type: "scatter",
@@ -627,10 +666,16 @@ function Dashboard() {
                 className="p-0 m-0"
                 data={[
                   {
-                    x: sleepingTime.map((element) => {
+                    x: sleepingTime.filter((element)=>{
+                      return (
+                        element['결석여부'] ===false
+                      );}).map((element) => {
                       return element["실제취침"];
                     }),
-                    y: sleepingTime.map((element) => {
+                    y: sleepingTime.filter((element)=>{
+                      return (
+                        element['결석여부'] ===false
+                      );}).map((element) => {
                       return element["실제학습"];
                     }),
                     type: "scatter",
@@ -688,10 +733,16 @@ function Dashboard() {
                 className="p-0 m-0"
                 data={[
                   {
-                    x: sleepingTime.map((element) => {
+                    x: sleepingTime.filter((element)=>{
+                      return (
+                        element['결석여부'] ===false
+                      );}).map((element) => {
                       return element["실제기상"];
                     }),
-                    y: sleepingTime.map((element) => {
+                    y: sleepingTime.filter((element)=>{
+                      return (
+                        element['결석여부'] ===false
+                      );}).map((element) => {
                       return element["실제학습"];
                     }),
                     type: "scatter",
@@ -748,10 +799,16 @@ function Dashboard() {
                 className="p-0 m-0"
                 data={[
                   {
-                    x: sleepingTime.map((element) => {
+                    x: sleepingTime.filter((element)=>{
+                      return (
+                        element['결석여부'] ===false
+                      );}).map((element) => {
                       return element["실제등원"];
                     }),
-                    y: sleepingTime.map((element) => {
+                    y: sleepingTime.filter((element)=>{
+                      return (
+                        element['결석여부'] ===false
+                      );}).map((element) => {
                       return element["실제학습"];
                     }),
                     type: "scatter",
