@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import menuarrow from "./next.png";
 
-
 import StuListpage from "./routes/StuListpage";
 import StudentAdd from "./routes/StudentAdd";
 import TRwrite from "./routes/TRwrite";
@@ -17,15 +16,16 @@ import StuInfoEdit from "./routes/StuInfoEdit";
 import StudyChart from "./routes/StudyChart";
 import ClosemeetingWrite from "./routes/ClosemeetingWrite";
 import ClosemeetingEdit from "./routes/ClosemeetingEdit";
-import Todolist from "./routes/Todolist.js"
+import Todolist from "./routes/Todolist.js";
 import MiddlemeetingWrite from "./routes/MiddlemeetingWrite";
 import MiddlemeetingEdit from "./routes/MiddlemeetingEdit";
 import Dashboard from "./routes/Dashboard.js";
+import TextbookManage from "./routes/TextbookManage";
 
 function App() {
   let history = useHistory();
   const now = new Date(); // 현재 시간
-  const utcNow = now.getTime() + (now.getTimezoneOffset() * 60 * 1000);
+  const utcNow = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
   const koreaTimeDiff = 9 * 60 * 60 * 1000;
   const koreaNow = new Date(utcNow + koreaTimeDiff);
   const today = koreaNow.toISOString().split("T")[0];
@@ -61,11 +61,10 @@ function App() {
               axios
                 .get(`/api/Middlemeeting/find/${today}`)
                 .then((result) => {
-
                   if (result["data"] === null) {
-                      history.push(`/Middlemeeting/Write/${today}`);
+                    history.push(`/Middlemeeting/Write/${today}`);
                   } else {
-                      history.push(`/Middlemeeting/Edit/${today}`);
+                    history.push(`/Middlemeeting/Edit/${today}`);
                   }
                 })
                 .catch((err) => {
@@ -78,18 +77,17 @@ function App() {
             </h5>
           </Button>
 
-
           <Button
             className="menu-map-btn btn-secondary"
             onClick={() => {
               axios
                 .get(`/api/Closemeeting/find/${today}`)
                 .then((result) => {
-                  console.log(result)
+                  console.log(result);
                   if (result["data"] === null) {
-                      history.push(`/Closemeeting/Write/${today}`);
+                    history.push(`/Closemeeting/Write/${today}`);
                   } else {
-                      history.push(`/Closemeeting/Edit/${today}`);
+                    history.push(`/Closemeeting/Edit/${today}`);
                   }
                 })
                 .catch((err) => {
@@ -114,8 +112,17 @@ function App() {
           <Button
             className="menu-map-btn btn-secondary"
             onClick={() => {
+              history.push("/Textbook");
+            }}
+          >
+            <h5>
+              <strong>교재관리</strong>
+            </h5>
+          </Button>
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
               history.push("/Dashboard");
-              // window.alert("준비중입니다!");
             }}
           >
             <h5>
@@ -159,7 +166,7 @@ function App() {
         <Route exact path="/Closemeeting/Write/:date">
           <ClosemeetingWrite />
         </Route>
-        
+
         <Route exact path="/Closemeeting/Edit/:date">
           <ClosemeetingEdit />
         </Route>
@@ -174,6 +181,9 @@ function App() {
         </Route>
         <Route exact path="/Dashboard">
           <Dashboard />
+        </Route>
+        <Route exact path="/Textbook">
+          <TextbookManage />
         </Route>
       </Switch>
     </div>

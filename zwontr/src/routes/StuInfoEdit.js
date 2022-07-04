@@ -79,7 +79,15 @@ function StuInfoEdit() {
     별자리: "",
     IQ: "",
 
-    히스토리: [],
+    히스토리: {
+      "외부활동" : [],
+      "진로" : [], 
+      "학습" : [], 
+      "자기인식" : [], 
+      "상담" : [], 
+      "문제사항" : [], 
+      "기타" : []
+    },
 
     작성매니저: "",
     작성일자: "",
@@ -139,6 +147,12 @@ function StuInfoEdit() {
     setstuInfo(newstuInfo);
   }
 
+  function change_depth_four(category1, category2, category3, category4, data) {
+    const newstuInfo = JSON.parse(JSON.stringify(stuInfo));
+    newstuInfo[category1][category2][category3][category4] = data;
+    setstuInfo(newstuInfo);
+  }
+
   function push_depth_one(category, content) {
     const newstuInfo = JSON.parse(JSON.stringify(stuInfo));
     newstuInfo[category].push(content);
@@ -151,10 +165,24 @@ function StuInfoEdit() {
     setstuInfo(newstuInfo);
   }
 
+  function unshift_depth_two(category1, category2, content) {
+    const newstuInfo = JSON.parse(JSON.stringify(stuInfo));
+    newstuInfo[category1][category2].unshift(content);
+    setstuInfo(newstuInfo);
+  }
+
   function delete_depth_one(category, index) {
     if (window.confirm("삭제하시겠습니까?")) {
       const newstuInfo = JSON.parse(JSON.stringify(stuInfo));
       newstuInfo[category].splice(index, 1);
+      setstuInfo(newstuInfo);
+    }
+  }
+
+  function delete_depth_two(category1, category2, index) {
+    if (window.confirm("삭제하시겠습니까?")) {
+      const newstuInfo = JSON.parse(JSON.stringify(stuInfo));
+      newstuInfo[category1][category2].splice(index, 1);
       setstuInfo(newstuInfo);
     }
   }
@@ -394,6 +422,22 @@ function StuInfoEdit() {
                         value={stuInfo["최종학력"]}
                         onChange={(e) => {
                           change_depth_one("최종학력", e.target.value);
+                        }}
+                      />
+                    </Col>
+                  </Form.Group>
+
+                  <Form.Group as={Row} className="col-xl-6">
+                    <Form.Label column sm="4" className="fs-6">
+                      <p>
+                        <strong>MBTI</strong>
+                      </p>
+                    </Form.Label>
+                    <Col>
+                      <Form.Control
+                        type="text"
+                        onChange={(e) => {
+                          change_depth_one("MBTI", e.target.value);
                         }}
                       />
                     </Col>
@@ -659,24 +703,14 @@ function StuInfoEdit() {
             </Accordion>
           </Card>
         </div>
-
+                {/* 건강상태 */}
         <div className="col-12">
           <Card className="stuInfoCard mt-3">
             <h4 className="stuInfoCard-title mb-4">
               <strong>[ 건강상태 ]</strong>
             </h4>
             <div className="row">
-              {[
-                "키",
-                "몸무게",
-                "체지방률",
-                "BMI",
-                "운동량",
-                "평균 수면시간",
-                "식습관",
-                "정신건강",
-                "과거병력",
-              ].map(function (category, index) {
+              {["키", "몸무게", "정신건강", "과거병력"].map(function (category, index) {
                 return (
                   <Form.Group as={Row} className="col-xl-4" key={index}>
                     <Form.Label column sm="4" className="fs-6">
@@ -703,190 +737,118 @@ function StuInfoEdit() {
           </Card>
         </div>
 
-        <div className="col-12">
-          <Card className="stuInfoCard mt-3">
-            <h4 className="stuInfoCard-title mb-4">
-              <strong>[ 대인관계 ]</strong>
-            </h4>
-            <div className="row">
-              {[
-                "연인",
-                "친구",
-                "친구들 성향",
-                "매니저와의 관계",
-                "가장 친한 매니저",
-                "센터 내 가장 친한 학생",
-              ].map(function (category, index) {
-                return (
-                  <Form.Group as={Row} className="col-xl-6" key={index}>
-                    <Form.Label column sm="4" className="fs-6">
-                      <p>
-                        <strong>{category}</strong>
-                      </p>
-                    </Form.Label>
-                    <Col>
-                      <Form.Control
-                        type="text"
-                        value={stuInfo[category.split(" ").join("")]}
-                        onChange={(e) => {
-                          change_depth_one(
-                            category.split(" ").join(""),
-                            e.target.value
-                          );
-                        }}
-                      />
-                    </Col>
-                  </Form.Group>
-                );
-              })}
-            </div>
-          </Card>
-        </div>
 
         <div className="col-12">
           <Card className="stuInfoCard mt-3">
-            <h4 className="stuInfoCard-title mb-4">
-              <strong>[ 유형검사 ]</strong>
-            </h4>
-            <div className="row">
-              {["MBTI", "에니어그램", "별자리", "IQ"].map(function (
-                category,
-                index
-              ) {
-                return (
-                  <Form.Group as={Row} className="col-xl-6" key={index}>
-                    <Form.Label column sm="4" className="fs-6">
-                      <p>
-                        <strong>{category}</strong>
-                      </p>
-                    </Form.Label>
-                    <Col>
-                      <Form.Control
-                        type="text"
-                        value={stuInfo[category]}
-                        onChange={(e) => {
-                          change_depth_one(category, e.target.value);
-                        }}
-                      />
-                    </Col>
-                  </Form.Group>
-                );
-              })}
-            </div>
-          </Card>
-        </div>
-
-        <div className="col-12">
-          <Card className="stuInfoCard mt-3">
-            <h4 className="stuInfoCard-title mb-4">
+          <h5 className="mb-4">
               <strong>[ 히스토리 ]</strong>
-            </h4>
-            <div className="row m-2">
-              <Form.Group as={Row} className="col-xl-12">
-                <Form.Label column sm="2" className="fs-6">
-                  <p>
-                    <strong>날짜</strong>
-                  </p>
-                </Form.Label>
-                <Form.Label column sm="2" className="fs-6">
-                  <p>
-                    <strong>작성매니저</strong>
-                  </p>
-                </Form.Label>
-                <Form.Label column sm="8" className="fs-6">
-                  <p>
-                    <strong>내용</strong>
-                  </p>
-                </Form.Label>
-              </Form.Group>
-            </div>
-            <button
-              className="btn btn-dark btn-add mb-3"
-              type="button"
-              onClick={() => {
-                unshift_depth_one("히스토리", {
-                  날짜: "",
-                  작성매니저: "",
-                  내용: "",
-                });
-              }}
-            >
-              <strong>+</strong>
-            </button>
-            <div className="historyCard">
-              {stuInfo.히스토리.map(function (a, i) {
-                return (
-                  <div key={i} className="row m-2">
-                    <Col className="col-2">
-                      <Form.Control
-                        type="date"
-                        value={a.날짜}
-                        onChange={(e) => {
-                          change_depth_three(
-                            "히스토리",
-                            i,
-                            "날짜",
-                            e.target.value
-                          );
-                        }}
-                      />
-                    </Col>
-                    <Col className="col-1">
-                      <Form.Select
-                        value={a.작성매니저}
-                        onChange={(e) => {
-                          change_depth_three(
-                            "히스토리",
-                            i,
-                            "작성매니저",
-                            e.target.value
-                          );
-                        }}
-                      >
-                        <option value="선택">선택</option>
-                        {managerList
-                          ? managerList.map((manager, index) => {
-                              return (
-                                <option value={manager} key={index}>
-                                  {manager}
-                                </option>
-                              );
-                            })
-                          : null}
-                      </Form.Select>
-                    </Col>
-                    <Col className="col-8">
-                      <textarea
-                        className="textArea"
-                        id={i}
-                        rows="5"
-                        value={a.내용}
-                        onChange={(e) => {
-                          change_depth_three(
-                            "히스토리",
-                            i,
-                            "내용",
-                            e.target.value
-                          );
-                        }}
-                      />
-                    </Col>
-                    <Col className="col-1">
-                      <Button
-                        className="btn-delete"
-                        onClick={() => {
-                          if (i > -1) {
-                            delete_depth_one("히스토리", i);
-                          }
-                        }}
-                      >
-                        <strong>x</strong>
-                      </Button>
-                    </Col>
-                  </div>
-                );
-              })}
-            </div>
+            </h5>
+            {["외부활동", "진로", "학습", "자기인식", "상담", "문제사항", "기타"].map((cat, index) => {
+              return (
+                <>
+                  <Accordion key={index} className="mb-3">
+                    <Accordion.Item eventKey="0">
+                      <Accordion.Header>
+                        <p>{cat}({stuInfo["히스토리"][cat].length})</p>
+                      </Accordion.Header>
+                      <Accordion.Body>
+                        <div className="row m-2">
+                          <Form.Group as={Row} className="col-xl-12">
+                            <Form.Label column sm="2" className="fs-6">
+                              <p>
+                                <strong>날짜</strong>
+                              </p>
+                            </Form.Label>
+                            <Form.Label column sm="2" className="fs-6">
+                              <p>
+                                <strong>작성매니저</strong>
+                              </p>
+                            </Form.Label>
+                            <Form.Label column sm="8" className="fs-6">
+                              <p>
+                                <strong>내용</strong>
+                              </p>
+                            </Form.Label>
+                          </Form.Group>
+                        </div>
+                        <button
+                          className="btn btn-dark btn-add mb-3"
+                          type="button"
+                          onClick={() => {
+                            unshift_depth_two("히스토리", cat, {
+                              날짜: "",
+                              작성매니저: "",
+                              내용: "",
+                            });
+                          }}
+                        >
+                          <strong>+</strong>
+                        </button>
+                        <div className="historyCard">
+                          {stuInfo["히스토리"][cat].map(function (a, i) {
+                            return (
+                              <div key={i} className="row m-2">
+                                <Col className="col-2">
+                                  <Form.Control
+                                    type="date"
+                                    value={a.날짜}
+                                    onChange={(e) => {
+                                      change_depth_four("히스토리", cat, i, "날짜", e.target.value);
+                                    }}
+                                  />
+                                </Col>
+                                <Col className="col-1">
+                                  <Form.Select
+                                    value={a.작성매니저}
+                                    onChange={(e) => {
+                                      change_depth_four("히스토리", cat, i, "작성매니저", e.target.value);
+                                    }}
+                                  >
+                                    <option value="선택">선택</option>
+                                    {managerList
+                                      ? managerList.map((manager, index) => {
+                                          return (
+                                            <option value={manager} key={index}>
+                                              {manager}
+                                            </option>
+                                          );
+                                        })
+                                      : null}
+                                  </Form.Select>
+                                </Col>
+                                <Col className="col-8">
+                                  <textarea
+                                    className="textArea"
+                                    id={i}
+                                    rows="5"
+                                    value={a.내용}
+                                    onChange={(e) => {
+                                      change_depth_four("히스토리", cat, i, "내용", e.target.value);
+                                    }}
+                                  />
+                                </Col>
+                                <Col className="col-1">
+                                  <Button
+                                    className="btn-delete"
+                                    onClick={() => {
+                                      if (i > -1) {
+                                        delete_depth_two("히스토리", cat, i);
+                                      }
+                                    }}
+                                  >
+                                    <strong>x</strong>
+                                  </Button>
+                                </Col>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </Accordion.Body>
+                    </Accordion.Item>
+                  </Accordion>
+                </>
+              );
+            })}
           </Card>
         </div>
       </div>
