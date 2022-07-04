@@ -513,13 +513,34 @@ app.put("/api/Todolist/edit", loginCheck, function (req, res) {
   const findID = ObjectId("629317f4aca8d25d84a7d0e0");
   db.collection("Todolist").updateOne({ _id: findID }, { $set: newTodolist }, function (err3, result3) {
     if (err3) {
-      return res.send("/api/Closemeeting/edit/:date - updateOne Error : ", err3);
+      return res.send("/api/Todolist/edit- updateOne Error : ", err3);
     }
-    console.log("터미널에 표시 : 마감회의 수정 완료");
+    console.log("터미널에 표시 : Todolist 수정 완료");
     return res.send(true);
   });
 });
 
+app.get("/api/Textbook", loginCheck, function (req, res) {
+  db.collection("Textbook").find()
+  .toArray((err, result) => {
+    if (err) {
+      return console.log("api/Textbook - find Error : ", err);
+    }
+    res.send(result[0]);
+  });
+});
+
+app.put("/api/Textbook/edit", loginCheck, function (req, res) {
+  const newTextbook = req.body
+  const findID = ObjectId("62b815e210c04d831adf2f5b");
+  db.collection("Textbook").updateOne({ _id: findID }, { $set: newTextbook }, function (err3, result3) {
+    if (err3) {
+      return res.send("/api/Textbook/edit - updateOne Error : ", err3);
+    }
+    console.log("터미널에 표시 : 교재리스트 수정 완료");
+    return res.send(true);
+  });
+});
 
 
 app.use("*", express.static(path.join(__dirname, "../zwontr/build")));

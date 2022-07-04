@@ -166,39 +166,38 @@ function TRwrite() {
       window.alert("일간하루 날짜가 입력되지 않았습니다.");
       return false;
     }
-    if ((!TR.중간매니저 && !TR.작성매니저)) {
+    if (!TR.중간매니저 && !TR.작성매니저) {
       window.alert("중간 혹은 귀가 작성매니저 중 하나는 선택되어야합니다.");
-      return false
+      return false;
     }
     if (TR.중간피드백 && !TR.중간매니저) {
       window.alert("중간피드백 작성매니저가 선택되지 않았습니다.");
       return false;
     }
-    if ((TR.매니저피드백 && !TR.작성매니저)) {
+    if (TR.매니저피드백 && !TR.작성매니저) {
       window.alert("일간하루 작성매니저가 선택되지 않았습니다.");
       return false;
     }
 
-
     if (TR.결석여부 !== false) {
-      if (TR.결석여부 === true && TR.결석사유.length === 0 ) {
+      if (TR.결석여부 === true && TR.결석사유.length === 0) {
         window.alert("미등원 사유가 선택되지 않았습니다.");
         return false;
       }
       return true;
     }
 
-    if (TR.매니저피드백 && !TR.신체컨디션) {
+    if (TR.작성매니저 && !TR.신체컨디션) {
       window.alert("신체컨디션이 선택되지 않았습니다.");
       return false;
     }
 
-    if (TR.매니저피드백 && !TR.정서컨디션) {
+    if (TR.작성매니저 && !TR.정서컨디션) {
       window.alert("정서컨디션이 선택되지 않았습니다.");
       return false;
     }
 
-    if (TR.매니저피드백 && TR.학습) {
+    if (TR.작성매니저 && TR.학습) {
       for (let i = 0; i < TR.학습.length; i++) {
         if (TR.학습[i].과목 == "선택") {
           window.alert(`${i + 1}번째 학습의 과목이 선택되지 않았습니다.`);
@@ -209,7 +208,11 @@ function TRwrite() {
           return false;
         }
         if (!TR.학습[i].학습시간 || TR.학습[i].학습시간 === "00:00") {
-          window.alert(`${i + 1}번째 학습의 학습시간이 입력되지 않았습니다. \n학습이 진행되지 않은 경우, 해당 항목을 삭제해주세요. \n매니저 피드백이 입력된 경우, 귀가검사를 진행한 것으로 파악하고 학습시간을 입력하도록 강제해두었습니다. \n중간 저장인 경우 매니저 피드백이 아닌 중간 피드백에 적어주시면 경고문이 뜨지 않습니다:)`);
+          window.alert(
+            `${
+              i + 1
+            }번째 학습의 학습시간이 입력되지 않았습니다. \n학습이 진행되지 않은 경우, 해당 항목을 삭제해주세요. \n매니저 피드백이 입력된 경우, 귀가검사를 진행한 것으로 파악하고 학습시간을 입력하도록 강제해두었습니다. \n중간 저장인 경우 매니저 피드백이 아닌 중간 피드백에 적어주시면 경고문이 뜨지 않습니다:)`
+          );
           return false;
         }
       }
@@ -323,7 +326,7 @@ function TRwrite() {
         과목: a.과목,
         교재: a.교재,
         총교재량: a.총교재량,
-        최근진도: 0,
+        최근진도: a.최근진도, // 수정지점
         학습시간: "00:00",
       });
     });
@@ -481,7 +484,7 @@ function TRwrite() {
                 </Button>
               </div>
               <div className="col-2 p-0">
-              <Button
+                <Button
                   variant="secondary"
                   className="btn-commit btn-comeyet"
                   onClick={() => {
@@ -491,7 +494,6 @@ function TRwrite() {
                 >
                   <strong>등원예정</strong>
                 </Button>
-
               </div>
               <div className="col-2 p-0">
                 <Button
@@ -910,10 +912,9 @@ function TRwrite() {
                   </Table>
                 </div>
               </div>
-            ) :
-            TR.결석여부 === "등원예정"? (
+            ) : TR.결석여부 === "등원예정" ? (
               <></>
-            ):(
+            ) : (
               <div className="trCard mt-3">
                 <Form.Select
                   size="sm"
@@ -1039,17 +1040,17 @@ function TRwrite() {
                   <p>작성하려면 누르세요.</p>
                 </Accordion.Header>
                 <Accordion.Body>
-            <textarea
-              rows="10"
-              className="textArea"
-              value={TR.중간피드백}
-              onChange={(e) => {
-                change_depth_one("중간피드백", e.target.value);
-              }}
-            ></textarea>
-            </Accordion.Body>
-                </Accordion.Item>
-                </Accordion>
+                  <textarea
+                    rows="10"
+                    className="textArea"
+                    value={TR.중간피드백}
+                    onChange={(e) => {
+                      change_depth_one("중간피드백", e.target.value);
+                    }}
+                  ></textarea>
+                </Accordion.Body>
+              </Accordion.Item>
+            </Accordion>
 
             <div className="d-flex mt-3 mb-3 justify-content-center">
               <div className="feedback-sub">
@@ -1085,25 +1086,46 @@ function TRwrite() {
                   <p>작성하려면 누르세요.</p>
                 </Accordion.Header>
                 <Accordion.Body>
-            <textarea
-              rows="10"
-              className="textArea"
-              value={TR.매니저피드백}
-              onChange={(e) => {
-                change_depth_one("매니저피드백", e.target.value);
-              }}
-            ></textarea>
-            </Accordion.Body>
-                </Accordion.Item>
-                </Accordion>
+                  <textarea
+                    rows="10"
+                    className="textArea"
+                    value={TR.매니저피드백}
+                    onChange={(e) => {
+                      change_depth_one("매니저피드백", e.target.value);
+                    }}
+                  ></textarea>
+                </Accordion.Body>
+              </Accordion.Item>
+            </Accordion>
           </div>
           <Button
             variant="secondary"
             className="btn-commit btn-edit"
-            onClick={() => {
+            onClick={async () => {
               console.log(TR);
               if (입력확인()) {
                 if (window.confirm(`${TR.이름}학생의 ${TR.날짜} 일간하루를 저장하시겠습니까?`)) {
+                  if (TR.결석여부 === false) {
+                    const newstuDB = JSON.parse(JSON.stringify(stuDB));
+                    for (let i = 0; i < stuDB["진행중교재"].length; i++) {
+                      for (let j = 0; j < TR["학습"].length; j++) {
+                        if (stuDB["진행중교재"][i]["과목"] == TR["학습"][j]["과목"] && stuDB["진행중교재"][i]["교재"] == TR["학습"][j]["교재"]) {
+                          newstuDB["진행중교재"][i]["최근진도"] = Math.max(newstuDB["진행중교재"][i]["최근진도"], TR["학습"][j]["최근진도"]);
+                        }
+                      }
+                    }
+                    await axios
+                      .put("/api/StudentDB/edit", newstuDB)
+                      .then(function (result) {
+                        if (result.data === "로그인필요") {
+                          window.alert("로그인이 필요합니다.");
+                        }
+                      })
+                      .catch(function (err) {
+                        window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
+                      });
+                  }
+
                   axios
                     .post("/api/TR/write", TR)
                     .then(function (result) {

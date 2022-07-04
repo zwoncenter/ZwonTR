@@ -186,17 +186,17 @@ function TRedit() {
       return true;
     }
 
-    if (TR.매니저피드백 && !TR.신체컨디션) {
+    if (TR.작성매니저 && !TR.신체컨디션) {
       window.alert("신체컨디션이 선택되지 않았습니다.");
       return false;
     }
 
-    if (TR.매니저피드백 && !TR.정서컨디션) {
+    if (TR.작성매니저 && !TR.정서컨디션) {
       window.alert("정서컨디션이 선택되지 않았습니다.");
       return false;
     }
 
-    if (TR.매니저피드백 && TR.학습) {
+    if (TR.작성매니저 && TR.학습) {
       for (let i = 0; i < TR.학습.length; i++) {
         if (TR.학습[i].과목 == "선택") {
           window.alert(`${i + 1}번째 학습의 과목이 선택되지 않았습니다.`);
@@ -1090,10 +1090,28 @@ function TRedit() {
               <Button
                 variant="secondary"
                 className="btn-commit btn-edit"
-                onClick={() => {
+                onClick={async () => {
                   console.log(TR);
                   if (입력확인()) {
                     if (window.confirm(`수정된 ${TR.이름}학생의 ${TR.날짜} 일간하루를 저장하시겠습니까?`)) {
+                      const newstuDB = JSON.parse(JSON.stringify(stuDB));
+                      for (let i=0;i <stuDB["진행중교재"].length; i++){
+                        for (let j=0; j < TR["학습"].length; j++){
+                          if (stuDB["진행중교재"][i]["과목"] == TR["학습"][j]["과목"] && stuDB["진행중교재"][i]["교재"] == TR["학습"][j]["교재"]) {
+                            newstuDB["진행중교재"][i]["최근진도"] = Math.max(newstuDB["진행중교재"][i]["최근진도"], TR["학습"][j]["최근진도"]) 
+                          }
+                        }
+                      }
+                      await axios
+                        .put("/api/StudentDB/edit", newstuDB)
+                        .then(function (result) {
+                          if (result.data === "로그인필요") {
+                            window.alert("로그인이 필요합니다.");
+                          }
+                        })
+                        .catch(function (err) {
+                          window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
+                        })
                       axios
                         .put("/api/TR/edit", TR)
                         .then(function (result) {

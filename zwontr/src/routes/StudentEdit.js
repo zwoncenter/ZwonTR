@@ -2,15 +2,37 @@ import "./StudentAddEdit.scss";
 import { Form, Table, Row, Col, Button, Badge, InputGroup, FormControl } from "react-bootstrap";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
+import {FaCheck, FaSistrix, FaTrash} from "react-icons/fa"
 import axios from "axios";
 
 function StudentEdit() {
   const history = useHistory();
   const now = new Date(); // 현재 시간
-  const utcNow = now.getTime() + (now.getTimezoneOffset() * 60 * 1000);
+  const utcNow = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
   const koreaTimeDiff = 9 * 60 * 60 * 1000;
   const koreaNow = new Date(utcNow + koreaTimeDiff);
   const today = koreaNow.toISOString().split("T")[0];
+  const [textbookList, settextbookList] = useState([]);
+  const [chosenSubject, setchosenSubject] = useState("");
+  const [inputQuery, setinputQuery] = useState("");
+  const [search, setsearch] = useState([]);
+  function textbookSearch() {
+    if (chosenSubject.length === 0 && inputQuery.length === 0) {
+      window.alert("과목 또는 교재명을 입력해주세요");
+      return
+    }
+    setsearch(
+      textbookList.filter((textbook) => {
+        if (chosenSubject.length === 0 && inputQuery.length !== 0) {
+          return textbook["교재"].includes(inputQuery);
+        } else if (chosenSubject.length !== 0 && inputQuery.length === 0) {
+          return textbook["과목"] === chosenSubject;
+        } else {
+          return textbook["과목"] === chosenSubject && textbook["교재"].includes(inputQuery);
+        }
+      })
+    );
+  }
   const writeform = {
     ID: "",
     이름: "",
@@ -170,6 +192,19 @@ function StudentEdit() {
     setmanagerList(tmp);
 
     setstuDB(newstuDB);
+    const existDocument = await axios
+      .get(`/api/Textbook`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다");
+          return history.push("/");
+        }
+        return result.data;
+      })
+      .catch((err) => {
+        return err;
+      });
+    settextbookList(existDocument["textbookList"]);
   }, []);
 
   return (
@@ -179,14 +214,13 @@ function StudentEdit() {
       </h2>
       <p>최근 작성매니저 : {manager}</p>
       <p>최근 수정일 : {date}</p>
-
       <div className="stuDB-form">
         <div className="stuedit-cat-box">
           <h3 className="stuedit-cat-title mb-4">
             <strong>[ 작성매니저 / 작성일자 ]</strong>
           </h3>
 
-          <Form.Group as={Row} className="mb-3 me-3 ms-3">
+          <Form.Group as={Row} className="mb-1 me-3 ms-3">
             <Form.Label column sm="2">
               작성매니저
             </Form.Label>
@@ -239,7 +273,7 @@ function StudentEdit() {
                 <th>매니징 목표</th>
                 <th width="13%">설정 매니저</th>
                 <th width="19%">설정일</th>
-                <th width="60px"></th>
+                <th width="40px"></th>
               </tr>
             </thead>
             <tbody>
@@ -300,7 +334,7 @@ function StudentEdit() {
                           }
                         }}
                       >
-                        <strong>X</strong>
+                        <FaTrash></FaTrash>
                       </button>
                     </td>
                   </tr>
@@ -341,7 +375,7 @@ function StudentEdit() {
                 <th>약속 구조 </th>
                 <th width="13%">설정 매니저</th>
                 <th width="19%">설정일</th>
-                <th width="60px"></th>
+                <th width="40px"></th>
               </tr>
             </thead>
             <tbody>
@@ -402,7 +436,7 @@ function StudentEdit() {
                           }
                         }}
                       >
-                        <strong>X</strong>
+                        <FaTrash></FaTrash>
                       </button>
                     </td>
                   </tr>
@@ -444,7 +478,7 @@ function StudentEdit() {
                 <th>용돈 구조</th>
                 <th width="13%">설정 매니저</th>
                 <th width="19%">설정일</th>
-                <th width="60px"></th>
+                <th width="40px"></th>
               </tr>
             </thead>
             <tbody>
@@ -514,7 +548,7 @@ function StudentEdit() {
                           }
                         }}
                       >
-                        <strong>X</strong>
+                        <FaTrash></FaTrash>
                       </button>
                     </td>
                   </tr>
@@ -556,7 +590,7 @@ function StudentEdit() {
                 <th>매니징 방법</th>
                 <th width="13%">작성 매니저</th>
                 <th width="19%">작성일</th>
-                <th width="60px"></th>
+                <th width="40px"></th>
               </tr>
             </thead>
             <tbody>
@@ -617,7 +651,7 @@ function StudentEdit() {
                           }
                         }}
                       >
-                        <strong>X</strong>
+                        <FaTrash></FaTrash>
                       </button>
                     </td>
                   </tr>
@@ -861,7 +895,7 @@ function StudentEdit() {
                         delete_depth_one("큐브책", i);
                       }}
                     >
-                      <strong>X</strong>
+                      <FaTrash></FaTrash>
                     </button>
                   </Col>
                 </Form.Group>
@@ -880,6 +914,102 @@ function StudentEdit() {
           </div>
         </div>
 
+        {/* 교재 검색창 */}
+        <div className="stuedit-cat-box">
+          <h3 className="stuedit-cat-title mb-4">
+            <strong>[ 교재 검색 ]</strong>
+          </h3>
+          <div className="row">
+            <div className="col-sm-2">
+              <Form.Select
+                
+                value={chosenSubject}
+                onChange={(e) => {
+                  setchosenSubject(e.target.value);
+                }}
+              >
+                <option value="">선택</option>
+                <option value="국어">국어</option>
+                <option value="수학">수학</option>
+                <option value="영어">영어</option>
+                <option value="탐구">탐구</option>
+              </Form.Select>
+            </div>
+            <div className="col-sm-9">
+              <FormControl
+                placeholder="교재명"
+                onChange={(e) => {
+                  setinputQuery(e.target.value);
+                }}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") {
+                    textbookSearch();
+                  }
+                }}
+              />
+            </div>
+
+            <div className="col-sm-1">
+              <Button className="btn-secondary program-add" onClick={textbookSearch} type="button">
+                <strong> <FaSistrix/></strong>
+              </Button>
+            </div>
+          </div>
+
+          <Table striped hover className="mt-3">
+            <thead>
+              <tr>
+                <th width="15%">과목</th>
+                <th>교재명</th>
+                <th width="20%">총교재량</th>
+                <th width="20%">권장학습기간</th>
+                <th width="40px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {search.map(function (a, i) {
+                return (
+                  <tr key={i}>
+                    <td>
+                      <p>{a.과목}</p>
+                    </td>
+                    <td>
+                      <p>{a.교재}</p>
+                    </td>
+                    <td>
+                      <p>{a.총교재량}</p>
+                    </td>
+                    <td>
+                      <p>{a.권장학습기간} weeks</p>
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-add"
+                        type="button"
+                        onClick={(e) => {
+                          if (window.confirm("해당 교재를 진행중 교재에 추가하시겠습니까?")) {
+                            const endDate = new Date(koreaNow.getFullYear(), koreaNow.getMonth() , koreaNow.getDate()+ 7 * parseInt(a.권장학습기간));
+                            push_depth_one("진행중교재", {
+                              과목: a.과목,
+                              교재: a.교재,
+                              총교재량: a.총교재량,
+                              교재시작일: today,
+                              권장종료일: endDate.toISOString().split("T")[0],
+                              최근진도: 0,
+                            });
+                          }
+                        }}
+                      >
+                        <strong>+</strong>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        </div>
+
         {/* 진행중 교재 */}
         <div className="stuedit-cat-box">
           <h3 className="stuedit-cat-title mb-4">
@@ -888,12 +1018,14 @@ function StudentEdit() {
           <Table striped hover className="mt-3">
             <thead>
               <tr>
-                <th width="15%">과목</th>
+                <th width="10%">과목</th>
                 <th>교재명</th>
-                <th width="20%">총교재량</th>
-                <th width="19%">교재 시작일</th>
-                <th width="17%">최근진도</th>
-                <th width="60px"></th>
+                <th width="13%">총교재량</th>
+                <th width="17%">교재 시작일</th>
+                <th width="17%">권장 종료일</th>
+                <th width="10%">최근진도</th>
+                <th width="40px"></th>
+                <th width="40px"></th>
               </tr>
             </thead>
             <tbody>
@@ -901,7 +1033,8 @@ function StudentEdit() {
                 return (
                   <tr key={i}>
                     <td>
-                      <Form.Select
+                      <p>{a.과목}</p>
+                      {/* <Form.Select
                         size="sm"
                         value={a.과목}
                         onChange={(e) => {
@@ -913,10 +1046,11 @@ function StudentEdit() {
                         <option value="수학">수학</option>
                         <option value="영어">영어</option>
                         <option value="탐구">탐구</option>
-                      </Form.Select>
+                      </Form.Select> */}
                     </td>
                     <td>
-                      <input
+                      <p>{a.교재}</p>
+                      {/* <input
                         type="text"
                         placeholder="ex)독사, 기탄수학 등"
                         value={a.교재}
@@ -924,10 +1058,11 @@ function StudentEdit() {
                         onChange={(e) => {
                           change_depth_three("진행중교재", i, "교재", e.target.value);
                         }}
-                      />
+                      /> */}
                     </td>
                     <td>
-                      <input
+                    <p>{a.총교재량}</p>
+                      {/* <input
                         type="text"
                         placeholder="ex)100p, 250문제"
                         value={a.총교재량}
@@ -937,7 +1072,7 @@ function StudentEdit() {
                           // const regex = /[^0-9]/g;
                           // newstuDB.진행중교재[i].총교재량숫자 = parseInt(e.target.value.replace(regex, ""));
                         }}
-                      />
+                      /> */}
                     </td>
 
                     <td>
@@ -952,7 +1087,19 @@ function StudentEdit() {
                     </td>
 
                     <td>
-                      <input
+                    <input
+                        type="date"
+                        className="inputText"
+                        value={a.권장종료일}
+                        onChange={(e) => {
+                          change_depth_three("진행중교재", i, "권장종료일", e.target.value);
+                        }}
+                      />
+                    </td>
+
+                    <td>
+                    <p>{a.최근진도}</p>
+                      {/* <input
                         type="number"
                         placeholder="ex)70, 100"
                         value={a.최근진도}
@@ -960,7 +1107,31 @@ function StudentEdit() {
                         onChange={(e) => {
                           change_depth_three("진행중교재", i, "최근진도", parseInt(e.target.value));
                         }}
-                      />
+                      /> */}
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-delete"
+                        type="button"
+                        onClick={async () => {
+                          if (i > -1 && window.confirm("완료된 교재로 이동하시겠습니까?")) {
+                              const newstuDB = JSON.parse(JSON.stringify(stuDB));
+                              newstuDB["진행중교재"].splice(i, 1);
+                              newstuDB["완료된교재"].push({
+                                과목: a.과목,
+                                교재: a.교재,
+                                총교재량: a.총교재량,
+                                총교재량숫자: 0,
+                                교재시작일: a.교재시작일,
+                                권장종료일: a.권장종료일,
+                                교재종료일: today
+                              });
+                              setstuDB(newstuDB);
+                          }
+                        }}
+                      >
+                        <strong><FaCheck></FaCheck></strong>
+                      </button>
                     </td>
                     <td>
                       <button
@@ -972,34 +1143,12 @@ function StudentEdit() {
                           }
                         }}
                       >
-                        <strong>X</strong>
+                        <strong><FaTrash/></strong>
                       </button>
                     </td>
                   </tr>
                 );
               })}
-
-              <tr>
-                <td colSpan={6}>
-                  {" "}
-                  <button
-                    className="btn btn-dark btn-add"
-                    type="button"
-                    onClick={() => {
-                      push_depth_one("진행중교재", {
-                        과목: "선택",
-                        교재: "",
-                        총교재량: "",
-                        총교재량숫자: 0,
-                        교재시작일: "",
-                        최근진도: 0,
-                      });
-                    }}
-                  >
-                    <strong>+</strong>
-                  </button>
-                </td>
-              </tr>
             </tbody>
           </Table>
         </div>
@@ -1012,12 +1161,13 @@ function StudentEdit() {
           <Table striped hover className="mt-3">
             <thead>
               <tr>
-                <th width="15%">과목</th>
+                <th width="10%">과목</th>
                 <th>교재명</th>
-                <th width="20%">총교재량</th>
-                <th width="19%">교재 시작일</th>
-                <th width="19%">교재 종료일</th>
-                <th width="60px"></th>
+                <th width="10%">총교재량</th>
+                <th width="17%">교재 시작일</th>
+                <th width="17%">권장 종료일</th>
+                <th width="17%">교재 종료일</th>
+                <th width="40px"></th>
               </tr>
             </thead>
 
@@ -1026,62 +1176,27 @@ function StudentEdit() {
                 return (
                   <tr key={i}>
                     <td>
-                      <Form.Select
-                        size="sm"
-                        value={a.과목}
-                        onChange={(e) => {
-                          change_depth_three("완료된교재", i, "과목", e.target.value);
-                        }}
-                      >
-                        <option value="선택">선택</option>
-                        <option value="국어">국어</option>
-                        <option value="수학">수학</option>
-                        <option value="영어">영어</option>
-                        <option value="탐구">탐구</option>
-                      </Form.Select>
+                    <p>{a.과목}</p>
                     </td>
                     <td>
-                      <input
-                        type="text"
-                        placeholder="ex)독사, 기탄수학 등"
-                        value={a.교재}
-                        className="inputText"
-                        onChange={(e) => {
-                          change_depth_three("완료된교재", i, "교재", e.target.value);
-                        }}
-                      />
+                      <p>{a.교재}</p>
                     </td>
                     <td>
-                      <input
-                        type="text"
-                        placeholder="ex)100p, 250문제"
-                        value={a.총교재량}
-                        className="inputText"
-                        onChange={(e) => {
-                          change_depth_three("완료된교재", i, "총교재량", e.target.value);
-                          // const regex = /[^0-9]/g;
-                          // newstuDB.완료된교재[i].총교재량숫자 = parseInt(e.target.value.replace(regex, ""));
-                          // setstuDB(newstuDB);
-                        }}
-                      />
+                    <p>{a.총교재량}</p>
+                    </td>
+                    <td>
+                    <p>{a.교재시작일}</p>
+                    </td>
+
+                    <td>
+                      <p>{a.권장종료일}</p>
                     </td>
 
                     <td>
                       <input
                         type="date"
                         className="inputText"
-                        value={a.교재시작일 ? a.교재시작일 : null}
-                        onChange={(e) => {
-                          change_depth_three("완료된교재", i, "교재시작일", e.target.value);
-                        }}
-                      />
-                    </td>
-
-                    <td>
-                      <input
-                        type="date"
-                        className="inputText"
-                        value={a.교재종료일 ? a.교재종료일 : null}
+                        value={a.교재종료일 ? a.교재종료일 : ""}
                         onChange={(e) => {
                           change_depth_three("완료된교재", i, "교재종료일", e.target.value);
                         }}
@@ -1098,34 +1213,12 @@ function StudentEdit() {
                           }
                         }}
                       >
-                        <strong>X</strong>
+                        <FaTrash></FaTrash>
                       </button>
                     </td>
                   </tr>
                 );
               })}
-
-              <tr>
-                <td colSpan={6}>
-                  {" "}
-                  <button
-                    className="btn btn-dark btn-add"
-                    type="button"
-                    onClick={() => {
-                      push_depth_one("완료된교재", {
-                        과목: "선택",
-                        교재: "",
-                        총교재량: "",
-                        총교재량숫자: 0,
-                        교재시작일: "",
-                        교재종료일: "",
-                      });
-                    }}
-                  >
-                    <strong>+</strong>
-                  </button>
-                </td>
-              </tr>
             </tbody>
           </Table>
         </div>
