@@ -22,6 +22,28 @@ function TextbookManage() {
   const [subjectOn, setsubjectOn] = useState(false);
   const [ganadaOn, setganadaOn] = useState(false);
 
+  // 교재 검색 관련 코드
+  const [chosenSubject, setchosenSubject] = useState("");
+  const [inputQuery, setinputQuery] = useState("");
+  const [search, setsearch] = useState([]);
+  function textbookSearch() {
+    if (chosenSubject.length === 0 && inputQuery.length === 0) {
+      window.alert("과목 또는 교재명을 입력해주세요");
+      return;
+    }
+    setsearch(
+      textbookList.filter((textbook) => {
+        if (chosenSubject.length === 0 && inputQuery.length !== 0) {
+          return textbook["교재"].includes(inputQuery);
+        } else if (chosenSubject.length !== 0 && inputQuery.length === 0) {
+          return textbook["과목"] === chosenSubject;
+        } else {
+          return textbook["과목"] === chosenSubject && textbook["교재"].includes(inputQuery);
+        }
+      })
+    );
+  }
+
   // 인증 Modal 관련 코드
   const [show, setShow] = useState(true);
   const [inputPW, setinputPW] = useState("");
@@ -103,7 +125,91 @@ function TextbookManage() {
       </h2>
       <p>최근 수정일 : {lastRevise}</p>
 
+
+
       <div className="stuDB-form">
+        {/* 교재 검색  */}
+      <div className="stuedit-cat-box">
+          <h3 className="stuedit-cat-title mb-4">
+            <strong>[ 교재 검색 ]</strong>
+          </h3>
+          <div className="row">
+            <div className="col-sm-2">
+              <Form.Select
+                value={chosenSubject}
+                onChange={(e) => {
+                  setchosenSubject(e.target.value);
+                }}
+              >
+                <option value="">선택</option>
+                <option value="국어">국어</option>
+                <option value="수학">수학</option>
+                <option value="영어">영어</option>
+                <option value="탐구">탐구</option>
+                <option value="강의">강의</option>
+              </Form.Select>
+            </div>
+            <div className="col-sm-9">
+              <FormControl
+                placeholder="교재명"
+                onChange={(e) => {
+                  setinputQuery(e.target.value);
+                }}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") {
+                    textbookSearch();
+                  }
+                }}
+              />
+            </div>
+
+            <div className="col-sm-1">
+              <Button className="btn-secondary program-add" onClick={textbookSearch} type="button">
+                <strong>
+                  {" "}
+                  <FaSistrix />
+                </strong>
+              </Button>
+            </div>
+          </div>
+
+          <Table striped hover className="mt-3">
+            <thead>
+              <tr>
+                <th width="15%">과목</th>
+                <th>교재명</th>
+                <th width="20%">총교재량</th>
+                <th width="20%">권장학습기간</th>
+              </tr>
+            </thead>
+            <tbody>
+              {search.map(function (a, i) {
+                return (
+                  <tr key={i}>
+                    <td>
+                      <p>{a.과목}</p>
+                    </td>
+                    <td>
+                      <p>{a.교재}</p>
+                    </td>
+                    <td>
+                      <p>{a.총교재량}</p>
+                    </td>
+                    <td>
+                      <p>{a.권장학습기간} weeks</p>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Table>
+          <Button className="btn-del" variant="danger" onClick={() => {
+            setsearch([]);
+          }}>
+             x
+          </Button>
+        </div>
+
         {/* 교재 목록 표 */}
         <div className="stuedit-cat-box">
           <h3 className="mb-4">
@@ -168,6 +274,7 @@ function TextbookManage() {
                         <option value="수학">수학</option>
                         <option value="영어">영어</option>
                         <option value="탐구">탐구</option>
+                        <option value="강의">강의</option>
                       </Form.Select>
                     </td>
                     <td>

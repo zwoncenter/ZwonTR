@@ -1,6 +1,6 @@
 import "../App.scss";
 import "./StuListpage.scss";
-import { Button, Card, ListGroup, Modal } from "react-bootstrap";
+import { Button, Card, ListGroup, Modal, Table } from "react-bootstrap";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -18,6 +18,8 @@ function StuListpage() {
   const [modalShow, setmodalShow] = useState(false);
   const [TRlistShow, setTRlistShow] = useState(false);
   const [Written, setWritten] = useState([]);
+  const [openlist, setopenlist] = useState(false);
+  const [buylist, setbuylist] = useState([]);
   let [stuListShow, stuListShowChange] = useState(false);
   useEffect(() => {
     let timer = setTimeout(() => {
@@ -79,6 +81,22 @@ function StuListpage() {
       return +(a.이름 > b.이름) - 0.5;
     });
     setstudentDBlist(newstudentDBlist);
+    const newbuylist = [];
+    for (const studentDB of newstudentDBlist) {
+      let textbooklist = [];
+      for (const 교재 of studentDB["진행중교재"]) {
+        if (교재["최근진도율"] >= 85) {
+          textbooklist.push(교재);
+        }
+      }
+      if (textbooklist.length !== 0) {
+        newbuylist.push({
+          이름: studentDB["이름"],
+          목록: textbooklist,
+        });
+      }
+    }
+    setbuylist(newbuylist);
 
     const newtodayTRlist = await axios
       .get(`/api/TRlist/${today}`)
@@ -96,16 +114,13 @@ function StuListpage() {
         if (newstudentDBlist[i]["ID"] == newtodayTRlist[j]["ID"]) {
           if (newtodayTRlist[j]["결석여부"] === false) {
             tmp = "등원";
-            if (
-              newtodayTRlist[j]["작성매니저"] &&
-              newtodayTRlist[j]["작성매니저"] !== "선택"
-            ) {
+            if (newtodayTRlist[j]["작성매니저"] && newtodayTRlist[j]["작성매니저"] !== "선택") {
               tmp = "귀가";
             }
           } else if (newtodayTRlist[j]["결석여부"] === true) {
-            tmp = "미등원"
+            tmp = "미등원";
           } else if (newtodayTRlist[j]["결석여부"] === "등원예정") {
-            tmp = "등원예정"
+            tmp = "등원예정";
           }
         }
       }
@@ -121,23 +136,75 @@ function StuListpage() {
 
   return (
     <div className="stuList-background">
-      <div
-        className={
-          stuListShow === true
-            ? "stuListShow stuListShowActive text-center"
-            : "stuListShow text-center"
-        }
-      >
+      <div className={stuListShow === true ? "stuListShow stuListShowActive text-center" : "stuListShow text-center"}>
         <div className="statesBox">
-          <p>활동중: {Written.filter(element => '등원' === element).length}</p>
-          <p>귀가: {Written.filter(element => '귀가' === element).length}</p>
-          <p>미등원: {Written.filter(element => '미등원' === element).length}</p>
-          <p>등원예정: {Written.filter(element => '등원예정'=== element).length}</p>
-          <p className="mt-3"><strong>총  {studentDBlist.length} 명</strong></p>
+          <p>활동중: {Written.filter((element) => "등원" === element).length}</p>
+          <p>귀가: {Written.filter((element) => "귀가" === element).length}</p>
+          <p>미등원: {Written.filter((element) => "미등원" === element).length}</p>
+          <p>등원예정: {Written.filter((element) => "등원예정" === element).length}</p>
+          <p className="mt-3">
+            <strong>총 {studentDBlist.length} 명</strong>
+          </p>
         </div>
         <h2>
           <strong>지원센터 학생 목록</strong>
         </h2>
+        {buylist.length !== 0 ? (
+          <Card className={openlist ? "TextbookCard openlist" : "TextbookCard"}>
+            <div className="row">
+              <div className="col-1">
+                <Button
+                  variant="secondary"
+                  className="leftButton"
+                  onClick={() => {
+                    setopenlist(!openlist);
+                  }}
+                >
+                  {openlist ? ">" : "<"}
+                </Button>
+              </div>
+              <div className="col-11 listbox">
+                <Table striped hover className="mt-3">
+                  <thead>
+                    <tr>
+                      <th width="60px">이름</th>
+                      <th width="">교재명</th>
+                      <th width="120px">총교재량</th>
+                      <th width="120px">최근진도</th>
+                    </tr>
+                  </thead>
+                  {buylist.map((obj, index) => {
+                    return (
+                      <tbody>
+                        {obj["목록"].map(function (a, i) {
+                          return (
+                            <tr key={i}>
+                              <td>
+                                <p>{obj["이름"]}</p>
+                              </td>
+                              <td>
+                                <p>{a.교재}</p>
+                              </td>
+                              <td>
+                                <p>{a.총교재량}</p>
+                              </td>
+                              <td>
+                                <p>
+                                  {a.최근진도} {a.총교재량 ? "(" + a.최근진도율 + "%)" : null}
+                                </p>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    );
+                  })}
+                </Table>
+              </div>
+            </div>
+          </Card>
+        ) : null}
+
         <Card className="stuCard">
           <Button variant="secondary" className="stuAddbtn" onClick={addClick}>
             <strong>+</strong>
@@ -164,20 +231,8 @@ function StuListpage() {
                         }}
                       >
                         <p>{db.이름}</p>
-                        {Written[index] === "미등원" && (
-                          <img
-                            src={absent}
-                            alt="absent"
-                            className="absent-sign"
-                          />
-                        )}
-                        {Written[index] === "등원예정" && (
-                          <img
-                            src={notcame}
-                            alt="notcame"
-                            className="absent-sign"
-                          />
-                        )}
+                        {Written[index] === "미등원" && <img src={absent} alt="absent" className="absent-sign" />}
+                        {Written[index] === "등원예정" && <img src={notcame} alt="notcame" className="absent-sign" />}
                       </ListGroup.Item>
                     </div>
                   );
@@ -185,12 +240,11 @@ function StuListpage() {
               : null}
           </ListGroup>
         </Card>
+
         {modalShow === true ? (
           <Modal show={modalShow} onHide={modalClose} className="TRModal">
             <Modal.Header closeButton>
-              <Modal.Title>
-                {chosenID ? chosenID.split("_")[0] : ""}
-              </Modal.Title>
+              <Modal.Title>{chosenID ? chosenID.split("_")[0] : ""}</Modal.Title>
             </Modal.Header>
             <Modal.Body className="text-center">
               <div className="stumap">
@@ -198,11 +252,7 @@ function StuListpage() {
                   variant="secondary"
                   className="m-1 stuButton"
                   onClick={() => {
-                    if (
-                      window.confirm(
-                        "학생의 개인정보를 열람합니다. 유출되지 않도록 주의하십시오. \n진행하시겠습니까?"
-                      )
-                    ) {
+                    if (window.confirm("학생의 개인정보를 열람합니다. 유출되지 않도록 주의하십시오. \n진행하시겠습니까?")) {
                       history.push(`/StuInfoEdit/${chosenID}`);
                     }
                   }}
@@ -277,37 +327,37 @@ function StuListpage() {
         <div className="stulistComment">
           <div className="mt-1 commentcontainer">
             <div>
-            <div className="commentbox">
-              <div className="colorcomment colorcomment-lightgrey"></div>
-              <p>
-                <strong>중간 피드백 작성 완료</strong>
-              </p>
-            </div>
-            <div className="commentbox">
-              <div className="colorcomment colorcomment-darkgrey"></div>
-              <p>
-                <strong>마감 피드백 작성 완료</strong>
-              </p>
-            </div>
+              <div className="commentbox">
+                <div className="colorcomment colorcomment-lightgrey"></div>
+                <p>
+                  <strong>중간 피드백 작성 완료</strong>
+                </p>
+              </div>
+              <div className="commentbox">
+                <div className="colorcomment colorcomment-darkgrey"></div>
+                <p>
+                  <strong>마감 피드백 작성 완료</strong>
+                </p>
+              </div>
             </div>
             <div className="w-3 ms-2 me-2"></div>
             <div>
-            <div className="commentbox">
-              <div className="absentcomment-sign">
-                <img src={absent} alt="absent" />
+              <div className="commentbox">
+                <div className="absentcomment-sign">
+                  <img src={absent} alt="absent" />
+                </div>
+                <p>
+                  <strong>미등원 시 표시됩니다.</strong>
+                </p>
               </div>
-              <p>
-                <strong>미등원 시 표시됩니다.</strong>
-              </p>
-            </div>
-            <div className="commentbox">
-              <div className="absentcomment-sign">
-                <img src={notcame} alt="notcame" />
+              <div className="commentbox">
+                <div className="absentcomment-sign">
+                  <img src={notcame} alt="notcame" />
+                </div>
+                <p>
+                  <strong>등원예정 시 표시됩니다.</strong>
+                </p>
               </div>
-              <p>
-                <strong>등원예정 시 표시됩니다.</strong>
-              </p>
-            </div>        
             </div>
           </div>
         </div>

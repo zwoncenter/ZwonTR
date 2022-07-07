@@ -647,11 +647,12 @@ function TRwrite() {
                                   change_depth_three("학습", i, "과목", e.target.value);
                                 }}
                               >
-                                <option value="선택">선택</option>
+                                <option value="">선택</option>
                                 <option value="국어">국어</option>
                                 <option value="수학">수학</option>
                                 <option value="영어">영어</option>
                                 <option value="탐구">탐구</option>
+                                <option value="강의">강의</option>
                                 <option value="기타">기타</option>
                               </Form.Select>
                             </td>
@@ -1111,6 +1112,9 @@ function TRwrite() {
                       for (let j = 0; j < TR["학습"].length; j++) {
                         if (stuDB["진행중교재"][i]["과목"] == TR["학습"][j]["과목"] && stuDB["진행중교재"][i]["교재"] == TR["학습"][j]["교재"]) {
                           newstuDB["진행중교재"][i]["최근진도"] = Math.max(newstuDB["진행중교재"][i]["최근진도"], TR["학습"][j]["최근진도"]);
+                          newstuDB["진행중교재"][i]["최근진도율"] = newstuDB["진행중교재"][i]["총교재량"]
+                            ? Math.round((newstuDB["진행중교재"][i]["최근진도"] / parseInt(newstuDB["진행중교재"][i]["총교재량"].match(/\d+/))) * 100)
+                            : 0;
                         }
                       }
                     }

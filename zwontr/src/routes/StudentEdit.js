@@ -2,7 +2,7 @@ import "./StudentAddEdit.scss";
 import { Form, Table, Row, Col, Button, Badge, InputGroup, FormControl } from "react-bootstrap";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
-import {FaCheck, FaSistrix, FaTrash} from "react-icons/fa"
+import { FaCheck, FaSistrix, FaTrash } from "react-icons/fa";
 import axios from "axios";
 
 function StudentEdit() {
@@ -19,7 +19,7 @@ function StudentEdit() {
   function textbookSearch() {
     if (chosenSubject.length === 0 && inputQuery.length === 0) {
       window.alert("과목 또는 교재명을 입력해주세요");
-      return
+      return;
     }
     setsearch(
       textbookList.filter((textbook) => {
@@ -190,6 +190,10 @@ function StudentEdit() {
         return err;
       });
     setmanagerList(tmp);
+
+    newstuDB["진행중교재"].map((교재, index) => {
+      교재["최근진도율"] = 교재["총교재량"] ? Math.round((교재["최근진도"] / parseInt(교재["총교재량"].match(/\d+/))) * 100) : 0;
+    });
 
     setstuDB(newstuDB);
     const existDocument = await axios
@@ -922,7 +926,6 @@ function StudentEdit() {
           <div className="row">
             <div className="col-sm-2">
               <Form.Select
-                
                 value={chosenSubject}
                 onChange={(e) => {
                   setchosenSubject(e.target.value);
@@ -933,6 +936,7 @@ function StudentEdit() {
                 <option value="수학">수학</option>
                 <option value="영어">영어</option>
                 <option value="탐구">탐구</option>
+                <option value="강의">강의</option>
               </Form.Select>
             </div>
             <div className="col-sm-9">
@@ -951,7 +955,10 @@ function StudentEdit() {
 
             <div className="col-sm-1">
               <Button className="btn-secondary program-add" onClick={textbookSearch} type="button">
-                <strong> <FaSistrix/></strong>
+                <strong>
+                  {" "}
+                  <FaSistrix />
+                </strong>
               </Button>
             </div>
           </div>
@@ -988,14 +995,20 @@ function StudentEdit() {
                         type="button"
                         onClick={(e) => {
                           if (window.confirm("해당 교재를 진행중 교재에 추가하시겠습니까?")) {
-                            const endDate = new Date(koreaNow.getFullYear(), koreaNow.getMonth() , koreaNow.getDate()+ 7 * parseInt(a.권장학습기간));
+                            const endDate =
+                              a.권장학습기간 === ""
+                                ? today
+                                : new Date(koreaNow.getFullYear(), koreaNow.getMonth(), koreaNow.getDate() + 7 * parseInt(a.권장학습기간))
+                                    .toISOString()
+                                    .split("T")[0];
                             push_depth_one("진행중교재", {
                               과목: a.과목,
                               교재: a.교재,
                               총교재량: a.총교재량,
                               교재시작일: today,
-                              권장종료일: endDate.toISOString().split("T")[0],
+                              권장종료일: endDate,
                               최근진도: 0,
+                              최근진도율: 0,
                             });
                           }
                         }}
@@ -1008,6 +1021,11 @@ function StudentEdit() {
               })}
             </tbody>
           </Table>
+          <Button className="btn-del" variant="danger" onClick={() => {
+            setsearch([]);
+          }}>
+             x
+          </Button>
         </div>
 
         {/* 진행중 교재 */}
@@ -1018,7 +1036,7 @@ function StudentEdit() {
           <Table striped hover className="mt-3">
             <thead>
               <tr>
-                <th width="10%">과목</th>
+                <th width="8%">과목</th>
                 <th>교재명</th>
                 <th width="13%">총교재량</th>
                 <th width="17%">교재 시작일</th>
@@ -1034,47 +1052,13 @@ function StudentEdit() {
                   <tr key={i}>
                     <td>
                       <p>{a.과목}</p>
-                      {/* <Form.Select
-                        size="sm"
-                        value={a.과목}
-                        onChange={(e) => {
-                          change_depth_three("진행중교재", i, "과목", e.target.value);
-                        }}
-                      >
-                        <option value="선택">선택</option>
-                        <option value="국어">국어</option>
-                        <option value="수학">수학</option>
-                        <option value="영어">영어</option>
-                        <option value="탐구">탐구</option>
-                      </Form.Select> */}
                     </td>
                     <td>
                       <p>{a.교재}</p>
-                      {/* <input
-                        type="text"
-                        placeholder="ex)독사, 기탄수학 등"
-                        value={a.교재}
-                        className="inputText"
-                        onChange={(e) => {
-                          change_depth_three("진행중교재", i, "교재", e.target.value);
-                        }}
-                      /> */}
                     </td>
                     <td>
-                    <p>{a.총교재량}</p>
-                      {/* <input
-                        type="text"
-                        placeholder="ex)100p, 250문제"
-                        value={a.총교재량}
-                        className="inputText"
-                        onChange={(e) => {
-                          change_depth_three("진행중교재", i, "총교재량", e.target.value);
-                          // const regex = /[^0-9]/g;
-                          // newstuDB.진행중교재[i].총교재량숫자 = parseInt(e.target.value.replace(regex, ""));
-                        }}
-                      /> */}
+                      <p>{a.총교재량}</p>
                     </td>
-
                     <td>
                       <input
                         type="date"
@@ -1087,7 +1071,7 @@ function StudentEdit() {
                     </td>
 
                     <td>
-                    <input
+                      <input
                         type="date"
                         className="inputText"
                         value={a.권장종료일}
@@ -1098,7 +1082,9 @@ function StudentEdit() {
                     </td>
 
                     <td>
-                    <p>{a.최근진도}</p>
+                      <p>
+                        {a.최근진도} {a.총교재량 ? "(" + a.최근진도율 + "%)" : null}
+                      </p>
                       {/* <input
                         type="number"
                         placeholder="ex)70, 100"
@@ -1115,22 +1101,23 @@ function StudentEdit() {
                         type="button"
                         onClick={async () => {
                           if (i > -1 && window.confirm("완료된 교재로 이동하시겠습니까?")) {
-                              const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                              newstuDB["진행중교재"].splice(i, 1);
-                              newstuDB["완료된교재"].push({
-                                과목: a.과목,
-                                교재: a.교재,
-                                총교재량: a.총교재량,
-                                총교재량숫자: 0,
-                                교재시작일: a.교재시작일,
-                                권장종료일: a.권장종료일,
-                                교재종료일: today
-                              });
-                              setstuDB(newstuDB);
+                            const newstuDB = JSON.parse(JSON.stringify(stuDB));
+                            newstuDB["진행중교재"].splice(i, 1);
+                            newstuDB["완료된교재"].push({
+                              과목: a.과목,
+                              교재: a.교재,
+                              총교재량: a.총교재량,
+                              교재시작일: a.교재시작일,
+                              권장종료일: a.권장종료일,
+                              교재종료일: today,
+                            });
+                            setstuDB(newstuDB);
                           }
                         }}
                       >
-                        <strong><FaCheck></FaCheck></strong>
+                        <strong>
+                          <FaCheck></FaCheck>
+                        </strong>
                       </button>
                     </td>
                     <td>
@@ -1143,7 +1130,9 @@ function StudentEdit() {
                           }
                         }}
                       >
-                        <strong><FaTrash/></strong>
+                        <strong>
+                          <FaTrash />
+                        </strong>
                       </button>
                     </td>
                   </tr>
@@ -1176,16 +1165,16 @@ function StudentEdit() {
                 return (
                   <tr key={i}>
                     <td>
-                    <p>{a.과목}</p>
+                      <p>{a.과목}</p>
                     </td>
                     <td>
                       <p>{a.교재}</p>
                     </td>
                     <td>
-                    <p>{a.총교재량}</p>
+                      <p>{a.총교재량}</p>
                     </td>
                     <td>
-                    <p>{a.교재시작일}</p>
+                      <p>{a.교재시작일}</p>
                     </td>
 
                     <td>
