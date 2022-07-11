@@ -113,12 +113,13 @@ function StuListpage() {
       var tmp = "미작성";
       for (var j = 0; j < newtodayTRlist.length; j++) {
         if (newstudentDBlist[i]["ID"] == newtodayTRlist[j]["ID"]) {
-          if (newtodayTRlist[j]["TR작성여부"] === true) {
-            tmp = "TR검사완료";
-          } else if (newtodayTRlist[j]["결석여부"] === false) {
+          if (newtodayTRlist[j]["결석여부"] === false) {
             tmp = "등원";
             if (newtodayTRlist[j]["작성매니저"] && newtodayTRlist[j]["작성매니저"] !== "선택") {
               tmp = "귀가";
+            }
+            else if (newtodayTRlist[j]["TR작성여부"] === true) {
+              tmp = "TR검사완료";
             }
           } else if (newtodayTRlist[j]["결석여부"] === true) {
             tmp = "미등원";
