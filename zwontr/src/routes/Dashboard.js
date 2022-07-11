@@ -337,7 +337,7 @@ function Dashboard() {
               </span>
             </button>
           </div>
-          <button
+          {/* <button
             className="w-20"
             onClick={() => {
               console.log(data);
@@ -347,7 +347,7 @@ function Dashboard() {
             <span>
               <strong>확인</strong>
             </span>
-          </button>
+          </button> */}
 
           {searchStudent.length >= 10
             ? null
