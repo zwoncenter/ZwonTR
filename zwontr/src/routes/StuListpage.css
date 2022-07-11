@@ -168,6 +168,17 @@ h6 {
   justify-content: center;
 }
 
+.TRChecked {
+  background-color: rgb(168, 174, 180);
+  color: white;
+  border: 0;
+  display: flex;
+  vertical-align: middle;
+}
+.TRChecked img, .TRChecked p {
+  transform: translateX(57px);
+}
+
 .Absent {
   background-color: rgb(74, 77, 80);
   color: white;

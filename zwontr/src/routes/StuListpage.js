@@ -7,6 +7,7 @@ import axios from "axios";
 import menuarrow from "../next.png";
 import absent from "./absent.png";
 import notcame from "./notcame.png";
+import trchecked from "./trchecked.png";
 
 function StuListpage() {
   let history = useHistory();
@@ -94,7 +95,9 @@ function StuListpage() {
       var tmp = "미작성";
       for (var j = 0; j < newtodayTRlist.length; j++) {
         if (newstudentDBlist[i]["ID"] == newtodayTRlist[j]["ID"]) {
-          if (newtodayTRlist[j]["결석여부"] === false) {
+          if (newtodayTRlist[j]["TR작성여부"] === true) {
+            tmp = "TR검사완료";
+          } else if (newtodayTRlist[j]["결석여부"] === false) {
             tmp = "등원";
             if (
               newtodayTRlist[j]["작성매니저"] &&
@@ -103,9 +106,9 @@ function StuListpage() {
               tmp = "귀가";
             }
           } else if (newtodayTRlist[j]["결석여부"] === true) {
-            tmp = "미등원"
+            tmp = "미등원";
           } else if (newtodayTRlist[j]["결석여부"] === "등원예정") {
-            tmp = "등원예정"
+            tmp = "등원예정";
           }
         }
       }
@@ -129,11 +132,20 @@ function StuListpage() {
         }
       >
         <div className="statesBox">
-          <p>활동중: {Written.filter(element => '등원' === element).length}</p>
-          <p>귀가: {Written.filter(element => '귀가' === element).length}</p>
-          <p>미등원: {Written.filter(element => '미등원' === element).length}</p>
-          <p>등원예정: {Written.filter(element => '등원예정'=== element).length}</p>
-          <p className="mt-3"><strong>총  {studentDBlist.length} 명</strong></p>
+          <p>
+            활동중: {Written.filter((element) => "등원" === element).length}
+          </p>
+          <p>귀가: {Written.filter((element) => "귀가" === element).length}</p>
+          <p>
+            미등원: {Written.filter((element) => "미등원" === element).length}
+          </p>
+          <p>
+            등원예정:{" "}
+            {Written.filter((element) => "등원예정" === element).length}
+          </p>
+          <p className="mt-3">
+            <strong>총 {studentDBlist.length} 명</strong>
+          </p>
         </div>
         <h2>
           <strong>지원센터 학생 목록</strong>
@@ -149,7 +161,9 @@ function StuListpage() {
                     <div className="stuListItem" key={index}>
                       <ListGroup.Item
                         className={
-                          Written[index] === "귀가"
+                          Written[index] === "TR검사완료"
+                            ? "TRChecked"
+                            : Written[index] === "귀가"
                             ? "WentHome"
                             : Written[index] === "등원"
                             ? "AtHere"
@@ -175,6 +189,13 @@ function StuListpage() {
                           <img
                             src={notcame}
                             alt="notcame"
+                            className="absent-sign"
+                          />
+                        )}
+                        {Written[index] === "TR검사완료" && (
+                          <img
+                            src={trchecked}
+                            alt="trchecked"
                             className="absent-sign"
                           />
                         )}
@@ -219,7 +240,7 @@ function StuListpage() {
                   학생DB조회/변경
                 </Button>
 
-                <Button
+                {/* <Button
                   variant="secondary"
                   className="m-1 stuButton"
                   onClick={() => {
@@ -227,7 +248,7 @@ function StuListpage() {
                   }}
                 >
                   차트{" "}
-                </Button>
+                </Button> */}
 
                 <Button
                   variant="secondary"
@@ -277,37 +298,48 @@ function StuListpage() {
         <div className="stulistComment">
           <div className="mt-1 commentcontainer">
             <div>
-            <div className="commentbox">
-              <div className="colorcomment colorcomment-lightgrey"></div>
-              <p>
-                <strong>중간 피드백 작성 완료</strong>
-              </p>
-            </div>
-            <div className="commentbox">
-              <div className="colorcomment colorcomment-darkgrey"></div>
-              <p>
-                <strong>마감 피드백 작성 완료</strong>
-              </p>
-            </div>
+              <div className="commentbox">
+                <div className="colorcomment colorcomment-lightgrey"></div>
+                <p>
+                  <strong>중간 피드백 작성 완료</strong>
+                </p>
+              </div>
+              <div className="commentbox">
+                <div className="colorcomment colorcomment-darkgrey"></div>
+                <p>
+                  <strong>마감 피드백 작성 완료</strong>
+                </p>
+              </div>
             </div>
             <div className="w-3 ms-2 me-2"></div>
             <div>
-            <div className="commentbox">
-              <div className="absentcomment-sign">
-                <img src={absent} alt="absent" />
+              <div className="commentbox">
+                <div className="absentcomment-sign">
+                  <img src={absent} alt="absent" />
+                </div>
+                <p>
+                  <strong>미등원 시 표시됩니다.</strong>
+                </p>
               </div>
-              <p>
-                <strong>미등원 시 표시됩니다.</strong>
-              </p>
+              <div className="commentbox">
+                <div className="absentcomment-sign">
+                  <img src={notcame} alt="notcame" />
+                </div>
+                <p>
+                  <strong>등원예정 시 표시됩니다.</strong>
+                </p>
+              </div>
             </div>
-            <div className="commentbox">
-              <div className="absentcomment-sign">
-                <img src={notcame} alt="notcame" />
+            <div className="w-3 ms-2 me-2"></div>
+            <div>
+              <div className="commentbox">
+                <div className="absentcomment-sign">
+                  <img src={trchecked} alt="trchecked" />
+                </div>
+                <p>
+                  <strong>TR작성 시 표시됩니다.</strong>
+                </p>
               </div>
-              <p>
-                <strong>등원예정 시 표시됩니다.</strong>
-              </p>
-            </div>        
             </div>
           </div>
         </div>

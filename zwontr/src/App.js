@@ -55,7 +55,7 @@ function App() {
             </h5>
           </Button>
 
-          <Button
+          {/* <Button
             className="menu-map-btn btn-secondary"
             onClick={() => {
               axios
@@ -75,7 +75,7 @@ function App() {
             <h5>
               <strong>중간 회의</strong>
             </h5>
-          </Button>
+          </Button> */}
 
           <Button
             className="menu-map-btn btn-secondary"

@@ -59,6 +59,8 @@ function Dashboard() {
   const [startday, setstartday] = useState("");
   const [lastday, setlastday] = useState("");
   const [aver, setaver] = useState(0);
+  const [latenessList, setlatenessList] = useState([]);
+  const average = (arr) => arr.reduce((p, c) => p + c, 0) / arr.length;
   const [include_abscent, setinclude_abscent] = useState(true);
   const [include_sunday, setinclude_sunday] = useState(true);
   const [stuchange, setstuchange] = useState(false);
@@ -66,10 +68,11 @@ function Dashboard() {
 
   // 데이터 초기화 - 지각율 파이그래프
   const [lateRate, setLateRate] = useState([
-    { name: "정시등원", value: 0, fill: "#0088FE" },
-    { name: "지각", value: 0, fill: "#FFBB28" },
+    { name: "정시등원", value: 0, fill: "rgb(164, 180, 255)" },
+    { name: "1시간 내 지각", value: 0, fill: "#F9D423"},
+    { name: "1시간 이상 지각", value: 0, fill: "rgb(234, 153, 153)" },
   ]);
-  const lateRateCOLORS = ["rgb(164, 180, 255)", "rgb(234, 153, 153)"];
+  const lateRateCOLORS = ["rgb(164, 180, 255)", "#F9D423", "rgb(234, 153, 153)"];
   const lateRateLabel = ({
     cx,
     cy,
@@ -97,7 +100,7 @@ function Dashboard() {
   };
 
   // 데이터 초기화 - 취침시각 그래프
-  const [sleepingTime, setSleepingTime] = useState([]);
+  const [manufacturedData, setmanufacturedData] = useState([]);
 
   useEffect(async () => {
     const newstudentDBlist = await axios
@@ -216,19 +219,37 @@ function Dashboard() {
           value: data.filter((element) => {
             return (
               element["목표등원"] != null &&
-              element["목표등원"] >= element["실제등원"]
-              && element['결석여부'] != true
+              element["목표등원"] >= element["실제등원"] &&
+              element["결석여부"] != true
             );
           }).length,
           fill: "rgb(164, 180, 255)",
         },
         {
-          name: "지각",
+          name: "1시간 내 지각",
           value: data.filter((element) => {
             return (
               element["목표등원"] != null &&
-              element["목표등원"] < element["실제등원"]
-              &&element['결석여부'] != true
+              element["실제등원"] > element["목표등원"] &&
+              convertFromStringToDateTime(element["목표등원"]).setMinutes(
+                convertFromStringToDateTime(element["목표등원"]).getMinutes()+60) >= 
+                convertFromStringToDateTime(element["실제등원"]) &&
+              element["결석여부"] != true
+            );
+          }).length,
+          fill: "#F9D423",
+        },
+
+        {
+          name: "1시간 초과 지각",
+          value: data.filter((element) => {
+            return (
+              element["목표등원"] != null &&
+              element["실제등원"] > element["목표등원"] &&
+              convertFromStringToDateTime(element["목표등원"]).setMinutes(
+                convertFromStringToDateTime(element["목표등원"]).getMinutes()+60) < 
+                convertFromStringToDateTime(element["실제등원"]) &&
+              element["결석여부"] != true
             );
           }).length,
           fill: "rgb(234, 153, 153)",
@@ -237,8 +258,9 @@ function Dashboard() {
       const temporal = data.map((element, i) => {
         return {
           indice: i,
-          결석여부: element['결석여부'],
+          결석여부: element["결석여부"],
           날짜: element["날짜"],
+          요일: element["요일"],
           목표취침: convertFromStringToDateTime(element["목표취침"]),
           실제취침: convertFromStringToDateTime(element["실제취침"]),
           목표기상: convertFromStringToDateTime(element["목표기상"]),
@@ -249,7 +271,14 @@ function Dashboard() {
           실제학습: element["실제학습"],
         };
       });
-      setSleepingTime(temporal);
+      setmanufacturedData(temporal);
+      setlatenessList(
+        data
+          .map((element) => {
+            return element["등원차이"] < 0 ? element["등원차이"] : null;
+          })
+          .filter((element, i) => element !== null)
+      );
     }
   }, [data]);
 
@@ -262,6 +291,25 @@ function Dashboard() {
         return new Date(2001, 0, 2, timePieces[0], timePieces[1]);
       }
     }
+  }
+
+  function getAverageTime(InputArray) {
+    const copied = [...InputArray];
+    // Object.assign([], InputArray);
+    const dateArrayLength = copied.length;
+    const sum = 0;
+    copied.map(function (d) {
+      const tmp = JSON.parse(JSON.stringify(d));
+      let now = new Date();
+      let startDay = tmp["실제취침"].setFullYear(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate()
+      );
+      sum += startDay;
+    });
+    const result = new Date(sum/dateArrayLength);
+    return result;
   }
 
   return (
@@ -293,14 +341,7 @@ function Dashboard() {
             className="w-20"
             onClick={() => {
               console.log(data);
-              console.log(sleepingTime);
-              console.log(sleepingTime.filter((element)=>{
-                return (element['결석여부'] === false);
-              })
-              .map((element) => {
-                return element["날짜"];
-              })
-              );
+              console.log(manufacturedData);
             }}
           >
             <span>
@@ -413,11 +454,25 @@ function Dashboard() {
               </div>
             </Card>
             <div className="center">
-              <p>기간 내 등원일 - {data.filter((element)=>{
-                      return (
-                        element['결석여부'] ===false
-                      );})
-                      .length}일 </p>
+              <p>
+                <strong> 조회 기간: {0}일</strong>
+              </p>
+              <p>
+                <strong>
+                  {
+                    data.filter((element) => {
+                      return element["결석여부"] === false;
+                    }).length
+                  }
+                  일 등원,{" "}
+                  {
+                    data.filter((element) => {
+                      return element["결석여부"] === true;
+                    }).length
+                  }
+                  일 미등원
+                </strong>
+              </p>
             </div>
           </div>
         </div>
@@ -425,16 +480,16 @@ function Dashboard() {
           <div className="dashcard contentbox">
             <div className="dashcard FlowChart">
               <p>
-                <strong>취침 추이</strong>
+                <strong>[ 취침 추이 ]</strong>
               </p>
               <Plot
                 className="p-0 m-0"
                 data={[
                   {
-                    x: sleepingTime.map((element) => {
+                    x: manufacturedData.map((element) => {
                       return element["날짜"];
                     }),
-                    y: sleepingTime.map((element) => {
+                    y: manufacturedData.map((element) => {
                       return element["목표취침"];
                     }),
                     type: "line",
@@ -447,20 +502,20 @@ function Dashboard() {
                     },
                   },
                   {
-                    x: sleepingTime.filter((element)=>{
-                      return (
-                        element['결석여부'] ===false
-                      );
-                    }).map((element) => {
-                      return element["날짜"];
-                    }),
-                    y: sleepingTime.filter((element)=>{
-                      return (
-                        element['결석여부'] ===false
-                      );
-                    }).map((element) => {
-                      return element["실제취침"];
-                    }),
+                    x: manufacturedData
+                      .filter((element) => {
+                        return element["결석여부"] === false;
+                      })
+                      .map((element) => {
+                        return element["날짜"];
+                      }),
+                    y: manufacturedData
+                      .filter((element) => {
+                        return element["결석여부"] === false;
+                      })
+                      .map((element) => {
+                        return element["실제취침"];
+                      }),
                     type: "scatter",
                     mode: "markers",
                     name: "실제취침시각",
@@ -473,7 +528,7 @@ function Dashboard() {
                 layout={{
                   margin: { t: 0, b: 30, l: 60, r: 10, pad: 0 },
                   width: 1100,
-                  height: 500,
+                  height: 470,
                   xaxis: {
                     title: "날짜",
                   },
@@ -485,7 +540,55 @@ function Dashboard() {
                 }}
               />
             </div>
-            <div className="dashcard"></div>
+            <div className="dashcard WeekWeekendChart">
+              <p>
+                <strong>[ 평일 주말 비교 ]</strong>
+              </p>
+              {/* <Plot
+                className="p-0 m-0"
+                data={[
+                  {
+                    x: ["평일", "일요일"],
+                    y: [
+                      getAverageTime(
+                        manufacturedData.filter((element) => {
+                          return (
+                            element["결석여부"] === false &&
+                            element["요일"] != "일요일"
+                          );
+                        })
+                      ),
+                      // .map((element) => {return element["실제취침"];})
+
+                      getAverageTime(
+                        manufacturedData.filter((element) => {
+                          return (
+                            element["결석여부"] === false &&
+                            element["요일"] === "일요일"
+                          );
+                        })
+                      ),
+                    ],
+                    type: "bar",
+                    // mode: "lines",
+                    // name: "목표취침시각",
+                  },
+                ]}
+                layout={{
+                  margin: { t: 10, b: 40, l: 60, r: 0, pad: 0 },
+                  width: 350,
+                  height: 250,
+                  xaxis: {
+                    title: "요일",
+                  },
+                  yaxis: {
+                    visible: true,
+                    title: "평균 취침시각",
+                    tickformat: "%H:%M",
+                  },
+                }}
+              /> */}
+            </div>
             <div className="dashcard"></div>
             <div className="dashcard"></div>
             <div className="dashcard"></div>
@@ -494,16 +597,16 @@ function Dashboard() {
           <div className="dashcard contentbox">
             <div className="dashcard FlowChart">
               <p>
-                <strong>기상 추이</strong>
+                <strong>[ 기상 추이 ]</strong>
               </p>
               <Plot
                 className="p-0 m-0"
                 data={[
                   {
-                    x: sleepingTime.map((element) => {
+                    x: manufacturedData.map((element) => {
                       return element["날짜"];
                     }),
-                    y: sleepingTime.map((element) => {
+                    y: manufacturedData.map((element) => {
                       return element["목표기상"];
                     }),
                     type: "line",
@@ -516,20 +619,20 @@ function Dashboard() {
                     },
                   },
                   {
-                    x: sleepingTime.filter((element)=>{
-                      return (
-                        element['결석여부'] ===false
-                      );
-                    }).map((element) => {
-                      return element["날짜"];
-                    }),
-                    y: sleepingTime.filter((element)=>{
-                      return (
-                        element['결석여부'] ===false
-                      );
-                    }).map((element) => {
-                      return element["실제기상"];
-                    }),
+                    x: manufacturedData
+                      .filter((element) => {
+                        return element["결석여부"] === false;
+                      })
+                      .map((element) => {
+                        return element["날짜"];
+                      }),
+                    y: manufacturedData
+                      .filter((element) => {
+                        return element["결석여부"] === false;
+                      })
+                      .map((element) => {
+                        return element["실제기상"];
+                      }),
                     type: "scatter",
                     mode: "markers",
                     name: "실제기상시각",
@@ -542,7 +645,7 @@ function Dashboard() {
                 layout={{
                   margin: { t: 0, b: 30, l: 60, r: 10, pad: 0 },
                   width: 1100,
-                  height: 500,
+                  height: 470,
                   xaxis: {
                     title: "날짜",
                   },
@@ -561,15 +664,15 @@ function Dashboard() {
           </div>
         ) : chartMode[2] == 1 ? ( //등원
           <div className="dashcard contentbox">
-            <div className="dashcard">
+            <div className="dashcard LatePie">
               <p>
-                <strong>지각율</strong>
+                <strong>[ 지각율 ]</strong>
               </p>
-              <ResponsiveContainer width="100%" height="80%">
-                <PieChart width={100} height={80}>
+              <ResponsiveContainer width="100%" height="90%">
+                <PieChart width={100} height={40}>
                   <Pie
                     dataKey="value"
-                    isAnimationActive={true}
+                    isAnimationActive={false}
                     data={lateRate}
                     cx="50%"
                     cy="50%"
@@ -585,22 +688,54 @@ function Dashboard() {
                     ))}
                   </Pie>
                   <Tooltip />
+                  <Legend layout="horizontal" verticalAlign="top" align="center" />
                 </PieChart>
               </ResponsiveContainer>
             </div>
+            <div className="dashcard LateChart">
+              <p>
+                <strong>[ 평균 지각시간 ]</strong>
+              </p>
+              <div>
+                <h2>
+                  <strong>
+                    {latenessList.length===0 ? 0
+                    :
+                    Math.round(Math.abs(average(latenessList)) * 10) / 10}시간
+                  </strong>
+                </h2>
+                <p>
+                  <strong>
+                    최소{" "}
+                    {latenessList.length===0 ? 0
+                    :Math.round(Math.abs(Math.max(...latenessList)) * 10) / 10}
+                    시간, 최대{" "}
+                    {latenessList.length===0 ? 0
+                    :Math.round(Math.abs(Math.min(...latenessList)) * 10) / 10}
+                    시간 지각했습니다.
+                  </strong>
+                </p>
+              </div>
+            </div>
+            <div className="dashcard">
+              <p>
+                <strong>[ 미등원 사유 ]</strong>
+              </p>
+            </div>
+
             <div className="dashcard FlowChart">
               <p>
-                <strong>등원 추이</strong>
+                <strong>[ 등원 추이 ]</strong>
               </p>
               <Plot
                 className="p-0 m-0"
                 data={[
                   {
-                    x: sleepingTime.map((element) => {
+                    x: manufacturedData.map((element) => {
                       return element["날짜"];
                     }),
 
-                    y: sleepingTime.map((element) => {
+                    y: manufacturedData.map((element) => {
                       return element["목표등원"];
                     }),
                     type: "line",
@@ -613,20 +748,20 @@ function Dashboard() {
                     },
                   },
                   {
-                    x: sleepingTime.filter((element)=>{
-                      return (
-                        element['결석여부'] ===false
-                      );
-                    }).map((element) => {
-                      return element["날짜"];
-                    }),
-                    y: sleepingTime.filter((element)=>{
-                      return (
-                        element['결석여부'] ===false
-                      );
-                    }).map((element) => {
-                      return element["실제등원"];
-                    }),
+                    x: manufacturedData
+                      .filter((element) => {
+                        return element["결석여부"] === false;
+                      })
+                      .map((element) => {
+                        return element["날짜"];
+                      }),
+                    y: manufacturedData
+                      .filter((element) => {
+                        return element["결석여부"] === false;
+                      })
+                      .map((element) => {
+                        return element["실제등원"];
+                      }),
                     type: "scatter",
                     mode: "markers",
                     name: "실제등원시각",
@@ -639,7 +774,7 @@ function Dashboard() {
                 layout={{
                   margin: { t: 0, b: 30, l: 60, r: 10, pad: 0 },
                   width: 1100,
-                  height: 500,
+                  height: 470,
                   xaxis: {
                     title: "날짜",
                   },
@@ -651,8 +786,7 @@ function Dashboard() {
                 }}
               />
             </div>
-            <div className="dashcard"></div>
-            <div className="dashcard"></div>
+
             <div className="dashcard"></div>
             <div className="dashcard"></div>
           </div>
@@ -660,31 +794,33 @@ function Dashboard() {
           <div className="dashcard contentbox">
             <div className="dashcard lifecycleChartSleep">
               <p>
-                <strong>취침-학습패턴</strong>
+                <strong>[ 취침-학습패턴 ]</strong>
               </p>
               <Plot
                 className="p-0 m-0"
                 data={[
                   {
-                    x: sleepingTime.filter((element)=>{
-                      return (
-                        element['결석여부'] ===false
-                      );}).map((element) => {
-                      return element["실제취침"];
-                    }),
-                    y: sleepingTime.filter((element)=>{
-                      return (
-                        element['결석여부'] ===false
-                      );}).map((element) => {
-                      return element["실제학습"];
-                    }),
+                    x: manufacturedData
+                      .filter((element) => {
+                        return element["결석여부"] === false;
+                      })
+                      .map((element) => {
+                        return element["실제취침"];
+                      }),
+                    y: manufacturedData
+                      .filter((element) => {
+                        return element["결석여부"] === false;
+                      })
+                      .map((element) => {
+                        return element["실제학습"];
+                      }),
                     type: "scatter",
                     mode: "markers",
-                    name: '취침 point',
+                    name: "취침 point",
                     marker: {
                       size: 12,
                       opacity: 0.7,
-                      color: sleepingTime.map((element) => {
+                      color: manufacturedData.map((element) => {
                         return element["indice"];
                       }),
                       colorscale: [
@@ -694,12 +830,12 @@ function Dashboard() {
                       colorbar: {
                         title: "날짜",
                         titleside: "Top",
-                        ticktext: sleepingTime
+                        ticktext: manufacturedData
                           .map((element) => {
                             return element["날짜"];
                           })
                           .fill(" ", 1, -1),
-                        tickvals: sleepingTime.map((element) => {
+                        tickvals: manufacturedData.map((element) => {
                           return element["indice"];
                         }),
                         mode: "array",
@@ -727,30 +863,32 @@ function Dashboard() {
             </div>
             <div className="dashcard lifecycleChartWakeup">
               <p>
-                <strong>기상-학습패턴</strong>
+                <strong>[ 기상-학습패턴 ]</strong>
               </p>
               <Plot
                 className="p-0 m-0"
                 data={[
                   {
-                    x: sleepingTime.filter((element)=>{
-                      return (
-                        element['결석여부'] ===false
-                      );}).map((element) => {
-                      return element["실제기상"];
-                    }),
-                    y: sleepingTime.filter((element)=>{
-                      return (
-                        element['결석여부'] ===false
-                      );}).map((element) => {
-                      return element["실제학습"];
-                    }),
+                    x: manufacturedData
+                      .filter((element) => {
+                        return element["결석여부"] === false;
+                      })
+                      .map((element) => {
+                        return element["실제기상"];
+                      }),
+                    y: manufacturedData
+                      .filter((element) => {
+                        return element["결석여부"] === false;
+                      })
+                      .map((element) => {
+                        return element["실제학습"];
+                      }),
                     type: "scatter",
                     mode: "markers",
                     marker: {
                       size: 12,
                       opacity: 0.7,
-                      color: sleepingTime.map((element) => {
+                      color: manufacturedData.map((element) => {
                         return element["indice"];
                       }),
                       colorscale: [
@@ -760,12 +898,12 @@ function Dashboard() {
                       colorbar: {
                         title: "날짜",
                         titleside: "Top",
-                        ticktext: sleepingTime
+                        ticktext: manufacturedData
                           .map((element) => {
                             return element["날짜"];
                           })
                           .fill(" ", 1, -1),
-                        tickvals: sleepingTime.map((element) => {
+                        tickvals: manufacturedData.map((element) => {
                           return element["indice"];
                         }),
                         mode: "array",
@@ -793,30 +931,32 @@ function Dashboard() {
             </div>
             <div className="dashcard lifecycleChartAttend">
               <p>
-                <strong>등원-학습패턴</strong>
+                <strong>[ 등원-학습패턴 ]</strong>
               </p>
               <Plot
                 className="p-0 m-0"
                 data={[
                   {
-                    x: sleepingTime.filter((element)=>{
-                      return (
-                        element['결석여부'] ===false
-                      );}).map((element) => {
-                      return element["실제등원"];
-                    }),
-                    y: sleepingTime.filter((element)=>{
-                      return (
-                        element['결석여부'] ===false
-                      );}).map((element) => {
-                      return element["실제학습"];
-                    }),
+                    x: manufacturedData
+                      .filter((element) => {
+                        return element["결석여부"] === false;
+                      })
+                      .map((element) => {
+                        return element["실제등원"];
+                      }),
+                    y: manufacturedData
+                      .filter((element) => {
+                        return element["결석여부"] === false;
+                      })
+                      .map((element) => {
+                        return element["실제학습"];
+                      }),
                     type: "scatter",
                     mode: "markers",
                     marker: {
                       size: 12,
                       opacity: 0.7,
-                      color: sleepingTime.map((element) => {
+                      color: manufacturedData.map((element) => {
                         return element["indice"];
                       }),
                       colorscale: [
@@ -826,12 +966,12 @@ function Dashboard() {
                       colorbar: {
                         title: "날짜",
                         titleside: "Top",
-                        ticktext: sleepingTime
+                        ticktext: manufacturedData
                           .map((element) => {
                             return element["날짜"];
                           })
                           .fill(" ", 1, -1),
-                        tickvals: sleepingTime.map((element) => {
+                        tickvals: manufacturedData.map((element) => {
                           return element["indice"];
                         }),
                         mode: "array",
@@ -861,7 +1001,7 @@ function Dashboard() {
             <div className="dashcard"></div>
             <div className="dashcard FlowChart">
               <p>
-                <strong>학습시간 추이</strong>
+                <strong>[ 학습시간 추이 ]</strong>
               </p>
               <ResponsiveContainer width="100%" height="90%">
                 <AreaChart

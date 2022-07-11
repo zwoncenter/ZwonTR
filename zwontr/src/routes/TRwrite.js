@@ -101,6 +101,7 @@ function TRwrite() {
     ID: paramID,
     이름: paramID.split("_")[0],
     날짜: new Date().toISOString().split("T")[0],
+    TR작성여부: false,
     요일: "",
     작성매니저: "",
 
@@ -460,7 +461,7 @@ function TRwrite() {
                 <p className="fw-bold">[ 이름 ]</p>
                 <p>{TR.이름}</p>
               </div>
-              <div className="col-3">
+              <div className="col-2">
                 <p className="fw-bold">[ 날짜 ]</p>
                 <input
                   type="date"
@@ -471,7 +472,7 @@ function TRwrite() {
                   }}
                 />
               </div>
-              <div className="col-3 p-0">
+              <div className="col-2 p-0">
                 <Button
                   variant="secondary"
                   className="btn-commit btn-attend"
@@ -508,6 +509,20 @@ function TRwrite() {
                 >
                   <strong>미등원</strong>
                 </Button>
+              </div>
+
+              <div className="col-2 p-0">
+              <Form.Check
+                      className="TRWriteCheck"
+                      type="checkbox"
+                      label="* TR작성 검사완료"
+                      checked={TR["TR작성여부"]}
+                      onChange={(e) => {
+                        var newTR = JSON.parse(JSON.stringify(TR));
+                        newTR["TR작성여부"] = e.target.checked;
+                        setTR(newTR);
+                      }}
+                    />
               </div>
             </div>
 
