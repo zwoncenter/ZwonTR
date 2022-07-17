@@ -213,11 +213,11 @@ function StudentEdit() {
 
   return (
     <div className="stuedit-background">
-      <Button onClick={()=> {
+      {/* <Button onClick={()=> {
         console.log(stuDB)
       }}>
         check
-      </Button>
+      </Button> */}
       <h2 className="fw-bold text-center">
         <strong>{stuDB["이름"]} 학생 DB 조회/변경</strong>
       </h2>

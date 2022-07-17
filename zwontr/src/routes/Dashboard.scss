@@ -135,11 +135,32 @@ textarea {
 }
 
 .modeBtn{
-    width: 24%;
+    width: 40%;
     height: 31px;
     border-radius: 15px;
-    margin: 1px;
+    margin: 5px;
     font-size: 15px;
     background-color: black;
     border: 0;
+}
+
+.colorbar{
+    width: 20px;
+    height: 250px;
+}
+
+.sleepingcbar{
+    background: linear-gradient(to bottom, #003973,#E5E5BE);
+}
+
+.wakecbar{
+    background: linear-gradient(to bottom, #ec2F4B, #F7BB97);
+}
+
+.attendcbar{
+    background: linear-gradient(to bottom, #f12711,#F9D423);
+}
+
+.lifecycle-content{
+    display: flex;
 }
