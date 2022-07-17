@@ -69,10 +69,14 @@ function Dashboard() {
   // 데이터 초기화 - 지각율 파이그래프
   const [lateRate, setLateRate] = useState([
     { name: "정시등원", value: 0, fill: "rgb(164, 180, 255)" },
-    { name: "1시간 내 지각", value: 0, fill: "#F9D423"},
+    { name: "1시간 내 지각", value: 0, fill: "#F9D423" },
     { name: "1시간 이상 지각", value: 0, fill: "rgb(234, 153, 153)" },
   ]);
-  const lateRateCOLORS = ["rgb(164, 180, 255)", "#F9D423", "rgb(234, 153, 153)"];
+  const lateRateCOLORS = [
+    "rgb(164, 180, 255)",
+    "#F9D423",
+    "rgb(234, 153, 153)",
+  ];
   const lateRateLabel = ({
     cx,
     cy,
@@ -232,8 +236,9 @@ function Dashboard() {
               element["목표등원"] != null &&
               element["실제등원"] > element["목표등원"] &&
               convertFromStringToDateTime(element["목표등원"]).setMinutes(
-                convertFromStringToDateTime(element["목표등원"]).getMinutes()+60) >= 
-                convertFromStringToDateTime(element["실제등원"]) &&
+                convertFromStringToDateTime(element["목표등원"]).getMinutes() +
+                  60
+              ) >= convertFromStringToDateTime(element["실제등원"]) &&
               element["결석여부"] != true
             );
           }).length,
@@ -247,8 +252,9 @@ function Dashboard() {
               element["목표등원"] != null &&
               element["실제등원"] > element["목표등원"] &&
               convertFromStringToDateTime(element["목표등원"]).setMinutes(
-                convertFromStringToDateTime(element["목표등원"]).getMinutes()+60) < 
-                convertFromStringToDateTime(element["실제등원"]) &&
+                convertFromStringToDateTime(element["목표등원"]).getMinutes() +
+                  60
+              ) < convertFromStringToDateTime(element["실제등원"]) &&
               element["결석여부"] != true
             );
           }).length,
@@ -308,7 +314,7 @@ function Dashboard() {
       );
       sum += startDay;
     });
-    const result = new Date(sum/dateArrayLength);
+    const result = new Date(sum / dateArrayLength);
     return result;
   }
 
@@ -688,7 +694,11 @@ function Dashboard() {
                     ))}
                   </Pie>
                   <Tooltip />
-                  <Legend layout="horizontal" verticalAlign="top" align="center" />
+                  <Legend
+                    layout="horizontal"
+                    verticalAlign="top"
+                    align="center"
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -699,19 +709,24 @@ function Dashboard() {
               <div>
                 <h2>
                   <strong>
-                    {latenessList.length===0 ? 0
-                    :
-                    Math.round(Math.abs(average(latenessList)) * 10) / 10}시간
+                    {latenessList.length === 0
+                      ? 0
+                      : Math.round(Math.abs(average(latenessList)) * 10) / 10}
+                    시간
                   </strong>
                 </h2>
                 <p>
                   <strong>
                     최소{" "}
-                    {latenessList.length===0 ? 0
-                    :Math.round(Math.abs(Math.max(...latenessList)) * 10) / 10}
+                    {latenessList.length === 0
+                      ? 0
+                      : Math.round(Math.abs(Math.max(...latenessList)) * 10) /
+                        10}
                     시간, 최대{" "}
-                    {latenessList.length===0 ? 0
-                    :Math.round(Math.abs(Math.min(...latenessList)) * 10) / 10}
+                    {latenessList.length === 0
+                      ? 0
+                      : Math.round(Math.abs(Math.min(...latenessList)) * 10) /
+                        10}
                     시간 지각했습니다.
                   </strong>
                 </p>
@@ -796,143 +811,132 @@ function Dashboard() {
               <p>
                 <strong>[ 취침-학습패턴 ]</strong>
               </p>
-              <Plot
-                className="p-0 m-0"
-                data={[
-                  {
-                    x: manufacturedData
-                      .filter((element) => {
-                        return element["결석여부"] === false;
-                      })
-                      .map((element) => {
-                        return element["실제취침"];
-                      }),
-                    y: manufacturedData
-                      .filter((element) => {
-                        return element["결석여부"] === false;
-                      })
-                      .map((element) => {
-                        return element["실제학습"];
-                      }),
-                    type: "scatter",
-                    mode: "markers",
-                    name: "취침 point",
-                    marker: {
-                      size: 12,
-                      opacity: 0.7,
-                      color: manufacturedData.map((element) => {
-                        return element["indice"];
-                      }),
-                      colorscale: [
-                        [0, "#E5E5BE"],
-                        [1, "#003973"],
-                      ],
-                      colorbar: {
-                        title: "날짜",
-                        titleside: "Top",
-                        ticktext: manufacturedData
-                          .map((element) => {
-                            return element["날짜"];
-                          })
-                          .fill(" ", 1, -1),
-                        tickvals: manufacturedData.map((element) => {
+              <div className="lifecycle-content">
+                <Plot
+                  className="p-0 m-0"
+                  data={[
+                    {
+                      x: manufacturedData
+                        .filter((element) => {
+                          return element["결석여부"] === false;
+                        })
+                        .map((element) => {
+                          return element["실제취침"];
+                        }),
+                      y: manufacturedData
+                        .filter((element) => {
+                          return element["결석여부"] === false;
+                        })
+                        .map((element) => {
+                          return element["실제학습"];
+                        }),
+                      type: "scatter",
+                      mode: "markers",
+                      name: "취침 point",
+                      marker: {
+                        size: 12,
+                        opacity: 0.7,
+                        color: manufacturedData.map((element) => {
                           return element["indice"];
                         }),
-                        mode: "array",
+                        colorscale: [
+                          [0, "#E5E5BE"],
+                          [1, "#003973"],
+                        ],
                       },
                     },
-                  },
-                ]}
-                layout={{
-                  margin: { t: 0, b: 30, l: 35, r: 10, pad: 0 },
-                  width: 400,
-                  height: 300,
-                  xaxis: {
-                    title: "취침시각(시/분)",
-                    tickformat: "%H:%M",
-                  },
-                  yaxis: {
-                    visible: true,
-                    title: "학습시간",
-                    tickmode: "linear",
-                    tick0: 0.0,
-                    dtick: 2.0,
-                  },
-                }}
-              />
+                  ]}
+                  layout={{
+                    margin: { t: 0, b: 30, l: 40, r: 30, pad: 0 },
+                    width: 300,
+                    height: 300,
+                    xaxis: {
+                      title: "취침시각(시/분)",
+                      tickformat: "%H:%M",
+                    },
+                    yaxis: {
+                      visible: true,
+                      title: "학습시간",
+                      tickmode: "linear",
+                      tick0: 0.0,
+                      dtick: 2.0,
+                    },
+                  }}
+                />
+                <div>
+                <p>{lastday}</p>
+                <div className="colorbar sleepingcbar"></div>
+                <p>{startday}</p>
+                </div>
+              </div>
             </div>
             <div className="dashcard lifecycleChartWakeup">
               <p>
                 <strong>[ 기상-학습패턴 ]</strong>
               </p>
-              <Plot
-                className="p-0 m-0"
-                data={[
-                  {
-                    x: manufacturedData
-                      .filter((element) => {
-                        return element["결석여부"] === false;
-                      })
-                      .map((element) => {
-                        return element["실제기상"];
-                      }),
-                    y: manufacturedData
-                      .filter((element) => {
-                        return element["결석여부"] === false;
-                      })
-                      .map((element) => {
-                        return element["실제학습"];
-                      }),
-                    type: "scatter",
-                    mode: "markers",
-                    marker: {
-                      size: 12,
-                      opacity: 0.7,
-                      color: manufacturedData.map((element) => {
-                        return element["indice"];
-                      }),
-                      colorscale: [
-                        [0, "#F7BB97"],
-                        [1, "#ec2F4B"],
-                      ],
-                      colorbar: {
-                        title: "날짜",
-                        titleside: "Top",
-                        ticktext: manufacturedData
-                          .map((element) => {
-                            return element["날짜"];
-                          })
-                          .fill(" ", 1, -1),
-                        tickvals: manufacturedData.map((element) => {
+              <div className="lifecycle-content">
+                <Plot
+                  className="p-0 m-0"
+                  data={[
+                    {
+                      x: manufacturedData
+                        .filter((element) => {
+                          return element["결석여부"] === false;
+                        })
+                        .map((element) => {
+                          return element["실제기상"];
+                        }),
+                      y: manufacturedData
+                        .filter((element) => {
+                          return element["결석여부"] === false;
+                        })
+                        .map((element) => {
+                          return element["실제학습"];
+                        }),
+                      type: "scatter",
+                      mode: "markers",
+                      marker: {
+                        size: 12,
+                        opacity: 0.7,
+                        color: manufacturedData.map((element) => {
                           return element["indice"];
                         }),
-                        mode: "array",
+                        colorscale: [
+                          [0, "#F7BB97"],
+                          [1, "#ec2F4B"],
+                        ],
                       },
                     },
-                  },
-                ]}
-                layout={{
-                  margin: { t: 0, b: 30, l: 35, r: 10, pad: 0 },
-                  width: 400,
-                  height: 300,
-                  xaxis: {
-                    title: "기상시각(시/분)",
-                    tickformat: "%H:%M",
-                  },
-                  yaxis: {
-                    visible: true,
-                    title: "학습시간",
-                    tickmode: "linear",
-                    tick0: 0.0,
-                    dtick: 2.0,
-                  },
-                }}
-              />
+                  ]}
+                  layout={{
+                    margin: { t: 0, b: 30, l: 40, r: 30, pad: 0 },
+                    width: 300,
+                    height: 300,
+                    xaxis: {
+                      title: "기상시각(시/분)",
+                      tickformat: "%H:%M",
+                    },
+                    yaxis: {
+                      visible: true,
+                      title: "학습시간",
+                      tickmode: "linear",
+                      tick0: 0.0,
+                      dtick: 2.0,
+                    },
+                  }}
+                />
+                <div>
+                <p>{lastday}</p>
+                <div className="colorbar wakecbar"></div>
+                <p>{startday}</p>
+                </div>
+              </div>
             </div>
             <div className="dashcard lifecycleChartAttend">
               <p>
                 <strong>[ 등원-학습패턴 ]</strong>
               </p>
+              <div className="lifecycle-content">
               <Plot
                 className="p-0 m-0"
                 data={[
@@ -963,25 +967,12 @@ function Dashboard() {
                         [0, "#F9D423"],
                         [1, "#f12711"],
                       ],
-                      colorbar: {
-                        title: "날짜",
-                        titleside: "Top",
-                        ticktext: manufacturedData
-                          .map((element) => {
-                            return element["날짜"];
-                          })
-                          .fill(" ", 1, -1),
-                        tickvals: manufacturedData.map((element) => {
-                          return element["indice"];
-                        }),
-                        mode: "array",
-                      },
                     },
                   },
                 ]}
                 layout={{
-                  margin: { t: 0, b: 30, l: 35, r: 10, pad: 0 },
-                  width: 400,
+                  margin: { t: 0, b: 30, l: 40, r: 30, pad: 0 },
+                  width: 300,
                   height: 300,
                   xaxis: {
                     title: "등원시각(시/분)",
@@ -996,6 +987,12 @@ function Dashboard() {
                   },
                 }}
               />
+              <div>
+                <p>{lastday}</p>
+              <div className="colorbar attendcbar"></div>
+              <p>{startday}</p>
+              </div>
+              </div>
             </div>
 
             <div className="dashcard"></div>
