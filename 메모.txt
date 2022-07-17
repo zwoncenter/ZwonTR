@@ -1,0 +1,57 @@
+collection : 강의
+(document)
+- 강의ID(string, 강의명+생성날짜)
+- 강의명(string, 직접입력)
+- 강사명(string, managerList에서 선택)
+- 진도?
+- 수강생목록(object) : {
+   수강생(object) : {
+      진행중과제(Array) : [과제ID들],
+      완료된과제(Array) : [과제ID들]
+   }
+}
+
+collection : 과제
+(document)
+- 과제ID(int)
+- 강의ID(string)
+- 과제내용(string)
+- 과제기한(string)
+
+collection : 과제ID배정을 위한 AUTOINCREMENT KEY (int)
+
+수강생 추가 시: 해당 학생의 DB의 수강중강의 array에 해당강의ID push, 강의 document 수강생목록에 추가
+수강생 삭제 시: 해당 학생의 DB의 수강중강의 array에서 해당강의ID remove
+
+과제 추가 시: 
+과제(collection)에 새로운 document 추가. 
+해당 강의 수강생들의 진행중과제에 과제ID push 
+
+과제 수정 시: 과제(collection)에서 해당 과제ID의 document 수정
+과제 삭제 시: 해당 강의ID의 document에서 모든 수강생들의 진행중
+
+각 학생 DB 
+과제 : 과제목록(array)[
+      과제(obj){
+         강의명(string),
+         과제ID(int)
+      }
+]
+
+각 TR
+과제 : 과제목록(array)[
+      과제(obj){
+         강의명(string),
+         과제ID(int),
+         수행여부(bool),
+      }
+]
+
+
+(TR 작성 페이지 접속 시 or 수정 페이지 접속 시 귀가 매니저가 선택이 안되어있을 경우(귀가검사전)):
+각 학생 DB에 있는 과제들의 강의명과 과제ID를 이용하여, 강의 collection에서 조회하여 해당 TR의 과제목록에 추가.
+이미 있는 과제의 경우, array에 push하지 않는다.
+
+TR 저장/수정 시, 해당 TR의 과제목록 중에서 (for of) 수행여부가 true인 과제들에 대해
+해당 강의명의 document를 찾아, 수강생obj에서 해당 학생 이름의 과제목록 중, 과제ID가 일치하는 과제의 수행여부를 true로 변경
+해당 학생 DB의 과제목록에서 해당 과제를 remove하고 저장

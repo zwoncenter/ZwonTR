@@ -1,20 +1,7 @@
 import "./Dashboard.css";
 import moment from "moment";
-import {
-  Form,
-  Button,
-  Card,
-  ListGroup,
-  Table,
-  Modal,
-  Row,
-  Col,
-  Input,
-} from "react-bootstrap";
-import {
-  useHistory,
-  useParams,
-} from "react-router-dom/cjs/react-router-dom.min";
+import { Form, Button, Card, ListGroup, Table, Modal, Row, Col, Input } from "react-bootstrap";
+import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import TimePicker from "react-time-picker";
@@ -69,31 +56,17 @@ function Dashboard() {
   // 데이터 초기화 - 지각율 파이그래프
   const [lateRate, setLateRate] = useState([
     { name: "정시등원", value: 0, fill: "rgb(164, 180, 255)" },
-    { name: "1시간 내 지각", value: 0, fill: "#F9D423"},
+    { name: "1시간 내 지각", value: 0, fill: "#F9D423" },
     { name: "1시간 이상 지각", value: 0, fill: "rgb(234, 153, 153)" },
   ]);
   const lateRateCOLORS = ["rgb(164, 180, 255)", "#F9D423", "rgb(234, 153, 153)"];
-  const lateRateLabel = ({
-    cx,
-    cy,
-    midAngle,
-    innerRadius,
-    outerRadius,
-    percent,
-    index,
-  }) => {
+  const lateRateLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 1.4;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
     return (
-      <text
-        x={x}
-        y={y}
-        fill="black"
-        textAnchor={x > cx ? "start" : "end"}
-        dominantBaseline="central"
-      >
+      <text x={x} y={y} fill="black" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central">
         {`${(percent * 100).toFixed(0)}%`}
       </text>
     );
@@ -155,11 +128,7 @@ function Dashboard() {
       setdata(foundTRlist);
       // setstartday(foundTRlist[0].날짜);
       const last = new Date(foundTRlist[foundTRlist.length - 1].날짜);
-      const last_7 = new Date(
-        last.getFullYear(),
-        last.getMonth(),
-        last.getDate() - 6
-      );
+      const last_7 = new Date(last.getFullYear(), last.getMonth(), last.getDate() - 6);
 
       setstartday(last_7.toISOString().split("T")[0]);
       setlastday(foundTRlist[foundTRlist.length - 1].날짜);
@@ -171,29 +140,18 @@ function Dashboard() {
     if (!isInitialMount.current) {
       var newdata = [...TRlist];
       newdata = newdata.filter((data) => {
-        return (
-          new Date(data.날짜) >= new Date(startday) &&
-          new Date(data.날짜) <= new Date(lastday)
-        );
+        return new Date(data.날짜) >= new Date(startday) && new Date(data.날짜) <= new Date(lastday);
       });
 
       if (!include_abscent) {
         newdata = newdata.filter((data) => {
-          return (
-            new Date(data.날짜) >= new Date(startday) &&
-            new Date(data.날짜) <= new Date(lastday) &&
-            data.결석여부 == false
-          );
+          return new Date(data.날짜) >= new Date(startday) && new Date(data.날짜) <= new Date(lastday) && data.결석여부 == false;
         });
       }
 
       if (!include_sunday) {
         newdata = newdata.filter((data) => {
-          return (
-            new Date(data.날짜) >= new Date(startday) &&
-            new Date(data.날짜) <= new Date(lastday) &&
-            data.요일 !== "일요일"
-          );
+          return new Date(data.날짜) >= new Date(startday) && new Date(data.날짜) <= new Date(lastday) && data.요일 !== "일요일";
         });
       }
 
@@ -201,10 +159,7 @@ function Dashboard() {
         return +(new Date(a.날짜) > new Date(b.날짜)) - 0.5;
       });
 
-      const sum = newdata.reduce(
-        (total, current) => total + current["실제학습"],
-        0
-      );
+      const sum = newdata.reduce((total, current) => total + current["실제학습"], 0);
       setaver(parseInt((sum / newdata.length) * 10) / 10);
       setdata(newdata);
     }
@@ -217,11 +172,7 @@ function Dashboard() {
         {
           name: "정시등원",
           value: data.filter((element) => {
-            return (
-              element["목표등원"] != null &&
-              element["목표등원"] >= element["실제등원"] &&
-              element["결석여부"] != true
-            );
+            return element["목표등원"] != null && element["목표등원"] >= element["실제등원"] && element["결석여부"] != true;
           }).length,
           fill: "rgb(164, 180, 255)",
         },
@@ -231,8 +182,7 @@ function Dashboard() {
             return (
               element["목표등원"] != null &&
               element["실제등원"] > element["목표등원"] &&
-              convertFromStringToDateTime(element["목표등원"]).setMinutes(
-                convertFromStringToDateTime(element["목표등원"]).getMinutes()+60) >= 
+              convertFromStringToDateTime(element["목표등원"]).setMinutes(convertFromStringToDateTime(element["목표등원"]).getMinutes() + 60) >=
                 convertFromStringToDateTime(element["실제등원"]) &&
               element["결석여부"] != true
             );
@@ -246,8 +196,7 @@ function Dashboard() {
             return (
               element["목표등원"] != null &&
               element["실제등원"] > element["목표등원"] &&
-              convertFromStringToDateTime(element["목표등원"]).setMinutes(
-                convertFromStringToDateTime(element["목표등원"]).getMinutes()+60) < 
+              convertFromStringToDateTime(element["목표등원"]).setMinutes(convertFromStringToDateTime(element["목표등원"]).getMinutes() + 60) <
                 convertFromStringToDateTime(element["실제등원"]) &&
               element["결석여부"] != true
             );
@@ -301,14 +250,10 @@ function Dashboard() {
     copied.map(function (d) {
       const tmp = JSON.parse(JSON.stringify(d));
       let now = new Date();
-      let startDay = tmp["실제취침"].setFullYear(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate()
-      );
+      let startDay = tmp["실제취침"].setFullYear(now.getFullYear(), now.getMonth(), now.getDate());
       sum += startDay;
     });
-    const result = new Date(sum/dateArrayLength);
+    const result = new Date(sum / dateArrayLength);
     return result;
   }
 
@@ -670,21 +615,9 @@ function Dashboard() {
               </p>
               <ResponsiveContainer width="100%" height="90%">
                 <PieChart width={100} height={40}>
-                  <Pie
-                    dataKey="value"
-                    isAnimationActive={false}
-                    data={lateRate}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    fill={lateRateCOLORS}
-                    label={lateRateLabel}
-                  >
+                  <Pie dataKey="value" isAnimationActive={false} data={lateRate} cx="50%" cy="50%" outerRadius={80} fill={lateRateCOLORS} label={lateRateLabel}>
                     {data.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={lateRateCOLORS[index % lateRateCOLORS.length]}
-                      />
+                      <Cell key={`cell-${index}`} fill={lateRateCOLORS[index % lateRateCOLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -698,20 +631,12 @@ function Dashboard() {
               </p>
               <div>
                 <h2>
-                  <strong>
-                    {latenessList.length===0 ? 0
-                    :
-                    Math.round(Math.abs(average(latenessList)) * 10) / 10}시간
-                  </strong>
+                  <strong>{latenessList.length === 0 ? 0 : Math.round(Math.abs(average(latenessList)) * 10) / 10}시간</strong>
                 </h2>
                 <p>
                   <strong>
-                    최소{" "}
-                    {latenessList.length===0 ? 0
-                    :Math.round(Math.abs(Math.max(...latenessList)) * 10) / 10}
-                    시간, 최대{" "}
-                    {latenessList.length===0 ? 0
-                    :Math.round(Math.abs(Math.min(...latenessList)) * 10) / 10}
+                    최소 {latenessList.length === 0 ? 0 : Math.round(Math.abs(Math.max(...latenessList)) * 10) / 10}
+                    시간, 최대 {latenessList.length === 0 ? 0 : Math.round(Math.abs(Math.min(...latenessList)) * 10) / 10}
                     시간 지각했습니다.
                   </strong>
                 </p>
@@ -1004,28 +929,13 @@ function Dashboard() {
                 <strong>[ 학습시간 추이 ]</strong>
               </p>
               <ResponsiveContainer width="100%" height="90%">
-                <AreaChart
-                  className="graph"
-                  width={1000}
-                  height={500}
-                  data={data}
-                >
-                  <Area
-                    type="monotone"
-                    dataKey="실제학습"
-                    stroke="#FFBB28"
-                    fill="#FFBB28"
-                  />
+                <AreaChart className="graph" width={1000} height={500} data={data}>
+                  <Area type="monotone" dataKey="실제학습" stroke="#FFBB28" fill="#FFBB28" />
                   <CartesianGrid strokeDasharray="3 3" />
                   <Tooltip />
                   <XAxis dataKey="날짜" />
                   <YAxis />
-                  <ReferenceLine
-                    y={aver}
-                    label={`Average : ${aver}`}
-                    stroke="#0088FE"
-                    strokeDasharray="3 3"
-                  />
+                  <ReferenceLine y={aver} label={`Average : ${aver}`} stroke="#0088FE" strokeDasharray="3 3" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
