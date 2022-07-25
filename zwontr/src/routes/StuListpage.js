@@ -179,7 +179,7 @@ function StuListpage() {
                   </thead>
                   {buylist.map((obj, index) => {
                     return (
-                      <tbody>
+                      <tbody key={index}>
                         {obj["목록"].map(function (a, i) {
                           return (
                             <tr key={i}>

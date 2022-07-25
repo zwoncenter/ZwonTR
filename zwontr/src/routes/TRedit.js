@@ -4,6 +4,7 @@ import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import TimePicker from "react-time-picker";
+import { FaPencilAlt, FaTrash, FaCheck, FaUndo } from "react-icons/fa";
 
 function TRedit() {
   // 공통 code
@@ -94,6 +95,8 @@ function TRedit() {
     진행중교재: [],
     완료된교재: [],
     프로그램분류: ["자기인식", "진로탐색", "헬스", "외부활동", "독서", "외국어"],
+
+    수강중강의: [],
   });
   const [cuberaito, setCuberatio] = useState(0);
   const [failCnt, setFailCnt] = useState(0);
@@ -162,6 +165,68 @@ function TRedit() {
     큐브책: [],
   });
 
+  // 날짜 관련 코드
+  const now = new Date(); // 현재 시간
+  const utcNow = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
+  const koreaTimeDiff = 9 * 60 * 60 * 1000;
+  const koreaNow = new Date(utcNow + koreaTimeDiff);
+  const today = koreaNow.toISOString().split("T")[0];
+
+
+  // 수강중강의 관련 코드
+  const [lectureList, setlectureList] = useState([]);
+  const [lecturemodalshow, setlecturemodalshow] = useState(false);
+  const lecturemodalOpen = () => setlecturemodalshow(true);
+  const lecturemodalClose = () => setlecturemodalshow(false);
+
+  const updatelecture = async (newlecture) => {
+    const existlecture = await axios
+      .get(`/api/Lecture/${newlecture["lectureID"]}`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return window.push("/");
+        }
+        return result["data"];
+      })
+      .catch((err) => {
+        return window.alert(err);
+      });
+    if (existlecture["version"] !== newlecture["version"]) {
+      window.alert("강의가 업데이트 되었습니다. 다시 시도해주세요.")
+      const newlectureList = [];
+      for (let lectureID of stuDB["수강중강의"]) {
+        let newlecture = await axios
+          .get(`/api/Lecture/${lectureID}`)
+          .then((result) => {
+            if (result.data === "로그인필요") {
+              window.alert("로그인이 필요합니다.");
+              return window.push("/");
+            }
+            return result["data"];
+          })
+          .catch((err) => {
+            return window.alert(err);
+          });
+        newlectureList.push(newlecture);
+      }
+      setlectureList(newlectureList);
+      return
+    }
+    newlecture["lastrevise"] = today;
+    newlecture["version"] += 1;
+    axios
+      .put(`/api/Lecture`, newlecture)
+      .then(function (result) {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+        }
+      })
+      .catch(function (err) {
+        window.alert("저장에 실패했습니다. 개발/데이터 팀에게 문의해주세요", err);
+      });
+  };
+
   function 입력확인() {
     if (!TR.날짜) {
       window.alert("일간하루 날짜가 입력되지 않았습니다.");
@@ -226,6 +291,17 @@ function TRedit() {
       window.alert("프로그램 시간의 값이 NaN입니다. 수정 후 다시시도해 주세요.");
       return false;
     }
+
+    if ("수강중강의" in stuDB) {
+      for (let lecture of lectureList) {
+        for (let assignID of lecture["students"][paramID]["진행중과제"]) {
+          if (today === lecture["assignments"][assignID]["과제기한"]) {
+            if (window.confirm(`${lecture["assignments"][assignID]["과제내용"]}(이)가 오늘까지 입니다. 저장을 진행하시겠습니까?`) === false) return false
+          }
+        }
+      }
+    }
+
     return true;
   }
 
@@ -332,6 +408,26 @@ function TRedit() {
         return err;
       });
     await setTR(newTR);
+
+    if ("수강중강의" in newstuDB) {
+      const newlectureList = [];
+      for (let lectureID of newstuDB["수강중강의"]) {
+        let newlecture = await axios
+          .get(`/api/Lecture/${lectureID}`)
+          .then((result) => {
+            if (result.data === "로그인필요") {
+              window.alert("로그인이 필요합니다.");
+              return window.push("/");
+            }
+            return result["data"];
+          })
+          .catch((err) => {
+            return window.alert(err);
+          });
+        newlectureList.push(newlecture);
+      }
+      setlectureList(newlectureList);
+    }
 
     isInitialMount.current = false;
   }, [paramDate]);
@@ -924,43 +1020,105 @@ function TRedit() {
 
         <div className="col-xl-4 trCol">
           <div className="trCard">
-            <h5 className="fw-bold mt-3 mb-3">
-              <strong>[ 큐브책 체크리스트 ]</strong>
+          <h5 className="fw-bold">
+              <strong>[ 수강중 강의 ]</strong>
             </h5>
-            {TR.큐브책.map((a, i) => (
-              <div key={`cube-${i}`} className="mb-1 mt-1 checkBox">
-                <Form.Group as={Row}>
-                  <Col sm="10">
-                    <Form.Check
-                      className="border-bottom cube-content"
-                      checked={a.완료여부}
-                      type="checkbox"
-                      id={`cube-${i}`}
-                      label={`${a.구분} - ${a.할일}`}
-                      onChange={(e) => {
-                        change_depth_three("큐브책", i, "완료여부", e.target.checked);
-                      }}
-                    />
-                  </Col>
-                  <Form.Label column sm="2">
-                    <Button
-                      className="btn-delete"
-                      onClick={() => {
-                        if (i > -1) {
-                          delete_depth_one("큐브책", i);
-                        }
-                      }}
-                    >
-                      x
-                    </Button>
-                  </Form.Label>
-                </Form.Group>
-              </div>
-            ))}
+            {lectureList.map((lecture, idx) => {
+              return (
+                <Accordion key={idx} className="mt-2" defaultActiveKey="0">
+                  <Accordion.Item eventKey="0">
+                    <Accordion.Header>
+                      <p>
+                        {lecture["lectureName"]}({lecture["students"][paramID]["진행중과제"].length})
+                      </p>
+                    </Accordion.Header>
+                    <Accordion.Body>
+                      {lecture["students"][paramID]["진행중과제"].map((assign, idx) => {
+                        return (
+                          <ul key={idx}>
+                            <p>
+                              {lecture["assignments"][assign]["과제내용"]} /
+                              <p
+                                className={
+                                  today < lecture["assignments"][assign]["과제기한"]
+                                    ? "after"
+                                    : today == lecture["assignments"][assign]["과제기한"]
+                                    ? "now"
+                                    : "before"
+                                }
+                              >
+                                {lecture["assignments"][assign]["과제기한"]}
+                              </p>
+                              <Button
+                                className="ms-2 btn-del"
+                                onClick={() => {
+                                  if (!window.confirm("과제를 완료 처리하시겠습니까?")) {
+                                    return;
+                                  }
+                                  const newlectureList = [...lectureList];
+                                  const newlecture = JSON.parse(JSON.stringify(lecture));
+                                  newlecture["students"][paramID]["진행중과제"].splice(idx, 1);
+                                  newlecture["students"][paramID]["완료된과제"].push([assign, today]);
+                                  newlectureList[idx] = newlecture;
+                                  setlectureList(newlectureList);
+                                  updatelecture(newlecture);
+                                }}
+                              >
+                                <FaCheck></FaCheck>
+                              </Button>
+                            </p>
+                          </ul>
+                        );
+                      })}
+                      <Accordion className="mt-3">
+                        <Accordion.Item eventKey="0">
+                          <Accordion.Header>
+                            <p>완료된 과제({lecture["students"][paramID]["완료된과제"].length})</p>
+                          </Accordion.Header>
+                          <Accordion.Body>
+                            {lecture["students"][paramID]["완료된과제"].map((assign, idx) => {
+                              return (
+                                <ul key={idx}>
+                                  <p>
+                                    {lecture["assignments"][assign[0]]["과제내용"]} /
+                                    <p className={assign[1] <= lecture["assignments"][assign[0]]["과제기한"] ? "after" : "before"}>
+                                      {lecture["assignments"][assign[0]]["과제기한"]}
+                                    </p>{" "}
+                                    / {assign[1]}
+                                    <Button
+                                      className="ms-2 btn-del"
+                                      onClick={() => {
+                                        if (!window.confirm("과제를 완료해제 처리하시겠습니까? \n기록된 완료날짜가 삭제됩니다.")) {
+                                          return;
+                                        }
+                                        const newlectureList = [...lectureList];
+                                        const newlecture = JSON.parse(JSON.stringify(lecture));
+                                        newlecture["students"][paramID]["완료된과제"].splice(idx, 1);
+                                        newlecture["students"][paramID]["진행중과제"].push(assign[0]);
+                                        newlecture["students"][paramID]["진행중과제"].sort((a, b) => {
+                                          return +(newlecture["assignments"][a]["과제기한"] > newlecture["assignments"][b]["과제기한"]) - 0.5;
+                                        });
+                                        newlectureList[idx] = newlecture;
+                                        setlectureList(newlectureList);
+                                        updatelecture(newlecture);
+                                      }}
+                                    >
+                                      <FaUndo></FaUndo>
+                                    </Button>
+                                  </p>
+                                </ul>
+                              );
+                            })}
+                          </Accordion.Body>
+                        </Accordion.Item>
+                      </Accordion>
+                    </Accordion.Body>
+                  </Accordion.Item>
+                </Accordion>
+              );
+            })}
 
-            <p style={{ fontSize: "17px" }} className="mt-2 btn-add program-add">
-              큐브책 달성률 : {cuberaito}% / 달성 실패 : {failCnt}개
-            </p>
+            
             <div className="d-flex mt-3 mb-3 justify-content-center">
               <div className="feedback-sub">
                 <h5 className="fw-bold">

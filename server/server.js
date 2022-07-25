@@ -24,6 +24,7 @@ app.use(passport.session());
 // react와 nodejs 서버간 ajax 요청 잘 되게`
 app.use(express.json());
 var cors = require("cors");
+const { send } = require("process");
 app.use(cors());
 
 //db라는 변수에 zwon 데이터베이스 연결, env파일 참조
@@ -187,7 +188,6 @@ app.put("/api/StudentDB/edit", loginCheck, function (req, res) {
   delete newstuDB._id;
   console.log("기존 학생DB 수정 시도", findID);
   db.collection(`StudentDB`).findOne({ ID: findID }, function (err, result) {
-    console.log(result);
     if (err) {
       return console.log(`/api/StudentEdit - findOne Error : `, err);
     }
@@ -271,8 +271,8 @@ app.get("/api/TR/:ID/:date", loginCheck, function (req, res) {
 
 app.post("/api/TR/write", loginCheck, function (req, res) {
   const newTR = req.body;
-  console.log("일간하루 저장 시도 : ", newTR.이름, newTR.날짜);
-  db.collection("TR").findOne({ 이름: newTR.이름, 날짜: newTR.날짜 }, function (err, result) {
+  console.log("일간하루 저장 시도 : ", newTR.ID, newTR.날짜);
+  db.collection("TR").findOne({ ID: newTR.ID, 날짜: newTR.날짜 }, function (err, result) {
     if (err) {
       console.log(`/api/TR/write - findOne Error : `, err);
       return res.send(`/api/TR/write - findOne Error : `, err);
@@ -340,7 +340,7 @@ app.post("/api/Closemeeting/write/:date", loginCheck, function (req, res) {
   const paramDate = decodeURIComponent(req.params.date);
   const newClosemeeting = req.body;
   console.log("마감회의 저장 시도 : ", paramDate);
-  db.collection("Closemeeting").findOne({ 날짜 : paramDate }, function (err, result) {
+  db.collection("Closemeeting").findOne({ 날짜: paramDate }, function (err, result) {
     if (err) {
       console.log(`/api/Closemeeting/write/:date - findOne Error : `, err);
       return res.send(`/api/Closemeeting/write/:date - findOne Error : `, err);
@@ -376,7 +376,7 @@ app.put("/api/Closemeeting/edit/:date", loginCheck, function (req, res) {
   const findID = ObjectId(newClosemeeting._id);
   delete newClosemeeting._id;
   console.log("마감회의 수정 시도 : ", paramDate);
-  db.collection("Closemeeting").findOne({ 날짜 : paramDate }, function (err, result) {
+  db.collection("Closemeeting").findOne({ 날짜: paramDate }, function (err, result) {
     if (err) {
       return res.send(`/api/Closemeeting/edit/:date - findOne Error : `, err);
     }
@@ -422,7 +422,7 @@ app.post("/api/Middlemeeting/write/:date", loginCheck, function (req, res) {
   const paramDate = decodeURIComponent(req.params.date);
   const newMiddlemeeting = req.body;
   console.log("중간희 저장 시도 : ", paramDate);
-  db.collection("Middlemeeting").findOne({ 날짜 : paramDate }, function (err, result) {
+  db.collection("Middlemeeting").findOne({ 날짜: paramDate }, function (err, result) {
     if (err) {
       console.log(`/api/Middlemeeting/write/:date - findOne Error : `, err);
       return res.send(`/api/Middlemeeting/write/:date - findOne Error : `, err);
@@ -458,7 +458,7 @@ app.put("/api/Middlemeeting/edit/:date", loginCheck, function (req, res) {
   const findID = ObjectId(newMiddlemeeting._id);
   delete newMiddlemeeting._id;
   console.log("중간회의 수정 시도 : ", paramDate);
-  db.collection("Middlemeeting").findOne({ 날짜 : paramDate }, function (err, result) {
+  db.collection("Middlemeeting").findOne({ 날짜: paramDate }, function (err, result) {
     if (err) {
       return res.send(`/api/Middlemeeting/edit/:date - findOne Error : `, err);
     }
@@ -499,17 +499,18 @@ app.delete("/api/Middlemeeting/delete/:id", loginCheck, function (req, res) {
 });
 
 app.get("/api/Todolist", loginCheck, function (req, res) {
-  db.collection("Todolist").find()
-  .toArray((err, result) => {
-    if (err) {
-      return console.log("api/Todolist - find Error : ", err);
-    }
-    res.send(result[0]["Todolist"]);
-  });
+  db.collection("Todolist")
+    .find()
+    .toArray((err, result) => {
+      if (err) {
+        return console.log("api/Todolist - find Error : ", err);
+      }
+      res.send(result[0]["Todolist"]);
+    });
 });
 
 app.put("/api/Todolist/edit", loginCheck, function (req, res) {
-  const newTodolist = { Todolist : req.body}; 
+  const newTodolist = { Todolist: req.body };
   const findID = ObjectId("629317f4aca8d25d84a7d0e0");
   db.collection("Todolist").updateOne({ _id: findID }, { $set: newTodolist }, function (err3, result3) {
     if (err3) {
@@ -521,17 +522,18 @@ app.put("/api/Todolist/edit", loginCheck, function (req, res) {
 });
 
 app.get("/api/Textbook", loginCheck, function (req, res) {
-  db.collection("Textbook").find()
-  .toArray((err, result) => {
-    if (err) {
-      return console.log("api/Textbook - find Error : ", err);
-    }
-    res.send(result[0]);
-  });
+  db.collection("Textbook")
+    .find()
+    .toArray((err, result) => {
+      if (err) {
+        return console.log("api/Textbook - find Error : ", err);
+      }
+      res.send(result[0]);
+    });
 });
 
 app.put("/api/Textbook/edit", loginCheck, function (req, res) {
-  const newTextbook = req.body
+  const newTextbook = req.body;
   const findID = ObjectId("62b815e210c04d831adf2f5b");
   db.collection("Textbook").updateOne({ _id: findID }, { $set: newTextbook }, function (err3, result3) {
     if (err3) {
@@ -542,6 +544,81 @@ app.put("/api/Textbook/edit", loginCheck, function (req, res) {
   });
 });
 
+// Lecture 관련 코드
+
+app.get("/api/Lecture", loginCheck, (req, res) => {
+  db.collection("Lecture")
+    .find()
+    .toArray((err, result) => {
+      if (err) {
+        return res.send(`/api/Lecture - find Error ${err}`);
+      }
+      return res.json(result);
+    });
+});
+
+app.post("/api/Lecture", loginCheck, (req, res) => {
+  const newLecture = req.body;
+  db.collection("Lecture").findOne({ lectureID: newLecture["ID"] }, (err, result) => {
+    if (err) {
+      return res.send(`/api/Lecture - findOne Error : ${err}`);
+    }
+    if (result !== null) {
+      return res.send(`findOne result is not null. 중복되는 강의가 존재합니다.`);
+    }
+    db.collection("Lecture").insertOne(newLecture, (err2, result2) => {
+      if (err2) {
+        return res.send(`/api/Lecture - insertOne Error : ${err2}`);
+      }
+      return res.send(true);
+    });
+  });
+});
+
+app.get("/api/Lecture/:lectureid", loginCheck, (req, res) => {
+  const paramID = decodeURIComponent(req.params.lectureid);
+  db.collection("Lecture").findOne({lectureID : paramID}, (err, result) => {
+    if (err) {
+      return res.send(`/api/Lecture/${paramID} - findOne Error : ${err}`)
+    }
+    return res.json(result)
+  })
+});
+
+app.put("/api/Lecture", loginCheck, (req, res) => {
+  const newLecture = req.body;
+  const findID = ObjectId(newLecture["_id"])
+  delete newLecture["_id"]
+  db.collection("Lecture").updateOne({_id : findID}, {$set : newLecture}, (err, result) => {
+    if (err) {return res.send(`/api/Lecture - updateOne Error : ${err}`)}
+    return res.send(true)
+  })
+})
+
+app.delete("/api/Lecture/:lectureid", loginCheck, (req, res) => {
+  const paramID = decodeURIComponent(req.params.lectureid);
+  db.collection("Lecture").deleteOne({lectureID : paramID}, (err, result) => {
+    if (err) {return res.send(`/api/Lecture/${paramID} - deleteOne Error : ${err}`)}
+    return res.send(true);
+  })
+})
+
+
+// studentName
+app.get("/api/TRnow", loginCheck, (req, res) => {
+  db.collection("StudentDB")
+    .find()
+    .toArray(function (err, result) {
+      if (err) {
+        return console.log("api/studentList - find Error : ", err);
+      }
+      const stuNameList = result.map(stuDB => stuDB["ID"]);
+      db.collection("TR").find({ID : {$in : stuNameList}}).toArray( (err2, result2) => {
+        if (err2) {return res.send(`/api/TRnow - find Error : ${err2}`)}
+        console.log(result2.length)
+      })
+    });
+})
 
 app.use("*", express.static(path.join(__dirname, "../zwontr/build")));
 app.get("*", function (req, res) {

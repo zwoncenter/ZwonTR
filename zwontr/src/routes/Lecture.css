@@ -20,4 +20,20 @@
   height: 25px;
   padding: 0px;
   box-sizing: border-box;
-}/*# sourceMappingURL=Classpage.css.map */
+}
+
+.after {
+  display: inline;
+}
+
+.now {
+  display: inline;
+  background-color: rgb(219, 190, 26);
+  color: rgb(240, 240, 240);
+}
+
+.before {
+  display: inline;
+  background-color: rgb(245, 110, 110);
+  color: rgb(240, 240, 240);
+}/*# sourceMappingURL=Lecture.css.map */
