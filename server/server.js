@@ -542,6 +542,21 @@ app.put("/api/Textbook/edit", loginCheck, function (req, res) {
   });
 });
 
+app.get("/api/TRnow", loginCheck, (req, res) => {
+  db.collection("StudentDB")
+    .find()
+    .toArray(function (err, result) {
+      if (err) {
+        return console.log("api/studentList - find Error : ", err);
+      }
+      const stuNameList = result.map(stuDB => stuDB["ID"]);
+      db.collection("TR").find({ID : {$in : stuNameList}}).toArray( (err2, result2) => {
+        if (err2) {return res.send(`/api/TRnow - find Error : ${err2}`)}
+        console.log(result2.length);
+        return res.json(result2)
+      })
+    });
+})
 
 app.use("*", express.static(path.join(__dirname, "../zwontr/build")));
 app.get("*", function (req, res) {

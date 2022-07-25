@@ -43,6 +43,7 @@ import {
 } from "recharts";
 
 function Dashboard() {
+  
   const Plotly = window.Plotly;
   const Plot = createPlotlyComponent(Plotly);
   let [dashshow, dashshowChange] = useState(true);

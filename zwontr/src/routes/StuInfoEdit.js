@@ -35,6 +35,7 @@ function StuInfoEdit() {
     주소: "",
     혈액형: "",
     최종학력: "",
+    분류: "",
 
     부직업: "",
     모직업: "",
@@ -249,6 +250,10 @@ function StuInfoEdit() {
       .catch((err) => {
         return err;
       });
+
+    if(!'분류' in existstuInfo){
+      existstuInfo["분류"] = "";
+    };
     setname(existstuInfo["이름"]);
     setbirth(existstuInfo["생년월일"]);
     setstuInfo(existstuInfo);
@@ -307,6 +312,31 @@ function StuInfoEdit() {
                           change_depth_one("프로그램시작일", e.target.value);
                         }}
                       />
+                    </Col>
+                  </Form.Group>
+                  <Form.Group as={Row} className="col-xl-6">
+                    <Form.Label column sm="4" className="fs-6">
+                      <p>
+                        <strong>분류</strong>
+                      </p>
+                    </Form.Label>
+                    <Col>
+                    <Form.Select
+                        type="text"
+                        value={stuInfo["분류"]}
+                        onChange={(e) => {
+                          change_depth_one("분류", e.target.value);
+                        }}
+                      >
+                        <option value="">선택</option>
+                        <option value={'OT'}>OT</option>
+                        <option value={'중1'}>중1</option>
+                        <option value={'중2'}>중2</option>
+                        <option value={'중3'}>중3</option>
+                        <option value={'고1'}>고1</option>
+                        <option value={'고2'}>고2</option>
+                        <option value={'고3'}>고3</option>
+                      </Form.Select>
                     </Col>
                   </Form.Group>
 

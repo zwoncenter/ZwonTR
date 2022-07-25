@@ -21,6 +21,7 @@ import MiddlemeetingWrite from "./routes/MiddlemeetingWrite";
 import MiddlemeetingEdit from "./routes/MiddlemeetingEdit";
 import Dashboard from "./routes/Dashboard.js";
 import TextbookManage from "./routes/TextbookManage";
+import Weeklymeeting from "./routes/Weeklymeeting";
 
 function App() {
   let history = useHistory();
@@ -55,27 +56,16 @@ function App() {
             </h5>
           </Button>
 
-          {/* <Button
+          <Button
             className="menu-map-btn btn-secondary"
             onClick={() => {
-              axios
-                .get(`/api/Middlemeeting/find/${today}`)
-                .then((result) => {
-                  if (result["data"] === null) {
-                    history.push(`/Middlemeeting/Write/${today}`);
-                  } else {
-                    history.push(`/Middlemeeting/Edit/${today}`);
-                  }
-                })
-                .catch((err) => {
-                  console.log(err);
-                });
+              history.push("/Weeklymeeting");
             }}
           >
             <h5>
-              <strong>중간 회의</strong>
+              <strong>주간 회의</strong>
             </h5>
-          </Button> */}
+          </Button>
 
           <Button
             className="menu-map-btn btn-secondary"
@@ -184,6 +174,9 @@ function App() {
         </Route>
         <Route exact path="/Textbook">
           <TextbookManage />
+        </Route>
+        <Route exact path="/Weeklymeeting">
+          <Weeklymeeting />
         </Route>
       </Switch>
     </div>
