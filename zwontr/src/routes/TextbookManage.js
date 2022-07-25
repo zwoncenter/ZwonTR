@@ -320,7 +320,7 @@ function TextbookManage() {
                           }
                         }}
                       >
-                        <strong>X</strong>
+                        <FaTrash></FaTrash>
                       </button>
                     </td>
                   </tr>

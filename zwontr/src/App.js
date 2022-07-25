@@ -22,6 +22,8 @@ import MiddlemeetingEdit from "./routes/MiddlemeetingEdit";
 import Dashboard from "./routes/Dashboard.js";
 import TextbookManage from "./routes/TextbookManage";
 import Weeklymeeting from "./routes/Weeklymeeting";
+import Lecture from "./routes/Lecture";
+import LectureList from "./routes/LectureList";
 
 function App() {
   let history = useHistory();
@@ -119,6 +121,16 @@ function App() {
               <strong>대시보드</strong>
             </h5>
           </Button>
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              history.push("/Lecture");
+            }}
+          >
+            <h5>
+              <strong>강의관리</strong>
+            </h5>
+          </Button>
         </div>
         <div className="menuArrow">
           <img src={menuarrow} alt="menuarrow" />
@@ -177,6 +189,12 @@ function App() {
         </Route>
         <Route exact path="/Weeklymeeting">
           <Weeklymeeting />
+          </Route>
+        <Route exact path="/Lecture">
+          <LectureList />
+        </Route>
+        <Route exact path="/Lecture/:lectureID">
+          <Lecture />
         </Route>
       </Switch>
     </div>
