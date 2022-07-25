@@ -1084,6 +1084,11 @@ function TRwrite() {
             <h5 className="fw-bold">
               <strong>[ 수강중 강의 ]</strong>
             </h5>
+            <Button onClick={() => {
+              console.log(lectureList)
+            }}>
+
+            </Button>
             {lectureList.map((lecture, idx) => {
               return (
                 <Accordion key={idx} className="mt-2" defaultActiveKey="0">

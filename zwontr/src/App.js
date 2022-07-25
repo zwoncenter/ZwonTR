@@ -121,7 +121,7 @@ function App() {
               <strong>대시보드</strong>
             </h5>
           </Button>
-          <Button
+          {/* <Button
             className="menu-map-btn btn-secondary"
             onClick={() => {
               history.push("/Lecture");
@@ -130,7 +130,7 @@ function App() {
             <h5>
               <strong>강의관리</strong>
             </h5>
-          </Button>
+          </Button> */}
         </div>
         <div className="menuArrow">
           <img src={menuarrow} alt="menuarrow" />
@@ -187,12 +187,15 @@ function App() {
         <Route exact path="/Textbook">
           <TextbookManage />
         </Route>
+
         <Route exact path="/Weeklymeeting">
           <Weeklymeeting />
-          </Route>
+        </Route>
+
         <Route exact path="/Lecture">
           <LectureList />
         </Route>
+
         <Route exact path="/Lecture/:lectureID">
           <Lecture />
         </Route>
