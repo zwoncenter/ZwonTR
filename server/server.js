@@ -544,8 +544,6 @@ app.put("/api/Textbook/edit", loginCheck, function (req, res) {
   });
 });
 
-<<<<<<< HEAD
-=======
 // Lecture 관련 코드
 
 app.get("/api/Lecture", loginCheck, (req, res) => {
@@ -607,7 +605,6 @@ app.delete("/api/Lecture/:lectureid", loginCheck, (req, res) => {
 
 
 // studentName
->>>>>>> c529ee9bc1f9f7e6e2d9191f65eee8aae1badd6c
 app.get("/api/TRnow", loginCheck, (req, res) => {
   db.collection("StudentDB")
     .find()
@@ -618,14 +615,57 @@ app.get("/api/TRnow", loginCheck, (req, res) => {
       const stuNameList = result.map(stuDB => stuDB["ID"]);
       db.collection("TR").find({ID : {$in : stuNameList}}).toArray( (err2, result2) => {
         if (err2) {return res.send(`/api/TRnow - find Error : ${err2}`)}
-<<<<<<< HEAD
-        console.log(result2.length);
         return res.json(result2)
-=======
-        console.log(result2.length)
->>>>>>> c529ee9bc1f9f7e6e2d9191f65eee8aae1badd6c
       })
     });
+})
+
+// Weeklymeeting 관련 코드
+app.post("/api/Weeklymeeting/:date", loginCheck, (req, res) => {
+  const newWeeklymeeting = req.body;
+  const paramDate = decodeURIComponent(req.params.date);
+  db.collection("Weeklymeeting").findOne({ 회의일 : paramDate }, (err, result) => {
+    if (err) {
+      return res.send(`/api/Weeklymeeting - findOne Error : ${err}`);
+    }
+    if (result !== null) {
+      return res.send(`findOne result is not null. 중복되는 주간회의가 존재합니다.`);
+    }
+    db.collection("Weeklymeeting").insertOne(newWeeklymeeting, (err2, result2) => {
+      if (err2) {
+        return res.send(`/api/Weeklymeeting - insertOne Error : ${err2}`);
+      }
+      return res.send(true);
+    });
+  });
+});
+
+app.get("/api/Weeklymeeting/:date", loginCheck, (req, res) => {
+  const paramDate = decodeURIComponent(req.params.date);
+  db.collection("Weeklymeeting").findOne({ 회의일 : paramDate}, (err, result) => {
+    if (err) {
+      return res.send(`/api/Weeklymeeting/${paramDate} - findOne Error : ${err}`)
+    }
+    return res.json(result)
+  })
+});
+
+app.put("/api/Weeklymeeting/:date", loginCheck, (req, res) => {
+  const newWeeklymeeting = req.body;
+  const paramDate = decodeURIComponent(req.params.date);
+  delete newWeeklymeeting["_id"]
+  db.collection("Weeklymeeting").updateOne({회의일 : paramDate}, {$set : newWeeklymeeting}, (err, result) => {
+    if (err) {return res.send(`/api/Weeklymeeting - updateOne Error : ${err}`)}
+    return res.send(true)
+  })
+})
+
+app.delete("/api/Weeklymeeting/:date", loginCheck, (req, res) => {
+  const paramDate = decodeURIComponent(req.params.date);
+  db.collection("Weeklymeeting").deleteOne({회의일 : paramDate}, (err, result) => {
+    if (err) {return res.send(`/api/Weeklymeeting/${paramDate} - deleteOne Error : ${err}`)}
+    return res.send(true);
+  })
 })
 
 app.use("*", express.static(path.join(__dirname, "../zwontr/build")));

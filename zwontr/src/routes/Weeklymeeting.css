@@ -23,18 +23,19 @@ textarea {
   padding: 20px;
   text-align: center;
   background-color: #F0EDFF;
+  overflow: hidden;
 }
 
 .Weeklymeeting-container {
   width: 98vw;
-  height: 85vh;
+  height: 80vh;
   display: block;
   margin: auto;
   border-radius: 20px;
   border: 0px;
   background-color: white;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
-  overflow: auto;
+  overflow: scroll;
 }
 
 .Weeklymeeting-table {
@@ -59,4 +60,12 @@ textarea {
 .black {
   background-color: black;
   color: white;
+}
+
+.promiseBox {
+  background-color: black;
+  color: white;
+  border-radius: 10px;
+  margin: 3px;
+  padding: 2px;
 }/*# sourceMappingURL=Weeklymeeting.css.map */

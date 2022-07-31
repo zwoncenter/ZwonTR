@@ -9,6 +9,8 @@ import {
   Row,
   Col,
   Input,
+  OverlayTrigger,
+  Popover
 } from "react-bootstrap";
 import {
   useHistory,
@@ -17,7 +19,8 @@ import {
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 
-function Weeklymeeting() {
+function WeeklymeetingEdit() {
+  let paramDate = useParams()["thisMonday"];
   let history = useHistory();
   const isInitialMount = useRef(true);
   const [stuDBList, setstuDBList] = useState([]);
@@ -29,28 +32,31 @@ function Weeklymeeting() {
   const [managerList, setmanagerList] = useState([]);
   const [dengyo, setdengyo] = useState({});
   var classList = ["고1", "고2", "고3", "중1", "중2", "중3", "OT"];
+  const [selectedDate, setselectedDate] = useState("");
+  const [thisweekData, setthisweekData] = useState({});
+  const [lastweekData, setlastweekData] = useState({});
 
   useEffect(async () => {
     const newstudentDBlist = await axios
       .get("/api/studentList")
       .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        }
         return result.data;
       })
       .catch((err) => {
         return err;
       });
 
-    if (newstudentDBlist && newstudentDBlist == "로그인필요") {
-      window.alert("로그인이 필요합니다.");
-      return history.push("/");
-    }
     newstudentDBlist.sort(function (a, b) {
-      if (classList.indexOf(a.분류)>classList.indexOf(b.분류)) return 1;
-      if (classList.indexOf(a.분류)<classList.indexOf(b.분류)) return -1;
-      if (a.이름>b.이름) return 1;
-      if (a.이름<b.이름) return -1;});
+      if (classList.indexOf(a.분류) > classList.indexOf(b.분류)) return 1;
+      if (classList.indexOf(a.분류) < classList.indexOf(b.분류)) return -1;
+      if (a.이름 > b.이름) return 1;
+      if (a.이름 < b.이름) return -1;
+    });
     setstuDBList(newstudentDBlist);
-    isInitialMount.current = false;
 
     const newmanagerList = await axios
       .get("/api/managerList")
@@ -61,45 +67,75 @@ function Weeklymeeting() {
         return err;
       });
     setmanagerList(newmanagerList);
-  }, []);
+
+    const foundTRlist = await axios
+        .get(`/api/TRnow`)
+        .then((result) => {
+          if (result.data === "로그인필요") {
+            window.alert("로그인이 필요합니다.");
+            return history.push("/");
+          }
+          return result.data;
+        })
+        .catch(function (err) {
+          console.log("/api/TR/:ID fail : ", err);
+        });
+      setTRlist(foundTRlist);
+      isInitialMount.current = false;
+
+  }, [paramDate]);
+
+
+useEffect(async()=>{
+  const newlastweekData = await axios
+      .get(`/api/Weeklymeeting/${getLastMonFromMon(paramDate)}`)
+      .then((result) => {
+        if (result["data"] !== null) {
+          return result["data"];
+        }
+      })
+      .catch((err) => {
+        return err;
+      });
+      setlastweekData(newlastweekData);
+
+  
+  const newthisweekData = await axios
+      .get(`/api/Weeklymeeting/${paramDate}`)
+      .then((result) => {
+        if (result["data"] !== null) {
+          return result["data"]["thisweekData"];
+        }
+      })
+      .catch((err) => {
+        return err;
+      });
+      setthisweekData(newthisweekData);
+
+}, [TRlist]);
+
 
   useEffect(async () => {
     if (isInitialMount.current === false) {
-      
-
-      const foundTRlist = await axios
-      .get(`/api/TRnow`)
-      .then((result) => {
-        if (result.data === "로그인필요") {
-          window.alert("로그인이 필요합니다.");
-          return history.push("/");
-        }
-        return result.data;
-      })
-      .catch(function (err) {
-        console.log("/api/TR/:ID fail : ", err);
-      });
-      var newdata = foundTRlist.filter((data) => {
-          return (
-            new Date(data.날짜) >= lastmonth[0] &&
-            new Date(data.날짜) <= thisweek[1]
-          );
-        });
-      console.log(newdata.length);
-      setTRlist(newdata);
+      setthisweek(getThisWeek());
+      setlastweek(getLastWeek());
+      setlastmonth(getLastMonth());
     }
-  }, [stuDBList]);
+  }, [paramDate]);
+
+
 
   useEffect(async () => {
     if (isInitialMount.current === false) {
       const temporal = stuDBList.map((element, i) => {
         return {
+          ID: element["ID"],
           분류: element["분류"],
           이름: element["이름"],
-          등교: false,
+          // 등교: false,
           지각: TRlist.filter((i) => {
             return (
-              i["이름"] == element["이름"] &&
+              i["ID"] == element["ID"] &&
               i["목표등원"] != null &&
               i["목표등원"] < i["실제등원"] &&
               i["결석여부"] != true &&
@@ -109,7 +145,7 @@ function Weeklymeeting() {
           }).length,
           미등원: TRlist.filter((i) => {
             return (
-              i["이름"] == element["이름"] &&
+              i["ID"] == element["ID"] &&
               i["결석여부"] === true &&
               new Date(i.날짜) >= thisweek[0] &&
               new Date(i.날짜) < thisweek[1]
@@ -119,11 +155,11 @@ function Weeklymeeting() {
             Math.round(
               (TRlist.filter((i) => {
                 return (
-                  i["이름"] == element["이름"] &&
+                  i["ID"] == element["ID"] &&
                   new Date(i.날짜) >= thisweek[0] &&
                   new Date(i.날짜) < thisweek[1] &&
                   i["결석여부"] != true &&
-                  i["요일"]!= "일요일"
+                  i["요일"] != "일요일"
                 );
               })
                 .map((j) => {
@@ -134,11 +170,11 @@ function Weeklymeeting() {
                 }, 0) /
                 TRlist.filter((i) => {
                   return (
-                    i["이름"] == element["이름"] &&
+                    i["ID"] == element["ID"] &&
                     new Date(i.날짜) >= thisweek[0] &&
                     new Date(i.날짜) < thisweek[1] &&
                     i["결석여부"] != true &&
-                    i["요일"]!= "일요일"
+                    i["요일"] != "일요일"
                   );
                 }).length) *
                 10
@@ -147,7 +183,7 @@ function Weeklymeeting() {
             Math.round(
               (TRlist.filter((i) => {
                 return (
-                  i["이름"] == element["이름"] &&
+                  i["ID"] == element["ID"] &&
                   new Date(i.날짜) >= lastweek[0] &&
                   new Date(i.날짜) < lastweek[1]
                 );
@@ -160,58 +196,69 @@ function Weeklymeeting() {
                 }, 0) /
                 TRlist.filter((i) => {
                   return (
-                    i["이름"] == element["이름"] &&
+                    i["ID"] == element["ID"] &&
                     new Date(i.날짜) >= lastweek[0] &&
                     new Date(i.날짜) < lastweek[1]
                   );
                 }).length) *
                 10
             ) / 10,
-          전월평균학습: Math.round(
-            (TRlist.filter((i) => {
-              return (
-                i["이름"] == element["이름"] &&
-                new Date(i.날짜) >= lastmonth[0] &&
-                new Date(i.날짜) < lastmonth[1]
-              );
-            })
-              .map((j) => {
-                return j["실제학습"];
-              })
-              .reduce((a, b) => {
-                return a + b;
-              }, 0) /
-              TRlist.filter((i) => {
+          전월평균학습:
+            Math.round(
+              (TRlist.filter((i) => {
                 return (
-                  i["이름"] == element["이름"] &&
+                  i["ID"] == element["ID"] &&
                   new Date(i.날짜) >= lastmonth[0] &&
                   new Date(i.날짜) < lastmonth[1]
                 );
-              }).length) *
-              10
-          ) / 10,
-          전주문제사항: "",
-          전주조치결과: "",
-          이번주문제사항: "",
-          이번주조치계획: "",
-          조치내용: "",
-          담당자: "",
-          약속: "",
-          약속매니저: ""
+              })
+                .map((j) => {
+                  return j["실제학습"];
+                })
+                .reduce((a, b) => {
+                  return a + b;
+                }, 0) /
+                TRlist.filter((i) => {
+                  return (
+                    i["ID"] == element["ID"] &&
+                    new Date(i.날짜) >= lastmonth[0] &&
+                    new Date(i.날짜) < lastmonth[1]
+                  );
+                }).length) *
+                10
+            ) / 10,
+          약속: element["약속구조"],
         };
       });
       setmanufacturedData(temporal);
+
     }
   }, [TRlist]);
 
+  function getNextMon(inputDate) {
+    var tmpDate = new Date(inputDate);
+    var day = tmpDate.getDay();
+    var diff = tmpDate.getDate() - day + ((day == 0 ? 1 : 8) + 0);
+    tmpDate = new Date(tmpDate.setDate(diff));
+    var output = tmpDate.toISOString().split("T")[0];
+    return output;
+  }
+
+  function getLastMonFromMon(inputDate) {
+    var tmpDate = new Date(inputDate);
+    tmpDate = new Date(tmpDate.setDate(tmpDate.getDate()-7));
+    var output = tmpDate.toISOString().split("T")[0];
+    return output;
+  }
+
   function getThisWeek() {
-    var paramDate = new Date();
-    paramDate.setHours(0, 0, 0, 0);
-    var day = paramDate.getDay();
-    var diff = paramDate.getDate() - day + (day == 0 ? -6 : 1);
-    paramDate = new Date(paramDate.setDate(diff));
-    var enddate = new Date(paramDate.setDate(paramDate.getDate()));
-    var startdate = new Date(paramDate.setDate(paramDate.getDate() - 7));
+    var inputDate = new Date(paramDate);
+    inputDate.setHours(0, 0, 0, 0);
+    var day = inputDate.getDay();
+    var diff = inputDate.getDate() - day + (day == 0 ? -6 : 1);
+    inputDate = new Date(inputDate.setDate(diff));
+    var enddate = new Date(inputDate.setDate(inputDate.getDate()));
+    var startdate = new Date(inputDate.setDate(inputDate.getDate() - 7));
     return [startdate, enddate];
   }
 
@@ -223,27 +270,105 @@ function Weeklymeeting() {
   }
 
   function getLastMonth() {
-    var paramDate = new Date();
-    paramDate.setHours(0, 0, 0, 0);
-    paramDate.setDate(1);
-    var enddate = new Date(paramDate);
-    var startdate = new Date(paramDate.setMonth(paramDate.getMonth()-1));
+    var inputDate = new Date(paramDate);
+    inputDate.setHours(0, 0, 0, 0);
+    inputDate.setDate(1);
+    var enddate = new Date(inputDate);
+    var startdate = new Date(inputDate.setMonth(inputDate.getMonth() - 1));
     return [startdate, enddate];
+  }
+
+  function getPageName(){
+    var mm = (thisweek[0].getMonth()+1).toString();
+    var dd = thisweek[0].getDate().toString();
+    if(dd<10){dd='0'+dd} if(mm<10){mm='0'+mm}
+    const starting = thisweek[0].getFullYear().toString()+'-'+mm+'-'+dd;
+    const ending = thisweek[1].toISOString().split("T")[0];
+    return [starting, ending];
   }
 
   return (
     <div className="Weeklymeeting-background">
       <h2>
-        <strong>{thisweek[0].toISOString().split("T")[0]} ~ {thisweek[1].toISOString().split("T")[0]}</strong>
+        <strong>주간결산 ({getPageName()[0]} ~ {getPageName()[1]})</strong>
       </h2>
-      <h2><strong>주간회의</strong></h2>
-      {/* <Button
-        onClick={() => {
-          console.log(TRlist.length);
-        }}
-      >
-        확인
-      </Button> */}
+      <Button
+          className="btn-commit btn-save"
+          onClick={() => {
+            console.log(thisweekData);
+            if (window.confirm("주간결산 내용을 수정하시겠습니까?")) {
+              axios
+                .put(`/api/Weeklymeeting/${paramDate}`, {
+                  회의일: paramDate,
+                  thisweekData: thisweekData,
+                })
+                .then(function (result) {
+                  if (result.data === true) {
+                    window.alert("수정되었습니다.");
+                    return window.location.reload();
+                  } else if (result.data === "로그인필요") {
+                    window.alert("로그인이 필요합니다.");
+                    return history.push("/");
+                  } else {
+                    console.log(result.data);
+                    window.alert(result.data);
+                  }
+                })
+                .catch(function (err) {
+                  console.log("저장 실패 : ", err);
+                  window.alert(err);
+                });
+            }
+          }}
+        >
+          주간결산 저장
+        </Button>
+
+        <Button
+          variant="secondary"
+          className="btn-commit btn-load loadButton"
+          onClick={() => {
+            if (selectedDate !== "") {
+              axios
+                .get(`/api/Weeklymeeting/${getNextMon(selectedDate)}`)
+                .then((result) => {
+                  if (result["data"] === null) {
+                    if (window.confirm("해당 날짜의 주간결산이 존재하지 않습니다. 새로 작성하시겠습니까?")) {
+                      history.push(`/Weeklymeeting/Write/${getNextMon(selectedDate)}`);
+                    }
+                  } else {
+                    if (window.confirm(`${selectedDate}의 주간결산으로 이동하시겠습니까?`)) {
+                      history.push(`/Weeklymeeting/Edit/${getNextMon(selectedDate)}`);
+                    }
+                  }
+                })
+                .catch((err) => {
+                  console.log(err);
+                });
+            }
+          }}
+        >
+
+          <div className="row m-0">
+            <div className="col-xl-7">
+              <strong>다른 일자 작성/조회</strong>
+            </div>
+            <div className="col-xl-5">
+              <input
+                type="date"
+                className="w-100"
+                value={selectedDate}
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  setselectedDate(e.target.value);
+                }}
+              />
+            </div>
+          </div>
+        </Button>
       <div className="Weeklymeeting-container">
         <Table striped bordered hover size="sm" className="Weeklymeeting-table">
           <thead>
@@ -271,9 +396,6 @@ function Weeklymeeting() {
               </th>
               <th rowSpan={2} width="3%">
                 <strong>약속/구조</strong>
-              </th>
-              <th rowSpan={2} width="2%">
-                <strong>구조매니저</strong>
               </th>
             </tr>
             <tr>
@@ -327,16 +449,17 @@ function Weeklymeeting() {
                     </p>
                   </td>
                   <td>
-                  <Form.Check
-                className="mb-2"
-                type="checkbox"
-                checked={tr['등교']}
-                onChange={() => {
-                  const newmanufacturedData = [...manufacturedData];
-                  newmanufacturedData[index]["등교"] = !newmanufacturedData[index]["등교"];
-                  setmanufacturedData(newmanufacturedData);
-                }}
-              />
+                    <Form.Check
+                      className="mb-2"
+                      type="checkbox"
+                      checked={thisweekData[tr["ID"]]["등교"]}
+                      onChange={() => {
+                        const newthisweekData = {...thisweekData};
+                        newthisweekData[tr["ID"]]["등교"] =
+                          !newthisweekData[tr["ID"]]["등교"];
+                        setthisweekData(newthisweekData);
+                      }}
+                    />
                   </td>
                   <td>
                     <p
@@ -352,7 +475,7 @@ function Weeklymeeting() {
                     </p>
                   </td>
                   <td>
-                  <p>
+                    <p>
                       <strong>{tr["미등원"]}일</strong>
                     </p>
                   </td>
@@ -419,7 +542,8 @@ function Weeklymeeting() {
                     </p>
                   </td>
                   <td>
-                    <p className={
+                    <p
+                      className={
                         ["고1", "고2", "고3"].includes(tr["분류"]) === true &&
                         tr["전월평균학습"] >= 6
                           ? "green"
@@ -444,54 +568,74 @@ function Weeklymeeting() {
                           ? "red"
                           : "black"
                       }
-                      >{tr["전월평균학습"]}시간</p>
+                    >
+                      {tr["전월평균학습"]}시간
+                    </p>
                   </td>
                   <td>
-                    <p>{tr["전주문제사항"]}</p>
+                    <p>{lastweekData ? lastweekData['thisweekData'][tr["ID"]]['이번주문제사항']
+                    : ""}</p>
                   </td>
                   <td>
-                    <p>{tr["전주조치결과"]}</p>
+                    <p>{lastweekData && lastweekData["thisweekData"][tr["ID"]]["담당자"] ? "담당매니저: "+lastweekData['thisweekData'][tr["ID"]]['담당자']
+                    : ""}</p>
+                    <p>
+                      {lastweekData ? lastweekData['thisweekData'][tr["ID"]]['이번주조치계획']
+                    : ""}</p>
+                    <p>{lastweekData ? lastweekData['thisweekData'][tr["ID"]]['조치내용']
+                    : ""}</p>
                   </td>
                   <td>
                     <textarea
                       className="textArea"
-                      value={tr["이번주문제사항"]}
+                      value={thisweekData ? thisweekData[tr['ID']]["이번주문제사항"]
+                    : ""}
                       onChange={(e) => {
-                        const newmanufacturedData = [...manufacturedData];
-                        newmanufacturedData[index]["이번주문제사항"] = e.target.value;
-                        setmanufacturedData(newmanufacturedData);
+                        const newthisweekData = JSON.parse(JSON.stringify(thisweekData));
+                        newthisweekData[tr['ID']]["이번주문제사항"] =
+                          e.target.value;
+                        setthisweekData(newthisweekData);
                       }}
                     ></textarea>
                   </td>
                   <td>
                     <textarea
                       className="textArea"
-                      value={tr["이번주조치계획"]}
+                      value={thisweekData? thisweekData[tr['ID']]["이번주조치계획"]
+                    : ""}
                       onChange={(e) => {
-                        const newmanufacturedData = [...manufacturedData];
-                        newmanufacturedData[index]["이번주조치계획"] = e.target.value;
-                        setmanufacturedData(newmanufacturedData);
+                        const newthisweekData = JSON.parse(JSON.stringify(thisweekData));
+                        newthisweekData[tr['ID']]["이번주조치계획"] =
+                          e.target.value;
+                        setthisweekData(newthisweekData);
                       }}
                     ></textarea>
                   </td>
                   <td>
                     <textarea
                       className="textArea"
-                      value={tr["조치내용"]}
+                      value={thisweekData? thisweekData[tr['ID']]["조치내용"]
+                    : ""}
                       onChange={(e) => {
-                        const newmanufacturedData = [...manufacturedData];
-                        newmanufacturedData[index]["조치내용"] = e.target.value;
-                        setmanufacturedData(newmanufacturedData);
+                        const newthisweekData = JSON.parse(JSON.stringify(thisweekData));
+                        newthisweekData[tr['ID']]["조치내용"] =
+                          e.target.value;
+                        setthisweekData(newthisweekData);
                       }}
                     ></textarea>
                   </td>
                   <td>
-                    <Form.Select size="sm" value={tr["담당자"]}
-                    onChange={(e) => {
-                      const newmanufacturedData = [...manufacturedData];
-                        newmanufacturedData[index]["담당자"] = e.target.value;
-                        setmanufacturedData(newmanufacturedData);
-                    }}>
+                    <Form.Select
+                      size="sm"
+                      value={thisweekData? thisweekData[tr['ID']]["담당자"]:
+                    ""}
+                      onChange={(e) => {
+                        const newthisweekData = JSON.parse(JSON.stringify(thisweekData));
+                        newthisweekData[tr['ID']]["담당자"] =
+                          e.target.value;
+                        setthisweekData(newthisweekData);
+                      }}
+                    >
                       <option value="선택">선택</option>
                       {managerList
                         ? managerList.map((manager, index) => {
@@ -505,26 +649,26 @@ function Weeklymeeting() {
                     </Form.Select>
                   </td>
                   <td>
-                    
-                  </td>
-                  <td>
-                    <Form.Select size="sm" value={tr["약속매니저"]}
-                    onChange={(e)=>{
-                      const newmanufacturedData = [...manufacturedData];
-                        newmanufacturedData[index]["담당자"] = e.target.value;
-                        setmanufacturedData(newmanufacturedData);
-                    }}>
-                      <option value="선택">선택</option>
-                      {managerList
-                        ? managerList.map((manager, index) => {
-                            return (
-                              <option value={manager} key={index}>
-                                {manager}
-                              </option>
-                            );
-                          })
-                        : null}
-                    </Form.Select>
+                    {tr["약속"].map((k, indice) => {
+                      return (
+                          <OverlayTrigger
+                            trigger="click"
+                            placement="left"
+                            overlay={<Popover id="popover-basic">
+                            <Popover.Header as="h3">
+                              {k["설정매니저"]}
+                            </Popover.Header>
+                            <Popover.Body>
+                              {k["약속"]}
+                            </Popover.Body>
+                          </Popover>}
+                          >
+                            <div className="promiseBox"><p>
+                              <strong>{k["설정일"]}</strong>
+                            </p></div>
+                          </OverlayTrigger>
+                      );
+                    })}
                   </td>
                 </tr>
               );
@@ -536,4 +680,4 @@ function Weeklymeeting() {
   );
 }
 
-export default Weeklymeeting;
+export default WeeklymeetingEdit;
