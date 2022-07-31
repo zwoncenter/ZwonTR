@@ -1,5 +1,5 @@
-import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
-import { Link, Route, Switch, useLocation, Redirect } from "react-router-dom";
+  import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
+  import { Link, Route, Switch, useLocation, Redirect } from "react-router-dom";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -21,7 +21,8 @@ import MiddlemeetingWrite from "./routes/MiddlemeetingWrite";
 import MiddlemeetingEdit from "./routes/MiddlemeetingEdit";
 import Dashboard from "./routes/Dashboard.js";
 import TextbookManage from "./routes/TextbookManage";
-import Weeklymeeting from "./routes/Weeklymeeting";
+import WeeklymeetingWrite from "./routes/WeeklymeetingWrite";
+import WeeklymeetingEdit from "./routes/WeeklymeetingEdit";
 import Lecture from "./routes/Lecture";
 import LectureList from "./routes/LectureList";
 
@@ -32,6 +33,7 @@ function App() {
   const koreaTimeDiff = 9 * 60 * 60 * 1000;
   const koreaNow = new Date(utcNow + koreaTimeDiff);
   const today = koreaNow.toISOString().split("T")[0];
+  const thisMonday = getThisMon(koreaNow);
 
   const [studentList, setstudentList] = useState([]); // 학생 DB 리스트
   const [선택된index, 선택된index변경] = useState(0);
@@ -42,6 +44,15 @@ function App() {
   const [managerList, setmanagerList] = useState([]);
 
   const { pathname } = useLocation();
+
+  function getThisMon() {
+    var paramDate = new Date();
+    var day = paramDate.getDay();
+    var diff = paramDate.getDate() - day + (day == 0 ? -6 : 1);
+    paramDate = new Date(paramDate.setDate(diff));
+    var output = paramDate.toISOString().split("T")[0];
+    return output;
+  }
 
   return (
     <div className="App">
@@ -61,9 +72,22 @@ function App() {
           <Button
             className="menu-map-btn btn-secondary"
             onClick={() => {
-              history.push("/Weeklymeeting");
+              history.push(`/Weeklymeeting/Write/${thisMonday}`);
+              // axios
+              //   .get(`/api/Weeklymeeting/find/${thisMonday}`)
+              //   .then((result) => {
+              //     console.log(result);
+              //     if (result["data"] === null) {
+              //       history.push(`/Weeklymeeting/Write/${thisMonday}`);
+              //     } else {
+              //       history.push(`/Weeklymeeting/Edit/${thisMonday}`);
+              //     }
+              //   })
+              //   .catch((err) => {
+              //     console.log(err);
+              //   });
             }}
-          >
+                        >
             <h5>
               <strong>주간 회의</strong>
             </h5>
@@ -187,8 +211,11 @@ function App() {
         <Route exact path="/Textbook">
           <TextbookManage />
         </Route>
-        <Route exact path="/Weeklymeeting">
-          <Weeklymeeting />
+        <Route exact path="/Weeklymeeting/Write/:thisMonday">
+          <WeeklymeetingWrite />
+          </Route>
+          <Route exact path="/Weeklymeeting/Edit/:thisMonday">
+          <WeeklymeetingEdit />
           </Route>
         <Route exact path="/Lecture">
           <LectureList />
