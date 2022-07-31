@@ -220,6 +220,7 @@ function App() {
         <Route exact path="/Lecture">
           <LectureList />
         </Route>
+
         <Route exact path="/Lecture/:lectureID">
           <Lecture />
         </Route>

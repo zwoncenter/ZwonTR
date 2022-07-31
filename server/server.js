@@ -545,7 +545,6 @@ app.put("/api/Textbook/edit", loginCheck, function (req, res) {
 });
 
 // Lecture 관련 코드
-
 app.get("/api/Lecture", loginCheck, (req, res) => {
   db.collection("Lecture")
     .find()

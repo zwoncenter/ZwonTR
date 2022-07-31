@@ -23,8 +23,14 @@ function LectureList() {
       window.alert("강의명이 입력되지 않았습니다.");
       return;
     }
+
+    if (lecture["subject"] === "") {
+      window.alert("과목이 선택되지 않았습니다.");
+      return;
+    }
+
     if (lecture["manager"] === "") {
-      window.alert("담당 매니저가 입력되지 않았습니다.");
+      window.alert("담당 매니저가 선택되지 않았습니다.");
       return;
     }
     if (lecture["startday"] === "") {
@@ -52,6 +58,7 @@ function LectureList() {
   const [lecture, setlecture] = useState({
     lectureID: "",
     lectureName: "",
+    subject: "",
     manager: "",
     startday: today,
     lastrevise: today,
@@ -158,6 +165,12 @@ function LectureList() {
             <Form.Control
               placeholder="강의명을 입력해주세요"
               onChange={(e) => {
+                const regExp = /[#?\/\\%]/gi;
+                if( regExp.test(e.target.value) ){
+                  alert("#,?,\\ \/는 입력하실수 없습니다.");
+                  e.target.value = e.target.value.substring( 0 , e.target.value.length - 1 );
+                  return
+                }
                 const newlecture = JSON.parse(JSON.stringify(lecture));
                 newlecture["lectureName"] = e.target.value;
                 if (newlecture["lectureName"] !== "" && newlecture["manager"] !== "" && newlecture["startday"] !== "") {
@@ -174,7 +187,25 @@ function LectureList() {
               }}
             />
           </InputGroup>
-
+          <InputGroup className="mb-3">
+            <InputGroup.Text>과목</InputGroup.Text>
+            <Form.Select
+              onChange={(e) => {
+                const newlecture = JSON.parse(JSON.stringify(lecture));
+                newlecture["subject"] = e.target.value;
+                setlecture(newlecture);
+              }}
+            >
+              <option value="">선택</option>
+              {["국어", "수학", "영어", "탐구", "기타"].map((subject, idx) => {
+                return (
+                  <option value={subject} key={idx}>
+                    {subject}
+                  </option>
+                );
+              })}
+            </Form.Select>
+          </InputGroup>
           <InputGroup className="mb-3">
             <InputGroup.Text>매니저(강사)</InputGroup.Text>
             <Form.Select
