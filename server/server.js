@@ -544,8 +544,6 @@ app.put("/api/Textbook/edit", loginCheck, function (req, res) {
   });
 });
 
-<<<<<<< HEAD
-=======
 // Lecture 관련 코드
 
 app.get("/api/Lecture", loginCheck, (req, res) => {
@@ -607,7 +605,6 @@ app.delete("/api/Lecture/:lectureid", loginCheck, (req, res) => {
 
 
 // studentName
->>>>>>> c529ee9bc1f9f7e6e2d9191f65eee8aae1badd6c
 app.get("/api/TRnow", loginCheck, (req, res) => {
   db.collection("StudentDB")
     .find()
@@ -618,12 +615,8 @@ app.get("/api/TRnow", loginCheck, (req, res) => {
       const stuNameList = result.map(stuDB => stuDB["ID"]);
       db.collection("TR").find({ID : {$in : stuNameList}}).toArray( (err2, result2) => {
         if (err2) {return res.send(`/api/TRnow - find Error : ${err2}`)}
-<<<<<<< HEAD
         console.log(result2.length);
         return res.json(result2)
-=======
-        console.log(result2.length)
->>>>>>> c529ee9bc1f9f7e6e2d9191f65eee8aae1badd6c
       })
     });
 })
