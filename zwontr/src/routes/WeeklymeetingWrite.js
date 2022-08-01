@@ -38,7 +38,7 @@ function WeeklymeetingWrite() {
 
   useEffect(async () => {
 
-    const newmanagerList = axios
+    const newmanagerList = await axios
       .get("/api/managerList")
       .then((result) => {
         return result["data"];
@@ -116,7 +116,6 @@ function WeeklymeetingWrite() {
           })
       );
       setthisweekData(temporal2);
-      console.log("thisweek", temporal2);
 
   }, [lastweekData]);
 
@@ -134,7 +133,6 @@ function WeeklymeetingWrite() {
         ID: element["ID"],
         분류: element["분류"],
         이름: element["이름"],
-        // 등교: false,
         지각: TRlist.filter((i) => {
           return (
             i["ID"] == element["ID"] &&
@@ -187,7 +185,9 @@ function WeeklymeetingWrite() {
               return (
                 i["ID"] == element["ID"] &&
                 new Date(i.날짜) >= lastweek[0] &&
-                new Date(i.날짜) < lastweek[1]
+                new Date(i.날짜) < lastweek[1] &&
+                i["결석여부"] != true &&
+                i["요일"] != "일요일"
               );
             })
               .map((j) => {
@@ -200,7 +200,9 @@ function WeeklymeetingWrite() {
                 return (
                   i["ID"] == element["ID"] &&
                   new Date(i.날짜) >= lastweek[0] &&
-                  new Date(i.날짜) < lastweek[1]
+                  new Date(i.날짜) < lastweek[1]&&
+                  i["결석여부"] != true &&
+                i["요일"] != "일요일"
                 );
               }).length) *
               10
@@ -211,7 +213,9 @@ function WeeklymeetingWrite() {
               return (
                 i["ID"] == element["ID"] &&
                 new Date(i.날짜) >= lastmonth[0] &&
-                new Date(i.날짜) < lastmonth[1]
+                new Date(i.날짜) < lastmonth[1] &&
+                i["결석여부"] != true &&
+                i["요일"] != "일요일"
               );
             })
               .map((j) => {
@@ -224,7 +228,9 @@ function WeeklymeetingWrite() {
                 return (
                   i["ID"] == element["ID"] &&
                   new Date(i.날짜) >= lastmonth[0] &&
-                  new Date(i.날짜) < lastmonth[1]
+                  new Date(i.날짜) < lastmonth[1] &&
+                  i["결석여부"] != true &&
+                  i["요일"] != "일요일"
                 );
               }).length) *
               10
@@ -302,7 +308,7 @@ function WeeklymeetingWrite() {
       <Button
         className="btn-commit btn-save"
         onClick={() => {
-          console.log(thisweekData);
+          console.log(lastmonth);
           if (window.confirm("주간결산 내용을 저장하시겠습니까?")) {
             axios
               .post(`/api/Weeklymeeting/${paramDate}`, {
@@ -388,7 +394,7 @@ function WeeklymeetingWrite() {
         </div>
       </Button>
       <div className="Weeklymeeting-container">
-        <Table striped bordered hover size="sm" className="Weeklymeeting-table">
+        <Table striped hover size="sm" className="Weeklymeeting-table">
           <thead>
             <tr>
               <th colSpan={3} width="4%">
@@ -461,7 +467,7 @@ function WeeklymeetingWrite() {
                       <strong>{tr["분류"]}</strong>
                     </p>
                   </td>
-                  <td>
+                  <td className="fixedColumn">
                     <p>
                       <strong>{tr["이름"]}</strong>
                     </p>
@@ -525,7 +531,7 @@ function WeeklymeetingWrite() {
                           : "black"
                       }
                     >
-                      <strong>{tr["이번주평균학습"]}시간</strong>
+                      <strong>{isNaN(tr["이번주평균학습"])===false ? `${tr["이번주평균학습"]}시간` : "-"}</strong>
                     </p>
                   </td>
                   <td>
@@ -556,7 +562,7 @@ function WeeklymeetingWrite() {
                           : "black"
                       }
                     >
-                      <strong>{tr["전주평균학습"]}시간</strong>
+                      <strong>{isNaN(tr["전주평균학습"])===false ? `${tr["전주평균학습"]}시간` : "-"}</strong>
                     </p>
                   </td>
                   <td>
@@ -587,7 +593,7 @@ function WeeklymeetingWrite() {
                           : "black"
                       }
                     >
-                      {tr["전월평균학습"]}시간
+                      <strong>{isNaN(tr["전월평균학습"])===false ? `${tr["전월평균학습"]}시간` : "-"}</strong>
                     </p>
                   </td>
                   <td>

@@ -185,7 +185,10 @@ useEffect(async()=>{
                 return (
                   i["ID"] == element["ID"] &&
                   new Date(i.날짜) >= lastweek[0] &&
-                  new Date(i.날짜) < lastweek[1]
+                  new Date(i.날짜) < lastweek[1] &&
+                  i["결석여부"] != true &&
+                i["요일"] != "일요일"
+
                 );
               })
                 .map((j) => {
@@ -198,7 +201,9 @@ useEffect(async()=>{
                   return (
                     i["ID"] == element["ID"] &&
                     new Date(i.날짜) >= lastweek[0] &&
-                    new Date(i.날짜) < lastweek[1]
+                    new Date(i.날짜) < lastweek[1] &&
+                    i["결석여부"] != true &&
+                    i["요일"] != "일요일"
                   );
                 }).length) *
                 10
@@ -209,7 +214,9 @@ useEffect(async()=>{
                 return (
                   i["ID"] == element["ID"] &&
                   new Date(i.날짜) >= lastmonth[0] &&
-                  new Date(i.날짜) < lastmonth[1]
+                  new Date(i.날짜) < lastmonth[1] &&
+                  i["결석여부"] != true &&
+                i["요일"] != "일요일"
                 );
               })
                 .map((j) => {
@@ -222,7 +229,9 @@ useEffect(async()=>{
                   return (
                     i["ID"] == element["ID"] &&
                     new Date(i.날짜) >= lastmonth[0] &&
-                    new Date(i.날짜) < lastmonth[1]
+                    new Date(i.날짜) < lastmonth[1] &&
+                    i["결석여부"] != true &&
+                    i["요일"] != "일요일"
                   );
                 }).length) *
                 10
@@ -443,7 +452,7 @@ useEffect(async()=>{
                       <strong>{tr["분류"]}</strong>
                     </p>
                   </td>
-                  <td>
+                  <td className="fixedColumn">
                     <p>
                       <strong>{tr["이름"]}</strong>
                     </p>
@@ -507,7 +516,7 @@ useEffect(async()=>{
                           : "black"
                       }
                     >
-                      <strong>{tr["이번주평균학습"]}시간</strong>
+                      <strong>{isNaN(tr["이번주평균학습"])===false ? `${tr["이번주평균학습"]}시간` : "-"}</strong>
                     </p>
                   </td>
                   <td>
@@ -538,7 +547,7 @@ useEffect(async()=>{
                           : "black"
                       }
                     >
-                      <strong>{tr["전주평균학습"]}시간</strong>
+                      <strong>{isNaN(tr["전주평균학습"])===false ? `${tr["전주평균학습"]}시간` : "-"}</strong>
                     </p>
                   </td>
                   <td>
@@ -569,7 +578,7 @@ useEffect(async()=>{
                           : "black"
                       }
                     >
-                      {tr["전월평균학습"]}시간
+                      <strong>{isNaN(tr["전월평균학습"])===false ? `${tr["전월평균학습"]}시간` : "-"}</strong>
                     </p>
                   </td>
                   <td>

@@ -4,7 +4,7 @@ import { Button, Card, ListGroup, Modal, Table } from "react-bootstrap";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
-import menuarrow from "../next.png";
+// import menuarrow from "../next.png";
 import absent from "./absent.png";
 import notcame from "./notcame.png";
 import trchecked from "./trchecked.png";

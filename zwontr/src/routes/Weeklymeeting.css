@@ -31,7 +31,6 @@ textarea {
   height: 80vh;
   display: block;
   margin: auto;
-  border-radius: 20px;
   border: 0px;
   background-color: white;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
@@ -42,6 +41,23 @@ textarea {
   width: 130%;
   text-align: center;
   vertical-align: middle;
+}
+.Weeklymeeting-table thead {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: white;
+}
+.Weeklymeeting-table .fixedColumn {
+  position: -webkit-sticky;
+  position: sticky;
+  left: 0;
+  background-color: white;
+  z-index: 1;
+}
+.Weeklymeeting-table th, .Weeklymeeting-table td, .Weeklymeeting-table strong, .Weeklymeeting-table p {
+  border: 0;
 }
 
 .red {
@@ -68,4 +84,8 @@ textarea {
   border-radius: 10px;
   margin: 3px;
   padding: 2px;
+}
+
+.textArea {
+  min-height: 120px;
 }/*# sourceMappingURL=Weeklymeeting.css.map */

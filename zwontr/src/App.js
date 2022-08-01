@@ -72,20 +72,19 @@ function App() {
           <Button
             className="menu-map-btn btn-secondary"
             onClick={() => {
-              history.push(`/Weeklymeeting/Write/${thisMonday}`);
-              // axios
-              //   .get(`/api/Weeklymeeting/find/${thisMonday}`)
-              //   .then((result) => {
-              //     console.log(result);
-              //     if (result["data"] === null) {
-              //       history.push(`/Weeklymeeting/Write/${thisMonday}`);
-              //     } else {
-              //       history.push(`/Weeklymeeting/Edit/${thisMonday}`);
-              //     }
-              //   })
-              //   .catch((err) => {
-              //     console.log(err);
-              //   });
+              axios
+                .get(`/api/Weeklymeeting/${thisMonday}`)
+                .then((result) => {
+                  console.log(result);
+                  if (result["data"] === null) {
+                    history.push(`/Weeklymeeting/Write/${thisMonday}`);
+                  } else {
+                    history.push(`/Weeklymeeting/Edit/${thisMonday}`);
+                  }
+                })
+                .catch((err) => {
+                  console.log(err);
+                });
             }}
                         >
             <h5>

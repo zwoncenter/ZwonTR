@@ -32,7 +32,6 @@ textarea {
     height: 80vh;
     display: block;
     margin: auto;
-    border-radius: 20px;
     border: 0px;
     background-color: white;
     box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
@@ -43,24 +42,24 @@ textarea {
     width: 130%;
     text-align: center;
     vertical-align: middle;
-  //   th {  
-  //       position: sticky;
-  //       top: 0;
-  //       z-index: 1;
-  //       overflow: hidden;
-  //   }
-  //   th:first-child, td:first-child {
-  //     position: sticky;
-  //     left: 0;
-  //     overflow: hidden;
-  // }
-  //   th:nth-child(2) {
-  //     position: sticky;
-  //     top: 0px;
-  //     overflow: hidden;
-  // }
+    thead {  
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background-color: white;
+    }
 
-}
+    .fixedColumn{
+      position: sticky;
+      left: 0;
+      background-color: white;
+      z-index: 1;
+    }
+    th, td, strong, p{
+      border: 0;
+    }
+  
+  }
 
   .red{
     background-color: red;
@@ -86,4 +85,8 @@ textarea {
   border-radius: 10px;
   margin: 3px;
   padding: 2px;
+}
+
+.textArea{
+  min-height: 120px;
 }

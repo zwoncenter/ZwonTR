@@ -32,56 +32,6 @@ h6 {
   text-shadow: 3px 2px 2px gray;
 }
 
-.menu {
-  position: fixed;
-  z-index: 1;
-  width: 300px;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0);
-  transform: translateX(-270px);
-  color: white;
-  padding: 5px;
-  transition-property: transform, background-color;
-  transition-duration: 0.6s;
-}
-
-.menu:hover {
-  transform: translateX(-5px);
-  background-color: rgba(0, 0, 0, 0.7);
-}
-.menu:hover img {
-  transform: rotate(180deg);
-  filter: invert(100%);
-}
-
-.menu-map {
-  padding: 50px;
-}
-.menu-map h5 {
-  margin: 0;
-  padding: 0;
-}
-
-.menu-map-btn {
-  display: block;
-  text-align: center;
-  margin-top: 50px;
-  background-color: rgba(0, 0, 0, 0);
-  border: 0;
-  outline: 0;
-}
-
-.menuArrow {
-  filter: invert(0%);
-  width: 20px;
-  position: absolute;
-  bottom: 10px;
-  right: 5px;
-}
-.menuArrow img {
-  width: 100%;
-}
-
 .stuListShow {
   opacity: 0;
   transform: translateY(200px);
