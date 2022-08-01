@@ -38,7 +38,7 @@ function WeeklymeetingWrite() {
 
   useEffect(async () => {
 
-    const newmanagerList = axios
+    const newmanagerList = await axios
       .get("/api/managerList")
       .then((result) => {
         return result["data"];
