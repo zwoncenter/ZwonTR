@@ -21,6 +21,7 @@ function Lecture() {
 
   // lecture 수정 관련 코드
   const updatelecture = async (newlecture) => {
+    // 기존 lecture Load
     const existlecture = await axios
       .get(`/api/Lecture/${newlecture["lectureID"]}`)
       .then((result) => {
@@ -33,12 +34,18 @@ function Lecture() {
       .catch((err) => {
         return window.alert(err);
       });
+
+    // 둘의 version이 다를 경우, 강제로 새로고침
     if (existlecture["version"] !== newlecture["version"]) {
       window.alert("업데이트 사항이 있어 새로고침 합니다.");
       return window.location.replace(`/Lecture/${newlecture["lectureID"]}`);
     }
+
+    // 최근수정일과 version 변경
     newlecture["lastrevise"] = today;
     newlecture["version"] += 1;
+
+    // lecture document 수정
     axios
       .put(`/api/Lecture`, newlecture)
       .then(function (result) {
@@ -61,6 +68,7 @@ function Lecture() {
     setnamemodal(false);
     setnewname("");
   };
+
   const studentAdd = async () => {
     if (!newname.match(/[ㄱ-ㅎ가-힣]+_[0-9]{6}/)) {
       window.alert("입력된 값이 ID 형식이 아닙니다. (이름_생년월일)");
@@ -100,8 +108,6 @@ function Lecture() {
         stuDB["수강중강의"] = [];
       }
       await stuDB["수강중강의"].push(newlecture["lectureID"]);
-      // 잘 추가되었는지 check.
-      console.log(stuDB["수강중강의"]);
       axios
         .put("/api/StudentDB/edit", stuDB)
         .then(function (result) {
@@ -115,6 +121,8 @@ function Lecture() {
       setnewname("");
     }
   };
+
+  // 학생 삭제 관련 코드
   const studentDelete = async (deletename) => {
     if (!deletename.match(/[ㄱ-ㅎ가-힣]+_[0-9]{6}/)) {
       window.alert("입력된 값이 ID 형식이 아닙니다. (이름_생년월일)");
@@ -146,10 +154,10 @@ function Lecture() {
       .catch((err) => {
         return err;
       });
-    // 학생DB에 수강중강의가 있는지, 수강중강의에 해당 lectureID가 존재하는지부터 확인해야하긴 함.
-
-    await stuDB["수강중강의"].splice(stuDB["수강중강의"].indexOf(newlecture["lectureID"]), 1);
-    console.log(stuDB["수강중강의"]);
+    // 학생DB에 수강중강의가 있고, 수강중강의에 해당 lectureID가 존재하는지부터 확인 후 제거
+    if ("수강중강의" in stuDB && stuDB["수강중강의"].includes(newlecture["lectureID"])) {
+      await stuDB["수강중강의"].splice(stuDB["수강중강의"].indexOf(newlecture["lectureID"]), 1);
+    }
     axios
       .put("/api/StudentDB/edit", stuDB)
       .then(function (result) {
