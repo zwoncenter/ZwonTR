@@ -1,45 +1,24 @@
 import "./Dashboard.css";
-import moment from "moment";
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col, Input } from "react-bootstrap";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import TimePicker from "react-time-picker";
-import menuarrow from "../next.png";
 import createPlotlyComponent from "react-plotly.js/factory";
-import React, { PureComponent } from "react";
-import {
-  PieChart,
-  Pie,
-  Legend,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  LineChart,
-  Line,
-  CartesianGrid,
-  ScatterChart,
-  Scatter,
-  XAxis,
-  YAxis,
-  ReferenceLine,
-  RadialBarChart,
-  RadialBar,
-  AreaChart,
-  Area,
-} from "recharts";
+import React from "react";
+import { PieChart, Pie, Legend, Tooltip, ResponsiveContainer, Cell, CartesianGrid, XAxis, YAxis, ReferenceLine, AreaChart, Area } from "recharts";
 
 function Dashboard() {
-  
+
+  let history = useHistory();
+
   const Plotly = window.Plotly;
   const Plot = createPlotlyComponent(Plotly);
-  let [dashshow, dashshowChange] = useState(true);
-  let history = useHistory();
 
   const [stuDBList, setstuDBList] = useState([]);
   const [filteredstuDBList, setfilteredstuDBList] = useState([]);
   const [searchStudent, setsearchStudent] = useState("");
   const [searchStudentGo, setsearchStudentGo] = useState("");
+  
   const [TRlist, setTRlist] = useState([]);
   const [data, setdata] = useState([]);
   const [chartMode, setChartMode] = useState([1, 0, 0, 0]); //취침, 기상, 등원, 학습시간 버튼 화면전환을 위한 state
@@ -51,6 +30,7 @@ function Dashboard() {
   const average = (arr) => arr.reduce((p, c) => p + c, 0) / arr.length;
   const [include_abscent, setinclude_abscent] = useState(true);
   const [include_sunday, setinclude_sunday] = useState(true);
+  const [include_program, setinclude_program] = useState(false);
   const [stuchange, setstuchange] = useState(false);
   const isInitialMount = useRef(true);
 
@@ -106,8 +86,7 @@ function Dashboard() {
   }, [searchStudent]);
 
   useEffect(async () => {
-    if (isInitialMount.current === false) {
-      console.log("TRlist 요청");
+    if (searchStudentGo !== "") {
       const foundTRlist = await axios
         .get(`/api/TR/${searchStudentGo}`)
         .then((result) => {
@@ -121,13 +100,13 @@ function Dashboard() {
           console.log("/api/TR/:ID fail : ", err);
         });
 
-      [foundTRlist].sort(function (a, b) {
+      foundTRlist.sort(function (a, b) {
         return +(new Date(a.날짜) > new Date(b.날짜)) - 0.5;
       });
 
       setTRlist(foundTRlist);
       setdata(foundTRlist);
-      // setstartday(foundTRlist[0].날짜);
+
       const last = new Date(foundTRlist[foundTRlist.length - 1].날짜);
       const last_7 = new Date(last.getFullYear(), last.getMonth(), last.getDate() - 6);
 
@@ -160,11 +139,11 @@ function Dashboard() {
         return +(new Date(a.날짜) > new Date(b.날짜)) - 0.5;
       });
 
-      const sum = newdata.reduce((total, current) => total + current["실제학습"], 0);
+      const sum = newdata.reduce((total, current) => total + current["실제학습"] + (current["프로그램시간"] * include_program), 0);
       setaver(parseInt((sum / newdata.length) * 10) / 10);
       setdata(newdata);
     }
-  }, [startday, lastday, include_abscent, include_sunday, stuchange]);
+  }, [startday, lastday, include_abscent, include_sunday, include_program, stuchange]);
 
   // 시각화를 위한 데이터 계산
   useEffect(() => {
@@ -219,6 +198,7 @@ function Dashboard() {
           실제등원: convertFromStringToDateTime(element["실제등원"]),
           목표학습: element["목표학습"],
           실제학습: element["실제학습"],
+          실제활용: element["실제학습"] + element["프로그램시간"]
         };
       });
       setmanufacturedData(temporal);
@@ -243,20 +223,20 @@ function Dashboard() {
     }
   }
 
-  function getAverageTime(InputArray) {
-    const copied = [...InputArray];
-    // Object.assign([], InputArray);
-    const dateArrayLength = copied.length;
-    const sum = 0;
-    copied.map(function (d) {
-      const tmp = JSON.parse(JSON.stringify(d));
-      let now = new Date();
-      let startDay = tmp["실제취침"].setFullYear(now.getFullYear(), now.getMonth(), now.getDate());
-      sum += startDay;
-    });
-    const result = new Date(sum / dateArrayLength);
-    return result;
-  }
+  // function getAverageTime(InputArray) {
+  //   const copied = [...InputArray];
+  //   // Object.assign([], InputArray);
+  //   const dateArrayLength = copied.length;
+  //   const sum = 0;
+  //   copied.map(function (d) {
+  //     const tmp = JSON.parse(JSON.stringify(d));
+  //     let now = new Date();
+  //     let startDay = tmp["실제취침"].setFullYear(now.getFullYear(), now.getMonth(), now.getDate());
+  //     sum += startDay;
+  //   });
+  //   const result = new Date(sum / dateArrayLength);
+  //   return result;
+  // }
 
   return (
     <div className="dashboard-background">
@@ -304,6 +284,7 @@ function Dashboard() {
                     onClick={() => {
                       setsearchStudent(db.ID);
                     }}
+                    key={index}
                   >
                     <p className="p-0 m-0">{db.ID}</p>
                   </ListGroup.Item>
@@ -359,6 +340,16 @@ function Dashboard() {
                   setinclude_sunday(!include_sunday);
                 }}
               />
+              <Form.Check
+                className="mb-2"
+                type="checkbox"
+                label="프로그램 포함(학습)"
+                checked={include_program}
+                onChange={(e) => {
+                  setinclude_program(!include_program);
+                }}
+              />
+              
               <div>
                 <Button
                   className="modeBtn"
@@ -399,9 +390,9 @@ function Dashboard() {
               </div>
             </Card>
             <div className="center">
-              <p>
+              {/* <p>
                 <strong> 조회 기간: {0}일</strong>
-              </p>
+              </p> */}
               <p>
                 <strong>
                   {
@@ -472,8 +463,8 @@ function Dashboard() {
                 ]}
                 layout={{
                   margin: { t: 0, b: 30, l: 60, r: 10, pad: 0 },
-                  width: 1100,
-                  height: 470,
+                  width: 1000,
+                  height: 400,
                   xaxis: {
                     title: "날짜",
                   },
@@ -486,9 +477,9 @@ function Dashboard() {
               />
             </div>
             <div className="dashcard WeekWeekendChart">
-              <p>
+              {/* <p>
                 <strong>[ 평일 주말 비교 ]</strong>
-              </p>
+              </p> */}
               {/* <Plot
                 className="p-0 m-0"
                 data={[
@@ -589,8 +580,8 @@ function Dashboard() {
                 ]}
                 layout={{
                   margin: { t: 0, b: 30, l: 60, r: 10, pad: 0 },
-                  width: 1100,
-                  height: 470,
+                  width: 1000,
+                  height: 400,
                   xaxis: {
                     title: "날짜",
                   },
@@ -698,8 +689,8 @@ function Dashboard() {
                 ]}
                 layout={{
                   margin: { t: 0, b: 30, l: 60, r: 10, pad: 0 },
-                  width: 1100,
-                  height: 470,
+                  width: 1000,
+                  height: 400,
                   xaxis: {
                     title: "날짜",
                   },
@@ -758,8 +749,8 @@ function Dashboard() {
                   ]}
                   layout={{
                     margin: { t: 0, b: 30, l: 40, r: 30, pad: 0 },
-                    width: 300,
-                    height: 300,
+                    width: 260,
+                    height: 280,
                     xaxis: {
                       title: "취침시각(시/분)",
                       tickformat: "%H:%M",
@@ -820,8 +811,8 @@ function Dashboard() {
                   ]}
                   layout={{
                     margin: { t: 0, b: 30, l: 40, r: 30, pad: 0 },
-                    width: 300,
-                    height: 300,
+                    width: 260,
+                    height: 280,
                     xaxis: {
                       title: "기상시각(시/분)",
                       tickformat: "%H:%M",
@@ -882,8 +873,8 @@ function Dashboard() {
                   ]}
                   layout={{
                     margin: { t: 0, b: 30, l: 40, r: 30, pad: 0 },
-                    width: 300,
-                    height: 300,
+                    width: 260,
+                    height: 280,
                     xaxis: {
                       title: "등원시각(시/분)",
                       tickformat: "%H:%M",
@@ -911,8 +902,8 @@ function Dashboard() {
                 <strong>[ 학습시간 추이 ]</strong>
               </p>
               <ResponsiveContainer width="100%" height="90%">
-                <AreaChart className="graph" width={1000} height={500} data={data}>
-                  <Area type="monotone" dataKey="실제학습" stroke="#FFBB28" fill="#FFBB28" />
+                <AreaChart className="graph" width={1000} height={500} data={manufacturedData}>
+                  <Area type="monotone" dataKey={include_program ? "실제활용" : "실제학습"} stroke="#FFBB28" fill="#FFBB28" />
                   <CartesianGrid strokeDasharray="3 3" />
                   <Tooltip />
                   <XAxis dataKey="날짜" />

@@ -392,7 +392,8 @@ app.put("/api/Closemeeting/edit/:date", loginCheck, function (req, res) {
       }
       db.collection("Closemeeting").updateOne({ _id: findID }, { $set: newClosemeeting }, function (err3, result3) {
         if (err3) {
-          return res.send("/api/Closemeeting/edit/:date - updateOne Error : ", err3);
+          console.log(err3)
+          return res.send(err3);
         }
         console.log("터미널에 표시 : 마감회의 수정 완료");
         return res.send(true);

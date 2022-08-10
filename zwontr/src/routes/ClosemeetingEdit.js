@@ -9,9 +9,11 @@ import menuarrow from "../next.png";
 function ClosemeetingEdit() {
   let history = useHistory();
   let paramDate = useParams()["date"];
+
   const [todayTRlist, settodayTRlist] = useState([]);
   const [closeFeedback, setcloseFeedback] = useState({});
   const [selectedDate, setselectedDate] = useState("");
+
   const [objectid, setobjectid] = useState("");
 
   useEffect(async () => {
@@ -53,6 +55,7 @@ function ClosemeetingEdit() {
     <div>
       <div className="trEdit-background">
         <h3>{paramDate} 일일 결산</h3>
+        
         <Button
           className="btn-commit btn-save"
           onClick={() => {
@@ -71,8 +74,8 @@ function ClosemeetingEdit() {
                     window.alert("로그인이 필요합니다.");
                     return history.push("/");
                   } else {
-                    console.log(result.data);
-                    window.alert(result.data);
+                    console.log(result);
+                    window.alert(result);
                   }
                 })
                 .catch(function (err) {
@@ -166,7 +169,7 @@ function ClosemeetingEdit() {
                         <p className="targetattend">{tr["목표등원"]}</p>
                       </td>
                       <td>
-                        <p>{tr["매니저피드백"] ? tr["실제귀가"] : "귀가 전"}</p>
+                        <p>{tr["작성매니저"] ? tr["실제귀가"] : "귀가 전"}</p>
                         
                       </td>
                       <td>
