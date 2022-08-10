@@ -9,6 +9,7 @@ import menuarrow from "../next.png";
 function ClosemeetingWrite() {
   let history = useHistory();
   let paramDate = useParams()["date"];
+
   const [todayTRlist, settodayTRlist] = useState([]);
   const [closeFeedback, setcloseFeedback] = useState({});
   const [selectedDate, setselectedDate] = useState("");
@@ -50,13 +51,13 @@ function ClosemeetingWrite() {
                 .then(function (result) {
                   if (result.data === true) {
                     window.alert("저장되었습니다.");
-                    return window.location.reload();
+                    return history.push(`/Closemeeting/Edit/${paramDate}`)
                   } else if (result.data === "로그인필요") {
                     window.alert("로그인이 필요합니다.");
                     return history.push("/");
                   } else {
-                    console.log(result.data);
-                    window.alert(result.data);
+                    console.log(result);
+                    window.alert(result);
                   }
                 })
                 .catch(function (err) {
@@ -136,7 +137,7 @@ function ClosemeetingWrite() {
                     <p>{tr["이름"]}</p>
                   </td>
                   {tr["결석여부"] ? (
-                    <td colSpan={6}> <p  className="abscent"> {tr["결석여부"] === true ? <>미등원 - {tr["결석사유"]} : {tr["결석상세내용"]} </> :  <>등원예정</> }   </p></td>
+                    <td colSpan={6}> <p className="abscent"> {tr["결석여부"] === true ? <>미등원 - {tr["결석사유"]} : {tr["결석상세내용"]} </> :  <>등원예정</> }   </p></td>
                   ) : (
                     <>
                       <td>
@@ -150,7 +151,7 @@ function ClosemeetingWrite() {
                         <p className="targetattend">{tr["목표등원"]}</p>
                       </td>
                       <td>
-                        <p>{tr["매니저피드백"] ? tr["실제귀가"] : "귀가 전"}</p>
+                        <p>{tr["작성매니저"] ? tr["실제귀가"] : "귀가 전"}</p>
                       </td>
                       <td>
                         <p className={tr["학습차이"] >= 0 ? "green" : "red"}>{tr["실제학습"]}</p>

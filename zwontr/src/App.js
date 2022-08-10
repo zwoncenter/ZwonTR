@@ -56,109 +56,111 @@ function App() {
 
   return (
     <div className="App">
+      {window.location.pathname !== "/" ? 
       <div className="menu">
-        <div className="menu-map">
-          <Button
-            className="menu-map-btn btn-secondary"
-            onClick={() => {
-              history.push("/studentList");
-            }}
-          >
-            <h5>
-              <strong>학생 관리</strong>
-            </h5>
-          </Button>
+      <div className="menu-map">
+        <Button
+          className="menu-map-btn btn-secondary"
+          onClick={() => {
+            history.push("/studentList");
+          }}
+        >
+          <h5>
+            <strong>학생 관리</strong>
+          </h5>
+        </Button>
 
-          <Button
-            className="menu-map-btn btn-secondary"
-            onClick={() => {
-              axios
-                .get(`/api/Weeklymeeting/${thisMonday}`)
-                .then((result) => {
-                  console.log(result);
-                  if (result["data"] === null) {
-                    history.push(`/Weeklymeeting/Write/${thisMonday}`);
-                  } else {
-                    history.push(`/Weeklymeeting/Edit/${thisMonday}`);
-                  }
-                })
-                .catch((err) => {
-                  console.log(err);
-                });
-            }}
-                        >
-            <h5>
-              <strong>주간 회의</strong>
-            </h5>
-          </Button>
+        <Button
+          className="menu-map-btn btn-secondary"
+          onClick={() => {
+            axios
+              .get(`/api/Weeklymeeting/${thisMonday}`)
+              .then((result) => {
+                if (result["data"] === null) {
+                  history.push(`/Weeklymeeting/Write/${thisMonday}`);
+                } else {
+                  history.push(`/Weeklymeeting/Edit/${thisMonday}`);
+                }
+              })
+              .catch((err) => {
+                console.log(err);
+              });
+          }}
+                      >
+          <h5>
+            <strong>주간 회의</strong>
+          </h5>
+        </Button>
 
-          <Button
-            className="menu-map-btn btn-secondary"
-            onClick={() => {
-              axios
-                .get(`/api/Closemeeting/find/${today}`)
-                .then((result) => {
-                  console.log(result);
-                  if (result["data"] === null) {
-                    history.push(`/Closemeeting/Write/${today}`);
-                  } else {
-                    history.push(`/Closemeeting/Edit/${today}`);
-                  }
-                })
-                .catch((err) => {
-                  console.log(err);
-                });
-            }}
-          >
-            <h5>
-              <strong>마감 회의</strong>
-            </h5>
-          </Button>
-          <Button
-            className="menu-map-btn btn-secondary"
-            onClick={() => {
-              history.push("/Todolist");
-            }}
-          >
-            <h5>
-              <strong>TO-DO list</strong>
-            </h5>
-          </Button>
-          <Button
-            className="menu-map-btn btn-secondary"
-            onClick={() => {
-              history.push("/Textbook");
-            }}
-          >
-            <h5>
-              <strong>교재관리</strong>
-            </h5>
-          </Button>
-          <Button
-            className="menu-map-btn btn-secondary"
-            onClick={() => {
-              history.push("/Dashboard");
-            }}
-          >
-            <h5>
-              <strong>대시보드</strong>
-            </h5>
-          </Button>
-          <Button
-            className="menu-map-btn btn-secondary"
-            onClick={() => {
-              history.push("/Lecture");
-            }}
-          >
-            <h5>
-              <strong>강의관리</strong>
-            </h5>
-          </Button>
-        </div>
-        <div className="menuArrow">
-          <img src={menuarrow} alt="menuarrow" />
-        </div>
+        <Button
+          className="menu-map-btn btn-secondary"
+          onClick={() => {
+            axios
+              .get(`/api/Closemeeting/find/${today}`)
+              .then((result) => {
+                if (result["data"] === null) {
+                  history.push(`/Closemeeting/Write/${today}`);
+                } else {
+                  history.push(`/Closemeeting/Edit/${today}`);
+                }
+              })
+              .catch((err) => {
+                console.log(err);
+              });
+          }}
+        >
+          <h5>
+            <strong>마감 회의</strong>
+          </h5>
+        </Button>
+        <Button
+          className="menu-map-btn btn-secondary"
+          onClick={() => {
+            history.push("/Todolist");
+          }}
+        >
+          <h5>
+            <strong>TO-DO list</strong>
+          </h5>
+        </Button>
+        <Button
+          className="menu-map-btn btn-secondary"
+          onClick={() => {
+            history.push("/Textbook");
+          }}
+        >
+          <h5>
+            <strong>교재관리</strong>
+          </h5>
+        </Button>
+        <Button
+          className="menu-map-btn btn-secondary"
+          onClick={() => {
+            history.push("/Dashboard");
+          }}
+        >
+          <h5>
+            <strong>대시보드</strong>
+          </h5>
+        </Button>
+        <Button
+          className="menu-map-btn btn-secondary"
+          onClick={() => {
+            history.push("/Lecture");
+          }}
+        >
+          <h5>
+            <strong>강의관리</strong>
+          </h5>
+        </Button>
       </div>
+      <div className="menuArrow">
+        <img src={menuarrow} alt="menuarrow" />
+      </div>
+    </div>
+    : null
+      }
+      
       <Switch>
         <Route exact path="/">
           <FirstPage />
