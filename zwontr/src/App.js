@@ -88,7 +88,7 @@ function App() {
             }}
                         >
             <h5>
-              <strong>주간 회의</strong>
+              <strong>주간 결산</strong>
             </h5>
           </Button>
 

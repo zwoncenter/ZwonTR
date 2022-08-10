@@ -294,16 +294,6 @@ function StuListpage() {
                   학생DB조회/변경
                 </Button>
 
-                {/* <Button
-                  variant="secondary"
-                  className="m-1 stuButton"
-                  onClick={() => {
-                    history.push(`/Chart/${chosenID}`);
-                  }}
-                >
-                  차트{" "}
-                </Button> */}
-
                 <Button
                   variant="secondary"
                   className="m-1 stuButton"

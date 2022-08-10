@@ -90,3 +90,31 @@ textarea {
 .textArea{
   min-height: 120px;
 }
+
+.colorcomment{
+  margin-right: 1px;
+  margin-left: 3px;
+  margin-bottom: 3px;
+  width: 15px;
+  height: 15px;
+  border: 2px solid black;
+}
+
+.commentbox{
+  display: flex;
+  justify-content: flex-start;
+  p {
+    margin: 0;
+  }
+}
+
+.modal-90w{
+  max-width: 60%;
+  margin-top: 150px;
+}
+
+.studyModal{
+  .modal-content{
+    min-height: 500px;
+  }
+}

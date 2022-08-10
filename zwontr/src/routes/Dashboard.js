@@ -287,7 +287,6 @@ function Dashboard() {
             className="w-20"
             onClick={() => {
               console.log(data);
-              console.log(manufacturedData);
             }}
           >
             <span>
