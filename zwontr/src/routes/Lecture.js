@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import TimePicker from "react-time-picker";
 import "./Lecture.css";
-import { FaPencilAlt, FaTrash, FaCheck, FaUndo } from "react-icons/fa";
+import { FaPencilAlt, FaTimes, FaCheck, FaUndo } from "react-icons/fa";
 
 function Lecture() {
   let history = useHistory();
@@ -92,7 +92,7 @@ function Lecture() {
 
       // stuDB 수정
       const stuDB = await axios
-        .get(`/api/StudentDB/find/${newname}`)
+        .get(`/api/StudentDB/${newname}`)
         .then((result) => {
           if (result.data === "로그인필요") {
             window.alert("로그인이 필요합니다.");
@@ -109,7 +109,7 @@ function Lecture() {
       }
       await stuDB["수강중강의"].push(newlecture["lectureID"]);
       axios
-        .put("/api/StudentDB/edit", stuDB)
+        .put("/api/StudentDB", stuDB)
         .then(function (result) {
           if (result.data === "로그인필요") {
             window.alert("로그인이 필요합니다.");
@@ -143,7 +143,7 @@ function Lecture() {
     updatelecture(newlecture);
 
     const stuDB = await axios
-      .get(`/api/StudentDB/find/${newname}`)
+      .get(`/api/StudentDB/${newname}`)
       .then((result) => {
         if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다.");
@@ -515,7 +515,7 @@ function Lecture() {
       </Modal>
 
       <div className="row">
-        <div className="col-9">
+        <div className="col-md-9">
           <Button
             variant="dark"
             className="mt-3 mb-3"
@@ -528,7 +528,7 @@ function Lecture() {
           <div className="row">
             {lecture["studentList"].map((student, index) => {
               return (
-                <div className="col-4" key={index}>
+                <div className="col-md-4" key={index}>
                   <p className="fs-5">
                     이름 : {student}
                     <Button
@@ -536,9 +536,9 @@ function Lecture() {
                         studentDelete(student);
                       }}
                       variant="danger"
-                      className="btn-del ms-2"
+                      className="btn-sm ms-2"
                     >
-                      <FaTrash />
+                      <FaTimes />
                     </Button>
                   </p>
                   <Accordion defaultActiveKey="0">
@@ -564,7 +564,7 @@ function Lecture() {
                                   {lecture["assignments"][assign]["과제기한"]}
                                 </p>
                                 <Button
-                                  className="ms-2 btn-del"
+                                  className="ms-2 btn-sm"
                                   onClick={() => {
                                     if (!window.confirm("과제를 완료 처리하시겠습니까?")) {
                                       return;
@@ -606,7 +606,7 @@ function Lecture() {
                                    {lecture["assignments"][assign[0]]["과제기한"]}
                                   </p> / {assign[1]}
                                 <Button
-                                  className="ms-2 btn-del"
+                                  className="ms-2 btn-sm"
                                   onClick={() => {
                                     if (!window.confirm("과제를 완료해제 처리하시겠습니까? \n기록된 완료날짜가 삭제됩니다.")) {
                                       return;
@@ -635,7 +635,7 @@ function Lecture() {
             })}
           </div>
         </div>
-        <div className="col-3">
+        <div className="col-md-3">
           <Button
             variant="dark"
             className="mt-3 mb-3"
@@ -656,7 +656,7 @@ function Lecture() {
                   <p>
                     {lecture["assignments"][assignID]["과제내용"]} / {lecture["assignments"][assignID]["과제기한"]}{" "}
                     <Button
-                      className="btn-del ms-1"
+                      className="btn-sm ms-1"
                       variant="secondary"
                       onClick={() => {
                         setselectedAssign(assignID);
@@ -666,13 +666,13 @@ function Lecture() {
                       <FaPencilAlt></FaPencilAlt>
                     </Button>
                     <Button
-                      className="btn-del ms-1"
+                      className="btn-sm ms-1"
                       variant="danger"
                       onClick={() => {
                         assignDelete(assignID);
                       }}
                     >
-                      <FaTrash></FaTrash>
+                      <FaTimes></FaTimes>
                     </Button>
                   </p>
                 </ListGroup.Item>

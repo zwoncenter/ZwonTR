@@ -239,7 +239,7 @@ function StuInfoEdit() {
     setmanagerList(tmp);
 
     const existstuInfo = await axios
-      .get(`/api/StudentDB/find/${param["ID"]}`)
+      .get(`/api/StudentDB/${param["ID"]}`)
       .then((result) => {
         if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다.");
@@ -893,7 +893,7 @@ function StuInfoEdit() {
               )
             ) {
               axios
-                .put("/api/StudentDB/edit", stuInfo)
+                .put("/api/StudentDB", stuInfo)
                 .then(function (result) {
                   if (result.data === true) {
                     window.alert("저장되었습니다.");
@@ -926,7 +926,7 @@ function StuInfoEdit() {
             )
           ) {
             axios
-              .delete(`/api/StudentDB/delete/${stuInfo["ID"]}`)
+              .delete(`/api/StudentDB/${stuInfo["ID"]}`)
               .then(function (result) {
                 if (result.data === "로그인필요") {
                   window.alert("로그인이 필요합니다.");

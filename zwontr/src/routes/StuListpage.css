@@ -1,4 +1,9 @@
 @import url(https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/nanumsquare.css);
+.modal-90w {
+  width: 90%;
+  margin: 0;
+}
+
 * p,
 span,
 h2,
@@ -23,7 +28,7 @@ h6 {
   background: url("../../public/layered-waves-haikei.png");
   background-size: 100% 100%;
   padding: 1px;
-  overflow: hidden;
+  overflow: auto;
 }
 .stuList-background h2 {
   color: white;
@@ -56,12 +61,13 @@ h6 {
   border-radius: 10px;
   margin-top: 20px;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  box-sizing: border-box;
 }
 
 .stuCardstuList {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
+  width: 100%;
+  text-align: center;
+  margin: auto;
 }
 
 .stuAddbtn {
@@ -73,8 +79,6 @@ h6 {
 }
 
 .stuListItem, .dateContainer, .stuTRItem, .stuListItemWritten {
-  width: 33%;
-  height: 100%;
   padding: 2px;
   border-radius: 10px;
 }
@@ -105,45 +109,26 @@ h6 {
 
 .NotCame {
   background-color: rgb(255, 255, 255);
-  display: flex;
-  vertical-align: middle;
-}
-.NotCame img, .NotCame p {
-  transform: translateX(57px);
 }
 
 .NotWritten {
   background-color: rgb(255, 255, 255);
-  display: flex;
-  justify-content: center;
 }
 
 .TRChecked {
   background-color: rgb(168, 174, 180);
   color: white;
-  border: 0;
-  display: flex;
-  vertical-align: middle;
-}
-.TRChecked img, .TRChecked p {
-  transform: translateX(57px);
 }
 
 .Absent {
   background-color: rgb(74, 77, 80);
   color: white;
-  display: flex;
-  vertical-align: middle;
-}
-.Absent img, .Absent p {
-  transform: translateX(57px);
 }
 
 .absent-sign {
-  width: 10%;
-  height: 80%;
-  margin-top: 4px;
-  margin-left: 5px;
+  margin-left: 2px;
+  width: 1rem;
+  height: 1rem;
 }
 
 .stuListItemWritten {
@@ -282,4 +267,4 @@ h6 {
 .listbox {
   overflow: auto;
   max-height: 400px;
-}/*# sourceMappingURL=StuListpage.css.map */
+}

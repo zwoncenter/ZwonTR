@@ -139,41 +139,37 @@ app.get("/api/managerList", loginCheck, (req, res) => {
 });
 
 // StudentDB에 새로운 stuDB 추가 요청
-app.post("/api/StudentDB/add", loginCheck, function (req, res) {
+app.post("/api/StudentDB", loginCheck, function (req, res) {
   const newDB = req.body;
-  db.collection("StudentDB").findOne({ 이름: newDB.이름 }, function (err, result) {
+  db.collection("StudentDB").findOne({ ID: newDB.ID }, function (err, result) {
     if (err) {
-      console.log("/api/studentAdd findOne Error : ", err);
-      return res.send("/api/studentAdd findOne Error : ", err);
+      console.log("/api/StudentDB findOne Error : ", err);
+      return res.send("/api/StudentDB findOne Error : ", err);
     }
     if (result !== null) {
-      return res.send("중복되는 이름의 학생DB가 존재합니다");
+      return res.send("중복되는 ID(이름, 생년월일)의 학생DB가 존재합니다");
     }
     db.collection("StudentDB").insertOne(newDB, (err2, result2) => {
       if (err2) {
-        return console.log("신규 학생DB 저장 실패");
+        return res.send("신규 학생DB 저장 실패", err2);
       }
       db.collection("StudentDB_Log").insertOne(newDB, (err3, result) => {
         if (err3) {
-          return console.log("신규학생 로그데이터 저장 실패");
+          return res.send("신규학생 로그데이터 저장 실패", err3);
         }
-        console.log("신규학생 로그데이터 저장 완료");
       });
-      console.log("신규 학생DB 저장 완료");
       return res.send(true);
     });
   });
 });
 
 // StudentDB에서 해당 ID의 document 조회
-app.get("/api/StudentDB/find/:ID", loginCheck, function (req, res) {
+app.get("/api/StudentDB/:ID", loginCheck, function (req, res) {
   const paramID = decodeURIComponent(req.params.ID);
-  console.log(`${paramID}의 studentDB 조회 시도`);
   db.collection("StudentDB").findOne({ ID: paramID }, function (err, result) {
     if (err) {
-      return console.log("/api/studentDB/:ID - findOne Error : ", err);
+      return res.send("/api/studentDB/:ID - findOne Error : ", err);
     }
-    console.log("결과 :", result["ID"]);
     if (result === null) {
       return res.send("동일한 ID의 학생DB가 존재하지 않습니다. 개발 / 데이터 팀에 문의해주세요");
     }
@@ -182,45 +178,39 @@ app.get("/api/StudentDB/find/:ID", loginCheck, function (req, res) {
 });
 
 // StudentDB에 수정 요청
-app.put("/api/StudentDB/edit", loginCheck, function (req, res) {
+app.put("/api/StudentDB", loginCheck, function (req, res) {
   const newstuDB = req.body;
   const findID = newstuDB["ID"];
   delete newstuDB._id;
-  console.log("기존 학생DB 수정 시도", findID);
   db.collection(`StudentDB`).findOne({ ID: findID }, function (err, result) {
     if (err) {
-      return console.log(`/api/StudentEdit - findOne Error : `, err);
+      return res.send(`/api/StudentEdit - findOne Error : `, err);
     }
     if (result === null) {
       return res.send("동일한 ID의 학생DB가 존재하지 않습니다. 개발 / 데이터 팀에 문의해주세요");
     }
     db.collection("StudentDB").updateOne({ ID: findID }, { $set: newstuDB }, function (err2, result2) {
       if (err2) {
-        return console.log("/api/StudentEdit - updateOne Error : ", err2);
+        return res.send("/api/StudentEdit - updateOne Error : ", err2);
       }
       db.collection("StudentDB_Log").insertOne(newstuDB, (err3, result3) => {
         if (err3) {
-          return console.log("기존학생 로그데이터 저장 실패");
+          return res.send("기존학생 로그데이터 저장 실패");
         }
-        console.log("기존학생 로그데이터 저장 완료");
       });
-      console.log("기존 학생DB 수정 완료");
       return res.send(true);
     });
   });
 });
 
 // StudentDB에 삭제 요청
-app.delete("/api/StudentDB/delete/:ID", loginCheck, function (req, res) {
+app.delete("/api/StudentDB/:ID", loginCheck, function (req, res) {
   const paramID = req.params.ID;
-  console.log(paramID + "학생의 DB 삭제 시도");
   db.collection("StudentDB").deleteOne({ ID: paramID }, (err, result) => {
     if (err) {
-      console.log("/api/StudentDelete - deleteOne error : ", err);
-      return res.send("/api/StudentDelete - deleteOne error : ", err);
+      return res.send("/api/StudentDB/:ID - deleteOne error : ", err);
     }
     if (result !== null) {
-      console.log(`${paramID}의 DB 삭제 완료`);
       return res.send(true);
     } else {
       return res.send("deleteOne의 결과가 null입니다. 개발/데이터 팀에 문의해주세요.");
@@ -231,28 +221,24 @@ app.delete("/api/StudentDB/delete/:ID", loginCheck, function (req, res) {
 // collection 중 TR의 해당 날짜의 Document find 및 전송
 app.get("/api/TRlist/:date", loginCheck, function (req, res) {
   const paramDate = req.params.date;
-  console.log(paramDate);
   db.collection("TR")
     .find({ 날짜: paramDate })
     .toArray(function (err, result) {
       if (err) {
-        return console.log("api/TRlist/:date - find Error : ", err);
+        return res.send("api/TRlist/:date - find Error : ", err);
       }
-      console.log("api/TRlist/:date - find result length   :", result.length);
-      res.json(result);
+      return res.json(result);
     });
 });
 
 app.get("/api/TR/:ID", loginCheck, function (req, res) {
   const paramID = decodeURIComponent(req.params.ID);
-  console.log(`${paramID}의 TR 리스트 조회 시도`);
   db.collection("TR")
     .find({ ID: paramID })
     .toArray(function (err, result) {
       if (err) {
-        return console.log("/api/TR/:ID - find Error : ", err);
+        return res.send("/api/TR/:ID - find Error : ", err);
       }
-      console.log(`${paramID}의 TR 리스트 조회 결과수 : `, result.length);
       return res.json(result);
     });
 });
@@ -260,149 +246,132 @@ app.get("/api/TR/:ID", loginCheck, function (req, res) {
 app.get("/api/TR/:ID/:date", loginCheck, function (req, res) {
   const paramID = decodeURIComponent(req.params.ID);
   const paramDate = decodeURIComponent(req.params.date);
-  console.log(`${paramID}의 ${paramDate} 날짜 TR 조회 시도`);
   db.collection("TR").findOne({ ID: paramID, 날짜: paramDate }, function (err, result) {
     if (err) {
-      return console.log("/api/TR/:ID/:date - findOne Error : ", err);
+      return res.send("/api/TR/:ID/:date - findOne Error : ", err);
     }
     return res.json(result);
   });
 });
 
-app.post("/api/TR/write", loginCheck, function (req, res) {
+app.post("/api/TR", loginCheck, function (req, res) {
   const newTR = req.body;
-  console.log("일간하루 저장 시도 : ", newTR.ID, newTR.날짜);
   db.collection("TR").findOne({ ID: newTR.ID, 날짜: newTR.날짜 }, function (err, result) {
     if (err) {
-      console.log(`/api/TR/write - findOne Error : `, err);
-      return res.send(`/api/TR/write - findOne Error : `, err);
+      return res.send(`/api/TR - findOne Error : `, err);
     }
     if (result !== null) {
       return res.send("findOne result is not null. 중복되는 날짜의 일간하루가 존재합니다.");
     }
     db.collection("TR").insertOne(newTR, function (err2, result2) {
       if (err2) {
-        console.log("/api/TR/write - insertOne Error : ", err2);
-        return res.send("/api/TR/write - insertOne Error : ", err2);
+        return res.send("/api/TR - insertOne Error : ", err2);
       }
-      console.log("터미널에 표시 : 일간하루 저장 완료");
       return res.send(true);
     });
   });
 });
 
-app.put("/api/TR/edit", loginCheck, function (req, res) {
+app.put("/api/TR", loginCheck, function (req, res) {
   const newTR = req.body;
   const findID = ObjectId(newTR._id);
   delete newTR._id;
-  console.log("일간하루 수정 시도 : ", newTR.이름, newTR.날짜);
   db.collection("TR").findOne({ 이름: newTR.이름, 날짜: newTR.날짜 }, function (err, result) {
     if (err) {
-      return res.send(`/api/TR/edit - findOne Error : `, err);
+      return res.send(`/api/TR - findOne Error : `, err);
     }
     if (result !== null && !result._id.equals(findID)) {
       return res.send("중복되는 날짜의 일간하루가 존재합니다.");
     }
     db.collection(`TR`).findOne({ _id: findID }, function (err2, result2) {
       if (err2) {
-        return console.log(`/api/TR/edit - findOne Error : `, err2);
+        return console.log(`/api/TR - findOne Error : `, err2);
       }
       if (result2 === null) {
         return res.send("일치하는 _id의 일간하루를 찾지 못했습니다. 개발 / 데이터팀에 문의해주세요");
       }
       db.collection("TR").updateOne({ _id: findID }, { $set: newTR }, function (err3, result3) {
         if (err3) {
-          return res.send("/api/TR/write - updateOne Error : ", err3);
+          return res.send("/api/TR - updateOne Error : ", err3);
         }
-        console.log("터미널에 표시 : 일간하루 수정 완료");
         return res.send(true);
       });
     });
   });
 });
 
-app.delete("/api/TR/delete/:id", loginCheck, function (req, res) {
+app.delete("/api/TR/:id", loginCheck, function (req, res) {
   const trID = ObjectId(req.params.id);
-  console.log("일간하루 삭제 시도 :", trID);
   db.collection("TR").deleteOne({ _id: trID }, (err, result) => {
     if (err) {
-      return res.send("/api/TR/delete/:id - deleteOne error : ", err);
+      return res.send("/api/TR/:id - deleteOne error : ", err);
     }
     if (result.deletedCount === 1) {
-      console.log("일간하루 삭제 완료 : ", result);
       return res.send(true);
     }
     return res.send(false);
   });
 });
 
-app.post("/api/Closemeeting/write/:date", loginCheck, function (req, res) {
+app.post("/api/Closemeeting/:date", loginCheck, function (req, res) {
   const paramDate = decodeURIComponent(req.params.date);
   const newClosemeeting = req.body;
-  console.log("마감회의 저장 시도 : ", paramDate);
   db.collection("Closemeeting").findOne({ 날짜: paramDate }, function (err, result) {
     if (err) {
-      console.log(`/api/Closemeeting/write/:date - findOne Error : `, err);
-      return res.send(`/api/Closemeeting/write/:date - findOne Error : `, err);
+      return res.send(`/api/Closemeeting/:date - findOne Error : `, err);
     }
     if (result !== null) {
       return res.send("findOne result is not null. 중복되는 날짜의 마감회의가 존재합니다.");
     }
     db.collection("Closemeeting").insertOne(newClosemeeting, function (err2, result2) {
       if (err2) {
-        console.log("/api/Closemeeting/write/:date - insertOne Error : ", err2);
-        return res.send("/api/Closemeeting/write/:date - insertOne Error : ", err2);
+        return res.send("/api/Closemeeting/:date - insertOne Error : ", err2);
       }
-      console.log("터미널에 표시 : 마감회의 저장 완료");
       return res.send(true);
     });
   });
 });
 
-app.get("/api/Closemeeting/find/:date", loginCheck, function (req, res) {
+app.get("/api/Closemeeting/:date", loginCheck, function (req, res) {
   const paramDate = decodeURIComponent(req.params.date);
-  console.log(`${paramDate} 날짜 마감회의 조회 시도`);
   db.collection("Closemeeting").findOne({ 날짜: paramDate }, function (err, result) {
     if (err) {
-      return console.log("/api/Closemeeting/find/:date - findOne Error : ", err);
+      return console.log("/api/Closemeeting/:date - findOne Error : ", err);
     }
     return res.json(result);
   });
 });
 
-app.put("/api/Closemeeting/edit/:date", loginCheck, function (req, res) {
+app.put("/api/Closemeeting/:date", loginCheck, function (req, res) {
   const paramDate = decodeURIComponent(req.params.date);
   const newClosemeeting = req.body;
   const findID = ObjectId(newClosemeeting._id);
   delete newClosemeeting._id;
-  console.log("마감회의 수정 시도 : ", paramDate);
   db.collection("Closemeeting").findOne({ 날짜: paramDate }, function (err, result) {
     if (err) {
-      return res.send(`/api/Closemeeting/edit/:date - findOne Error : `, err);
+      return res.send(`/api/Closemeeting/:date - findOne Error : `, err);
     }
     if (result !== null && !result._id.equals(findID)) {
       return res.send("중복되는 날짜의 마감회의가 존재합니다.");
     }
     db.collection(`Closemeeting`).findOne({ _id: findID }, function (err2, result2) {
       if (err2) {
-        return console.log(`/api/Closemeeting/edit/:date - findOne Error : `, err2);
+        return res.send(`/api/Closemeeting/:date - findOne Error : `, err2);
       }
       if (result2 === null) {
         return res.send("일치하는 _id의 마감회의를 찾지 못했습니다. 개발 / 데이터팀에 문의해주세요");
       }
       db.collection("Closemeeting").updateOne({ _id: findID }, { $set: newClosemeeting }, function (err3, result3) {
         if (err3) {
-          console.log(err3)
           return res.send(err3);
         }
-        console.log("터미널에 표시 : 마감회의 수정 완료");
         return res.send(true);
       });
     });
   });
 });
 
-app.delete("/api/Closemeeting/delete/:id", loginCheck, function (req, res) {
+app.delete("/api/Closemeeting/:id", loginCheck, function (req, res) {
   const ClosemeetingID = ObjectId(req.params.id);
   console.log("마감회의 삭제 시도 :", ClosemeetingID);
   db.collection("Closemeeting").deleteOne({ _id: ClosemeetingID }, (err, result) => {
@@ -419,7 +388,7 @@ app.delete("/api/Closemeeting/delete/:id", loginCheck, function (req, res) {
 
 // Middle Meeting
 
-app.post("/api/Middlemeeting/write/:date", loginCheck, function (req, res) {
+app.post("/api/Middlemeeting/:date", loginCheck, function (req, res) {
   const paramDate = decodeURIComponent(req.params.date);
   const newMiddlemeeting = req.body;
   console.log("중간희 저장 시도 : ", paramDate);
@@ -442,7 +411,7 @@ app.post("/api/Middlemeeting/write/:date", loginCheck, function (req, res) {
   });
 });
 
-app.get("/api/Middlemeeting/find/:date", loginCheck, function (req, res) {
+app.get("/api/Middlemeeting/:date", loginCheck, function (req, res) {
   const paramDate = decodeURIComponent(req.params.date);
   console.log(`${paramDate} 날짜 중간회의 조회 시도`);
   db.collection("Middlemeeting").findOne({ 날짜: paramDate }, function (err, result) {
@@ -453,7 +422,7 @@ app.get("/api/Middlemeeting/find/:date", loginCheck, function (req, res) {
   });
 });
 
-app.put("/api/Middlemeeting/edit/:date", loginCheck, function (req, res) {
+app.put("/api/Middlemeeting/:date", loginCheck, function (req, res) {
   const paramDate = decodeURIComponent(req.params.date);
   const newMiddlemeeting = req.body;
   const findID = ObjectId(newMiddlemeeting._id);
@@ -484,7 +453,7 @@ app.put("/api/Middlemeeting/edit/:date", loginCheck, function (req, res) {
   });
 });
 
-app.delete("/api/Middlemeeting/delete/:id", loginCheck, function (req, res) {
+app.delete("/api/Middlemeeting/:id", loginCheck, function (req, res) {
   const MiddlemeetingID = ObjectId(req.params.id);
   console.log("중간회의 삭제 시도 :", MiddlemeetingID);
   db.collection("Middlemeeting").deleteOne({ _id: MiddlemeetingID }, (err, result) => {
@@ -510,7 +479,7 @@ app.get("/api/Todolist", loginCheck, function (req, res) {
     });
 });
 
-app.put("/api/Todolist/edit", loginCheck, function (req, res) {
+app.put("/api/Todolist", loginCheck, function (req, res) {
   const newTodolist = { Todolist: req.body };
   const findID = ObjectId("629317f4aca8d25d84a7d0e0");
   db.collection("Todolist").updateOne({ _id: findID }, { $set: newTodolist }, function (err3, result3) {
@@ -533,7 +502,7 @@ app.get("/api/Textbook", loginCheck, function (req, res) {
     });
 });
 
-app.put("/api/Textbook/edit", loginCheck, function (req, res) {
+app.put("/api/Textbook", loginCheck, function (req, res) {
   const newTextbook = req.body;
   const findID = ObjectId("62b815e210c04d831adf2f5b");
   db.collection("Textbook").updateOne({ _id: findID }, { $set: newTextbook }, function (err3, result3) {

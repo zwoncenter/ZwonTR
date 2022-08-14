@@ -1181,7 +1181,7 @@ function StudentAdd(props) {
               }
               if (window.confirm(`${stuDB.이름} 학생의 DB를 저장하시겠습니까?`)) {
                 axios
-                  .post("/api/StudentAdd", stuDB)
+                  .post("/api/StudentDB", stuDB)
                   .then(function (result) {
                     if (result.data === "로그인필요") {
                       window.alert("로그인이 필요합니다.");

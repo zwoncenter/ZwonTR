@@ -166,7 +166,7 @@ function StudentEdit() {
   const param = useParams();
   useEffect(async () => {
     const newstuDB = await axios
-      .get(`/api/StudentDB/find/${param["ID"]}`)
+      .get(`/api/StudentDB/${param["ID"]}`)
       .then((result) => {
         if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다.");
@@ -1286,7 +1286,7 @@ function StudentEdit() {
               }
               if (window.confirm(`${stuDB.이름} 학생의 DB를 수정하시겠습니까?`)) {
                 axios
-                  .put("/api/StudentDB/edit", stuDB)
+                  .put("/api/StudentDB", stuDB)
                   .then(function (result) {
                     if (result.data === "로그인필요") {
                       window.alert("로그인이 필요합니다.");

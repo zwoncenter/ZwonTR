@@ -44,7 +44,7 @@ function ClosemeetingWrite() {
           onClick={() => {
             if (window.confirm("일일결산 내용을 저장하시겠습니까?")) {
               axios
-                .post(`/api/Closemeeting/write/${paramDate}`, {
+                .post(`/api/Closemeeting/${paramDate}`, {
                   날짜: paramDate,
                   closeFeedback: closeFeedback,
                 })
@@ -76,7 +76,7 @@ function ClosemeetingWrite() {
           onClick={() => {
             if (selectedDate !== "") {
               axios
-                .get(`/api/Closemeeting/find/${selectedDate}`)
+                .get(`/api/Closemeeting/${selectedDate}`)
                 .then((result) => {
                   if (result["data"] === null) {
                     if (window.confirm("해당 날짜의 일일결산이 존재하지 않습니다. 새로 작성하시겠습니까?")) {

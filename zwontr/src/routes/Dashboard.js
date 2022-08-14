@@ -240,8 +240,8 @@ function Dashboard() {
 
   return (
     <div className="dashboard-background">
-      <div className="dashboard-bigbox">
-        <div className="dashcard profilebox">
+      <div className="dashboard-bigbox row">
+        <div className="dashcard profilebox col-lg-2">
           <div className="input-group">
             <input
               type="text"
@@ -350,15 +350,6 @@ function Dashboard() {
                   setinclude_program(!include_program);
                 }}
               />
-    <Button
-                  className="modeBtn"
-                  variant="secondary"
-                  onClick={() => {
-                    console.log(data)
-                  }}
-                >
-                  <p>data check</p>
-                </Button>
               
               <div>
                 <Button
@@ -423,7 +414,7 @@ function Dashboard() {
           </div>
         </div>
         {chartMode[0] == 1 ? ( //취침
-          <div className="dashcard contentbox">
+          <div className="dashcard contentbox col-lg-10">
             <div className="dashcard FlowChart">
               <p>
                 <strong>[ 취침 추이 ]</strong>

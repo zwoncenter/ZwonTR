@@ -374,7 +374,7 @@ function TRwrite() {
 
   useEffect(async () => {
     const newstuDB = await axios
-      .get(`/api/StudentDB/find/${paramID}`)
+      .get(`/api/StudentDB/${paramID}`)
       .then((result) => {
         if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다.");
@@ -1084,11 +1084,6 @@ function TRwrite() {
             <h5 className="fw-bold">
               <strong>[ 수강중 강의 ]</strong>
             </h5>
-            <Button onClick={() => {
-              console.log(lectureList)
-            }}>
-
-            </Button>
             {lectureList.map((lecture, idx) => {
               return (
                 <Accordion key={idx} className="mt-2" defaultActiveKey="0">
@@ -1296,7 +1291,7 @@ function TRwrite() {
                       }
                     }
                     await axios
-                      .put("/api/StudentDB/edit", newstuDB)
+                      .put("/api/StudentDB", newstuDB)
                       .then(function (result) {
                         if (result.data === "로그인필요") {
                           window.alert("로그인이 필요합니다.");
@@ -1308,7 +1303,7 @@ function TRwrite() {
                   }
 
                   axios
-                    .post("/api/TR/write", TR)
+                    .post("/api/TR", TR)
                     .then(function (result) {
                       if (result.data === true) {
                         window.alert("저장되었습니다.");

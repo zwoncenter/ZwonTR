@@ -335,7 +335,7 @@ useEffect(async()=>{
 
         <Button
           variant="secondary"
-          className="btn-commit btn-load loadButton"
+          className="btn-commit btn-load loadButton mb-3"
           onClick={() => {
             if (selectedDate !== "") {
               axios
@@ -359,10 +359,10 @@ useEffect(async()=>{
         >
 
           <div className="row m-0">
-            <div className="col-xl-7">
+            <div className="col-7">
               <strong>다른 일자 작성/조회</strong>
             </div>
-            <div className="col-xl-5">
+            <div className="col-5">
               <input
                 type="date"
                 className="w-100"
@@ -379,7 +379,7 @@ useEffect(async()=>{
           </div>
         </Button>
       <div className="Weeklymeeting-container">
-        <Table striped bordered hover size="sm" className="Weeklymeeting-table">
+        <Table striped hover size="sm" className="Weeklymeeting-table">
           <thead>
             <tr>
               <th colSpan={3} width="4%">

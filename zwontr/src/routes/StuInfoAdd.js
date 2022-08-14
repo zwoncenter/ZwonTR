@@ -786,7 +786,7 @@ function StuInfoAdd() {
           if (inputCheck()) {
             if (window.confirm(`${stuInfo.이름}학생의 기본정보를 저장하시겠습니까?`)) {
               axios
-                .post("/api/StudentDB/add", stuInfo)
+                .post("/api/StudentDB", stuInfo)
                 .then(function (result) {
                   if (result.data === "로그인필요") {
                     window.alert("로그인이 필요합니다.");

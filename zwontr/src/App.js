@@ -96,7 +96,7 @@ function App() {
           className="menu-map-btn btn-secondary"
           onClick={() => {
             axios
-              .get(`/api/Closemeeting/find/${today}`)
+              .get(`/api/Closemeeting/${today}`)
               .then((result) => {
                 if (result["data"] === null) {
                   history.push(`/Closemeeting/Write/${today}`);

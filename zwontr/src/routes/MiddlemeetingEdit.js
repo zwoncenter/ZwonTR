@@ -44,7 +44,7 @@ function MiddlemeetingWrite() {
     }
     const yesterday = paramYesterday.toISOString().split("T")[0];
     const newcloseFeedback = await axios
-    .get(`/api/Closemeeting/find/${yesterday}`)
+    .get(`/api/Closemeeting/${yesterday}`)
     .then((result) => {
       if (result.data === "로그인필요") {
         window.alert("로그인이 필요합니다");
@@ -58,7 +58,7 @@ function MiddlemeetingWrite() {
 
     setcloseFeedback(newcloseFeedback["closeFeedback"]);
     const document = await axios
-      .get(`/api/Middlemeeting/find/${paramDate}`)
+      .get(`/api/Middlemeeting/${paramDate}`)
       .then((result) => {
         if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다");
@@ -82,7 +82,7 @@ function MiddlemeetingWrite() {
           onClick={() => {
             if (window.confirm("중간회의 내용을 저장하시겠습니까?")) {
               axios
-                .put(`/api/Middlemeeting/edit/${paramDate}`, {
+                .put(`/api/Middlemeeting/${paramDate}`, {
                   _id: objectid,
                   날짜: paramDate,
                   middleFeedback: middleFeedback,
@@ -115,7 +115,7 @@ function MiddlemeetingWrite() {
           onClick={() => {
             if (selectedDate !== "") {
               axios
-                .get(`/api/Middlemeeting/find/${selectedDate}`)
+                .get(`/api/Middlemeeting/${selectedDate}`)
                 .then((result) => {
                   if (result["data"] === null) {
                     if (window.confirm("해당 날짜의 중간회의가 존재하지 않습니다. 새로 작성하시겠습니까?")) {

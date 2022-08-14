@@ -134,7 +134,7 @@ function TextbookManage() {
             <strong>[ 교재 검색 ]</strong>
           </h3>
           <div className="row">
-            <div className="col-sm-2">
+            <div className="col-sm-2 mb-2">
               <Form.Select
                 value={chosenSubject}
                 onChange={(e) => {
@@ -149,7 +149,7 @@ function TextbookManage() {
                 <option value="강의">강의</option>
               </Form.Select>
             </div>
-            <div className="col-sm-9">
+            <div className="col-sm-9 mb-2">
               <FormControl
                 placeholder="교재명"
                 onChange={(e) => {
@@ -163,7 +163,7 @@ function TextbookManage() {
               />
             </div>
 
-            <div className="col-sm-1">
+            <div className="col-sm-1 mb-2">
               <Button className="btn-secondary program-add" onClick={textbookSearch} type="button">
                 <strong>
                   {" "}
@@ -357,7 +357,7 @@ function TextbookManage() {
             onClick={() => {
               if (window.confirm("저장하시겠습니까?")){
                 axios
-                    .put("/api/Textbook/edit", {날짜 : today, textbookList: textbookList})
+                    .put("/api/Textbook", {날짜 : today, textbookList: textbookList})
                     .then(function (result) {
                         if (result.data === true) {
                         window.alert("저장되었습니다.");

@@ -376,7 +376,7 @@ function TRedit() {
 
   useEffect(async () => {
     const newstuDB = await axios
-      .get(`/api/StudentDB/find/${paramID}`)
+      .get(`/api/StudentDB/${paramID}`)
       .then((result) => {
         if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다.");
@@ -1279,7 +1279,7 @@ function TRedit() {
                         }
                       }
                       await axios
-                        .put("/api/StudentDB/edit", newstuDB)
+                        .put("/api/StudentDB", newstuDB)
                         .then(function (result) {
                           if (result.data === "로그인필요") {
                             window.alert("로그인이 필요합니다.");
@@ -1289,7 +1289,7 @@ function TRedit() {
                           window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
                         });
                       axios
-                        .put("/api/TR/edit", TR)
+                        .put("/api/TR", TR)
                         .then(function (result) {
                           if (result.data === true) {
                             window.alert("저장되었습니다");
@@ -1320,7 +1320,7 @@ function TRedit() {
                 onClick={() => {
                   if (window.confirm(`현재 작성중인 일간하루를 정말 삭제하시겠습니까?`)) {
                     axios
-                      .delete(`/api/TR/delete/${TR._id}`)
+                      .delete(`/api/TR/${TR._id}`)
                       .then(function (result) {
                         if (result.data === true) {
                           window.alert("삭제되었습니다");
