@@ -70,27 +70,28 @@ function App() {
           </h5>
         </Button>
 
-        <Button
-          className="menu-map-btn btn-secondary"
-          onClick={() => {
-            axios
-              .get(`/api/Weeklymeeting/${thisMonday}`)
-              .then((result) => {
-                if (result["data"] === null) {
-                  history.push(`/Weeklymeeting/Write/${thisMonday}`);
-                } else {
-                  history.push(`/Weeklymeeting/Edit/${thisMonday}`);
-                }
-              })
-              .catch((err) => {
-                console.log(err);
-              });
-          }}
-                      >
-          <h5>
-            <strong>주간 회의</strong>
-          </h5>
-        </Button>
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              axios
+                .get(`/api/Weeklymeeting/${thisMonday}`)
+                .then((result) => {
+                  console.log(result);
+                  if (result["data"] === null) {
+                    history.push(`/Weeklymeeting/Write/${thisMonday}`);
+                  } else {
+                    history.push(`/Weeklymeeting/Edit/${thisMonday}`);
+                  }
+                })
+                .catch((err) => {
+                  console.log(err);
+                });
+            }}
+                        >
+            <h5>
+              <strong>주간 결산</strong>
+            </h5>
+          </Button>
 
         <Button
           className="menu-map-btn btn-secondary"

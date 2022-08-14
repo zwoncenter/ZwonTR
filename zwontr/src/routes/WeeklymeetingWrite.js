@@ -18,6 +18,27 @@ import {
 } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import createPlotlyComponent from "react-plotly.js/factory";
+import {
+  PieChart,
+  Pie,
+  Legend,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  LineChart,
+  Line,
+  CartesianGrid,
+  ScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  ReferenceLine,
+  RadialBarChart,
+  RadialBar,
+  AreaChart,
+  Area,
+} from "recharts";
 
 function WeeklymeetingWrite() {
   let paramDate = useParams()["thisMonday"];
@@ -35,6 +56,27 @@ function WeeklymeetingWrite() {
   const [selectedDate, setselectedDate] = useState("");
   const [thisweekData, setthisweekData] = useState({});
   const [lastweekData, setlastweekData] = useState({});
+  const average = (arr) => arr.reduce((p, c) => p + c, 0) / arr.length;
+  const [selfDevel, setselfDevel] = useState(false);
+  const [modalShow, setmodalShow] = useState(false);
+  const modalOpen = () => setmodalShow(true);
+  const modalClose = () => {
+    setmodalShow(false);
+  };
+  const [studyGraphData, setstudyGraphData] = useState([{날짜: 0, 학습시간: 0}]);
+
+  async function nameClick(dateRange, index) {
+    if (dateRange==="이번주학습"){
+      setstudyGraphData(manufacturedData[index]["이번주학습"]);
+    }
+    else if (dateRange==="전주학습"){
+      setstudyGraphData(manufacturedData[index]["전주학습"]);
+    }
+    if (dateRange==="전월학습"){
+      setstudyGraphData(manufacturedData[index]["전월학습"]);
+    }
+    modalOpen();
+  }
 
   useEffect(async () => {
 
@@ -143,6 +185,17 @@ function WeeklymeetingWrite() {
             new Date(i.날짜) < thisweek[1]
           );
         }).length,
+        지각정도: TRlist.filter((i) => {
+          return (
+            i["ID"] == element["ID"] &&
+            i["결석여부"] !== true &&
+            new Date(i.날짜) >= thisweek[0] &&
+            new Date(i.날짜) < thisweek[1]
+          );
+        })
+        .map((j, index)=>{
+          return j["등원차이"] < 0 ? j["등원차이"] : null;
+        }).filter((k, index) => k !== null),
         미등원: TRlist.filter((i) => {
           return (
             i["ID"] == element["ID"] &&
@@ -151,6 +204,20 @@ function WeeklymeetingWrite() {
             new Date(i.날짜) < thisweek[1]
           );
         }).length,
+
+        이번주학습: TRlist.filter((i) => {
+          return (
+            i["ID"] == element["ID"] &&
+            new Date(i.날짜) >= thisweek[0] &&
+            new Date(i.날짜) < thisweek[1] &&
+            i["결석여부"] != true &&
+            i["요일"] != "일요일"
+          );
+        })
+          .map((j, index) => {
+            return {날짜: j["날짜"], 학습시간: selfDevel === true ? j["실제학습"] + j["프로그램시간"] : j["실제학습"]};
+          }),
+
         이번주평균학습:
           Math.round(
             (TRlist.filter((i) => {
@@ -163,7 +230,9 @@ function WeeklymeetingWrite() {
               );
             })
               .map((j) => {
-                return j["실제학습"];
+                return(
+                  selfDevel === true ? j["실제학습"] + j["프로그램시간"] : j["실제학습"]
+                );
               })
               .reduce((a, b) => {
                 return a + b;
@@ -179,6 +248,20 @@ function WeeklymeetingWrite() {
               }).length) *
               10
           ) / 10,
+
+          전주학습: TRlist.filter((i) => {
+            return (
+              i["ID"] == element["ID"] &&
+              new Date(i.날짜) >= lastweek[0] &&
+              new Date(i.날짜) < lastweek[1] &&
+              i["결석여부"] != true &&
+              i["요일"] != "일요일"
+            );
+          })
+            .map((j, index) => {
+              return {날짜: j["날짜"], 학습시간: selfDevel === true ? j["실제학습"] + j["프로그램시간"] : j["실제학습"]};
+            }),
+
         전주평균학습:
           Math.round(
             (TRlist.filter((i) => {
@@ -191,7 +274,9 @@ function WeeklymeetingWrite() {
               );
             })
               .map((j) => {
-                return j["실제학습"];
+                return(
+                  selfDevel === true ? j["실제학습"] + j["프로그램시간"] : j["실제학습"]
+                );
               })
               .reduce((a, b) => {
                 return a + b;
@@ -207,6 +292,21 @@ function WeeklymeetingWrite() {
               }).length) *
               10
           ) / 10,
+
+          전월학습: TRlist.filter((i) => {
+            return (
+              i["ID"] == element["ID"] &&
+              new Date(i.날짜) >= lastmonth[0] &&
+              new Date(i.날짜) < lastmonth[1] &&
+              i["결석여부"] != true &&
+              i["요일"] != "일요일"
+            );
+          })
+            .map((j, index) => {
+              return {날짜: j["날짜"], 학습시간: selfDevel === true ? j["실제학습"] + j["프로그램시간"] : j["실제학습"]};
+            }),
+
+
         전월평균학습:
           Math.round(
             (TRlist.filter((i) => {
@@ -219,7 +319,9 @@ function WeeklymeetingWrite() {
               );
             })
               .map((j) => {
-                return j["실제학습"];
+                return(
+                  selfDevel === true ? j["실제학습"] + j["프로그램시간"] : j["실제학습"]
+                );
               })
               .reduce((a, b) => {
                 return a + b;
@@ -239,7 +341,7 @@ function WeeklymeetingWrite() {
       };
     });
     setmanufacturedData(temporal);}
-  }, [thisweekData]);
+  }, [thisweekData, selfDevel]);
 
   function getNextMon(inputDate) {
     var tmpDate = new Date(inputDate);
@@ -334,7 +436,7 @@ function WeeklymeetingWrite() {
           }
         }}
       >
-        주간결산 저장
+        <strong>주간결산 저장</strong>
       </Button>
 
       <Button
@@ -373,6 +475,25 @@ function WeeklymeetingWrite() {
           }
         }}
       >
+        {modalShow === true ? (
+          <Modal show={modalShow} onHide={modalClose} className="studyModal"
+          dialogClassName="modal-90w">
+            <Modal.Body className="text-center">
+              <p>
+                <strong>[ 학습시간 추이 ]</strong>
+              </p>
+                <AreaChart className="graph" width={1000} height={500} data={studyGraphData}>
+                  <Area type="monotone" dataKey="학습시간" stroke="#FFBB28" fill="#FFBB28" />
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <Tooltip />
+                  <XAxis dataKey="날짜" />
+                  <YAxis />
+                  {/* <ReferenceLine y={aver} label={`Average : ${aver}`} stroke="#0088FE" strokeDasharray="3 3" /> */}
+                </AreaChart>
+            </Modal.Body>
+          </Modal>
+        ) : null}
+
         <div className="row m-0">
           <div className="col-xl-7">
             <strong>다른 일자 작성/조회</strong>
@@ -393,22 +514,116 @@ function WeeklymeetingWrite() {
           </div>
         </div>
       </Button>
+      <Form.Check
+                className="ms-3 mb-2 text-start"
+                type="checkbox"
+                label="학습시간 계산에 자기계발 포함"
+                checked={selfDevel}
+                onChange={(e) => {
+                  setselfDevel(!selfDevel);
+                }}
+              />
       <div className="Weeklymeeting-container">
         <Table striped hover size="sm" className="Weeklymeeting-table">
-          <thead>
+        <thead>
             <tr>
               <th colSpan={3} width="4%">
                 <strong>정보</strong>
               </th>
-              <th rowSpan={2} width="1.5%">
-                <strong>지각</strong>
-              </th>
+              <OverlayTrigger
+                trigger={["hover","focus"]}
+                placement="top"
+                overlay={
+                  <Popover id="popover-basic">
+                    <Popover.Body>
+                      <p><strong>이번 주 학생 지각일입니다.</strong></p>
+                      <div className="commentbox">
+                        <div className="colorcomment red"></div>
+                        <p>
+                          <strong>3회 이상 지각</strong>
+                        </p>
+                        </div>
+                        <div className="commentbox">
+                        <div className="colorcomment yellow"></div>
+                        <p>
+                          <strong>1~2회 지각</strong>
+                        </p>
+                        </div>
+                        <div className="commentbox">
+                        <div className="colorcomment green"></div>
+                        <p>
+                          <strong>매일 정시등원</strong>
+                        </p>
+                        </div>
+                      </Popover.Body>
+                  </Popover>
+                }
+              >
+                <th rowSpan={2} width="1.5%">
+                  <strong>지각</strong>
+                </th>
+              </OverlayTrigger>
               <th rowSpan={2} width="1.5%">
                 <strong>미등원</strong>
               </th>
-              <th colSpan={3} width="6%">
-                <strong>평균 학습시간</strong>
-              </th>
+              <OverlayTrigger
+                trigger={["hover","focus"]}
+                placement="top"
+                overlay={
+                  <Popover id="popover-basic">
+                    <Popover.Body>
+                      <p>
+                        <strong>학생의 기간별 평균 학습시간입니다.</strong>
+                      </p>
+                      <div className="commentbox">
+                        <p className="me-2">
+                          <strong>(고): </strong>
+                        </p>
+                        <div className="colorcomment red"></div>
+                        <p>
+                          <strong>~5시간,</strong>
+                        </p>
+                        <div className="colorcomment yellow"></div>
+                        <p>
+                          <strong>5~6시간,</strong>
+                        </p>
+                        <div className="colorcomment green"></div>
+                        <p>
+                          <strong>6시간~</strong>
+                        </p>
+                      </div>
+                      <div className="commentbox">
+                        <p className="me-2">
+                          <strong>(중): </strong>
+                        </p>
+                        <div className="colorcomment red"></div>
+                        <p>
+                          <strong>~3시간,</strong>
+                        </p>
+                        <div className="colorcomment yellow"></div>
+                        <p>
+                          <strong>3~4시간,</strong>
+                        </p>
+                        <div className="colorcomment green"></div>
+                        <p>
+                          <strong>4시간~</strong>
+                        </p>
+                      </div>
+                      <div className="commentbox">
+                        <p className="me-2">
+                          <strong>(OT, 대표관리): </strong>
+                        </p>
+                        <div className="colorcomment black"></div>
+                      </div>
+                    </Popover.Body>
+                  </Popover>
+                }
+              >
+                <th colSpan={3} width="6%">
+                  <strong>평균 학습시간 (일요일 제외)</strong>
+                </th>
+              </OverlayTrigger>
+
               <th colSpan={2} width="15%">
                 <strong>전 주 조치 보고</strong>
               </th>
@@ -429,9 +644,24 @@ function WeeklymeetingWrite() {
               <th>
                 <strong>이름</strong>
               </th>
-              <th>
+              <OverlayTrigger
+                trigger={["hover","focus"]}
+                placement="top"
+                overlay={
+                  <Popover id="popover-basic">
+                    <Popover.Body>
+                      <p><strong>학생 등교여부 확인을 위한 란입니다.</strong></p>
+                      <p><strong>학교에 등교하는 학생에 체크해주세요.</strong></p>
+                      <p><strong>방학 중에는 체크를 해제해주세요.</strong></p>
+                      </Popover.Body>
+                  </Popover>
+                }
+              >
+                <th>
                 <strong>등교</strong>
               </th>
+              </OverlayTrigger>
+              
               <th>
                 <strong>이번 주</strong>
               </th>
@@ -486,6 +716,21 @@ function WeeklymeetingWrite() {
                     />
                   </td>
                   <td>
+                  <OverlayTrigger
+                trigger={["hover", "focus"]}
+                placement="right"
+                overlay={
+                  <Popover id="popover-basic">
+                    <Popover.Body>
+                      <p>
+                        <strong>평균 {tr["지각정도"].length === 0 ? 0 : Math.round(Math.abs(average(tr["지각정도"])) * 10) / 10}시간 지각했습니다.</strong>
+                      </p>
+                      <p>
+                        <strong>(최소 {tr["지각정도"].length === 0 ? 0 : Math.round(Math.abs(Math.max(...tr["지각정도"])) * 10) / 10}시간, 최대 {tr["지각정도"].length === 0 ? 0 : Math.round(Math.abs(Math.min(...tr["지각정도"])) * 10) / 10}시간)</strong>
+                      </p>
+                    </Popover.Body>
+                  </Popover>
+                }>
                     <p
                       className={
                         tr["지각"] >= 3
@@ -495,15 +740,18 @@ function WeeklymeetingWrite() {
                           : "yellow"
                       }
                     >
-                      <strong>{tr["지각"]}일</strong>
+                      <strong>{tr["지각"]}회</strong>
                     </p>
+                    </OverlayTrigger>
                   </td>
                   <td>
                     <p>
                       <strong>{tr["미등원"]}일</strong>
                     </p>
                   </td>
-                  <td>
+                  <td onClick={() => {
+                          nameClick("이번주학습", index);
+                        }}>
                     <p
                       className={
                         ["고1", "고2", "고3"].includes(tr["분류"]) === true &&
@@ -534,7 +782,9 @@ function WeeklymeetingWrite() {
                       <strong>{isNaN(tr["이번주평균학습"])===false ? `${tr["이번주평균학습"]}시간` : "-"}</strong>
                     </p>
                   </td>
-                  <td>
+                  <td onClick={() => {
+                          nameClick("전주학습", index);
+                        }}>
                     <p
                       className={
                         ["고1", "고2", "고3"].includes(tr["분류"]) === true &&
@@ -565,7 +815,9 @@ function WeeklymeetingWrite() {
                       <strong>{isNaN(tr["전주평균학습"])===false ? `${tr["전주평균학습"]}시간` : "-"}</strong>
                     </p>
                   </td>
-                  <td>
+                  <td onClick={() => {
+                          nameClick("전월학습", index);
+                        }}>
                     <p
                       className={
                         ["고1", "고2", "고3"].includes(tr["분류"]) === true &&

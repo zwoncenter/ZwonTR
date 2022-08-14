@@ -267,7 +267,6 @@ function Dashboard() {
             className="w-20"
             onClick={() => {
               console.log(data);
-              console.log(manufacturedData);
             }}
           >
             <span>
@@ -464,8 +463,8 @@ function Dashboard() {
                 ]}
                 layout={{
                   margin: { t: 0, b: 30, l: 60, r: 10, pad: 0 },
-                  width: 1100,
-                  height: 470,
+                  width: 1000,
+                  height: 400,
                   xaxis: {
                     title: "날짜",
                   },
@@ -581,8 +580,8 @@ function Dashboard() {
                 ]}
                 layout={{
                   margin: { t: 0, b: 30, l: 60, r: 10, pad: 0 },
-                  width: 1100,
-                  height: 470,
+                  width: 1000,
+                  height: 400,
                   xaxis: {
                     title: "날짜",
                   },
@@ -690,8 +689,8 @@ function Dashboard() {
                 ]}
                 layout={{
                   margin: { t: 0, b: 30, l: 60, r: 10, pad: 0 },
-                  width: 1100,
-                  height: 470,
+                  width: 1000,
+                  height: 400,
                   xaxis: {
                     title: "날짜",
                   },
@@ -750,8 +749,8 @@ function Dashboard() {
                   ]}
                   layout={{
                     margin: { t: 0, b: 30, l: 40, r: 30, pad: 0 },
-                    width: 300,
-                    height: 300,
+                    width: 260,
+                    height: 280,
                     xaxis: {
                       title: "취침시각(시/분)",
                       tickformat: "%H:%M",
@@ -812,8 +811,8 @@ function Dashboard() {
                   ]}
                   layout={{
                     margin: { t: 0, b: 30, l: 40, r: 30, pad: 0 },
-                    width: 300,
-                    height: 300,
+                    width: 260,
+                    height: 280,
                     xaxis: {
                       title: "기상시각(시/분)",
                       tickformat: "%H:%M",
@@ -874,8 +873,8 @@ function Dashboard() {
                   ]}
                   layout={{
                     margin: { t: 0, b: 30, l: 40, r: 30, pad: 0 },
-                    width: 300,
-                    height: 300,
+                    width: 260,
+                    height: 280,
                     xaxis: {
                       title: "등원시각(시/분)",
                       tickformat: "%H:%M",
