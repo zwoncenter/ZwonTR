@@ -530,7 +530,7 @@ function Dashboard() {
             <div className="dashcard"></div>
           </div>
         ) : chartMode[1] == 1 ? ( //기상
-          <div className="dashcard contentbox">
+          <div className="dashcard contentbox col-lg-10">
             <div className="dashcard FlowChart">
               <p>
                 <strong>[ 기상 추이 ]</strong>
@@ -599,7 +599,7 @@ function Dashboard() {
             <div className="dashcard"></div>
           </div>
         ) : chartMode[2] == 1 ? ( //등원
-          <div className="dashcard contentbox">
+          <div className="dashcard contentbox col-lg-10">
             <div className="dashcard LatePie">
               <p>
                 <strong>[ 지각율 ]</strong>
@@ -707,7 +707,7 @@ function Dashboard() {
             <div className="dashcard"></div>
           </div>
         ) : chartMode[3] == 1 ? ( //학습시간
-          <div className="dashcard contentbox">
+          <div className="dashcard contentbox col-lg-10">
             <div className="dashcard lifecycleChartSleep">
               <p>
                 <strong>[ 취침-학습패턴 ]</strong>

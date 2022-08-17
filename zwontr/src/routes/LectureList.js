@@ -15,6 +15,11 @@ function LectureList() {
   const koreaNow = new Date(utcNow + koreaTimeDiff);
   const today = koreaNow.toISOString().split("T")[0];
 
+  // 강의 정렬 관련 코드
+
+  const [managerOn, setmanagerOn] = useState(false);
+  const [startdayOn, setstartdayOn] = useState(false);
+
   // 강의 추가 관련 코드
   const [modal, setmodal] = useState(false);
   const modalOpen = () => setmodal(true);
@@ -69,8 +74,6 @@ function LectureList() {
     assignKey: 0,
   });
 
-  
-
   // 강의 수정 관련 코드
   const [reviseModal, setreviseModal] = useState(false);
   const [existlecture, setexistlecture] = useState({});
@@ -78,30 +81,30 @@ function LectureList() {
   const reviseModalOpen = (lecture) => {
     setexistlecture(lecture);
     setreviseModal(true);
-  }
+  };
 
   const reviseModalClose = () => {
     setexistlecture({});
     setreviseModal(false);
-  }
-
+  };
 
   const reviseLecture = async () => {
     if (!window.confirm("강의를 수정하시겠습니까?")) return;
-    
-    axios.put("/api/Lecture", existlecture)
-    .then((result) => {
-      if (result.data === "로그인필요") {
-        window.alert("로그인이 필요합니다.")
-        return history.push("/")
-      }
-      window.alert("수정되었습니다")
-      return window.location.replace("/Lecture");
-    })
-    .catch((err) => {
-      return window.alert("수정에 실패했습니다", err);
-    })
-  }
+
+    axios
+      .put("/api/Lecture", existlecture)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        }
+        window.alert("수정되었습니다");
+        return window.location.replace("/Lecture");
+      })
+      .catch((err) => {
+        return window.alert("수정에 실패했습니다", err);
+      });
+  };
 
   // 강의 삭제 관련 코드
   const deleteLecture = async (studentList, lecture) => {
@@ -180,6 +183,7 @@ function LectureList() {
   return (
     <div className="background text-center">
       <h1 className="mt-3 fw-bold">강의 관리</h1>
+      
       <Button
         variant="success"
         className="color-purple"
@@ -189,6 +193,9 @@ function LectureList() {
       >
         강의 추가
       </Button>
+
+      
+      
 
       {/* 강의 생성 Modal */}
       <Modal show={modal} onHide={modalClose}>
@@ -395,30 +402,65 @@ function LectureList() {
       </Modal>
 
       <div className="row m-auto lectureListBox">
+      <div className="d-flex flex-row-reverse">
+      <Button
+        className="me-2 color-gray-purple"
+        variant="secondary"
+        onClick={() => {
+          const newlectureList = [...lectureList];
+          newlectureList.sort(function (a, b) {
+            return (+(a.manager > b.manager) - 0.5) * (+!managerOn - 0.5);
+          });
+          setlectureList(newlectureList);
+          setmanagerOn(!managerOn);
+          setstartdayOn(false);
+        }}
+      >
+        매니저순 정렬
+      </Button>
+      <Button
+        className="me-2 color-gray-purple"
+        variant="secondary"
+        onClick={() => {
+          const newlectureList = [...lectureList];
+          newlectureList.sort(function (a, b) {
+            return (+(a.startday > b.startday) - 0.5) * (+!startdayOn - 0.5);
+          });
+          setlectureList(newlectureList);
+          setmanagerOn(false);
+          setstartdayOn(!startdayOn);
+        }}
+      >
+        강의시작일순 정렬
+      </Button>
+      </div>
         {lectureList.map((element, idx) => {
           return (
             <div className="col-sm-6 col-md-4 col-lg-3">
               <Card
-                className="mt-2 "
+                className="mt-2 lecture-card"
                 key={idx}
                 onClick={() => {
                   history.push(`/Lecture/${element["lectureID"]}`);
                 }}
               >
-                <Card.Header as="h5">
-                  {element["lectureName"]}
-                </Card.Header>
+                <Card.Header as="h5">{element["lectureName"]}</Card.Header>
                 <Card.Body>
                   <div className="text-start">
                     {/* <Card.Text>강의명 : {element["lectureName"]}</Card.Text> */}
+                    <Card.Text>과목 : {element["subject"]}</Card.Text>
                     <Card.Text>매니저 : {element["manager"]}</Card.Text>
                     <Card.Text>수강생 : {element["studentList"].length}명</Card.Text>
                   </div>
 
-                  <Button onClick={(e) => {
-                    e.stopPropagation();
-                    reviseModalOpen(element);
-                  }}  variant="secondary" className="btn-sm me-2 color-purple">
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      reviseModalOpen(element);
+                    }}
+                    variant="secondary"
+                    className="btn-sm me-2 color-purple"
+                  >
                     <FaPencilAlt></FaPencilAlt>
                   </Button>
 

@@ -302,6 +302,11 @@ function TRedit() {
       }
     }
 
+    if (TR.작성매니저 && TR.매니저피드백.length < 40) {
+      window.alert("귀가 피드백은 최소 40자 이상 입력되어야 합니다.")
+      return false;
+    }
+
     return true;
   }
 

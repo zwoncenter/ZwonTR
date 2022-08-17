@@ -282,6 +282,10 @@ function TRwrite() {
           );
           return false;
         }
+        // if (TR.학습[i].최근진도 >= parseInt(newstuDB["진행중교재"][i]["총교재량"].match(/\d+/))) {
+        //   window.alert("")
+        //   return false;
+        // }
       }
     }
     if (isNaN(TR.실제학습)) {
@@ -302,6 +306,11 @@ function TRwrite() {
           }
         }
       }
+    }
+    
+    if (TR.작성매니저 && TR.매니저피드백.length < 40) {
+      window.alert("귀가 피드백은 최소 40자 이상 입력되어야 합니다.")
+      return false;
     }
     return true;
   }

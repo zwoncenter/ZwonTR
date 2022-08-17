@@ -152,7 +152,7 @@ function StuListpage() {
         <h2>
           <strong>지원센터 학생 목록</strong>
         </h2>
-        {/* {buylist.length !== 0 ? (
+        {buylist.length !== 0 ? (
           <Card className={openlist ? "TextbookCard openlist" : "TextbookCard"}>
             <div className="row">
               <div className="col-1">
@@ -206,7 +206,7 @@ function StuListpage() {
               </div>
             </div>
           </Card>
-        ) : null} */}
+        ) : null}
 
         <Card className="stuCard">
           <Button variant="secondary" className="stuAddbtn" onClick={addClick}>

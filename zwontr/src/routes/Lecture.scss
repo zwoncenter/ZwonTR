@@ -24,13 +24,22 @@
 
 .lectureListBox {
     min-width: 300px;
-    max-width: 1000px;
+    max-width: 1200px;
     width : 90%; 
 }
 
 .color-purple {
     background-color: #5500d3;
     border-color: #5500d3;
+}
+
+.color-gray-purple {
+    background-color: #B1A8B9;
+    border-color: #B1A8B9;
+}
+
+.lecture-card {
+    // height: 200px;
 }
 
 .after {
