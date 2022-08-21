@@ -117,8 +117,7 @@ function StuListpage() {
             tmp = "등원";
             if (newtodayTRlist[j]["작성매니저"] && newtodayTRlist[j]["작성매니저"] !== "선택") {
               tmp = "귀가";
-            }
-            else if (newtodayTRlist[j]["TR작성여부"] === true) {
+            } else if (newtodayTRlist[j]["TR작성여부"] === true) {
               tmp = "TR검사완료";
             }
           } else if (newtodayTRlist[j]["결석여부"] === true) {
@@ -213,11 +212,11 @@ function StuListpage() {
           <Button variant="secondary" className="stuAddbtn" onClick={addClick}>
             <strong>+</strong>
           </Button>
-          <ListGroup variant="flush" className="stuCardstuList">
+          <div className="row stuCardstuList">
             {studentDBlist
               ? studentDBlist.map(function (db, index) {
                   return (
-                    <div className="stuListItem" key={index}>
+                    <div className="col-sm-6 col-md-4 stuListItem" key={index}>
                       <ListGroup.Item
                         className={
                           Written[index] === "TR검사완료"
@@ -236,34 +235,16 @@ function StuListpage() {
                           nameClick(db, index);
                         }}
                       >
-                        <p>{db.이름}</p>
-                        {Written[index] === "미등원" && (
-                          <img
-                            src={absent}
-                            alt="absent"
-                            className="absent-sign"
-                          />
-                        )}
-                        {Written[index] === "등원예정" && (
-                          <img
-                            src={notcame}
-                            alt="notcame"
-                            className="absent-sign"
-                          />
-                        )}
-                        {Written[index] === "TR검사완료" && (
-                          <img
-                            src={trchecked}
-                            alt="trchecked"
-                            className="absent-sign"
-                          />
-                        )}
+                        <p className="d-inline">{db.이름}</p>
+                        {Written[index] === "미등원" && <img src={absent} alt="absent" className="absent-sign" />}
+                        {Written[index] === "등원예정" && <img src={notcame} alt="notcame" className="absent-sign" />}
+                        {Written[index] === "TR검사완료" && <img src={trchecked} alt="trchecked" className="absent-sign" />}
                       </ListGroup.Item>
                     </div>
                   );
                 })
               : null}
-          </ListGroup>
+          </div>
         </Card>
 
         {modalShow === true ? (

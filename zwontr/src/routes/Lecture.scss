@@ -15,11 +15,31 @@
     float: right;
 }
 
-.btn-del {
-    width: 25px;
-    height: 25px;
+.btn-sm {
+    width: 23px;
+    height: 23px;
     padding: 0px;
     box-sizing: border-box;
+}
+
+.lectureListBox {
+    min-width: 300px;
+    max-width: 1200px;
+    width : 90%; 
+}
+
+.color-purple {
+    background-color: #5500d3;
+    border-color: #5500d3;
+}
+
+.color-gray-purple {
+    background-color: #B1A8B9;
+    border-color: #B1A8B9;
+}
+
+.lecture-card {
+    // height: 200px;
 }
 
 .after {

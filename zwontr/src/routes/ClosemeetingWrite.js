@@ -9,6 +9,9 @@ import menuarrow from "../next.png";
 function ClosemeetingWrite() {
   let history = useHistory();
   let paramDate = useParams()["date"];
+  let date = new Date(paramDate);
+
+  const days = ["일", "월", "화", "수", "목", "금", "토"];
 
   const [todayTRlist, settodayTRlist] = useState([]);
   const [closeFeedback, setcloseFeedback] = useState({});
@@ -37,21 +40,23 @@ function ClosemeetingWrite() {
   return (
     <div>
       <div className="trEdit-background">
-        <h3>{paramDate} 일일 결산</h3>
+        <h3>
+          {paramDate} ({days[date.getDay()]}) 일일 결산
+        </h3>
 
         <Button
           className="btn-commit btn-save"
           onClick={() => {
             if (window.confirm("일일결산 내용을 저장하시겠습니까?")) {
               axios
-                .post(`/api/Closemeeting/write/${paramDate}`, {
+                .post(`/api/Closemeeting/${paramDate}`, {
                   날짜: paramDate,
                   closeFeedback: closeFeedback,
                 })
                 .then(function (result) {
                   if (result.data === true) {
                     window.alert("저장되었습니다.");
-                    return history.push(`/Closemeeting/Edit/${paramDate}`)
+                    return history.push(`/Closemeeting/Edit/${paramDate}`);
                   } else if (result.data === "로그인필요") {
                     window.alert("로그인이 필요합니다.");
                     return history.push("/");
@@ -76,7 +81,7 @@ function ClosemeetingWrite() {
           onClick={() => {
             if (selectedDate !== "") {
               axios
-                .get(`/api/Closemeeting/find/${selectedDate}`)
+                .get(`/api/Closemeeting/${selectedDate}`)
                 .then((result) => {
                   if (result["data"] === null) {
                     if (window.confirm("해당 날짜의 일일결산이 존재하지 않습니다. 새로 작성하시겠습니까?")) {
@@ -137,7 +142,19 @@ function ClosemeetingWrite() {
                     <p>{tr["이름"]}</p>
                   </td>
                   {tr["결석여부"] ? (
-                    <td colSpan={6}> <p className="abscent"> {tr["결석여부"] === true ? <>미등원 - {tr["결석사유"]} : {tr["결석상세내용"]} </> :  <>등원예정</> }   </p></td>
+                    <td colSpan={6}>
+                      {" "}
+                      <p className="abscent">
+                        {" "}
+                        {tr["결석여부"] === true ? (
+                          <>
+                            미등원 - {tr["결석사유"]} : {tr["결석상세내용"]}{" "}
+                          </>
+                        ) : (
+                          <>등원예정</>
+                        )}{" "}
+                      </p>
+                    </td>
                   ) : (
                     <>
                       <td>
@@ -162,23 +179,28 @@ function ClosemeetingWrite() {
                     </>
                   )}
 
-                  <td>{tr["중간피드백"] ? <>
-                  <p>
-                      (중간) {tr["중간매니저"]} : {tr["중간피드백"]}
-                    </p>
-                    <br />
-                  </> : null}
-                  {tr["매니저피드백"] ? <>
-                  <p>
-                      {tr["작성매니저"]} : {tr["매니저피드백"]}
-                    </p>
-                  </> : null}
+                  <td>
+                    {tr["중간피드백"] ? (
+                      <>
+                        <p>
+                          (중간) {tr["중간매니저"]} : {tr["중간피드백"]}
+                        </p>
+                        <br />
+                      </>
+                    ) : null}
+                    {tr["매니저피드백"] ? (
+                      <>
+                        <p>
+                          {tr["작성매니저"]} : {tr["매니저피드백"]}
+                        </p>
+                      </>
+                    ) : null}
                   </td>
                   <td>
                     <textarea
                       className="textArea"
                       rows="3"
-                      value={closeFeedback[tr["이름"]]}
+                      value={tr["이름"] in closeFeedback ? closeFeedback[tr["이름"]] : ""}
                       onChange={(e) => {
                         const newcloseFeedback = JSON.parse(JSON.stringify(closeFeedback));
                         newcloseFeedback[tr["이름"]] = e.target.value;

@@ -54,7 +54,7 @@ function Todolist() {
           onClick={() => {
               if (window.confirm("저장하시겠습니까?")){
                 axios
-                    .put("/api/Todolist/edit", todoList)
+                    .put("/api/Todolist", todoList)
                     .then(function (result) {
                         if (result.data === true) {
                         window.alert("저장되었습니다.");
