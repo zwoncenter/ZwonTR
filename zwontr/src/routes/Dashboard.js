@@ -56,6 +56,31 @@ function Dashboard() {
   // 데이터 초기화 - 취침시각 그래프
   const [manufacturedData, setmanufacturedData] = useState([]);
 
+  // 학습데이터 Tooltip 설정
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length){
+      return (
+        <div>
+          <p><strong>{manufacturedData.filter((element)=>{
+            return element["날짜"]===`${label}`
+          })
+          .map((element, i)=>{
+            return element["매니저피드백"]
+          })}
+          </strong></p>
+        </div>
+      );  
+    }
+    return null;
+  };
+
+  const getIntroOfPage = (date) => {
+      manufacturedData.filter((studb) => {
+        return studb["ID"].includes(searchStudent);
+      })
+  };
+
+
   useEffect(async () => {
     const newstudentDBlist = await axios
       .get("/api/studentList")
@@ -198,7 +223,8 @@ function Dashboard() {
           실제등원: convertFromStringToDateTime(element["실제등원"]),
           목표학습: element["목표학습"],
           실제학습: element["실제학습"],
-          실제활용: element["실제학습"] + element["프로그램시간"]
+          실제활용: element["실제학습"] + element["프로그램시간"],
+          매니저피드백: element['매니저피드백']
         };
       });
       setmanufacturedData(temporal);
@@ -905,7 +931,7 @@ function Dashboard() {
                 <AreaChart className="graph" width={1000} height={500} data={manufacturedData}>
                   <Area type="monotone" dataKey={include_program ? "실제활용" : "실제학습"} stroke="#FFBB28" fill="#FFBB28" />
                   <CartesianGrid strokeDasharray="3 3" />
-                  <Tooltip />
+                  <Tooltip content={<CustomTooltip />}/>
                   <XAxis dataKey="날짜" />
                   <YAxis />
                   <ReferenceLine y={aver} label={`Average : ${aver}`} stroke="#0088FE" strokeDasharray="3 3" />
