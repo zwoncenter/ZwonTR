@@ -161,3 +161,12 @@ textarea {
 .lifecycle-content{
     display: flex;
 }
+
+.customTooltip-Box{
+    background-color: white;
+    border-radius: 10px;
+    width: 210px;
+    padding: 5px;
+    border: 1px solid gray;
+    box-shadow: 3px 1px 1px black;
+}

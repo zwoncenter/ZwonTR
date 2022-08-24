@@ -248,7 +248,9 @@ function StuListpage() {
         </Card>
 
         {modalShow === true ? (
-          <Modal show={modalShow} onHide={modalClose} className="TRModal">
+          <Modal show={modalShow} onHide={modalClose}
+          className="TRModal"
+          dialogClassName="modal-35w">
             <Modal.Header closeButton>
               <Modal.Title>{chosenID ? chosenID.split("_")[0] : ""}</Modal.Title>
             </Modal.Header>
@@ -284,6 +286,17 @@ function StuListpage() {
                 >
                   TR(일간하루)
                 </Button>
+
+                <Button
+                  variant="secondary"
+                  className="m-1 stuButton"
+                  onClick={() => {
+                    window.alert("준비중입니다.");
+                    // history.push(`/Weeklystudyfeedback/${chosenID}`);
+                  }}
+                >
+                  주간학습피드백
+                </Button>
               </div>
             </Modal.Body>
             {TRlistShow === true ? (
@@ -316,6 +329,8 @@ function StuListpage() {
                     );
                   })}
                 </ListGroup>
+
+
               </div>
             ) : null}
           </Modal>

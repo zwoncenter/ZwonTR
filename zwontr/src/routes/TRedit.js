@@ -5,6 +5,8 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import TimePicker from "react-time-picker";
 import { FaPencilAlt, FaTrash, FaCheck, FaUndo } from "react-icons/fa";
+import { CgMailForward } from "react-icons/cg";
+
 
 function TRedit() {
   // 공통 code
@@ -1069,7 +1071,7 @@ function TRedit() {
                                   updatelecture(newlecture);
                                 }}
                               >
-                                <FaCheck></FaCheck>
+                                <CgMailForward></CgMailForward>
                               </Button>
                             </p>
                           </ul>

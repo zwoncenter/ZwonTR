@@ -60,7 +60,7 @@ function Dashboard() {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length){
       return (
-        <div>
+        <div className="customTooltip-Box">
           <p><strong>{manufacturedData.filter((element)=>{
             return element["날짜"]===`${label}`
           })

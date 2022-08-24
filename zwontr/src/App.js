@@ -25,6 +25,7 @@ import WeeklymeetingWrite from "./routes/WeeklymeetingWrite";
 import WeeklymeetingEdit from "./routes/WeeklymeetingEdit";
 import Lecture from "./routes/Lecture";
 import LectureList from "./routes/LectureList";
+import Weeklystudyfeedback from "./routes/Weeklystudyfeedback";
 
 function App() {
   let history = useHistory();
@@ -222,10 +223,13 @@ function App() {
         <Route exact path="/Lecture">
           <LectureList />
         </Route>
-
         <Route exact path="/Lecture/:lectureID">
           <Lecture />
         </Route>
+        <Route exact path="/Weeklystudyfeedback/:ID">
+          <Weeklystudyfeedback />
+        </Route>
+
       </Switch>
     </div>
   );
