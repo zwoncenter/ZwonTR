@@ -55,6 +55,15 @@ function App() {
     return output;
   }
 
+  function getNextMon(inputDate) {
+    var tmpDate = new Date(inputDate);
+    var day = tmpDate.getDay();
+    var diff = tmpDate.getDate() - day + ((day == 0 ? 1 : 8) + 0);
+    tmpDate = new Date(tmpDate.setDate(diff));
+    var output = tmpDate.toISOString().split("T")[0];
+    return output;
+  }
+
   return (
     <div className="App">
       {window.location.pathname !== "/" ? 
@@ -79,9 +88,9 @@ function App() {
                 .then((result) => {
                   console.log(result);
                   if (result["data"] === null) {
-                    history.push(`/Weeklymeeting/Write/${thisMonday}`);
+                    history.push(`/Weeklymeeting/Write/${getNextMon(thisMonday)}`);
                   } else {
-                    history.push(`/Weeklymeeting/Edit/${thisMonday}`);
+                    history.push(`/Weeklymeeting/Edit/${getNextMon(thisMonday)}`);
                   }
                 })
                 .catch((err) => {
