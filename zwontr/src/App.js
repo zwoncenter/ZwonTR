@@ -34,7 +34,7 @@ function App() {
   const koreaTimeDiff = 9 * 60 * 60 * 1000;
   const koreaNow = new Date(utcNow + koreaTimeDiff);
   const today = koreaNow.toISOString().split("T")[0];
-  const thisMonday = getThisMon(koreaNow);
+  const thisMonday = getNextMon(koreaNow);
 
   const [studentList, setstudentList] = useState([]); // 학생 DB 리스트
   const [선택된index, 선택된index변경] = useState(0);
@@ -85,8 +85,8 @@ function App() {
             onClick={() => {
               axios
                 .get(`/api/Weeklymeeting/${thisMonday}`)
-                .then((result) => {
-                  console.log(result);
+                .then((result) => { 
+                  // console.log(result);
                   if (result["data"] === null) {
                     history.push(`/Weeklymeeting/Write/${thisMonday}`);
                   } else {
