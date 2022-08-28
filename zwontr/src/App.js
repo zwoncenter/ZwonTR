@@ -88,9 +88,9 @@ function App() {
                 .then((result) => {
                   console.log(result);
                   if (result["data"] === null) {
-                    history.push(`/Weeklymeeting/Write/${getNextMon(thisMonday)}`);
+                    history.push(`/Weeklymeeting/Write/${thisMonday}`);
                   } else {
-                    history.push(`/Weeklymeeting/Edit/${getNextMon(thisMonday)}`);
+                    history.push(`/Weeklymeeting/Edit/${thisMonday}`);
                   }
                 })
                 .catch((err) => {
