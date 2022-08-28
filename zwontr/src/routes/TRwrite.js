@@ -1304,6 +1304,11 @@ function TRwrite() {
                       .then(function (result) {
                         if (result.data === "로그인필요") {
                           window.alert("로그인이 필요합니다.");
+                          return history.push("/");
+                        }
+                        if (result.data !== true) {
+                          console.log(result.data);
+                          window.alert(result.data);
                         }
                       })
                       .catch(function (err) {

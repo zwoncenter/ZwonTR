@@ -61,8 +61,8 @@ function ClosemeetingWrite() {
                     window.alert("로그인이 필요합니다.");
                     return history.push("/");
                   } else {
-                    console.log(result);
-                    window.alert(result);
+                    console.log(result.data);
+                    window.alert(result.data);
                   }
                 })
                 .catch(function (err) {

@@ -94,12 +94,16 @@ function LectureList() {
     axios
       .put("/api/Lecture", existlecture)
       .then((result) => {
-        if (result.data === "로그인필요") {
+        if (result.data === true) {
+          window.alert("수정되었습니다");
+          return window.location.replace("/Lecture");
+        } else if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다.");
           return history.push("/");
+        } else {
+          console.log(result.data);
+          window.alert(result.data);
         }
-        window.alert("수정되었습니다");
-        return window.location.replace("/Lecture");
       })
       .catch((err) => {
         return window.alert("수정에 실패했습니다", err);
@@ -131,6 +135,10 @@ function LectureList() {
         .then(function (result) {
           if (result.data === "로그인필요") {
             window.alert("로그인이 필요합니다.");
+            return history.push("/");
+          }
+          if (result.data !== true) {
+            window.alert(result.data);
           }
         })
         .catch(function (err) {

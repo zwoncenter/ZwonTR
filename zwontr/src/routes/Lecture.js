@@ -49,8 +49,15 @@ function Lecture() {
     axios
       .put(`/api/Lecture`, newlecture)
       .then(function (result) {
-        if (result.data === "로그인필요") {
+        if (result.data === true) {
+          window.alert("수정되었습니다.");
+          return window.location.reload();
+        } else if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        } else {
+          console.log(result.data);
+          window.alert(result.data);
         }
       })
       .catch(function (err) {
@@ -111,8 +118,14 @@ function Lecture() {
       axios
         .put("/api/StudentDB", stuDB)
         .then(function (result) {
-          if (result.data === "로그인필요") {
+          if (result.data === true) {
+            return window.location.reload();
+          } else if (result.data === "로그인필요") {
             window.alert("로그인이 필요합니다.");
+            return history.push("/");
+          } else {
+            console.log(result.data);
+            window.alert(result.data);
           }
         })
         .catch(function (err) {
@@ -159,10 +172,17 @@ function Lecture() {
       await stuDB["수강중강의"].splice(stuDB["수강중강의"].indexOf(newlecture["lectureID"]), 1);
     }
     axios
-      .put("/api/StudentDB/edit", stuDB)
+      .put("/api/StudentDB", stuDB)
       .then(function (result) {
-        if (result.data === "로그인필요") {
+        if (result.data === true) {
+          window.alert("삭제되었습니다.");
+          return window.location.reload();
+        } else if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        } else {
+          console.log(result.data);
+          window.alert(result.data);
         }
       })
       .catch(function (err) {
@@ -527,7 +547,7 @@ function Lecture() {
             학생 추가
           </Button>
           <div className="row">
-              <h4 className="text-light bg-dark">진행중 O</h4>
+              <h4 className="text-light bg-dark">과제 O</h4>
                 {lecture["studentList"]
                   .filter((student) => lecture["students"][student]["진행중과제"].length !== 0)
                   .map((student, index) => {
@@ -630,7 +650,7 @@ function Lecture() {
                       </div>
                     );
                   })}
-              <h4 className="text-light bg-dark mt-4">진행중 X</h4>
+              <h4 className="text-light bg-dark mt-4">과제 X</h4>
             {lecture["studentList"]
               .filter((student) => lecture["students"][student]["진행중과제"].length === 0)
               .map((student, index) => {

@@ -1291,15 +1291,16 @@ function StudentEdit() {
                     if (result.data === "로그인필요") {
                       window.alert("로그인이 필요합니다.");
                       return history.push("/");
+                    } 
+                    if (result.data === true) {
+                      window.alert("수정되었습니다");
+                      return history.push("/studentList");
                     }
-                    window.alert("수정되었습니다");
+                    return window.alert(result.data);
                   })
                   .catch(function (err) {
                     window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
                   })
-                  .then(function () {
-                    history.push("/studentList");
-                  });
               }
             }}
           >

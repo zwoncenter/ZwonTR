@@ -788,19 +788,21 @@ function StuInfoAdd() {
               axios
                 .post("/api/StudentDB", stuInfo)
                 .then(function (result) {
-                  if (result.data === "로그인필요") {
+                  if (result.data === true) {
+                    window.alert("저장되었습니다.");
+                    return history.push("/studentList");
+                  } else if (result.data === "로그인필요") {
                     window.alert("로그인이 필요합니다.");
                     return history.push("/");
+                  } else {
+                    console.log(result.data);
+                    window.alert(result.data);
                   }
-                  window.alert("저장되었습니다");
                 })
                 .catch(function (err) {
                   console.log(err);
                   window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
                 })
-                .then(function () {
-                  history.push("/studentList");
-                });
             }
           }
         }}

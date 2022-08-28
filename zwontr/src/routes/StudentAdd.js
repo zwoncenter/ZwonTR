@@ -3,6 +3,7 @@ import { Form, Table, Row, Col, Button, Badge, InputGroup, FormControl } from "r
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { FaWindowClose } from "react-icons/fa";
 
 function StudentAdd(props) {
   const history = useHistory();
@@ -1183,19 +1184,21 @@ function StudentAdd(props) {
                 axios
                   .post("/api/StudentDB", stuDB)
                   .then(function (result) {
+                    if (result.data === true) {
+                      window.alert("저장되었습니다");
+                      return history.push("/studentList");
+                    }
                     if (result.data === "로그인필요") {
                       window.alert("로그인이 필요합니다.");
                       return history.push("/");
                     }
-                    window.alert("저장되었습니다");
+                    return window.alert(result.data)
+                    
                   })
                   .catch(function (err) {
                     console.log(err);
                     window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
                   })
-                  .then(function () {
-                    history.push("/studentList");
-                  });
               }
             }}
           >
