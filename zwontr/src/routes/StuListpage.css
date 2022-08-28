@@ -28,7 +28,7 @@ h6 {
   background: url("../../public/layered-waves-haikei.png");
   background-size: 100% 100%;
   padding: 1px;
-  overflow: auto;
+  overflow: hidden;
 }
 .stuList-background h2 {
   color: white;
@@ -163,6 +163,15 @@ h6 {
 .TRModal {
   padding: 30px;
 }
+.TRModal .modal-content {
+  min-height: 100px;
+}
+
+.modal-35w {
+  max-width: 33%;
+  margin: auto;
+  margin-top: 150px;
+}
 
 .stumap {
   display: flex;
@@ -267,4 +276,4 @@ h6 {
 .listbox {
   overflow: auto;
   max-height: 400px;
-}
+}/*# sourceMappingURL=StuListpage.css.map */
