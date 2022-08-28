@@ -68,6 +68,7 @@ function StuListpage() {
     const newstudentDBlist = await axios
       .get("/api/studentList")
       .then((result) => {
+        console.log(result.data);
         return result.data;
       })
       .catch((err) => {
