@@ -46,23 +46,23 @@ function App() {
 
   const { pathname } = useLocation();
 
-  function getThisMon() {
-    var paramDate = new Date();
-    var day = paramDate.getDay();
-    var diff = paramDate.getDate() - day + (day == 0 ? -6 : 1);
-    paramDate = new Date(paramDate.setDate(diff));
-    var output = paramDate.toISOString().split("T")[0];
-    return output;
-  }
-
-  // function getNextMon(inputDate) {
-  //   var tmpDate = new Date(inputDate);
-  //   var day = tmpDate.getDay();
-  //   var diff = tmpDate.getDate() - day + ((day == 0 ? 1 : 8) + 0);
-  //   tmpDate = new Date(tmpDate.setDate(diff));
-  //   var output = tmpDate.toISOString().split("T")[0];
+  // function getThisMon() {
+  //   var paramDate = new Date();
+  //   var day = paramDate.getDay();
+  //   var diff = paramDate.getDate() - day + (day == 0 ? -6 : 1);
+  //   paramDate = new Date(paramDate.setDate(diff));
+  //   var output = paramDate.toISOString().split("T")[0];
   //   return output;
   // }
+
+  function getNextMon(inputDate) {
+    var tmpDate = new Date(inputDate);
+    var day = tmpDate.getDay();
+    var diff = tmpDate.getDate() - day + ((day == 0 ? 1 : 8) + 0);
+    tmpDate = new Date(tmpDate.setDate(diff));
+    var output = tmpDate.toISOString().split("T")[0];
+    return output;
+  }
 
   return (
     <div className="App">
