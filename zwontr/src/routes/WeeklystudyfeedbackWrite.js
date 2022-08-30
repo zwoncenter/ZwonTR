@@ -53,19 +53,19 @@ function WeeklystudyfeedbackWrite() {
 }
 
   useEffect(async () => {
-    // const existstuInfo = await axios
-    //   .get(`/api/StudentDB/${param["ID"]}`)
-    //   .then((result) => {
-    //     if (result.data === "로그인필요") {
-    //       window.alert("로그인이 필요합니다.");
-    //       return history.push("/");
-    //     }
-    //     return result["data"]["진행중교재"];
-    //   })
-    //   .catch((err) => {
-    //     return err;
-    //   });
-    // settextbookList(existstuInfo);
+    const existstuInfo = await axios
+      .get(`/api/StudentDB/${param["ID"]}`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        }
+        return result["data"]["진행중교재"];
+      })
+      .catch((err) => {
+        return err;
+      });
+    settextbookList(existstuInfo);
 
     const studentTRlist = await axios
       .get(`/api/TR/${param["ID"]}`)
