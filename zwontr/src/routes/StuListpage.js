@@ -1,7 +1,7 @@
 import "../App.scss";
 import "./StuListpage.scss";
 import { Button, Card, ListGroup, Modal, Table } from "react-bootstrap";
-import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
+import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
 // import menuarrow from "../next.png";
@@ -11,6 +11,7 @@ import trchecked from "./trchecked.png";
 
 function StuListpage() {
   let history = useHistory();
+  // const param = useParams();
   const now = new Date(); // 현재 시간
   const utcNow = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
   const koreaTimeDiff = 9 * 60 * 60 * 1000;
@@ -45,6 +46,32 @@ function StuListpage() {
       history.push("/StuInfoAdd");
     }
   };
+  const [thisweek, setthisweek] = useState(getThisWeek());
+
+  function getThisWeek() {
+    var inputDate = new Date();
+    inputDate.setHours(0, 0, 0, 0);
+    var day = inputDate.getDay();
+    var diff = inputDate.getDate() - day + (day == 0 ? -6 : 1);
+    inputDate = new Date(inputDate.setDate(diff));
+    var startdate = new Date(inputDate.setDate(inputDate.getDate()));
+    var enddate = new Date(inputDate.setDate(inputDate.getDate() + 7));
+    return [startdate, enddate];
+  }
+
+  function formatDate(date) {
+    var d = new Date(date),
+        month = '' + (d.getMonth() + 1),
+        day = '' + (d.getDate()-1),
+        year = d.getFullYear();
+
+    if (month.length < 2) 
+        month = '0' + month;
+    if (day.length < 2) 
+        day = '0' + day;
+
+    return [year, month, day].join('-');
+}
 
   // 학생 이름을 클릭 시, 선택된 ID를 바꾸고, 해당 ID의 TR리스트 조회
   async function nameClick(db, index) {
@@ -291,8 +318,18 @@ function StuListpage() {
                   variant="secondary"
                   className="m-1 stuButton"
                   onClick={() => {
-                    window.alert("준비중입니다.");
-                    // history.push(`/Weeklystudyfeedback/${chosenID}`);
+                    axios
+                      .get(`/api/Weeklystudyfeedback/${chosenID}/${formatDate(thisweek[1])}`)
+                      .then((result) => {
+                        if (result["data"] === null) {
+                          history.push(`/WeeklystudyfeedbackWrite/${chosenID}/${formatDate(thisweek[1])}`);
+                        } else {
+                          history.push(`/WeeklystudyfeedbackEdit/${chosenID}/${formatDate(thisweek[1])}`);
+                        }
+                      })
+                      .catch((err) => {
+                        console.log(err);
+                      });
                   }}
                 >
                   주간학습피드백

@@ -141,7 +141,7 @@ app.get("/api/managerList", loginCheck, (req, res) => {
 // StudentDB에 새로운 stuDB 추가 요청
 app.post("/api/StudentDB", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const newDB = req.body;
   db.collection("StudentDB").findOne({ ID: newDB.ID }, function (err, result) {
@@ -184,7 +184,7 @@ app.get("/api/StudentDB/:ID", loginCheck, function (req, res) {
 app.put("/api/StudentDB", loginCheck, function (req, res) {
   console.log(req["user"], req["user"]["ID"] === "guest");
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const newstuDB = req.body;
   const findID = newstuDB["ID"];
@@ -213,7 +213,7 @@ app.put("/api/StudentDB", loginCheck, function (req, res) {
 // StudentDB에 삭제 요청
 app.delete("/api/StudentDB/:ID", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const paramID = req.params.ID;
   db.collection("StudentDB").deleteOne({ ID: paramID }, (err, result) => {
@@ -266,7 +266,7 @@ app.get("/api/TR/:ID/:date", loginCheck, function (req, res) {
 
 app.post("/api/TR", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const newTR = req.body;
   db.collection("TR").findOne({ ID: newTR.ID, 날짜: newTR.날짜 }, function (err, result) {
@@ -286,9 +286,9 @@ app.post("/api/TR", loginCheck, function (req, res) {
 });
 
 app.put("/api/TR", loginCheck, function (req, res) {
-  console.log('req["user"]', req["user"])
+  console.log('req["user"]', req["user"]);
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const newTR = req.body;
   const findID = ObjectId(newTR._id);
@@ -319,7 +319,7 @@ app.put("/api/TR", loginCheck, function (req, res) {
 
 app.delete("/api/TR/:id", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const trID = ObjectId(req.params.id);
   db.collection("TR").deleteOne({ _id: trID }, (err, result) => {
@@ -335,7 +335,7 @@ app.delete("/api/TR/:id", loginCheck, function (req, res) {
 
 app.post("/api/Closemeeting/:date", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const paramDate = decodeURIComponent(req.params.date);
   const newClosemeeting = req.body;
@@ -367,7 +367,7 @@ app.get("/api/Closemeeting/:date", loginCheck, function (req, res) {
 
 app.put("/api/Closemeeting/:date", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const paramDate = decodeURIComponent(req.params.date);
   const newClosemeeting = req.body;
@@ -399,7 +399,7 @@ app.put("/api/Closemeeting/:date", loginCheck, function (req, res) {
 
 app.delete("/api/Closemeeting/:id", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const ClosemeetingID = ObjectId(req.params.id);
   console.log("마감회의 삭제 시도 :", ClosemeetingID);
@@ -419,11 +419,11 @@ app.delete("/api/Closemeeting/:id", loginCheck, function (req, res) {
 
 app.post("/api/Middlemeeting/:date", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const paramDate = decodeURIComponent(req.params.date);
   const newMiddlemeeting = req.body;
-  console.log("중간희 저장 시도 : ", paramDate);
+  console.log("중간회의 저장 시도 : ", paramDate);
   db.collection("Middlemeeting").findOne({ 날짜: paramDate }, function (err, result) {
     if (err) {
       console.log(`/api/Middlemeeting/write/:date - findOne Error : `, err);
@@ -456,7 +456,7 @@ app.get("/api/Middlemeeting/:date", loginCheck, function (req, res) {
 
 app.put("/api/Middlemeeting/:date", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const paramDate = decodeURIComponent(req.params.date);
   const newMiddlemeeting = req.body;
@@ -490,7 +490,7 @@ app.put("/api/Middlemeeting/:date", loginCheck, function (req, res) {
 
 app.delete("/api/Middlemeeting/:id", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const MiddlemeetingID = ObjectId(req.params.id);
   console.log("중간회의 삭제 시도 :", MiddlemeetingID);
@@ -519,7 +519,7 @@ app.get("/api/Todolist", loginCheck, function (req, res) {
 
 app.put("/api/Todolist", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const newTodolist = { Todolist: req.body };
   const findID = ObjectId("629317f4aca8d25d84a7d0e0");
@@ -545,7 +545,7 @@ app.get("/api/Textbook", loginCheck, function (req, res) {
 
 app.put("/api/Textbook", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const newTextbook = req.body;
   const findID = ObjectId("62b815e210c04d831adf2f5b");
@@ -572,7 +572,7 @@ app.get("/api/Lecture", loginCheck, (req, res) => {
 
 app.post("/api/Lecture", loginCheck, (req, res) => {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const newLecture = req.body;
   db.collection("Lecture").findOne({ lectureID: newLecture["ID"] }, (err, result) => {
@@ -593,38 +593,41 @@ app.post("/api/Lecture", loginCheck, (req, res) => {
 
 app.get("/api/Lecture/:lectureid", loginCheck, (req, res) => {
   const paramID = decodeURIComponent(req.params.lectureid);
-  db.collection("Lecture").findOne({lectureID : paramID}, (err, result) => {
+  db.collection("Lecture").findOne({ lectureID: paramID }, (err, result) => {
     if (err) {
-      return res.send(`/api/Lecture/${paramID} - findOne Error : ${err}`)
+      return res.send(`/api/Lecture/${paramID} - findOne Error : ${err}`);
     }
-    return res.json(result)
-  })
+    return res.json(result);
+  });
 });
 
 app.put("/api/Lecture", loginCheck, (req, res) => {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const newLecture = req.body;
-  const findID = ObjectId(newLecture["_id"])
-  delete newLecture["_id"]
-  db.collection("Lecture").updateOne({_id : findID}, {$set : newLecture}, (err, result) => {
-    if (err) {return res.send(`/api/Lecture - updateOne Error : ${err}`)}
-    return res.send(true)
-  })
-})
+  const findID = ObjectId(newLecture["_id"]);
+  delete newLecture["_id"];
+  db.collection("Lecture").updateOne({ _id: findID }, { $set: newLecture }, (err, result) => {
+    if (err) {
+      return res.send(`/api/Lecture - updateOne Error : ${err}`);
+    }
+    return res.send(true);
+  });
+});
 
 app.delete("/api/Lecture/:lectureid", loginCheck, (req, res) => {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const paramID = decodeURIComponent(req.params.lectureid);
-  db.collection("Lecture").deleteOne({lectureID : paramID}, (err, result) => {
-    if (err) {return res.send(`/api/Lecture/${paramID} - deleteOne Error : ${err}`)}
+  db.collection("Lecture").deleteOne({ lectureID: paramID }, (err, result) => {
+    if (err) {
+      return res.send(`/api/Lecture/${paramID} - deleteOne Error : ${err}`);
+    }
     return res.send(true);
-  })
-})
-
+  });
+});
 
 // studentName
 app.get("/api/TRnow", loginCheck, (req, res) => {
@@ -634,22 +637,26 @@ app.get("/api/TRnow", loginCheck, (req, res) => {
       if (err) {
         return console.log("api/studentList - find Error : ", err);
       }
-      const stuNameList = result.map(stuDB => stuDB["ID"]);
-      db.collection("TR").find({ID : {$in : stuNameList}}).toArray( (err2, result2) => {
-        if (err2) {return res.send(`/api/TRnow - find Error : ${err2}`)}
-        return res.json(result2)
-      })
+      const stuNameList = result.map((stuDB) => stuDB["ID"]);
+      db.collection("TR")
+        .find({ ID: { $in: stuNameList } })
+        .toArray((err2, result2) => {
+          if (err2) {
+            return res.send(`/api/TRnow - find Error : ${err2}`);
+          }
+          return res.json(result2);
+        });
     });
-})
+});
 
 // Weeklymeeting 관련 코드
 app.post("/api/Weeklymeeting/:date", loginCheck, (req, res) => {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const newWeeklymeeting = req.body;
   const paramDate = decodeURIComponent(req.params.date);
-  db.collection("Weeklymeeting").findOne({ 회의일 : paramDate }, (err, result) => {
+  db.collection("Weeklymeeting").findOne({ 회의일: paramDate }, (err, result) => {
     if (err) {
       return res.send(`/api/Weeklymeeting - findOne Error : ${err}`);
     }
@@ -667,37 +674,107 @@ app.post("/api/Weeklymeeting/:date", loginCheck, (req, res) => {
 
 app.get("/api/Weeklymeeting/:date", loginCheck, (req, res) => {
   const paramDate = decodeURIComponent(req.params.date);
-  db.collection("Weeklymeeting").findOne({ 회의일 : paramDate}, (err, result) => {
+  db.collection("Weeklymeeting").findOne({ 회의일: paramDate }, (err, result) => {
     if (err) {
-      return res.send(`/api/Weeklymeeting/${paramDate} - findOne Error : ${err}`)
+      return res.send(`/api/Weeklymeeting/${paramDate} - findOne Error : ${err}`);
     }
-    return res.json(result)
-  })
+    return res.json(result);
+  });
 });
 
 app.put("/api/Weeklymeeting/:date", loginCheck, (req, res) => {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const newWeeklymeeting = req.body;
   const paramDate = decodeURIComponent(req.params.date);
-  delete newWeeklymeeting["_id"]
-  db.collection("Weeklymeeting").updateOne({회의일 : paramDate}, {$set : newWeeklymeeting}, (err, result) => {
-    if (err) {return res.send(`/api/Weeklymeeting - updateOne Error : ${err}`)}
-    return res.send(true)
-  })
-})
+  delete newWeeklymeeting["_id"];
+  db.collection("Weeklymeeting").updateOne({ 회의일: paramDate }, { $set: newWeeklymeeting }, (err, result) => {
+    if (err) {
+      return res.send(`/api/Weeklymeeting - updateOne Error : ${err}`);
+    }
+    return res.send(true);
+  });
+});
 
 app.delete("/api/Weeklymeeting/:date", loginCheck, (req, res) => {
   if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.")
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const paramDate = decodeURIComponent(req.params.date);
-  db.collection("Weeklymeeting").deleteOne({회의일 : paramDate}, (err, result) => {
-    if (err) {return res.send(`/api/Weeklymeeting/${paramDate} - deleteOne Error : ${err}`)}
+  db.collection("Weeklymeeting").deleteOne({ 회의일: paramDate }, (err, result) => {
+    if (err) {
+      return res.send(`/api/Weeklymeeting/${paramDate} - deleteOne Error : ${err}`);
+    }
     return res.send(true);
-  })
-})
+  });
+});
+
+// Weeklystudyfeedback 관련 코드
+app.post("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, (req, res) => {
+  if (req["user"]["ID"] === "guest") {
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
+  }
+  const newWeeklystudyfeedback = req.body;
+  const paramDate = decodeURIComponent(req.params.feedbackDate);
+  const ID = decodeURIComponent(req.params.ID);
+  db.collection("WeeklyStudyfeedback").findOne({ 학생ID: ID, 피드백일: paramDate }, (err, result) => {
+    if (err) {
+      return res.send(`/api/Weeklystudyfeedback - findOne Error : ${err}`);
+    }
+    if (result !== null) {
+      return res.send(`findOne result is not null. 중복되는 피드백 페이지가 존재합니다.`);
+    }
+    db.collection("WeeklyStudyfeedback").insertOne(newWeeklystudyfeedback, (err2, result2) => {
+      if (err2) {
+        return res.send(`/api/Weeklystudyfeedback - insertOne Error : ${err2}`);
+      }
+      return res.send(true);
+    });
+  });
+});
+
+app.get("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, (req, res) => {
+  const paramDate = decodeURIComponent(req.params.feedbackDate);
+  const ID = decodeURIComponent(req.params.ID);
+  db.collection("WeeklyStudyfeedback").findOne({ 학생ID: ID, 피드백일: paramDate }, (err, result) => {
+    console.log(result);
+    if (err) {
+      return res.send(`/api/Weeklystudyfeedback/${ID}/${paramDate} - findOne Error : ${err}`);
+    }
+    return res.json(result);
+  });
+});
+
+app.put("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, (req, res) => {
+  if (req["user"]["ID"] === "guest") {
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
+  }
+  const newWeeklystudyfeedback = req.body;
+  const paramDate = decodeURIComponent(req.params.feedbackDate);
+  const ID = decodeURIComponent(req.params.ID);
+  delete newWeeklystudyfeedback["_id"];
+  db.collection("WeeklyStudyfeedback").updateOne({ 학생ID: ID, 피드백일: paramDate }, { $set: newWeeklystudyfeedback }, (err, result) => {
+    if (err) {
+      return res.send(`/api/Weeklystudyfeedback - updateOne Error : ${err}`);
+    }
+    return res.send(true);
+  });
+});
+
+app.delete("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, (req, res) => {
+  if (req["user"]["ID"] === "guest") {
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
+  }
+  const paramDate = decodeURIComponent(req.params.feedbackDate);
+  const ID = decodeURIComponent(req.params.ID);
+  db.collection("WeeklyStudyfeedback").deleteOne({ 학생ID: ID, 피드백일: paramDate }, (err, result) => {
+    if (err) {
+      return res.send(`/api/Weeklystudyfeedback/${ID}/${paramDate} - deleteOne Error : ${err}`);
+    }
+    return res.send(true);
+  });
+});
 
 app.use("*", express.static(path.join(__dirname, "../zwontr/build")));
 app.get("*", function (req, res) {

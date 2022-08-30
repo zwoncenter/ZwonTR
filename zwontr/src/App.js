@@ -25,7 +25,8 @@ import WeeklymeetingWrite from "./routes/WeeklymeetingWrite";
 import WeeklymeetingEdit from "./routes/WeeklymeetingEdit";
 import Lecture from "./routes/Lecture";
 import LectureList from "./routes/LectureList";
-import Weeklystudyfeedback from "./routes/Weeklystudyfeedback";
+import WeeklystudyfeedbackWrite from "./routes/WeeklystudyfeedbackWrite";
+import WeeklystudyfeedbackEdit from "./routes/WeeklystudyfeedbackEdit";
 
 function App() {
   let history = useHistory();
@@ -45,15 +46,6 @@ function App() {
   const [managerList, setmanagerList] = useState([]);
 
   const { pathname } = useLocation();
-
-  function getThisMon() {
-    var paramDate = new Date();
-    var day = paramDate.getDay();
-    var diff = paramDate.getDate() - day + (day == 0 ? -6 : 1);
-    paramDate = new Date(paramDate.setDate(diff));
-    var output = paramDate.toISOString().split("T")[0];
-    return output;
-  }
 
   function getNextMon(inputDate) {
     var tmpDate = new Date(inputDate);
@@ -235,9 +227,12 @@ function App() {
         <Route exact path="/Lecture/:lectureID">
           <Lecture />
         </Route>
-        <Route exact path="/Weeklystudyfeedback/:ID">
-          <Weeklystudyfeedback />
+        <Route exact path="/WeeklystudyfeedbackWrite/:ID/:feedbackDate">
+          <WeeklystudyfeedbackWrite />
         </Route>
+        <Route exact path="/WeeklystudyfeedbackEdit/:ID/:feedbackDate">
+          <WeeklystudyfeedbackEdit />
+          </Route>
 
       </Switch>
     </div>
