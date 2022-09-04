@@ -14,6 +14,7 @@ function WeeklystudyfeedbackWrite() {
   const koreaNow = new Date(utcNow + koreaTimeDiff);
   const [textbookList, settextbookList] = useState([]);
   const [thisweekGoal, setthisweekGoal] = useState({
+    교재캡쳐: [],
     월: {},
     화: {},
     수: {},
@@ -22,13 +23,14 @@ function WeeklystudyfeedbackWrite() {
     일: {},
     마감일: {}
 });
-  const [thisweek, setthisweek] = useState(getThisWeek());
+  const [thisweek, setthisweek] = useState(getThisWeek(param["feedbackDate"]));
   const [manufacturedData, setmanufacturedData] = useState([]);
   const isInitialMount = useRef(true);
   const [entireData, setentireData] = useState([]);
+  const [selectedDate, setselectedDate] = useState("");
 
-  function getThisWeek() {
-    var inputDate = new Date();
+  function getThisWeek(inputDate) {
+    var inputDate = new Date(inputDate);
     inputDate.setHours(0, 0, 0, 0);
     var day = inputDate.getDay();
     var diff = inputDate.getDate() - day + (day == 0 ? -6 : 1);
@@ -51,6 +53,26 @@ function WeeklystudyfeedbackWrite() {
 
     return [year, month, day].join('-');
 }
+
+function getPageName() {
+  var mm = (thisweek[0].getMonth() + 1).toString();
+  var dd = thisweek[0].getDate().toString();
+  if (dd < 10) {
+    dd = "0" + dd;
+  }
+  if (mm < 10) {
+    mm = "0" + mm;
+  }
+  const starting = thisweek[0].getFullYear().toString() + "-" + mm + "-" + dd;
+  const ending = thisweek[1].toISOString().split("T")[0];
+  return [starting, ending];
+}
+
+useEffect(async () => {
+  if (isInitialMount.current === false) {
+    setthisweek(getThisWeek(param["feedbackDate"]));
+  }
+}, [param]);
 
   useEffect(async () => {
     const existstuInfo = await axios
@@ -82,7 +104,7 @@ function WeeklystudyfeedbackWrite() {
     setentireData(studentTRlist);
 
     isInitialMount.current = false;
-  }, []);
+  }, [thisweek]);
 
   useEffect(async () => {
     const temporal = entireData
@@ -103,7 +125,14 @@ function WeeklystudyfeedbackWrite() {
     const newthisweekGoal = JSON.parse(
         JSON.stringify(thisweekGoal)
       );
+    newthisweekGoal["교재캡쳐"] = textbookList;
       textbookList.map((book,i)=>{
+        newthisweekGoal["월"][book["교재"]] = "";
+        newthisweekGoal["화"][book["교재"]] = "";
+        newthisweekGoal["수"][book["교재"]] = "";
+        newthisweekGoal["목"][book["교재"]] = "";
+        newthisweekGoal["금"][book["교재"]] = "";
+        newthisweekGoal["일"][book["교재"]] = "";
         newthisweekGoal["마감일"][book["교재"]] = formatDate(thisweek[1]);
       })
       setthisweekGoal(newthisweekGoal);
@@ -112,13 +141,15 @@ function WeeklystudyfeedbackWrite() {
   return (
     <div className="Weeklystudyfeedback-background">
       <h2>
-        <strong>주간학습피드백</strong>
+      <strong>{getPageName()[0]} ~ {getPageName()[1]}</strong>
+      </h2>
+      <h2>
+        <strong>{param["ID"].split("_")[0]} 주간학습목표 스케줄링</strong>
       </h2>
       <Button
         className="btn-commit btn-save"
         onClick={() => {
-          console.log(thisweekGoal);
-          if (window.confirm("주간결산 내용을 저장하시겠습니까?")) {
+          if (window.confirm("주간학습목표 스케줄링 내용을 저장하시겠습니까?")) {
             axios
               .post(`/api/Weeklystudyfeedback/${param["ID"]}/${param["feedbackDate"]}`, {
                 학생ID: param["ID"],
@@ -144,7 +175,63 @@ function WeeklystudyfeedbackWrite() {
           }
         }}
       >
-        <strong>주간학습피드백 저장</strong>
+        <strong>주간학습목표 저장</strong>
+      </Button>
+      <Button
+        variant="secondary"
+        className="btn-commit btn-load loadButton"
+        onClick={() => {
+          if (selectedDate !== "") {
+            axios
+              .get(`/api/Weeklystudyfeedback/${param["ID"]}/${formatDate(getThisWeek(selectedDate)[1])}`)
+              .then((result) => {
+                if (result["data"] === null) {
+                  if (
+                    window.confirm(
+                      "해당 날짜의 주간학습목표 스케줄이 존재하지 않습니다. 새로 작성하시겠습니까?"
+                    )
+                  ) {
+                    history.push(
+                      `/WeeklystudyfeedbackWrite/${param["ID"]}/${formatDate(getThisWeek(selectedDate)[1])}`
+                    );
+                  }
+                } else {
+                  if (
+                    window.confirm(
+                      `${selectedDate}의 주간학습목표 스케줄로 이동하시겠습니까?`
+                    )
+                  ) {
+                    history.push(
+                      `/WeeklystudyfeedbackEdit/${param["ID"]}/${formatDate(getThisWeek(selectedDate)[1])}`
+                    );
+                  }
+                }
+              })
+              .catch((err) => {
+                console.log(err);
+              });
+          }
+        }}
+      >
+        <div className="row m-0">
+          <div className="col-xl-7">
+            <strong>다른 주차 작성/조회</strong>
+          </div>
+          <div className="col-xl-5">
+            <input
+              type="date"
+              className="w-100"
+              value={selectedDate}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+              onChange={(e) => {
+                e.stopPropagation();
+                setselectedDate(e.target.value);
+              }}
+            />
+          </div>
+        </div>
       </Button>
       {isInitialMount.current === false ? (
         <Table striped hover size="sm" className="Weeklystudyfeedback-table">

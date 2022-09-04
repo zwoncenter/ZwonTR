@@ -333,7 +333,7 @@ function StuListpage() {
                       });
                   }}
                 >
-                  주간학습피드백
+                  주간학습목표 스케줄링
                 </Button>
               </div>
             </Modal.Body>

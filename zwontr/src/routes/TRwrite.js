@@ -751,6 +751,7 @@ function TRwrite() {
                         <th width="15%">학습</th>
                         <th>교재</th>
                         <th width="15%">총교재량</th>
+                        <th width="10%">오늘목표량 (까지)</th>
                         <th width="15%">최근진도</th>
                         <th width="15%">학습시간</th>
                         <th width="10%"></th>
@@ -801,6 +802,7 @@ function TRwrite() {
                             <td>
                               <p className="fs-13px">{a.총교재량}</p>
                             </td>
+                            <td></td>
                             <td>
                               <input
                                 type="number"
