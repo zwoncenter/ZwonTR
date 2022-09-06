@@ -26,10 +26,22 @@ textarea {
   overflow: hidden;
 }
 
+.Weeklystudyfeedback-container {
+  height: 80%;
+  overflow: auto;
+}
+
 .Weeklystudyfeedback-table p {
   text-align: center;
   position: relative;
   vertical-align: middle;
+}
+.Weeklystudyfeedback-table thead {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: white;
 }
 
 .studyPercentageBox {

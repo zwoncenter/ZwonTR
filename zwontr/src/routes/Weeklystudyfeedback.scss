@@ -26,12 +26,23 @@ textarea {
         background-color: #F0EDFF;
         overflow: hidden;
 }
+.Weeklystudyfeedback-container{
+    height: 80%;
+    overflow: auto;
+}
 
 .Weeklystudyfeedback-table{
     p {
         text-align: center;
         position: relative;
         vertical-align: middle;
+    }
+
+    thead {  
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background-color: white;
     }
 }
 

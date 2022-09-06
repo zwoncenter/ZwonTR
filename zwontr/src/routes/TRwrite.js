@@ -12,6 +12,32 @@ function TRwrite() {
   let history = useHistory();
   let paramID = useParams()["ID"];
 
+  // 당일학습목표 관련 코드
+  const [todayGoal, settodayGoal] = useState([]);
+  function getThisWeek(inputDate) {
+    var inputDate = new Date(inputDate);
+    inputDate.setHours(0, 0, 0, 0);
+    var day = inputDate.getDay();
+    var diff = inputDate.getDate() - day + (day == 0 ? -6 : 1);
+    inputDate = new Date(inputDate.setDate(diff));
+    var startdate = new Date(inputDate.setDate(inputDate.getDate()));
+    var enddate = new Date(inputDate.setDate(inputDate.getDate() + 7));
+    return [startdate, enddate];
+  }
+  function formatDate(date) {
+    var d = new Date(date),
+        month = '' + (d.getMonth() + 1),
+        day = '' + (d.getDate()-1),
+        year = d.getFullYear();
+
+    if (month.length < 2) 
+        month = '0' + month;
+    if (day.length < 2) 
+        day = '0' + day;
+
+    return [year, month, day].join('-');
+}
+
   // 날짜 관련 코드
   const now = new Date(); // 현재 시간
   const utcNow = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
@@ -481,6 +507,21 @@ function TRwrite() {
     isInitialMount.current = false;
   }, []);
 
+  useEffect(async()=>{
+    console.log(formatDate(getThisWeek(today)[1]));
+    const newtodayGoal = await axios
+    .get(`/api/Weeklystudyfeedback/${paramID}/${formatDate(getThisWeek(today)[1])}`)
+    .then((result) => {
+      if (result["data"] !== null) {
+        return result["data"]["thisweekGoal"][TR["요일"].split("요일")[0]];
+      }
+    })
+    .catch((err) => {
+      return err;
+    });
+    await settodayGoal(newtodayGoal);
+  },[TR.요일]);
+
   useEffect(() => {
     if (!isInitialMount.current) {
       const newTR = JSON.parse(JSON.stringify(TR));
@@ -802,7 +843,10 @@ function TRwrite() {
                             <td>
                               <p className="fs-13px">{a.총교재량}</p>
                             </td>
-                            <td></td>
+                            <td>
+                            {todayGoal ? todayGoal[a.교재]
+                              : null}
+                            </td>
                             <td>
                               <input
                                 type="number"
