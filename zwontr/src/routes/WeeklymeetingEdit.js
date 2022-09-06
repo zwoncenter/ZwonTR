@@ -515,7 +515,6 @@ function WeeklymeetingEdit() {
                 }}
               />
       <div className="Weeklymeeting-container">
-      <div className="Weeklystudyfeedback-container">
         <Table striped hover size="sm" className="Weeklymeeting-table">
           <thead>
             <tr>
@@ -993,7 +992,6 @@ function WeeklymeetingEdit() {
         </Table>
         </div>
       </div>
-    </div>
   );
 }
 

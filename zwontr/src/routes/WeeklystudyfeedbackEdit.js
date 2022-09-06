@@ -234,6 +234,7 @@ useEffect(async () => {
         </div>
       </Button>
       {isInitialMount.current === false ? (
+        <div className="Weeklystudyfeedback-container">
         <Table striped hover size="sm" className="Weeklystudyfeedback-table">
           <thead>
             <tr>
@@ -491,6 +492,7 @@ useEffect(async () => {
             })}
           </tbody>
         </Table>
+        </div>
       ) : null}
     </div>
   );

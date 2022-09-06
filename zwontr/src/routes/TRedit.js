@@ -168,7 +168,6 @@ function TRedit() {
   });
 
   // 당일학습목표 관련 코드
-  const [today_day, settoday_day] = useState("");
   const [todayGoal, settodayGoal] = useState([]);
   function getThisWeek(inputDate) {
     var inputDate = new Date(inputDate);
@@ -442,8 +441,6 @@ function TRedit() {
         return err;
       });
     await setTR(newTR);
-    // await settoday_day(TR["요일"].split("요일")[0]);
-
 
     if ("수강중강의" in newstuDB) {
       const newlectureList = [];
