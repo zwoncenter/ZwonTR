@@ -855,7 +855,7 @@ function TRedit() {
                         <td>{TR.학습차이}시간</td>
                       </tr>
                       <tr>
-                        <td colSpan={6}>
+                        <td colSpan={7}>
                           {" "}
                           <button
                             className="btn btn-add program-add"
