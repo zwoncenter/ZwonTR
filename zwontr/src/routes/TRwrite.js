@@ -911,7 +911,7 @@ function TRwrite() {
                       })}
 
                       <tr>
-                        <td colSpan={4}>목표 학습 - {TR.목표학습} 시간</td>
+                        <td colSpan={5}>목표 학습 - {TR.목표학습} 시간</td>
                         <td> {TR.실제학습} 시간</td>
                         <td>{TR.학습차이}시간</td>
                       </tr>
