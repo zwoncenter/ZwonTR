@@ -8,6 +8,7 @@ import axios from "axios";
 import absent from "./absent.png";
 import notcame from "./notcame.png";
 import trchecked from "./trchecked.png";
+import Draggable from "react-draggable";
 
 function StuListpage() {
   let history = useHistory();
@@ -49,6 +50,13 @@ function StuListpage() {
   };
   const [thisweek, setthisweek] = useState(getThisWeek());
 
+  //draggable 메모장 관련
+  const [position, setPosition] = useState({ x: 0, y: 0 }); // box의 포지션 값
+  // 업데이트 되는 값을 set 해줌
+  const trackPos = (data) => {
+    setPosition({ x: data.x, y: data.y });
+  };
+
   function getThisWeek() {
     var inputDate = new Date();
     inputDate.setHours(0, 0, 0, 0);
@@ -62,17 +70,15 @@ function StuListpage() {
 
   function formatDate(date) {
     var d = new Date(date),
-        month = '' + (d.getMonth() + 1),
-        day = '' + (d.getDate()-1),
-        year = d.getFullYear();
+      month = "" + (d.getMonth() + 1),
+      day = "" + (d.getDate() - 1),
+      year = d.getFullYear();
 
-    if (month.length < 2) 
-        month = '0' + month;
-    if (day.length < 2) 
-        day = '0' + day;
+    if (month.length < 2) month = "0" + month;
+    if (day.length < 2) day = "0" + day;
 
-    return [year, month, day].join('-');
-}
+    return [year, month, day].join("-");
+  }
 
   // 학생 이름을 클릭 시, 선택된 ID를 바꾸고, 해당 ID의 TR리스트 조회
   async function nameClick(db, index) {
@@ -180,18 +186,21 @@ function StuListpage() {
   return (
     <div className="stuList-background">
       <div className={stuListShow === true ? "stuListShow stuListShowActive text-center" : "stuListShow text-center"}>
-        <div className="stickynote">
-          <strong><p className="m-0">업무공유사항</p></strong>
-          <textarea
-        placeholder="여기에 입력하세요"
-        value={stickynoteValue["note"]}
-        onChange={(e) => {
-        const newstickynote = JSON.parse(JSON.stringify(stickynoteValue));
-        newstickynote["note"] = e.target.value;
-        setstickynoteValue(newstickynote)}
-        }
-        onBlur={()=>{
-          console.log(stickynoteValue);
+        <Draggable onDrag={(e, data) => trackPos(data)}>
+          <div className="stickynote">
+            <strong>
+              <p className="m-0">업무공유사항</p>
+            </strong>
+            <textarea
+              placeholder="여기에 입력하세요"
+              value={stickynoteValue["note"]}
+              onChange={(e) => {
+                const newstickynote = JSON.parse(JSON.stringify(stickynoteValue));
+                newstickynote["note"] = e.target.value;
+                setstickynoteValue(newstickynote);
+              }}
+              onBlur={() => {
+                console.log(stickynoteValue);
                 axios
                   .put("/api/stickynote", stickynoteValue)
                   .then(function (result) {
@@ -209,10 +218,11 @@ function StuListpage() {
                     console.log("저장 실패 : ", err);
                     window.alert(err);
                   });
-        }}
-      ></textarea>
-      <p>* 작성/수정 후 메모장 바깥을 눌러야 저장됩니다.</p>
-        </div>
+              }}
+            ></textarea>
+            <p>* 작성/수정 후 메모장 바깥을 눌러야 저장됩니다.</p>
+          </div>
+        </Draggable>
         <div className="statesBox">
           <p>활동중: {Written.filter((element) => "등원" === element).length}</p>
           <p>귀가: {Written.filter((element) => "귀가" === element).length}</p>
@@ -321,9 +331,7 @@ function StuListpage() {
         </Card>
 
         {modalShow === true ? (
-          <Modal show={modalShow} onHide={modalClose}
-          className="TRModal"
-          dialogClassName="modal-35w">
+          <Modal show={modalShow} onHide={modalClose} className="TRModal" dialogClassName="modal-35w">
             <Modal.Header closeButton>
               <Modal.Title>{chosenID ? chosenID.split("_")[0] : ""}</Modal.Title>
             </Modal.Header>
@@ -360,7 +368,7 @@ function StuListpage() {
                   TR(일간하루)
                 </Button>
 
-                <Button 
+                <Button
                   variant="secondary"
                   className="m-1 stuButton"
                   onClick={() => {
@@ -412,8 +420,6 @@ function StuListpage() {
                     );
                   })}
                 </ListGroup>
-
-
               </div>
             ) : null}
           </Modal>

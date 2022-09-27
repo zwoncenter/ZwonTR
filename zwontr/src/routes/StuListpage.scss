@@ -335,13 +335,15 @@ h6 {
   }
 }
 
-// .stickynote:hover {
-//   width: 500px;
-//   height: 320px;
-// }
 
-// .stickynote:focus-within {
-//   width: 500px;
-//   height: 320px;
-// }
-
+.draggableStickynote{
+  position: absolute;
+  cursor: move;
+  color: black;
+  width: 100px;
+  border-radius: 5px;
+  padding: 1em;
+  margin: auto;
+  user-select: none;
+  background: lightgrey;
+}

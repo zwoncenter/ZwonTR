@@ -201,7 +201,7 @@ function TRedit() {
       );
     }
     //console.log('get~ ret val: '+JSON.stringify(ret));
-    return ret;
+    setThisWeekProgress(ret);
   }
   const [todayGoal, settodayGoal] = useState([]);
   const [thisweekGoal, setthisweekGoal] = useState({
@@ -565,7 +565,7 @@ function TRedit() {
     console.log('before set this~: '+JSON.stringify(newThisWeekProgress));
     await setThisWeekProgress(newThisWeekProgress);
     console.log('after set this~: '+JSON.stringify(thisWeekProgress));*/
-    await setThisWeekProgress(await getThisWeekProgress());
+    await getThisWeekProgress();
   }
 
   useEffect(async() => {
@@ -590,37 +590,6 @@ function TRedit() {
       await setthisweek(getThisWeek(TR.날짜));
     }
   }, [TR.날짜]);
-
-  useEffect(async()=>{
-    /*const newtodayGoal = await axios
-    .get(`/api/Weeklystudyfeedback/${paramID}/${formatDate(getThisWeek(formatDate(paramDate))[1])}`)
-    .then((result) => {
-      if (result["data"] !== null) {
-        console.log(result["data"]["thisweekGoal"][TR["요일"][0]]);
-        return result["data"]["thisweekGoal"][TR["요일"][0]];
-      }
-    })
-    .catch((err) => {
-      console.log(err);
-      return err;
-    });*/
-    /*const newthisweekGoal = await axios
-    .get(`/api/Weeklystudyfeedback/${paramID}/${formatDate(getThisWeek(formatDate(paramDate))[1])}`)
-    .then((result) => {
-      if (result["data"] !== null) {
-        console.log(result["data"]["thisweekGoal"]);
-        return result["data"]["thisweekGoal"]
-      }
-    })
-    .catch((err) => {
-      return err;
-    });
-    await setthisweekGoal(newthisweekGoal);
-    if(new thisweekGoal && newthisweekGoal.hasOwnProperty(TR["요일"][0])){
-      await settodayGoal(thisweekGoal[TR["요일"][0]]);
-    }*/
-    await setGoalsAndGetProgress();
-  },[TR.요일, TR.날짜]);
 
   useEffect(()=>{
 
