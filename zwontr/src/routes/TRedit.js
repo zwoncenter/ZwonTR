@@ -12,6 +12,7 @@ function TRedit() {
   // 공통 code
   let history = useHistory();
   let paramID = useParams()["ID"];
+  let paramDate = useParams()["date"];
   const [managerList, setmanagerList] = useState([]);
   const [stuDB, setstuDB] = useState({
     ID: "",
@@ -167,10 +168,89 @@ function TRedit() {
     큐브책: [],
   });
 
-  // 당일학습목표 관련 코드
+  // 당일학습목표, 주간학습목표 관련 코드
+  const weekDays=['월','화','수','목','금','일'];
+  function getDayStringFromDateObject(date){
+    const day=date.getDay()==0?6:date.getDay()-1;
+    return weekDays[day];
+  }
+  function dateToString(date){
+    let ret=[String(date.getFullYear()),String(date.getMonth()+1),String(date.getDate())];
+    for(let i=1; i<3; i++){
+      if(ret[i].length<2){
+        ret[i]='0'+ret[i];
+      }
+    }
+    return ret.join('-');
+  }
+  async function getThisWeekProgress(){
+    let ret=[];
+    for(let i=0; i<7; i++){
+      let tmpdate=new Date(thisweek[0]);
+      tmpdate.setDate(tmpdate.getDate()+i);
+      console.log(dateToString(tmpdate));
+      ret.push(await axios
+        .get(`/api/TR/${paramID}/${dateToString(tmpdate)}`)
+        .then((result) => {
+          //console.log('paramdate: '+dateToString(tmpdate)+" "+i+"요일 "+"data:"+JSON.stringify(result["data"]));
+          return result["data"];
+        })
+        .catch((err) => {
+          return err;
+        })
+      );
+    }
+    //console.log('get~ ret val: '+JSON.stringify(ret));
+    return ret;
+  }
   const [todayGoal, settodayGoal] = useState([]);
+  const [thisweekGoal, setthisweekGoal] = useState({
+    월: {},
+    화: {},
+    수: {},
+    목: {},
+    금: {},
+    일: {},
+    마감일: {}
+  });
+  const [thisWeekProgress, setThisWeekProgress] = useState([]);
+  const [thisweek, setthisweek] = useState(getThisWeek(paramDate));
+  function checkThisWeekProgressHasValidElement(){
+    for(let i=0; i<thisWeekProgress.length; i++){
+      if(thisWeekProgress[i]!=null && thisWeekProgress!=undefined &&
+        thisWeekProgress[i].hasOwnProperty("학습")) return true;
+    }
+    return false;
+  }
+  function checkWeekProgressTableNeeded(){
+    return TR.요일="일요일" && checkThisWeekProgressHasValidElement() && thisweekGoal;
+  }
+  function getProgressFromDayAndBook(day,bookName){
+    if(!thisWeekProgress || thisWeekProgress.length==0) return null;
+    let dplist= thisWeekProgress
+    .filter((dayProgress,dpInex)=>{
+      if(!dayProgress || !dayProgress.hasOwnProperty("요일")) return false;
+      return day === dayProgress["요일"]
+    });
+    console.log("breakpoint0");
+    if(dplist.length==0 || !dplist[0].hasOwnProperty("학습")) {
+      console.log("return condition satisfied, dplist: "+JSON.stringify(dplist));
+      return null;
+    }
+    let bookinfo=dplist[0]["학습"].filter((studyingBook,sbIndex)=>{
+      return studyingBook["교재"]===bookName;
+    });
+    if(bookinfo.length==0) {
+      console.log("return condition satisfied, bookinfo: "+JSON.stringify(bookinfo));
+      return null;
+    }
+    console.log("breakpoint");
+    return !bookinfo[0]["최근진도"]?null:bookinfo[0]["최근진도"];
+  }
   function getThisWeek(inputDate) {
+    //console.log(inputDate);
     var inputDate = new Date(inputDate);
+    //console.log(inputDate);
     inputDate.setHours(0, 0, 0, 0);
     var day = inputDate.getDay();
     var diff = inputDate.getDate() - day + (day == 0 ? -6 : 1);
@@ -179,6 +259,7 @@ function TRedit() {
     var enddate = new Date(inputDate.setDate(inputDate.getDate() + 7));
     return [startdate, enddate];
   }
+  // 하루 전 날짜를 문자열로 반환
   function formatDate(date) {
     var d = new Date(date),
         month = '' + (d.getMonth() + 1),
@@ -402,7 +483,6 @@ function TRedit() {
   }
 
   // Edit code
-  let paramDate = useParams()["date"];
   const [modalShow, setmodalShow] = useState(false);
   const [selectedDate, setselectedDate] = useState(paramDate);
   const isInitialMount = useRef(true);
@@ -465,6 +545,28 @@ function TRedit() {
     isInitialMount.current = false;
   }, [paramDate]);
 
+  async function setGoalsAndGetProgress(){
+    const newthisweekGoal = await axios
+    .get(`/api/Weeklystudyfeedback/${paramID}/${formatDate(getThisWeek(formatDate(paramDate))[1])}`)
+    .then((result) => {
+      if (result["data"] !== null) {
+        console.log(result["data"]["thisweekGoal"]);
+        return result["data"]["thisweekGoal"]
+      }
+    })
+    .catch((err) => {
+      return err;
+    });
+    await setthisweekGoal(newthisweekGoal);
+    if(thisweekGoal && newthisweekGoal.hasOwnProperty(TR["요일"][0])){
+      await settodayGoal(thisweekGoal[TR["요일"][0]]);
+    }
+    /*let newThisWeekProgress=await getThisWeekProgress();
+    console.log('before set this~: '+JSON.stringify(newThisWeekProgress));
+    await setThisWeekProgress(newThisWeekProgress);
+    console.log('after set this~: '+JSON.stringify(thisWeekProgress));*/
+    await setThisWeekProgress(await getThisWeekProgress());
+  }
 
   useEffect(async() => {
     if (!isInitialMount.current) {
@@ -474,21 +576,55 @@ function TRedit() {
       newTR["요일"] = ls[trDate.getDay()] + "요일";
       await setTR(newTR);
     }
+    const newthisweek=getThisWeek(TR.날짜);
+    console.log("this week val: "+dateToString(thisweek[0])+", "+dateToString(thisweek[1]));
+    let sameweek=true;
+    for(let i=0; i<newthisweek.length; i++){
+      if(newthisweek[i].getTime()!=thisweek[i].getTime()){
+        sameweek=false;
+        break;
+      }
+    }
+    if(!sameweek){
+      await setGoalsAndGetProgress();
+      await setthisweek(getThisWeek(TR.날짜));
+    }
   }, [TR.날짜]);
 
   useEffect(async()=>{
-    const newtodayGoal = await axios
+    /*const newtodayGoal = await axios
     .get(`/api/Weeklystudyfeedback/${paramID}/${formatDate(getThisWeek(formatDate(paramDate))[1])}`)
     .then((result) => {
       if (result["data"] !== null) {
-        return result["data"]["thisweekGoal"][TR["요일"].split("요일")[0]];
+        console.log(result["data"]["thisweekGoal"][TR["요일"][0]]);
+        return result["data"]["thisweekGoal"][TR["요일"][0]];
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      return err;
+    });*/
+    /*const newthisweekGoal = await axios
+    .get(`/api/Weeklystudyfeedback/${paramID}/${formatDate(getThisWeek(formatDate(paramDate))[1])}`)
+    .then((result) => {
+      if (result["data"] !== null) {
+        console.log(result["data"]["thisweekGoal"]);
+        return result["data"]["thisweekGoal"]
       }
     })
     .catch((err) => {
       return err;
     });
-    await settodayGoal(newtodayGoal);
+    await setthisweekGoal(newthisweekGoal);
+    if(new thisweekGoal && newthisweekGoal.hasOwnProperty(TR["요일"][0])){
+      await settodayGoal(thisweekGoal[TR["요일"][0]]);
+    }*/
+    await setGoalsAndGetProgress();
   },[TR.요일, TR.날짜]);
+
+  useEffect(()=>{
+
+  },[thisweek]);
 
   useEffect(() => {
     if (!isInitialMount.current) {
@@ -560,7 +696,7 @@ function TRedit() {
                   variant="secondary"
                   className="btn-commit btn-attend"
                   onClick={() => {
-                    change_depth_one("결석여부", false);
+                  change_depth_one("결석여부", false);
                     console.log(TR);
                   }}
                 >
@@ -1018,6 +1154,90 @@ function TRedit() {
                     </tbody>
                   </Table>
                 </div>
+                {/*일간 TR 내 주간 학습 계획*/}
+                {
+                  checkWeekProgressTableNeeded()?(
+                  <div className="trCard">
+                    <Table striped hover size="sm" className="mt-3">
+                      <thead>
+                        <th width="30%">
+                          교재명
+                        </th>
+                        {
+                          weekDays.map((day,dayIndex)=>{
+                            return (
+                              <th key={dayIndex} width="10%">
+                                {day}
+                              </th>
+                            );
+                          })
+                        }
+                      </thead>
+                      <tbody>
+                        {
+                          thisweekGoal?
+                          thisweekGoal["교재캡쳐"].map((book,bookIndex)=>{
+                            return(
+                              <tr key={bookIndex}>
+                                <td>
+                                  <p m-0="true">
+                                    <strong>
+                                      {book["교재"]} {book["총교재량"] ? `(총 ${book["총교재량"]})` : null}
+                                    </strong>
+                                  </p>
+                                </td>
+                                <>
+                                  {
+                                    weekDays.map((day,dayIndex)=>{
+                                      return (
+                                        <td key={dayIndex}>
+                                          <div className="studyPercentageBox">
+                                            <p>
+                                              <strong>
+                                                {
+                                                  getProgressFromDayAndBook(day+"요일",book["교재"])?
+                                                  getProgressFromDayAndBook(day+"요일",book["교재"])
+                                                  :"-"
+                                                }
+                                              </strong>
+                                            </p>
+                                            <p>
+                                              <strong>/</strong>
+                                            </p>
+                                            <p>
+                                              {
+                                                console.log('this week goal:'+JSON.stringify(thisweekGoal))?
+                                                null:null
+                                              }
+                                              {
+                                                console.log('this week goal keys:'+JSON.stringify(Object.keys(thisweekGoal)))?
+                                                null:null
+                                              }
+                                              {
+                                                console.log('this week goal specific day:'+JSON.stringify(thisweekGoal[day]))?
+                                                null:null
+                                              }
+                                              {
+                                                thisweekGoal
+                                                ? (thisweekGoal[day][book["교재"]]?thisweekGoal[day][book["교재"]]:"-")
+                                                : "-"
+                                              }
+                                            </p>
+                                          </div>
+                                        </td>
+                                      );
+                                    })
+                                  }
+                                </>
+                              </tr>
+                            );
+                          }) : null
+                        }
+                      </tbody>
+                    </Table>
+                  </div>):null
+                }
+                
               </div>
             ) : TR.결석여부 === "등원예정" ? (
               <></>
