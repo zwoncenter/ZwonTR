@@ -137,6 +137,8 @@ useEffect(async () => {
     setmanufacturedData(newmanufacturedData);
   }, [entireData]);
 
+  const weekDays=['월','화','수','목','금','일'];
+
   return (
     <div className="Weeklystudyfeedback-background">
       <h2>
@@ -241,255 +243,96 @@ useEffect(async () => {
               <th width="25%">
                 <strong>교재명</strong>
               </th>
-              <th>
-                <strong>월</strong>
-              </th>
-              <th>
-                <strong>화</strong>
-              </th>
-              <th>
-                <strong>수</strong>
-              </th>
-              <th>
-                <strong>목</strong>
-              </th>
-              <th>
-                <strong>금</strong>
-              </th>
-              <th>
-                <strong>일</strong>
-              </th>
-              <th>
-                <strong>마감일</strong>
-              </th>
+              <>
+                {
+                  weekDays.map((day,index)=>{
+                    return (
+                      <th key={index}>
+                        <strong>{day}</strong>
+                      </th>
+                    )
+                  })
+                }
+              </>
             </tr>
           </thead>
           <tbody>
-            {thisweekGoal["교재캡쳐"].map(function (book, index) {
-              return (
-                <tr key={index}>
-                  <td>
-                    <p m-0="true">
-                      <strong>
-                        {book["교재"]} {book["총교재량"] ? `(총 ${book["총교재량"]})` : null}
-                      </strong>
-                    </p>
-                  </td>
-                  <td>
-                    <div className="studyPercentageBox">
-                      <p>
+            {
+              thisweekGoal?
+              thisweekGoal["교재캡쳐"].map((book,bookIndex)=>{
+                return(
+                  <tr key={bookIndex}>
+                    <td>
+                      <p m-0="true">
                         <strong>
-                          {manufacturedData
-                            .filter((study_element, i) => {
-                              return study_element["요일"] === "월요일" && study_element["교재"] == book["교재"];
-                            })
-                            .map((study_element, i) => {
-                              return study_element["최근진도"];
-                            })}
+                          {book["교재"]} {book["총교재량"] ? `(총 ${book["총교재량"]})` : null}
                         </strong>
                       </p>
-                      <p>
-                        <strong>/</strong>
-                      </p>
-                      <Form.Control type="text" className="studyMagnitude me-1 ms-1"
-                      value={
-                        thisweekGoal
-                          ? thisweekGoal["월"][book["교재"]]
-                          : ""
-                      }
-                      onChange={(e) => {
-                        const newthisweekGoal = JSON.parse(
-                          JSON.stringify(thisweekGoal)
-                        );
-                        newthisweekGoal["월"][book["교재"]] =
-                        e.target.value;
-                        setthisweekGoal(newthisweekGoal);
-                      }}
-                       />
-                    </div>
-                  </td>
-                  <td>
-                    <div className="studyPercentageBox">
-                      <p>
-                        <strong>
-                          {manufacturedData
-                            .filter((study_element, i) => {
-                              return study_element["요일"] === "화요일" && study_element["교재"] == book["교재"];
-                            })
-                            .map((study_element, i) => {
-                              return study_element["최근진도"];
-                            })}
-                        </strong>
-                      </p>
-                      <p>
-                        <strong>/</strong>
-                      </p>
-                      <Form.Control type="text" className="studyMagnitude me-1 ms-1"
-                      value={
-                        thisweekGoal
-                          ? thisweekGoal["화"][book["교재"]]
-                          : ""
-                      }
-                      onChange={(e) => {
-                        const newthisweekGoal = JSON.parse(
-                          JSON.stringify(thisweekGoal)
-                        );
-                        newthisweekGoal["화"][book["교재"]] =
-                        e.target.value;
-                        setthisweekGoal(newthisweekGoal);
-                      }} />
-                    </div>
-                  </td>
-                  <td>
-                    <div className="studyPercentageBox">
-                      <p>
-                        <strong>
-                          {manufacturedData
-                            .filter((study_element, i) => {
-                              return study_element["요일"] === "수요일" && study_element["교재"] == book["교재"];
-                            })
-                            .map((study_element, i) => {
-                              return study_element["최근진도"];
-                            })}
-                        </strong>
-                      </p>
-                      <p>
-                        <strong>/</strong>
-                      </p>
-                      <Form.Control type="text" className="studyMagnitude me-1 ms-1"
-                      value={
-                        thisweekGoal
-                          ? thisweekGoal["수"][book["교재"]]
-                          : ""
-                      }
-                      onChange={(e) => {
-                        const newthisweekGoal = JSON.parse(
-                          JSON.stringify(thisweekGoal)
-                        );
-                        newthisweekGoal["수"][book["교재"]] =
-                        e.target.value;
-                        setthisweekGoal(newthisweekGoal);
-                      }} />
-                    </div>
-                  </td>
-                  <td>
-                    <div className="studyPercentageBox">
-                      <p>
-                        <strong>
-                          {manufacturedData
-                            .filter((study_element, i) => {
-                              return study_element["요일"] === "목요일" && study_element["교재"] == book["교재"];
-                            })
-                            .map((study_element, i) => {
-                              return study_element["최근진도"];
-                            })}
-                        </strong>
-                      </p>
-                      <p>
-                        <strong>/</strong>
-                      </p>
-                      <Form.Control type="text" className="studyMagnitude me-1 ms-1"
-                      value={
-                        thisweekGoal
-                          ? thisweekGoal["목"][book["교재"]]
-                          : ""
-                      }
-                      onChange={(e) => {
-                        const newthisweekGoal = JSON.parse(
-                          JSON.stringify(thisweekGoal)
-                        );
-                        newthisweekGoal["목"][book["교재"]] =
-                        e.target.value;
-                        setthisweekGoal(newthisweekGoal);
-                      }} />
-                    </div>
-                  </td>
-                  <td>
-                    <div className="studyPercentageBox">
-                      <p>
-                        <strong>
-                          {manufacturedData
-                            .filter((study_element, i) => {
-                              return study_element["요일"] === "금요일" && study_element["교재"] == book["교재"];
-                            })
-                            .map((study_element, i) => {
-                              return study_element["최근진도"];
-                            })}
-                        </strong>
-                      </p>
-                      <p>
-                        <strong>/</strong>
-                      </p>
-                      <Form.Control type="text" className="studyMagnitude me-1 ms-1"
-                      value={
-                        thisweekGoal
-                          ? thisweekGoal["금"][book["교재"]]
-                          : ""
-                      }
-                      onChange={(e) => {
-                        const newthisweekGoal = JSON.parse(
-                          JSON.stringify(thisweekGoal)
-                        );
-                        newthisweekGoal["금"][book["교재"]] =
-                        e.target.value;
-                        setthisweekGoal(newthisweekGoal);
-                      }} />
-                    </div>
-                  </td>
-                  <td>
-                    <div className="studyPercentageBox">
-                      <p>
-                        <strong>
-                          {manufacturedData
-                            .filter((study_element, i) => {
-                              return study_element["요일"] === "일요일" && study_element["교재"] == book["교재"];
-                            })
-                            .map((study_element, i) => {
-                              return study_element["최근진도"];
-                            })}
-                        </strong>
-                      </p>
-                      <p>
-                        <strong>/</strong>
-                      </p>
-                      <Form.Control type="text" className="studyMagnitude me-1 ms-1"
-                      value={
-                        thisweekGoal
-                          ? thisweekGoal["일"][book["교재"]]
-                          : ""
-                      }
-                      onChange={(e) => {
-                        const newthisweekGoal = JSON.parse(
-                          JSON.stringify(thisweekGoal)
-                        );
-                        newthisweekGoal["일"][book["교재"]] =
-                        e.target.value;
-                        setthisweekGoal(newthisweekGoal);
-                      }} />
-                    </div>
-                  </td>
-                  <td>
-                    <div className="studyPercentageBox">
-                      <input
-                        type="date"
-                        className="w-100"
-                        value={thisweekGoal? 
-                          thisweekGoal["마감일"][book["교재"]]
-                        : ""}
-                        onChange={(e) => {
-                          const newthisweekGoal = JSON.parse(
-                            JSON.stringify(thisweekGoal)
+                    </td>
+                    <>
+                      {
+                        weekDays.map((day,dayIndex)=>{
+                          return (
+                            <td key={dayIndex}>
+                              <div className="studyPercentageBox">
+                                <p>
+                                  <strong>
+                                    {manufacturedData
+                                      .filter((study_element, i) => {
+                                        return study_element["요일"] === (day+"요일") && study_element["교재"] == book["교재"];
+                                      })
+                                      .map((study_element, i) => {
+                                        return study_element["최근진도"];
+                                      })}
+                                  </strong>
+                                </p>
+                                <p>
+                                  <strong>/</strong>
+                                </p>
+                                <Form.Control type="text" className="studyMagnitude me-1 ms-1"
+                                value={
+                                  thisweekGoal
+                                    ? thisweekGoal[day][book["교재"]]
+                                    : ""
+                                }
+                                onChange={(e) => {
+                                  const newthisweekGoal = JSON.parse(
+                                    JSON.stringify(thisweekGoal)
+                                  );
+                                  newthisweekGoal[day][book["교재"]] =
+                                  e.target.value;
+                                  setthisweekGoal(newthisweekGoal);
+                                }}
+                                />
+                              </div>
+                            </td>
                           );
-                          newthisweekGoal["마감일"][book["교재"]] =
-                          e.target.value;
-                          setthisweekGoal(newthisweekGoal);
-                        }}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+                        })
+                      }
+                      <td>
+                        <div className="studyPercentageBox">
+                          <input
+                            type="date"
+                            className="w-100"
+                            value={thisweekGoal? 
+                              thisweekGoal["마감일"][book["교재"]]
+                            : ""}
+                            onChange={(e) => {
+                              const newthisweekGoal = JSON.parse(
+                                JSON.stringify(thisweekGoal)
+                              );
+                              newthisweekGoal["마감일"][book["교재"]] =
+                              e.target.value;
+                              setthisweekGoal(newthisweekGoal);
+                            }}
+                          />
+                        </div>
+                      </td>
+                    </>
+                  </tr>
+                );
+              }) : null
+            }
           </tbody>
         </Table>
         </div>
