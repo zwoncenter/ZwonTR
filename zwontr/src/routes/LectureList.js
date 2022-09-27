@@ -160,6 +160,17 @@ function LectureList() {
       });
   };
 
+
+  function groupBy(list, fn){
+    const groups = {};
+    list.forEach(function (o) {
+        const group = JSON.stringify(fn(o));
+        groups[group] = groups[group] || [];
+        groups[group].push(o);
+    });
+    return groups;
+}
+
   // 매니저리스트 관련 코드
   const [managerList, setmanagerList] = useState([]);
 
@@ -170,10 +181,11 @@ function LectureList() {
     const newmanagerList = await axios
       .get("/api/managerList")
       .then((result) => {
+        console.log(result["data"]);
         return result["data"];
       })
       .catch((err) => {
-        return err;
+        return err; 
       });
     setmanagerList(newmanagerList);
 
@@ -188,22 +200,14 @@ function LectureList() {
     setlectureList(newlectureList);
   }, []);
 
+  // 강의리스트를 매니저 이름별로 groupby
+  const groupedlectureList = groupBy(lectureList,(element)=>{
+    return element.manager
+  });
+
   return (
     <div className="background text-center">
       <h1 className="mt-3 fw-bold">강의 관리</h1>
-      
-      <Button
-        variant="success"
-        className="color-purple"
-        onClick={() => {
-          modalOpen();
-        }}
-      >
-        강의 추가
-      </Button>
-
-      
-      
 
       {/* 강의 생성 Modal */}
       <Modal show={modal} onHide={modalClose}>
@@ -311,7 +315,8 @@ function LectureList() {
           </InputGroup>
 
           <Button
-            variant="success"
+          className="btn-edit"
+            variant="secondary"
             onClick={() => {
               createNewLecture();
             }}
@@ -399,7 +404,7 @@ function LectureList() {
           </InputGroup>
 
           <Button
-            variant="success"
+            variant="secondary"
             onClick={() => {
               reviseLecture();
             }}
@@ -410,83 +415,116 @@ function LectureList() {
       </Modal>
 
       <div className="row m-auto lectureListBox">
-      <div className="d-flex flex-row-reverse">
-      <Button
-        className="me-2 color-gray-purple"
+        <div className="d-flex flex-row-reverse">
+          <Button
+            className="lectureSortingBtn"
+            variant="secondary"
+            onClick={() => {
+              const newlectureList = [...lectureList];
+              newlectureList.sort(function (a, b) {
+                return (+(a.manager > b.manager) - 0.5) * (+!managerOn - 0.5);
+              });
+              setlectureList(newlectureList);
+              setmanagerOn(!managerOn);
+              setstartdayOn(false);
+            }}
+          >
+            <strong>매니저순 정렬</strong>
+            
+          </Button>
+          <Button
+            className="lectureSortingBtn"
+            variant="secondary"
+            onClick={() => {
+              const newlectureList = [...lectureList];
+              newlectureList.sort(function (a, b) {
+                return (+(a.startday > b.startday) - 0.5) * (+!startdayOn - 0.5);
+              });
+              setlectureList(newlectureList);
+              setmanagerOn(false);
+              setstartdayOn(!startdayOn);
+            }}
+          >
+            <strong>강의시작일순 정렬</strong>
+          </Button>
+        </div>
+        <Button
         variant="secondary"
+        className="btn-add w-100 mb-2"
         onClick={() => {
-          const newlectureList = [...lectureList];
-          newlectureList.sort(function (a, b) {
-            return (+(a.manager > b.manager) - 0.5) * (+!managerOn - 0.5);
-          });
-          setlectureList(newlectureList);
-          setmanagerOn(!managerOn);
-          setstartdayOn(false);
+          console.log(groupedlectureList);
+          modalOpen();
         }}
       >
-        매니저순 정렬
+        <strong>+</strong>
       </Button>
-      <Button
-        className="me-2 color-gray-purple"
-        variant="secondary"
-        onClick={() => {
-          const newlectureList = [...lectureList];
-          newlectureList.sort(function (a, b) {
-            return (+(a.startday > b.startday) - 0.5) * (+!startdayOn - 0.5);
-          });
-          setlectureList(newlectureList);
-          setmanagerOn(false);
-          setstartdayOn(!startdayOn);
-        }}
-      >
-        강의시작일순 정렬
-      </Button>
-      </div>
-        {lectureList.map((element, idx) => {
-          return (
-            <div className="col-sm-6 col-md-4 col-lg-3">
+        <Table bordered>
+            <thead>
+              <tr>
+              <th width="10%">
+                <strong>매니저</strong>
+              </th>
+              <th width="90%">
+                <strong>강의 리스트</strong>
+              </th>
+            </tr>
+            </thead>
+            <tbody>
+          {
+          Object.keys(groupedlectureList).map((element, idx)=>{
+            return(
+              <tr>
+                <td>
+                  <p><strong>{groupedlectureList[element][0]["manager"]}</strong></p>
+                </td>
+                <td>
+                {groupedlectureList[element].map((lecture, i)=>{
+                  return(
               <Card
-                className="mt-2 lecture-card"
+                className="mt-2 m-2 lecture-card"
                 key={idx}
                 onClick={() => {
-                  history.push(`/Lecture/${element["lectureID"]}`);
+                  history.push(`/Lecture/${lecture["lectureID"]}`);
                 }}
               >
-                <Card.Header as="h5">{element["lectureName"]}</Card.Header>
+                <Card.Header><p><strong>{lecture["lectureName"]} ({lecture["studentList"].length}명)</strong></p></Card.Header>
                 <Card.Body>
-                  <div className="text-start">
-                    {/* <Card.Text>강의명 : {element["lectureName"]}</Card.Text> */}
-                    <Card.Text>과목 : {element["subject"]}</Card.Text>
-                    <Card.Text>매니저 : {element["manager"]}</Card.Text>
-                    <Card.Text>수강생 : {element["studentList"].length}명</Card.Text>
-                  </div>
-
-                  <Button
+                  <div className="text-start lectureCardContent">
+                    <Card.Text className="lectureSubject">{lecture["subject"]}</Card.Text>
+                    <div className="text-end">
+                    <Button
                     onClick={(e) => {
                       e.stopPropagation();
-                      reviseModalOpen(element);
+                      reviseModalOpen(lecture);
                     }}
                     variant="secondary"
-                    className="btn-sm me-2 color-purple"
+                    className="lectureEditingBtn btn-edit me-1"
                   >
-                    <FaPencilAlt></FaPencilAlt>
+                    <strong>수정</strong>
                   </Button>
-
                   <Button
-                    className="btn-sm m-auto"
-                    variant="danger"
+                    className="lectureEditingBtn btn-cancel m-auto"
+                    variant="secondary"
                     onClick={(e) => {
                       e.stopPropagation();
-                      deleteLecture(element["studentList"], element);
+                      deleteLecture(lecture["studentList"], lecture);
                     }}
                   >
-                    <FaTimes></FaTimes>
+                    <strong>삭제</strong>
                   </Button>
+                    </div>
+                  </div>
                 </Card.Body>
               </Card>
-            </div>
-          );
-        })}
+                  );
+                })}
+                </td>
+              </tr>
+            );
+          })
+        }
+          </tbody>
+        </Table>
       </div>
     </div>
   );

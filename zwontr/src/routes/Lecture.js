@@ -1,10 +1,13 @@
-import { Form, Button, Card, ListGroup, Table, Modal, Row, Col, Accordion, InputGroup, FormControl } from "react-bootstrap";
+import { Form, Button, ListGroup, Modal, Accordion, InputGroup, FormControl } from "react-bootstrap";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import TimePicker from "react-time-picker";
 import "./Lecture.css";
 import { FaPencilAlt, FaTimes, FaCheck, FaUndo } from "react-icons/fa";
+// import Accordion from 'react-bootstrap/Accordion';
+import { useAccordionButton } from "react-bootstrap/AccordionButton";
+import Card from "react-bootstrap/Card";
 
 function Lecture() {
   let history = useHistory();
@@ -368,10 +371,22 @@ function Lecture() {
     );
   }, [newname]);
 
+  // 과제 아코디언 UI 관련 코드
+  function CustomToggle({ children, eventKey }) {
+    const decoratedOnClick = useAccordionButton(eventKey, () => console.log("totally custom!"));
+
+    return (
+      <button type="button" style={{ backgroundColor: "pink" }} onClick={decoratedOnClick}>
+        {children}
+      </button>
+    );
+  }
+
   return (
     <div className="background">
-      <h1 className="fw-bold">강의명 : {lecture["lectureName"]}</h1>
-      <h4 className="fw-bold">강사 : {lecture["manager"]}</h4>
+      <h3 className="fw-bold">
+        {lecture["lectureName"]} ({lecture["manager"]})
+      </h3>
 
       <Modal show={namemodal} onHide={namemodalClose}>
         <Modal.Header closeButton>
@@ -535,269 +550,243 @@ function Lecture() {
       </Modal>
 
       <div className="row">
-        {/* 학생리스트 */}
-        <div className="col-md-9">
-          <Button
+        <Button
             variant="dark"
-            className="mt-3 mb-3"
+            className="btn-edit w-90 m-3"
             onClick={() => {
               namemodalOpen();
             }}
           >
-            학생 추가
+            + 학생 추가 +
           </Button>
-          <div className="row">
-              <h4 className="text-light bg-dark">과제 O</h4>
-                {lecture["studentList"]
-                  .filter((student) => lecture["students"][student]["진행중과제"].length !== 0)
-                  .map((student, index) => {
-                    return (
-                      <div className="col-md-3" key={index}>
-                        <p className="fs-5">
-                          이름 : {student}
-                          <Button
-                            onClick={() => {
-                              studentDelete(student);
-                            }}
-                            variant="danger"
-                            className="btn-sm ms-2"
-                          >
-                            <FaTimes />
-                          </Button>
-                        </p>
-                        <Accordion defaultActiveKey="0">
-                          <Accordion.Item eventKey="0">
-                            <Accordion.Header>
-                              <p>진행중 과제({lecture["students"][student]["진행중과제"].length})</p>
-                            </Accordion.Header>
-                            <Accordion.Body>
-                              {lecture["students"][student]["진행중과제"].map((assign, idx) => {
-                                return (
-                                  <ul key={idx}>
-                                    <p>
-                                      {lecture["assignments"][assign]["과제내용"]} /
-                                      <p
-                                        className={
-                                          today < lecture["assignments"][assign]["과제기한"]
-                                            ? "after"
-                                            : today == lecture["assignments"][assign]["과제기한"]
-                                            ? "now"
-                                            : "before"
-                                        }
-                                      >
-                                        {lecture["assignments"][assign]["과제기한"]}
-                                      </p>
-                                      <Button
-                                        className="ms-2 btn-sm"
-                                        onClick={() => {
-                                          if (!window.confirm("과제를 완료 처리하시겠습니까?")) {
-                                            return;
-                                          }
-                                          const newlecture = JSON.parse(JSON.stringify(lecture));
-                                          newlecture["students"][student]["진행중과제"].splice(idx, 1);
-                                          newlecture["students"][student]["완료된과제"].push([assign, today]);
-                                          setlecture(newlecture);
-                                          updatelecture(newlecture);
-                                        }}
-                                      >
-                                        <FaCheck></FaCheck>
-                                      </Button>
-                                    </p>
-                                  </ul>
-                                );
-                              })}
-                            </Accordion.Body>
-                          </Accordion.Item>
-                          <Accordion.Item eventKey="1">
-                            <Accordion.Header>
-                              <p>완료된 과제({lecture["students"][student]["완료된과제"].length})</p>
-                            </Accordion.Header>
-                            <Accordion.Body>
-                              {lecture["students"][student]["완료된과제"].map((assign, idx) => {
-                                return (
-                                  <ul key={idx}>
-                                    <p>
-                                      {lecture["assignments"][assign[0]]["과제내용"]} /
-                                      <p className={assign[1] <= lecture["assignments"][assign[0]]["과제기한"] ? "after" : "before"}>
-                                        {lecture["assignments"][assign[0]]["과제기한"]}
-                                      </p>{" "}
-                                      / {assign[1]}
-                                      <Button
-                                        className="ms-2 btn-sm"
-                                        onClick={() => {
-                                          if (!window.confirm("과제를 완료해제 처리하시겠습니까? \n기록된 완료날짜가 삭제됩니다.")) {
-                                            return;
-                                          }
-                                          const newlecture = JSON.parse(JSON.stringify(lecture));
-                                          newlecture["students"][student]["완료된과제"].splice(idx, 1);
-                                          newlecture["students"][student]["진행중과제"].push(assign[0]);
-                                          newlecture["students"][student]["진행중과제"].sort((a, b) => {
-                                            return +(newlecture["assignments"][a]["과제기한"] > newlecture["assignments"][b]["과제기한"]) - 0.5;
-                                          });
-                                          setlecture(newlecture);
-                                          updatelecture(newlecture);
-                                        }}
-                                      >
-                                        <FaUndo></FaUndo>
-                                      </Button>
-                                    </p>
-                                  </ul>
-                                );
-                              })}
-                            </Accordion.Body>
-                          </Accordion.Item>
-                        </Accordion>
-                      </div>
-                    );
-                  })}
-              <h4 className="text-light bg-dark mt-4">과제 X</h4>
-            {lecture["studentList"]
-              .filter((student) => lecture["students"][student]["진행중과제"].length === 0)
-              .map((student, index) => {
-                return (
-                  <div className="col-md-3" key={index}>
-                    <p className="fs-5">
-                      이름 : {student}
-                      <Button
-                        onClick={() => {
-                          studentDelete(student);
-                        }}
-                        variant="danger"
-                        className="btn-sm ms-2"
-                      >
-                        <FaTimes />
-                      </Button>
-                    </p>
-                    <Accordion>
-                      <Accordion.Item eventKey="0">
-                        <Accordion.Header>
-                          <p>진행중 과제({lecture["students"][student]["진행중과제"].length})</p>
-                        </Accordion.Header>
-                        <Accordion.Body>
-                          {lecture["students"][student]["진행중과제"].map((assign, idx) => {
-                            return (
-                              <ul key={idx}>
-                                <p>
-                                  {lecture["assignments"][assign]["과제내용"]} /
+          {/* 학생리스트 */}
+        <div className="col-md-8">
+          <div className="assignmentContainer">
+            <h5 className="btn-add">과제 O</h5>
+            <div className="assignmentSubContainer">
+              {lecture["studentList"]
+                .filter((student) => lecture["students"][student]["진행중과제"].length !== 0)
+                .map((student, index) => {
+                  return (
+                    <div className="attendingStudent-card" key={index}>
+                      <p className="fs-5">{student.split("_")[0]}</p>
+                      <Accordion defaultActiveKey="0">
+                        <Card>
+                          <Card.Header className="assignmentToggleBtn">
+                            <CustomToggle eventKey="0">진행중인 과제 ({lecture["students"][student]['진행중과제'].length})</CustomToggle>
+                          </Card.Header>
+                          <Accordion.Collapse eventKey="0">
+                            <Card.Body>
+                            {lecture["students"][student]["진행중과제"].map((assign, idx) => {
+                              return (
+                                <div key={idx} className="attendingStudent-card assignment-card w-100">
                                   <p
-                                    className={
-                                      today < lecture["assignments"][assign]["과제기한"]
-                                        ? "after"
-                                        : today == lecture["assignments"][assign]["과제기한"]
-                                        ? "now"
-                                        : "before"
-                                    }
-                                  >
-                                    {lecture["assignments"][assign]["과제기한"]}
+                                      className={
+                                        today < lecture["assignments"][assign]["과제기한"]
+                                          ? "after"
+                                          : today == lecture["assignments"][assign]["과제기한"]
+                                          ? "now"
+                                          : "before"
+                                      }
+                                    >
+                                      <strong>{lecture["assignments"][assign]["과제기한"]} 까지</strong>
+                                    </p>
+                                  <p>
+                                    {lecture["assignments"][assign]["과제내용"]}
                                   </p>
                                   <Button
-                                    className="ms-2 btn-sm"
-                                    onClick={() => {
-                                      if (!window.confirm("과제를 완료 처리하시겠습니까?")) {
-                                        return;
-                                      }
-                                      const newlecture = JSON.parse(JSON.stringify(lecture));
-                                      newlecture["students"][student]["진행중과제"].splice(idx, 1);
-                                      newlecture["students"][student]["완료된과제"].push([assign, today]);
-                                      setlecture(newlecture);
-                                      updatelecture(newlecture);
-                                    }}
-                                  >
-                                    <FaCheck></FaCheck>
-                                  </Button>
-                                </p>
-                              </ul>
-                            );
-                          })}
-                        </Accordion.Body>
-                      </Accordion.Item>
-                      <Accordion.Item eventKey="1">
-                        <Accordion.Header>
-                          <p>완료된 과제({lecture["students"][student]["완료된과제"].length})</p>
-                        </Accordion.Header>
-                        <Accordion.Body>
-                          {lecture["students"][student]["완료된과제"].map((assign, idx) => {
-                            return (
-                              <ul key={idx}>
-                                <p>
-                                  {lecture["assignments"][assign[0]]["과제내용"]} /
+                                      className="lectureEditingBtn btn-edit w-100"
+                                      onClick={() => {
+                                        if (!window.confirm("과제를 완료 처리하시겠습니까?")) {
+                                          return;
+                                        }
+                                        const newlecture = JSON.parse(JSON.stringify(lecture));
+                                        newlecture["students"][student]["진행중과제"].splice(idx, 1);
+                                        newlecture["students"][student]["완료된과제"].push([assign, today]);
+                                        setlecture(newlecture);
+                                        updatelecture(newlecture);
+                                      }}
+                                    >
+                                      완료처리
+                                    </Button>
+                                </div>
+                              );
+                            })}
+                            </Card.Body>
+                          </Accordion.Collapse>
+                        </Card>
+                        <Card>
+                          <Card.Header className="assignmentToggleBtn">
+                            <CustomToggle eventKey="1">완료된 과제 ({lecture["students"][student]["완료된과제"].length})</CustomToggle>
+                          </Card.Header>
+                          <Accordion.Collapse eventKey="1">
+                            <Card.Body>
+                              
+                            {lecture["students"][student]["완료된과제"].map((assign, idx) => {
+                              return (
+                                <div key={idx} className="attendingStudent-card assignment-card w-100">
                                   <p className={assign[1] <= lecture["assignments"][assign[0]]["과제기한"] ? "after" : "before"}>
-                                    {lecture["assignments"][assign[0]]["과제기한"]}
-                                  </p>{" "}
-                                  / {assign[1]}
+                                      <strong>{lecture["assignments"][assign[0]]["과제기한"]} 까지</strong>
+                                    </p>{" "}
+                                  <p> 
+                                  <strong>{assign[1]} 완료</strong>
+                                  </p>
+                                  <p>{lecture["assignments"][assign[0]]["과제내용"]}</p>
                                   <Button
-                                    className="ms-2 btn-sm"
-                                    onClick={() => {
-                                      if (!window.confirm("과제를 완료해제 처리하시겠습니까? \n기록된 완료날짜가 삭제됩니다.")) {
-                                        return;
-                                      }
-                                      const newlecture = JSON.parse(JSON.stringify(lecture));
-                                      newlecture["students"][student]["완료된과제"].splice(idx, 1);
-                                      newlecture["students"][student]["진행중과제"].push(assign[0]);
-                                      newlecture["students"][student]["진행중과제"].sort((a, b) => {
-                                        return +(newlecture["assignments"][a]["과제기한"] > newlecture["assignments"][b]["과제기한"]) - 0.5;
-                                      });
-                                      setlecture(newlecture);
-                                      updatelecture(newlecture);
-                                    }}
-                                  >
-                                    <FaUndo></FaUndo>
-                                  </Button>
-                                </p>
-                              </ul>
-                            );
-                          })}
-                        </Accordion.Body>
-                      </Accordion.Item>
-                    </Accordion>
-                  </div>
-                );
-              })}
+                                      className="lectureEditingBtn btn-cancel w-100"
+                                      onClick={() => {
+                                        if (!window.confirm("과제를 완료해제 처리하시겠습니까? \n기록된 완료날짜가 삭제됩니다.")) {
+                                          return;
+                                        }
+                                        const newlecture = JSON.parse(JSON.stringify(lecture));
+                                        newlecture["students"][student]["완료된과제"].splice(idx, 1);
+                                        newlecture["students"][student]["진행중과제"].push(assign[0]);
+                                        newlecture["students"][student]["진행중과제"].sort((a, b) => {
+                                          return +(newlecture["assignments"][a]["과제기한"] > newlecture["assignments"][b]["과제기한"]) - 0.5;
+                                        });
+                                        setlecture(newlecture);
+                                        updatelecture(newlecture);
+                                      }}
+                                    >
+                                      완료해제처리
+                                    </Button>
+                                </div>
+                              );
+                            })}
+
+                            </Card.Body>
+                          </Accordion.Collapse>
+                        </Card>
+                      </Accordion>
+                      <div className="text-end rightbelow">
+                        <Button
+                          onClick={() => {
+                            studentDelete(student);
+                          }}
+                          variant="danger"
+                          className="lectureEditingBtn btn-cancel m-auto"
+                        >
+                          삭제
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+            <h4 className="btn-add">과제 X</h4>
+            <div className="assignmentSubContainer">
+              {lecture["studentList"]
+                .filter((student) => lecture["students"][student]["진행중과제"].length === 0)
+                .map((student, index) => {
+                  return (
+                    <div className="attendingStudent-card" key={index}>
+                      <p className="fs-5">{student.split("_")[0]}</p>
+                      <Accordion>
+                        <Card>
+                          <Card.Header className="assignmentToggleBtn">
+                            <CustomToggle eventKey="0">완료된 과제 ({lecture["students"][student]["완료된과제"].length})</CustomToggle>
+                          </Card.Header>
+                          <Accordion.Collapse eventKey="0">
+                            <Card.Body>
+                            {lecture["students"][student]["완료된과제"].map((assign, idx) => {
+                              return (
+                                <div key={idx} className="attendingStudent-card assignment-card w-100">
+                                  <p className={assign[1] <= lecture["assignments"][assign[0]]["과제기한"] ? "after" : "before"}>
+                                      <strong>{lecture["assignments"][assign[0]]["과제기한"]} 까지</strong>
+                                    </p>{" "}
+                                  <p>
+                                    <strong>{assign[1]} 완료</strong>
+                                  </p>
+                                  <p>{lecture["assignments"][assign[0]]["과제내용"]}</p>
+                                  <Button
+                                      className="lectureEditingBtn btn-cancel w-100"
+                                      onClick={() => {
+                                        if (!window.confirm("과제를 완료해제 처리하시겠습니까? \n기록된 완료날짜가 삭제됩니다.")) {
+                                          return;
+                                        }
+                                        const newlecture = JSON.parse(JSON.stringify(lecture));
+                                        newlecture["students"][student]["완료된과제"].splice(idx, 1);
+                                        newlecture["students"][student]["진행중과제"].push(assign[0]);
+                                        newlecture["students"][student]["진행중과제"].sort((a, b) => {
+                                          return +(newlecture["assignments"][a]["과제기한"] > newlecture["assignments"][b]["과제기한"]) - 0.5;
+                                        });
+                                        setlecture(newlecture);
+                                        updatelecture(newlecture);
+                                      }}
+                                    >
+                                      완료해제처리
+                                    </Button>
+                                </div>
+                              );
+                            })}
+                            </Card.Body>
+                          </Accordion.Collapse>
+                        </Card>
+                      </Accordion>
+                      <div className="text-end m-1" >
+                        <Button
+                          onClick={() => {
+                            studentDelete(student);
+                          }}
+                          variant="secondary"
+                          className="lectureEditingBtn btn-cancel m-auto rightbelow"
+                        >
+                          삭제
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
           </div>
         </div>
 
         {/* 과제리스트 */}
-        <div className="col-md-3">
-          <Button
-            variant="dark"
-            className="mt-3 mb-3"
-            onClick={() => {
-              assignmodalOpen();
-            }}
-          >
-            과제 추가
-          </Button>
-          <ListGroup></ListGroup>
-          {Object.keys(lecture["assignments"])
-            .reverse()
-            .map((assignID, index) => {
-              return (
-                <ListGroup.Item key={index}>
-                  <p>
-                    {lecture["assignments"][assignID]["과제내용"]} / {lecture["assignments"][assignID]["과제기한"]}{" "}
-                    <Button
-                      className="btn-sm ms-1"
-                      variant="secondary"
-                      onClick={() => {
-                        setselectedAssign(assignID);
-                        assignupdatemodalOpen();
-                      }}
-                    >
-                      <FaPencilAlt></FaPencilAlt>
-                    </Button>
-                    <Button
-                      className="btn-sm ms-1"
-                      variant="danger"
-                      onClick={() => {
-                        assignDelete(assignID);
-                      }}
-                    >
-                      <FaTimes></FaTimes>
-                    </Button>
-                  </p>
-                </ListGroup.Item>
-              );
-            })}
+        <div className="col-md-4">
+          <div className="assignmentContainer">
+            <Button
+              variant="dark"
+              className="btn-add w-100 mb-2"
+              onClick={() => {
+                assignmodalOpen();
+              }}
+            >
+              <strong>+ 과제 추가 +</strong>
+            </Button>
+            {Object.keys(lecture["assignments"])
+              .reverse()
+              .map((assignID, index) => {
+                return (
+                  <ListGroup.Item key={index}>
+                    <p>
+                      <strong>{lecture["assignments"][assignID]["과제내용"]}</strong>
+                    </p>
+                    <p>{lecture["assignments"][assignID]["과제기한"]} 까지</p>
+                    <div>
+                      <Button
+                        className="lectureEditingBtn btn-edit me-1"
+                        variant="secondary"
+                        onClick={() => {
+                          setselectedAssign(assignID);
+                          assignupdatemodalOpen();
+                        }}
+                      >
+                        <strong>수정</strong>
+                      </Button>
+                      <Button
+                        className="lectureEditingBtn btn-cancel m-auto"
+                        variant="secondary"
+                        onClick={() => {
+                          assignDelete(assignID);
+                        }}
+                      >
+                        <strong>삭제</strong>
+                      </Button>
+                    </div>
+                  </ListGroup.Item>
+                );
+              })}
+          </div>
         </div>
       </div>
     </div>

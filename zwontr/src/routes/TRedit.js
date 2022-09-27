@@ -481,6 +481,7 @@ function TRedit() {
     .get(`/api/Weeklystudyfeedback/${paramID}/${formatDate(getThisWeek(formatDate(paramDate))[1])}`)
     .then((result) => {
       if (result["data"] !== null) {
+        console.log(result["data"]["thisweekGoal"][TR["요일"].split("요일")[0]]);
         return result["data"]["thisweekGoal"][TR["요일"].split("요일")[0]];
       }
     })

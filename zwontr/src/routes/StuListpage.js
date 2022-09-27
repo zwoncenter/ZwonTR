@@ -40,6 +40,7 @@ function StuListpage() {
   const [chosenID, setchosenID] = useState("");
   const [todayTRlist, settodayTRlist] = useState([]);
   const [studentTRlist, setstudentTRlist] = useState([]);
+  const [stickynoteValue, setstickynoteValue] = useState("");
 
   const addClick = () => {
     if (window.confirm("학생 신규 등록을 진행하시겠습니까?")) {
@@ -90,8 +91,19 @@ function StuListpage() {
       });
   }
 
-  // 첫 로딩 시, studentDBlist/todayTRlist 업데이트
+  // 첫 로딩 시, studentDBlist/todayTRlist/stickymemo 업데이트
   useEffect(async () => {
+    const existstickynote = await axios
+      .get("/api/stickynote")
+      .then((result) => {
+        console.log(result.data);
+        return result.data;
+      })
+      .catch((err) => {
+        return err;
+      });
+    setstickynoteValue(existstickynote);
+
     const newstudentDBlist = await axios
       .get("/api/studentList")
       .then((result) => {
@@ -168,6 +180,39 @@ function StuListpage() {
   return (
     <div className="stuList-background">
       <div className={stuListShow === true ? "stuListShow stuListShowActive text-center" : "stuListShow text-center"}>
+        <div className="stickynote">
+          <strong><p className="m-0">업무공유사항</p></strong>
+          <textarea
+        placeholder="여기에 입력하세요"
+        value={stickynoteValue["note"]}
+        onChange={(e) => {
+        const newstickynote = JSON.parse(JSON.stringify(stickynoteValue));
+        newstickynote["note"] = e.target.value;
+        setstickynoteValue(newstickynote)}
+        }
+        onBlur={()=>{
+          console.log(stickynoteValue);
+                axios
+                  .put("/api/stickynote", stickynoteValue)
+                  .then(function (result) {
+                    if (result.data === true) {
+                      history.push("/studentList");
+                    } else if (result.data === "로그인필요") {
+                      window.alert("로그인이 필요합니다.");
+                      return history.push("/");
+                    } else {
+                      console.log(result.data);
+                      window.alert(result.data);
+                    }
+                  })
+                  .catch(function (err) {
+                    console.log("저장 실패 : ", err);
+                    window.alert(err);
+                  });
+        }}
+      ></textarea>
+      <p>* 작성/수정 후 메모장 바깥을 눌러야 저장됩니다.</p>
+        </div>
         <div className="statesBox">
           <p>활동중: {Written.filter((element) => "등원" === element).length}</p>
           <p>귀가: {Written.filter((element) => "귀가" === element).length}</p>
@@ -315,7 +360,7 @@ function StuListpage() {
                   TR(일간하루)
                 </Button>
 
-                <Button
+                <Button 
                   variant="secondary"
                   className="m-1 stuButton"
                   onClick={() => {

@@ -1,4 +1,5 @@
 .background {
+  width: 100%;
   min-height: 100%;
   background-size: cover;
   padding: 20px;
@@ -24,18 +25,38 @@
 
 .lectureListBox {
   min-width: 300px;
-  max-width: 1200px;
-  width: 90%;
+  width: 95%;
 }
 
-.color-purple {
-  background-color: #5500d3;
-  border-color: #5500d3;
+.lecture-card {
+  width: 23%;
+  height: 100px;
+  float: left;
+  border-radius: 15px;
+  border: 2px solid black;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+}
+.lecture-card th {
+  vertical-align: bottom;
 }
 
-.color-gray-purple {
-  background-color: #B1A8B9;
-  border-color: #B1A8B9;
+.lectureSortingBtn {
+  background-color: gray;
+  margin: 5px;
+  border-radius: 10px;
+  border: 0;
+}
+
+.lectureEditingBtn {
+  border: 0px;
+  border-radius: 15px;
+  width: 20%;
+  height: 50%;
+  font-size: 70%;
+}
+
+.lectureCardContent {
+  flex: left;
 }
 
 .after {
@@ -52,4 +73,58 @@
   display: inline;
   background-color: rgb(245, 110, 110);
   color: rgb(240, 240, 240);
+}
+
+.lectureSubject {
+  float: left;
+}
+
+.assignmentContainer {
+  padding: 10px;
+  width: 100%;
+  min-height: 80vh;
+  background-color: white;
+  border-radius: 15px;
+  border: 0;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+}
+
+.assignmentSubContainer {
+  padding: 25px;
+  width: 100%;
+  min-height: 0vh;
+  background-color: white;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: left;
+}
+
+.attendingStudent-card {
+  width: 32%;
+  height: 30%;
+  border-radius: 15px;
+  border: 0;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  margin: 5px;
+  padding: 10px;
+}
+.attendingStudent-card p {
+  text-align: left;
+}
+
+.rightbelow {
+  right: 5px;
+  bottom: 5px;
+  margin-top: 4px;
+}
+
+.assignment-card {
+  text-align: left;
+}
+
+.assignmentToggleBtn button {
+  border-radius: 10px;
+  border: 0;
+  float: left;
 }

@@ -776,6 +776,35 @@ app.delete("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, (req, res) 
   });
 });
 
+
+// stickynote 관련 코드
+
+app.get("/api/stickynote", loginCheck, (req, res) => {
+  db.collection("stickynote").findOne((err, result) => {
+    console.log(result);
+    if (err) {
+      return res.send(`/api/stickynote - findOne Error : ${err}`);
+    }
+    return res.json(result);
+  });
+});
+
+app.put("/api/stickynote", loginCheck, (req, res) => {
+  if (req["user"]["ID"] === "guest") {
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
+  }
+  const newstickynote = req.body;
+  const findID = ObjectId(newstickynote["_id"]);
+  delete newstickynote["_id"];
+  db.collection("stickynote").updateOne({ _id: findID }, { $set: newstickynote }, (err, result) => {
+    if (err) {
+      return res.send(`/api/stickynote - updateOne Error : ${err}`);
+    }
+    return res.send(true);
+  });
+});
+
+
 app.use("*", express.static(path.join(__dirname, "../zwontr/build")));
 app.get("*", function (req, res) {
   res.sendFile(path.join(__dirname, "../zwontr/build/index.html"));
