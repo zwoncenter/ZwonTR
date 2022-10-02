@@ -4,11 +4,14 @@ import { Button, Card, ListGroup, Modal, Table } from "react-bootstrap";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
-// import menuarrow from "../next.png";
 import absent from "./absent.png";
 import notcame from "./notcame.png";
 import trchecked from "./trchecked.png";
 import Draggable from "react-draggable";
+import StickyNote from "./StickyNote";
+
+// sticky note 관련 함수를 export
+
 
 function StuListpage() {
   let history = useHistory();
@@ -49,13 +52,6 @@ function StuListpage() {
     }
   };
   const [thisweek, setthisweek] = useState(getThisWeek());
-
-  //draggable 메모장 관련
-  const [position, setPosition] = useState({ x: 0, y: 0 }); // box의 포지션 값
-  // 업데이트 되는 값을 set 해줌
-  const trackPos = (data) => {
-    setPosition({ x: data.x, y: data.y });
-  };
 
   function getThisWeek() {
     var inputDate = new Date();
@@ -183,11 +179,29 @@ function StuListpage() {
     }
   }, []);
 
+  // draggable 메모장 관련
+  // const [position, setPosition] = useState({ x: 0, y: 0 }); // box의 포지션 값
+  // // // 업데이트 되는 값을 set 해줌
+  // const trackPos = (data) => {
+  //   setPosition({ x: data.x, y: data.y });
+  // };
+
+  function chanagePosition(new_x, new_y){
+    this.setState({x: new_x, y: new_y})
+  }
+
+  const [stickyNoteList, setstickyNoteList] = useState([<StickyNote x={0} y={0} />]);
+  
   return (
     <div className="stuList-background">
       <div className={stuListShow === true ? "stuListShow stuListShowActive text-center" : "stuListShow text-center"}>
-        <Draggable onDrag={(e, data) => trackPos(data)}>
+        {stickyNoteList}
+        {/* <Draggable onDrag={(e, data) => trackPos(data)}>
           <div className="stickynote">
+            <Button className="stuAddbtn"
+            onclick={()=>{
+              // addNote();
+            }}>+</Button>
             <strong>
               <p className="m-0">업무공유사항</p>
             </strong>
@@ -222,7 +236,7 @@ function StuListpage() {
             ></textarea>
             <p>* 작성/수정 후 메모장 바깥을 눌러야 저장됩니다.</p>
           </div>
-        </Draggable>
+        </Draggable> */}
         <div className="statesBox">
           <p>활동중: {Written.filter((element) => "등원" === element).length}</p>
           <p>귀가: {Written.filter((element) => "귀가" === element).length}</p>
