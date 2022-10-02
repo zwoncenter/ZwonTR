@@ -215,15 +215,68 @@ function TRedit() {
   });
   const [thisWeekProgress, setThisWeekProgress] = useState([]);
   const [thisweek, setthisweek] = useState(getThisWeek(paramDate));
+  //const [bookNamesDictionary,setBookNamesDictionary]= useState({});
+  //const [bookNamesList,setBookNamesList]= useState([]);
+  let bookNamesDictionary={};
+  let bookNamesList=[];
+  function checkThisWeekGoalHasValidElement(){
+    if(!thisweekGoal) return false;
+    for(let i=0; i<weekDays.length; i++){
+      let tmpDay=weekDays[i];
+      let tmpGoal=thisweekGoal[tmpDay];
+      if(Object.keys(tmpGoal).length>0) return true;
+    }
+    return false;
+  }
   function checkThisWeekProgressHasValidElement(){
+    if(!thisWeekProgress || thisWeekProgress.length==0) return false;
     for(let i=0; i<thisWeekProgress.length; i++){
       if(thisWeekProgress[i]!=null && thisWeekProgress!=undefined &&
         thisWeekProgress[i].hasOwnProperty("학습")) return true;
     }
     return false;
   }
+  function collectBookNamesFromProgressAndGoal(){
+    //let newBookNamesDictionary={};
+    if(thisweekGoal && thisweekGoal.hasOwnProperty("교재캡쳐")){
+      let booklist=thisweekGoal["교재캡쳐"];
+      for(let i=0; i<booklist.length; i++){
+        let bookName=booklist[i]["교재"];
+        if(!bookNamesDictionary.hasOwnProperty(bookName)){
+          bookNamesDictionary[bookName]=booklist[i].hasOwnProperty("총교재량")?booklist[i]["총교재량"]:null;
+        }
+      }
+    }
+    if(thisWeekProgress && thisWeekProgress.length>0){
+      for(let i=0; i<thisWeekProgress.length; i++){
+        let dayElement=thisWeekProgress[i];
+        if(!(dayElement && dayElement.hasOwnProperty("학습")))
+          continue;
+        for(let j=0; j<dayElement["학습"].length; j++){
+          let bookElement=dayElement["학습"][j];
+          if(!bookElement.hasOwnProperty("교재"))
+            continue;
+          let bookName=bookElement["교재"];
+          if(!bookNamesDictionary.hasOwnProperty(bookName)){
+            bookNamesDictionary[bookName]=bookElement.hasOwnProperty("총교재량")?bookElement["총교재량"]:null;
+          }
+        }
+      }
+    }
+    let newBookNamesList= Object.keys(bookNamesDictionary);
+    //console.log("book names dict: "+JSON.stringify(bookNamesDictionary));
+    bookNamesList=Object.keys(bookNamesDictionary);
+    //console.log("book names list: "+JSON.stringify(bookNamesList));
+    //setBookNamesDictionary(newBookNamesDictionary);
+    //setBookNamesList(newBookNamesList);
+  }
+  collectBookNamesFromProgressAndGoal();
   function checkWeekProgressTableNeeded(){
-    return TR.요일="일요일" && checkThisWeekProgressHasValidElement() && thisweekGoal;
+    return (checkThisWeekProgressHasValidElement() || checkThisWeekGoalHasValidElement());
+  }
+  function getGoalFromDayAndBook(day,bookName){
+    if(!thisweekGoal || !thisweekGoal.hasOwnProperty(day) || !thisweekGoal[day].hasOwnProperty(bookName)) return null;
+    return thisweekGoal[day][bookName];
   }
   function getProgressFromDayAndBook(day,bookName){
     if(!thisWeekProgress || thisWeekProgress.length==0) return null;
@@ -234,14 +287,14 @@ function TRedit() {
     });
     console.log("breakpoint0");
     if(dplist.length==0 || !dplist[0].hasOwnProperty("학습")) {
-      console.log("return condition satisfied, dplist: "+JSON.stringify(dplist));
+      //console.log("return condition satisfied, dplist: "+JSON.stringify(dplist));
       return null;
     }
     let bookinfo=dplist[0]["학습"].filter((studyingBook,sbIndex)=>{
       return studyingBook["교재"]===bookName;
     });
     if(bookinfo.length==0) {
-      console.log("return condition satisfied, bookinfo: "+JSON.stringify(bookinfo));
+      //console.log("return condition satisfied, bookinfo: "+JSON.stringify(bookinfo));
       return null;
     }
     console.log("breakpoint");
@@ -558,7 +611,7 @@ function TRedit() {
       return err;
     });
     await setthisweekGoal(newthisweekGoal);
-    if(thisweekGoal && newthisweekGoal.hasOwnProperty(TR["요일"][0])){
+    if(thisweekGoal && newthisweekGoal && newthisweekGoal.hasOwnProperty(TR["요일"][0])){
       await settodayGoal(thisweekGoal[TR["요일"][0]]);
     }
     /*let newThisWeekProgress=await getThisWeekProgress();
@@ -566,6 +619,7 @@ function TRedit() {
     await setThisWeekProgress(newThisWeekProgress);
     console.log('after set this~: '+JSON.stringify(thisWeekProgress));*/
     await getThisWeekProgress();
+    //collectBookNamesFromProgressAndGoal();
   }
 
   useEffect(async() => {
@@ -1124,89 +1178,7 @@ function TRedit() {
                   </Table>
                 </div>
                 {/*일간 TR 내 주간 학습 계획*/}
-                {
-                  checkWeekProgressTableNeeded()?(
-                  <div className="trCard">
-                    <Table striped hover size="sm" className="mt-3">
-                      <thead>
-                        <th width="30%">
-                          교재명
-                        </th>
-                        {
-                          weekDays.map((day,dayIndex)=>{
-                            return (
-                              <th key={dayIndex} width="10%">
-                                {day}
-                              </th>
-                            );
-                          })
-                        }
-                      </thead>
-                      <tbody>
-                        {
-                          thisweekGoal?
-                          thisweekGoal["교재캡쳐"].map((book,bookIndex)=>{
-                            return(
-                              <tr key={bookIndex}>
-                                <td>
-                                  <p m-0="true">
-                                    <strong>
-                                      {book["교재"]} {book["총교재량"] ? `(총 ${book["총교재량"]})` : null}
-                                    </strong>
-                                  </p>
-                                </td>
-                                <>
-                                  {
-                                    weekDays.map((day,dayIndex)=>{
-                                      return (
-                                        <td key={dayIndex}>
-                                          <div className="studyPercentageBox">
-                                            <p>
-                                              <strong>
-                                                {
-                                                  getProgressFromDayAndBook(day+"요일",book["교재"])?
-                                                  getProgressFromDayAndBook(day+"요일",book["교재"])
-                                                  :"-"
-                                                }
-                                              </strong>
-                                            </p>
-                                            <p>
-                                              <strong>/</strong>
-                                            </p>
-                                            <p>
-                                              {
-                                                console.log('this week goal:'+JSON.stringify(thisweekGoal))?
-                                                null:null
-                                              }
-                                              {
-                                                console.log('this week goal keys:'+JSON.stringify(Object.keys(thisweekGoal)))?
-                                                null:null
-                                              }
-                                              {
-                                                console.log('this week goal specific day:'+JSON.stringify(thisweekGoal[day]))?
-                                                null:null
-                                              }
-                                              {
-                                                thisweekGoal
-                                                ? (thisweekGoal[day][book["교재"]]?thisweekGoal[day][book["교재"]]:"-")
-                                                : "-"
-                                              }
-                                            </p>
-                                          </div>
-                                        </td>
-                                      );
-                                    })
-                                  }
-                                </>
-                              </tr>
-                            );
-                          }) : null
-                        }
-                      </tbody>
-                    </Table>
-                  </div>):null
-                }
-                
+
               </div>
             ) : TR.결석여부 === "등원예정" ? (
               <></>
@@ -1238,6 +1210,77 @@ function TRedit() {
                 ></textarea>
               </div>
             )}
+            {
+              TR.요일=="일요일"? (
+              <div mt-3>
+                <div className="trCard">
+                  {
+                    checkWeekProgressTableNeeded()?
+                    (<Table striped hover size="sm" className="mt-3">
+                      <thead>
+                        <th width="30%">
+                          교재명
+                        </th>
+                        {
+                          weekDays.map((day,dayIndex)=>{
+                            return (
+                              <th key={dayIndex} width="10%">
+                                {day}
+                              </th>
+                            );
+                          })
+                        }
+                      </thead>
+                      <tbody>
+                        {
+                          bookNamesList.map((bookName,bookNameIndex)=>{
+                            return(
+                              <tr key={bookNameIndex}>
+                                <td>
+                                  <p m-0="true">
+                                    <strong>
+                                      {bookName} {bookNamesDictionary[bookName] ? `(총 ${bookNamesDictionary[bookName]})` : null}
+                                    </strong>
+                                  </p>
+                                </td>
+                                {
+                                  weekDays.map((day,dayIndex)=>{
+                                    return(
+                                      <td key={dayIndex}>
+                                        <div className="studyPercentageBox">
+                                          <p>
+                                            <strong>
+                                              {
+                                                getProgressFromDayAndBook(day+"요일",bookName)?
+                                                getProgressFromDayAndBook(day+"요일",bookName)
+                                                :"-"
+                                              }
+                                            </strong>
+                                            /
+                                            {
+                                              (thisweekGoal && getGoalFromDayAndBook(day,bookName))
+                                              ? (getGoalFromDayAndBook(day,bookName))
+                                              : "-"
+                                            }
+                                          </p>
+                                        </div>
+                                      </td>
+                                    );
+                                  })
+                                }
+                              </tr>
+                            );
+                          })
+                          
+                        }
+                      </tbody>
+                    </Table>)
+                    :(<p><strong>이번 주 학습 목표, 학습 진행 상황이 없습니다</strong></p>)
+                  }
+                </div>
+              </div>)
+              :null
+            }
           </div>
         </div>
         <div className="col-xl-2 trCol">
