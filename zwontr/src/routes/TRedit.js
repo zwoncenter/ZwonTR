@@ -755,6 +755,10 @@ function TRedit() {
                 </Button>
               </div>
 
+              {
+                console.log("AA")?null:null
+              }
+
               <div className="col-2 p-0">
                 <Form.Check
                   className="TRWriteCheck"
