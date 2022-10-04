@@ -180,25 +180,25 @@ function StuListpage() {
   }, []);
 
   // draggable 메모장 관련
-  // const [position, setPosition] = useState({ x: 0, y: 0 }); // box의 포지션 값
-  // // // 업데이트 되는 값을 set 해줌
-  // const trackPos = (data) => {
-  //   setPosition({ x: data.x, y: data.y });
-  // };
+  const [position, setPosition] = useState({ x: 0, y: 0 }); // box의 포지션 값
+  // // 업데이트 되는 값을 set 해줌
+  const trackPos = (data) => {
+    setPosition({ x: data.x, y: data.y });
+  };
 
-  const addNote = () => {
-    setstickyNoteList([...stickyNoteList, <StickyNote x={0} y={0} addNote={addNote}/>]);
-    console.log(stickyNoteList);
-};
-  const [stickyNoteList, setstickyNoteList] = useState([<StickyNote x={0} y={0} addNote={addNote}/>]);
+//   const addNote = () => {
+//     setstickyNoteList([...stickyNoteList, <StickyNote x={0} y={0} addNote={addNote}/>]);
+//     console.log(stickyNoteList);
+// };
+//   const [stickyNoteList, setstickyNoteList] = useState([<StickyNote x={0} y={0} addNote={addNote}/>]);
   
 
   
   return (
     <div className="stuList-background">
       <div className={stuListShow === true ? "stuListShow stuListShowActive text-center" : "stuListShow text-center"}>
-        {stickyNoteList}
-        {/* <Draggable onDrag={(e, data) => trackPos(data)}>
+        {/* {stickyNoteList} */}
+        <Draggable onDrag={(e, data) => trackPos(data)}>
           <div className="stickynote">
             <Button className="stuAddbtn"
             onclick={()=>{
@@ -238,7 +238,7 @@ function StuListpage() {
             ></textarea>
             <p>* 작성/수정 후 메모장 바깥을 눌러야 저장됩니다.</p>
           </div>
-        </Draggable> */}
+        </Draggable>
         <div className="statesBox">
           <p>활동중: {Written.filter((element) => "등원" === element).length}</p>
           <p>귀가: {Written.filter((element) => "귀가" === element).length}</p>
