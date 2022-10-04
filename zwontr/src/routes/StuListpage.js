@@ -186,11 +186,13 @@ function StuListpage() {
   //   setPosition({ x: data.x, y: data.y });
   // };
 
-  function chanagePosition(new_x, new_y){
-    this.setState({x: new_x, y: new_y})
-  }
+  const addNote = () => {
+    setstickyNoteList([...stickyNoteList, <StickyNote x={0} y={0} addNote={addNote}/>]);
+    console.log(stickyNoteList);
+};
+  const [stickyNoteList, setstickyNoteList] = useState([<StickyNote x={0} y={0} addNote={addNote}/>]);
+  
 
-  const [stickyNoteList, setstickyNoteList] = useState([<StickyNote x={0} y={0} />]);
   
   return (
     <div className="stuList-background">

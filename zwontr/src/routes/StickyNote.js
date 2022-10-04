@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 // import StuListpage from './StuListpage';
 import StuListpage from "./StuListpage";
 
-function StickyNote({id, x_pos, y_pos, textdata}){
+function StickyNote({id, x_pos, y_pos, textdata, addNote}){
     const [position, setPosition] = useState({ x: x_pos, y: y_pos }); // box의 포지션 값
     const [memo, setmemo] = useState([textdata]);
     // // 업데이트 되는 값을 set 해줌
@@ -20,8 +20,8 @@ function StickyNote({id, x_pos, y_pos, textdata}){
         <div className="stickynote">
           <Button
             className="stuAddbtn"
-            onclick={() => {
-            //   StuListpage.addNote();
+            onclick={(event) => {
+                addNote();
             }}
           >
             +
