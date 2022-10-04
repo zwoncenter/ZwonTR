@@ -188,7 +188,6 @@ function TRedit() {
     for(let i=0; i<7; i++){
       let tmpdate=new Date(thisweek[0]);
       tmpdate.setDate(tmpdate.getDate()+i);
-      console.log(dateToString(tmpdate));
       ret.push(await axios
         .get(`/api/TR/${paramID}/${dateToString(tmpdate)}`)
         .then((result) => {
@@ -227,6 +226,9 @@ function TRedit() {
       if(Object.keys(tmpGoal).length>0) return true;
     }
     return false;
+  }
+  function checkTodayIsSunday(){
+    return (new Date(paramDate)).getDay()==0;
   }
   function checkThisWeekProgressHasValidElement(){
     if(!thisWeekProgress || thisWeekProgress.length==0) return false;
@@ -285,7 +287,7 @@ function TRedit() {
       if(!dayProgress || !dayProgress.hasOwnProperty("요일")) return false;
       return day === dayProgress["요일"]
     });
-    console.log("breakpoint0");
+    //console.log("breakpoint0");
     if(dplist.length==0 || !dplist[0].hasOwnProperty("학습")) {
       //console.log("return condition satisfied, dplist: "+JSON.stringify(dplist));
       return null;
@@ -297,7 +299,7 @@ function TRedit() {
       //console.log("return condition satisfied, bookinfo: "+JSON.stringify(bookinfo));
       return null;
     }
-    console.log("breakpoint");
+    //console.log("breakpoint");
     return !bookinfo[0]["최근진도"]?null:bookinfo[0]["최근진도"];
   }
   function getThisWeek(inputDate) {
@@ -630,8 +632,8 @@ function TRedit() {
       newTR["요일"] = ls[trDate.getDay()] + "요일";
       await setTR(newTR);
     }
+
     const newthisweek=getThisWeek(TR.날짜);
-    console.log("this week val: "+dateToString(thisweek[0])+", "+dateToString(thisweek[1]));
     let sameweek=true;
     for(let i=0; i<newthisweek.length; i++){
       if(newthisweek[i].getTime()!=thisweek[i].getTime()){
@@ -640,13 +642,13 @@ function TRedit() {
       }
     }
     if(!sameweek){
-      await setGoalsAndGetProgress();
-      await setthisweek(getThisWeek(TR.날짜));
+      await setthisweek(newthisweek);
     }
+    
   }, [TR.날짜]);
 
-  useEffect(()=>{
-
+  useEffect(async ()=>{
+    await setGoalsAndGetProgress();
   },[thisweek]);
 
   useEffect(() => {
@@ -754,10 +756,6 @@ function TRedit() {
                   <strong>미등원</strong>
                 </Button>
               </div>
-
-              {
-                console.log("AA")?null:null
-              }
 
               <div className="col-2 p-0">
                 <Form.Check
@@ -1215,7 +1213,7 @@ function TRedit() {
               </div>
             )}
             {
-              TR.요일=="일요일"? (
+              checkTodayIsSunday()? (
               <div mt-3>
                 <div className="trCard">
                   {
