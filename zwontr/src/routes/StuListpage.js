@@ -2,7 +2,7 @@ import "../App.scss";
 import "./StuListpage.scss";
 import { Button, Card, ListGroup, Modal, Table } from "react-bootstrap";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import absent from "./absent.png";
 import notcame from "./notcame.png";
@@ -186,19 +186,95 @@ function StuListpage() {
     setPosition({ x: data.x, y: data.y });
   };
 
-//   const addNote = () => {
-//     setstickyNoteList([...stickyNoteList, <StickyNote x={0} y={0} addNote={addNote}/>]);
-//     console.log(stickyNoteList);
-// };
-//   const [stickyNoteList, setstickyNoteList] = useState([<StickyNote x={0} y={0} addNote={addNote}/>]);
+  const addNote = () => {
+    setstickyNoteList([...stickyNoteList, <StickyNote x={0} y={0} addNote={addNote}/>]);
+    console.log(stickyNoteList);
+};
+
+  //sticky note 관련
+  const stickyNoteWidth=500;
+  const stickyNoteHeight=320;
   
+  function getBoundariesFromViewPortSize(vpSize){
+    const right=Math.max(0,vpSize[0]-stickyNoteWidth);
+    const bottom=Math.max(0,vpSize[1]-stickyNoteHeight);
+    return {left:0, top:0, right:right-3, bottom:bottom-3};
+  }
+  
+  //viewport resizing 관련
+  const [viewportSize,setViewportSize]= useState([window.innerWidth,window.innerHeight]);
+  //const initialStickyNotesRender=useRef(true);
+  //const viewportResizeCount=useRef(1);
+  const initialStickyNotesCount=2;
+  const [nextStickyNoteKey,setNextStickyNoteKey]= useState(0);
+  function getNextStickyNoteKeys(count){
+    const ret=[];
+    for(let i=0; i<count; i++){
+      ret.push(nextStickyNoteKey+i);
+    }
+    // if(initialStickyNotesRender.current){
+    //   initialStickyNotesRender.current=false; //this has a problem which...
+    // }
+    // else{
+    //   console.log("log"+JSON.stringify(new Date())+" nextKey: "+nextStickyNoteKey);
+    //   //setNextStickyNoteKey(nextStickyNoteKey+count);
+    //   setNextStickyNoteKey((prevKey)=>(prevKey+2));
+    // }
+    setNextStickyNoteKey((prevKey)=>(prevKey+2));
+    console.log('log'+JSON.stringify(new Date())+' new keys:'+JSON.stringify(ret));
+    return ret;
+  }
+  function getStickyNotesWithKeys(keys){
+    const ret=[];
+    for(let i=0; i<keys.length; i++){
+      ret.push(<StickyNote key={keys[i]} x_pos={i*200} y_pos={i*200} addNote={addNote} bounds={getBoundariesFromViewPortSize(viewportSize)}/>);
+    }
+    console.log("log"+JSON.stringify(new Date())+" get sticky notes with keys");
+    return ret;
+  }
+
+  console.log("note list useState before");
+  const [stickyNoteList, setstickyNoteList] = useState([]);
+  console.log("note list useState after");
+
+  function setViewportSizeWrapper(){
+    setViewportSize([window.innerWidth,window.innerHeight]);
+  }
+
+  useEffect(()=>{
+    window.onresize= setViewportSizeWrapper;
+  },[]);
+
+  useEffect(()=>{
+    // if(initialNoteRender.current){
+    //   initialNoteRender.current=false;
+    // }
+    // else{
+    //   console.log("sticky note rerender trial");
+    //   setstickyNoteList([]);
+    // }
+    console.log("sticky note rerender trial");
+    // const newNoteList=[];
+    //viewportResizeCount.current+=1;
+    // for(let i=0; i<viewportResizeCount.current; i++){
+    //   newNoteList.push(<StickyNote x_pos={1000} y_pos={0} addNote={addNote}/>);
+    // }
+    // for(let i=0; i<2; i++)
+    //   newNoteList.push(<StickyNote key={new Date()} x_pos={i*200} y_pos={i*200} addNote={addNote} bounds={getBoundariesFromViewPortSize(viewportSize)}/>);
+    // console.log('viewportsize effect');
+    setstickyNoteList(getStickyNotesWithKeys(getNextStickyNoteKeys(2)));
+    console.log("log"+JSON.stringify(new Date())+" done use effect by viewportsize");
+  },[viewportSize]);
+
+  console.log("viewport size: "+JSON.stringify(viewportSize));
 
   
   return (
     <div className="stuList-background">
+      {stickyNoteList}
       <div className={stuListShow === true ? "stuListShow stuListShowActive text-center" : "stuListShow text-center"}>
-        {/* {stickyNoteList} */}
-        <Draggable onDrag={(e, data) => trackPos(data)}>
+        
+        {/* <Draggable onDrag={(e, data) => trackPos(data)}>
           <div className="stickynote">
             <Button className="stuAddbtn"
             onclick={()=>{
@@ -238,7 +314,7 @@ function StuListpage() {
             ></textarea>
             <p>* 작성/수정 후 메모장 바깥을 눌러야 저장됩니다.</p>
           </div>
-        </Draggable>
+        </Draggable> */}
         <div className="statesBox">
           <p>활동중: {Written.filter((element) => "등원" === element).length}</p>
           <p>귀가: {Written.filter((element) => "귀가" === element).length}</p>
