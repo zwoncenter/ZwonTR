@@ -194,6 +194,9 @@ function StuListpage() {
   //sticky note 관련
   const stickyNoteWidth=500;
   const stickyNoteHeight=320;
+
+  const debug_init_dx=1200;
+  const debug_init_dy=0;
   
   function getBoundariesFromViewPortSize(vpSize){
     const right=Math.max(0,vpSize[0]-stickyNoteWidth);
@@ -207,19 +210,34 @@ function StuListpage() {
   //const viewportResizeCount=useRef(1);
   const initialStickyNotesCount=2;
   const [nextStickyNoteKey,setNextStickyNoteKey]= useState(0);
+  function isValidCoord(xcoord,ycoord){
+    const boundary=getBoundariesFromViewPortSize(viewportSize);
+    return (boundary.left<=xcoord && xcoord<=boundary.right) && (boundary.top<=ycoord && ycoord<=boundary.bottom);
+  }
+  function getValidCoord(xcoord,ycoord){
+    if(isValidCoord(xcoord,ycoord)) return [xcoord,ycoord];
+    const boundary=getBoundariesFromViewPortSize(viewportSize);
+    let validXCoord=xcoord;
+    let validYCoord=ycoord;
+    if(xcoord<boundary.left){
+      validXCoord=boundary.left
+    }
+    else if(xcoord>boundary.right){
+      validXCoord=boundary.right;
+    }
+    if(ycoord<boundary.top){
+      validYCoord=boundary.top;
+    }
+    else if(ycoord>boundary.bottom){
+      validYCoord=boundary.bottom;
+    }
+    return [validXCoord,validYCoord];
+  }
   function getNextStickyNoteKeys(count){
     const ret=[];
     for(let i=0; i<count; i++){
       ret.push(nextStickyNoteKey+i);
     }
-    // if(initialStickyNotesRender.current){
-    //   initialStickyNotesRender.current=false; //this has a problem which...
-    // }
-    // else{
-    //   console.log("log"+JSON.stringify(new Date())+" nextKey: "+nextStickyNoteKey);
-    //   //setNextStickyNoteKey(nextStickyNoteKey+count);
-    //   setNextStickyNoteKey((prevKey)=>(prevKey+2));
-    // }
     setNextStickyNoteKey((prevKey)=>(prevKey+2));
     console.log('log'+JSON.stringify(new Date())+' new keys:'+JSON.stringify(ret));
     return ret;
@@ -227,7 +245,10 @@ function StuListpage() {
   function getStickyNotesWithKeys(keys){
     const ret=[];
     for(let i=0; i<keys.length; i++){
-      ret.push(<StickyNote key={keys[i]} x_pos={i*200} y_pos={i*200} addNote={addNote} bounds={getBoundariesFromViewPortSize(viewportSize)}/>);
+      // let xcoord=debug_init_dx;
+      // let ycoord=debug_init_dy+i*200
+      let [xcoord,ycoord]= getValidCoord(debug_init_dx,debug_init_dy+i*200);
+      ret.push(<StickyNote key={keys[i]} x_pos={xcoord} y_pos={ycoord} addNote={addNote} bounds={getBoundariesFromViewPortSize(viewportSize)}/>);
     }
     console.log("log"+JSON.stringify(new Date())+" get sticky notes with keys");
     return ret;
