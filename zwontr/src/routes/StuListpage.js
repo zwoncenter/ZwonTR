@@ -97,7 +97,7 @@ function StuListpage() {
     const existstickynote = await axios
       .get("/api/stickynote")
       .then((result) => {
-        console.log(result.data);
+        // console.log(result.data);
         return result.data;
       })
       .catch((err) => {
@@ -108,7 +108,7 @@ function StuListpage() {
     const newstudentDBlist = await axios
       .get("/api/studentList")
       .then((result) => {
-        console.log(result.data);
+        // console.log(result.data);
         return result.data;
       })
       .catch((err) => {
@@ -228,7 +228,7 @@ function StuListpage() {
       ret.push(nextStickyNoteKey+i);
     }
     setNextStickyNoteKey((prevKey)=>(prevKey+count));
-    console.log('log'+JSON.stringify(new Date())+' new keys:'+JSON.stringify(ret));
+    // console.log('log'+JSON.stringify(new Date())+' new keys:'+JSON.stringify(ret));
     return ret;
   }
   function getStickyNotesWithKeys(keys){
@@ -257,16 +257,12 @@ function StuListpage() {
   },[]);
 
   useEffect(()=>{
-    console.log("sticky note rerender trial");
+    // console.log("sticky note rerender trial");
     // setstickyNoteList(getStickyNotesWithKeys(getNextStickyNoteKeys(stickynoteValue.length)));
     let tmplist=getStickyNotesWithKeys(getNextStickyNoteKeys(stickynoteValue.length));
-    console.log("note list: "+JSON.stringify(tmplist));
+    // console.log("note list: "+JSON.stringify(tmplist));
     setstickyNoteList(tmplist);
-    // setstickyNoteList(stickynoteValue.map((element, index) => {
-    //   return <StickyNote key={element["_id"]} id={element["_id"]} x_pos={element["x"]} y_pos={element["y"]}
-    //   textdata={element["note"]} addNote={addNote} deleteNote={deleteNote} bounds={getBoundariesFromViewPortSize(viewportSize)}/>;
-    // }));
-    console.log("log"+JSON.stringify(new Date())+" done use effect by viewportsize");
+    // console.log("log"+JSON.stringify(new Date())+" done use effect by viewportsize");
   },[viewportSize, stickynoteValue]);
 
   
@@ -281,7 +277,7 @@ function StuListpage() {
           window.alert("로그인이 필요합니다.");
           return history.push("/");
         } else {
-          console.log(result.data);
+          // console.log(result.data);
           window.alert(result.data);
           return history.push(`/studentList`);
         }
@@ -312,23 +308,23 @@ function StuListpage() {
         return err;
       });
     await setstickynoteValue(existstickynote);
-    console.log(existstickynote);
+    // console.log(existstickynote);
   });
 
   useEffect(async () => {
     const existstickynote = await axios
       .get("/api/stickynote")
       .then((result) => {
-        console.log("result.data: ",result.data);
+        // console.log("result.data: ",result.data);
         return result.data;
       })
       .catch((err) => {
         return err;
       });
-      console.log("checknote",existstickynote);
+      // console.log("checknote",existstickynote);
     setstickynoteValue(existstickynote);
   }, []);
-  console.log(stickynoteValue);
+  // console.log(stickynoteValue);
 
   return (
     <div className="stuList-background">

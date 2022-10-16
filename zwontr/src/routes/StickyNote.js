@@ -46,7 +46,7 @@ const StickyNote = ({ id, x_pos, y_pos, textdata, addNote, deleteNote,bounds }) 
                     } else if (result.data === "로그인필요") {
                       window.alert("로그인이 필요합니다.");
                     } else {
-                      console.log(result.data);
+                      // console.log(result.data);
                       window.alert(result.data);
                     }
                   })
@@ -67,18 +67,18 @@ const StickyNote = ({ id, x_pos, y_pos, textdata, addNote, deleteNote,bounds }) 
           value={memo}
           onChange={(e) => {
             let newstickynote = e.target.value;
-            console.log("check: ", newstickynote);
+            // console.log("check: ", newstickynote);
             setmemo(newstickynote);
           }}
           onBlur={() => {
-            console.log(JSON.stringify(memo));
+            // console.log(JSON.stringify(memo));
             const changedNote = {
               _id: id,
               note: memo,
               x: position.x,
               y: position.y,
             };
-            console.log(changedNote);
+            // console.log(changedNote);
             axios
               .put(`/api/stickynote/${changedNote["_id"]}`, changedNote)
               .then(function (result) {
@@ -86,7 +86,7 @@ const StickyNote = ({ id, x_pos, y_pos, textdata, addNote, deleteNote,bounds }) 
                 } else if (result.data === "로그인필요") {
                   window.alert("로그인이 필요합니다.");
                 } else {
-                  console.log(result.data);
+                  // console.log(result.data);
                   window.alert(result.data);
                 }
               })
