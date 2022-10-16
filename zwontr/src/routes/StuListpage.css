@@ -304,6 +304,7 @@ h6 {
   background-color: white;
   color: black;
   border-radius: 15px;
+  z-index: 20000;
   position: absolute;
   border: 3px solid #eee;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
@@ -313,13 +314,19 @@ h6 {
 .stickynote p {
   margin: 0;
 }
-.stickynote textarea {
-  cursor: move;
-  width: 95%;
+
+.stickytext {
+  display: flex;
+  justify-content: center;
+  width: 100%;
   height: 80%;
+}
+.stickytext textarea {
+  cursor: move;
+  width: 100%;
+  height: 100%;
   border-radius: 15px;
   border: 0;
-  padding: 5px;
   resize: none;
 }
 

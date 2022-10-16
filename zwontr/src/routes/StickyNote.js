@@ -9,7 +9,7 @@ import axios from "axios";
 import StuListpage from "./StuListpage";
 import { useCallback } from "react";
 
-const StickyNote = ({ id, x_pos, y_pos, textdata, addNote, deleteNote }) => {
+const StickyNote = ({ id, x_pos, y_pos, textdata, addNote, deleteNote,bounds }) => {
   const [position, setPosition] = useState({ x: x_pos, y: y_pos }); // box의 포지션 값
   const [memo, setmemo] = useState(textdata);
   // // 업데이트 되는 값을 set 해줌
@@ -26,7 +26,7 @@ const StickyNote = ({ id, x_pos, y_pos, textdata, addNote, deleteNote }) => {
   });
 
   return (
-    <Draggable onDrag={(e, data) => trackPos(data)} defaultPosition={{ x: x_pos, y: y_pos }}>
+    <Draggable onDrag={(e, data) => trackPos(data)} defaultPosition={{ x: x_pos, y: y_pos }} bounds={bounds}>
       <div className="stickynote">
         <div>
           <Button className="memoAddOrDelete" onClick={conductAddNote} variant="secondary">
@@ -61,6 +61,7 @@ const StickyNote = ({ id, x_pos, y_pos, textdata, addNote, deleteNote }) => {
             x
           </Button>
         </div>
+        <div className="stickytext">
         <textarea
           placeholder="여기에 입력하세요"
           value={memo}
@@ -95,6 +96,7 @@ const StickyNote = ({ id, x_pos, y_pos, textdata, addNote, deleteNote }) => {
               });
           }}
         ></textarea>
+        </div>
         <p>* 작성/수정 후 메모장 바깥을 눌러야 저장됩니다.</p>
       </div>
     </Draggable>

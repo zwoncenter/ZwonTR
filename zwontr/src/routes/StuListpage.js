@@ -2,7 +2,7 @@ import "../App.scss";
 import "./StuListpage.scss";
 import { Button, Card, ListGroup, Modal, Table } from "react-bootstrap";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback} from "react";
 import axios from "axios";
 import absent from "./absent.png";
 import notcame from "./notcame.png";
@@ -11,6 +11,7 @@ import Draggable from "react-draggable";
 import StickyNote from "./StickyNote";
 
 // sticky note 관련 함수를 export
+
 
 function StuListpage() {
   let history = useHistory();
@@ -93,6 +94,17 @@ function StuListpage() {
 
   // 첫 로딩 시, studentDBlist/todayTRlist업데이트
   useEffect(async () => {
+    const existstickynote = await axios
+      .get("/api/stickynote")
+      .then((result) => {
+        console.log(result.data);
+        return result.data;
+      })
+      .catch((err) => {
+        return err;
+      });
+    setstickynoteValue(existstickynote);
+
     const newstudentDBlist = await axios
       .get("/api/studentList")
       .then((result) => {
@@ -167,7 +179,97 @@ function StuListpage() {
   }, []);
 
   // draggable 메모장 관련
+
+
+  //sticky note 관련
+  const stickyNoteWidth=500;
+  const stickyNoteHeight=320;
+
+  const debug_init_dx=1200;
+  const debug_init_dy=0;
+  
+  function getBoundariesFromViewPortSize(vpSize){
+    const right=Math.max(0,vpSize[0]-stickyNoteWidth);
+    const bottom=Math.max(0,vpSize[1]-stickyNoteHeight);
+    return {left:0, top:0, right:right-3, bottom:bottom-3};
+  }
+  
+  //viewport resizing 관련
   const [stickynoteValue, setstickynoteValue] = useState([]);
+  const [viewportSize,setViewportSize]= useState([window.innerWidth,window.innerHeight]);
+  const initialStickyNotesCount=2;
+  const [nextStickyNoteKey,setNextStickyNoteKey]= useState(0);
+  function isValidCoord(xcoord,ycoord){
+    const boundary=getBoundariesFromViewPortSize(viewportSize);
+    return (boundary.left<=xcoord && xcoord<=boundary.right) && (boundary.top<=ycoord && ycoord<=boundary.bottom);
+  }
+  function getValidCoord(xcoord,ycoord){
+    if(isValidCoord(xcoord,ycoord)) return [xcoord,ycoord];
+    const boundary=getBoundariesFromViewPortSize(viewportSize);
+    let validXCoord=xcoord;
+    let validYCoord=ycoord;
+    if(xcoord<boundary.left){
+      validXCoord=boundary.left
+    }
+    else if(xcoord>boundary.right){
+      validXCoord=boundary.right;
+    }
+    if(ycoord<boundary.top){
+      validYCoord=boundary.top;
+    }
+    else if(ycoord>boundary.bottom){
+      validYCoord=boundary.bottom;
+    }
+    return [validXCoord,validYCoord];
+  }
+  function getNextStickyNoteKeys(count){
+    const ret=[];
+    for(let i=0; i<count; i++){
+      ret.push(nextStickyNoteKey+i);
+    }
+    setNextStickyNoteKey((prevKey)=>(prevKey+count));
+    console.log('log'+JSON.stringify(new Date())+' new keys:'+JSON.stringify(ret));
+    return ret;
+  }
+  function getStickyNotesWithKeys(keys){
+    // const ret=[];
+    // for(let i=0; i<keys.length; i++){
+    //   let [xcoord,ycoord]= getValidCoord(debug_init_dx,debug_init_dy+i*200);
+    //   ret.push(<StickyNote key={keys[i]} x_pos={xcoord} y_pos={ycoord} addNote={addNote} bounds={getBoundariesFromViewPortSize(viewportSize)}/>);
+    // }
+    // console.log("log"+JSON.stringify(new Date())+" get sticky notes with keys");
+    // return ret;
+    return stickynoteValue.map((element, index) => {
+      let [xcoord,ycoord]= getValidCoord(element["x"],element["y"]);
+      return <StickyNote key={keys[index]} id={element["_id"]} x_pos={xcoord} y_pos={ycoord}
+      textdata={element["note"]} addNote={addNote} deleteNote={deleteNote} bounds={getBoundariesFromViewPortSize(viewportSize)}/>;
+    });
+  }
+
+  const [stickyNoteList, setstickyNoteList] = useState([]);
+
+  function setViewportSizeWrapper(){
+    setViewportSize([window.innerWidth,window.innerHeight]);
+  }
+
+  useEffect(()=>{
+    window.onresize= setViewportSizeWrapper;
+  },[]);
+
+  useEffect(()=>{
+    console.log("sticky note rerender trial");
+    // setstickyNoteList(getStickyNotesWithKeys(getNextStickyNoteKeys(stickynoteValue.length)));
+    let tmplist=getStickyNotesWithKeys(getNextStickyNoteKeys(stickynoteValue.length));
+    console.log("note list: "+JSON.stringify(tmplist));
+    setstickyNoteList(tmplist);
+    // setstickyNoteList(stickynoteValue.map((element, index) => {
+    //   return <StickyNote key={element["_id"]} id={element["_id"]} x_pos={element["x"]} y_pos={element["y"]}
+    //   textdata={element["note"]} addNote={addNote} deleteNote={deleteNote} bounds={getBoundariesFromViewPortSize(viewportSize)}/>;
+    // }));
+    console.log("log"+JSON.stringify(new Date())+" done use effect by viewportsize");
+  },[viewportSize, stickynoteValue]);
+
+  
   const addNote = useCallback(async () => {
     const newNote = {note: "", x: 0, y: 0}
     await axios
@@ -230,11 +332,12 @@ function StuListpage() {
 
   return (
     <div className="stuList-background">
-      <div className={stuListShow === true ? "stuListShow stuListShowActive text-center" : "stuListShow text-center"}>
-        {stickynoteValue.map((element, index) => {
+      {stickyNoteList}
+      {/* {stickynoteValue.map((element, index) => {
           return <StickyNote key={element["_id"]} id={element["_id"]} x_pos={element["x"]} y_pos={element["y"]}
-          textdata={element["note"]} addNote={addNote} deleteNote={deleteNote}/>;
-        })}
+          textdata={element["note"]} addNote={addNote} deleteNote={deleteNote} bounds={getBoundariesFromViewPortSize(viewportSize)}/>;
+        })} */}
+      <div className={stuListShow === true ? "stuListShow stuListShowActive text-center" : "stuListShow text-center"}>
         <div className="statesBox">
           <p>활동중: {Written.filter((element) => "등원" === element).length}</p>
           <p>귀가: {Written.filter((element) => "귀가" === element).length}</p>
