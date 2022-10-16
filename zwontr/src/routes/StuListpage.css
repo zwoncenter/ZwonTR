@@ -278,7 +278,27 @@ h6 {
   max-height: 400px;
 }
 
+.memoAddOrDelete {
+  width: 10%;
+  height: 10%;
+  padding: 5px;
+  background-color: black;
+  border-radius: 0;
+  border: 0;
+}
+
+.memoNone {
+  width: 80%;
+  height: 10%;
+  padding: 5px;
+  background-color: black;
+  color: black;
+  border-radius: 0;
+  border: 0;
+}
+
 .stickynote {
+  cursor: move;
   width: 500px;
   height: 320px;
   background-color: white;
@@ -294,6 +314,7 @@ h6 {
   margin: 0;
 }
 .stickynote textarea {
+  cursor: move;
   width: 95%;
   height: 80%;
   border-radius: 15px;

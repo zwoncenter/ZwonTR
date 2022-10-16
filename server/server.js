@@ -780,16 +780,39 @@ app.delete("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, (req, res) 
 // stickynote 관련 코드
 
 app.get("/api/stickynote", loginCheck, (req, res) => {
-  db.collection("stickynote").findOne((err, result) => {
-    console.log(result);
+  db.collection("stickynote").find()
+  .toArray(function (err, result) {
     if (err) {
-      return res.send(`/api/stickynote - findOne Error : ${err}`);
+      return res.send(`/api/stickynote - find Error : ${err}`);
     }
+    console.log("api/stickynote - find result length   :", result.length);
     return res.json(result);
+  })
   });
-});
 
-app.put("/api/stickynote", loginCheck, (req, res) => {
+  app.post("/api/stickynote", loginCheck, function (req, res) {
+    if (req["user"]["ID"] === "guest") {
+      return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
+    }
+    const newStickynote = req.body;
+    console.log(req.body);
+    db.collection("stickynote").findOne({ note: newStickynote['note'] }, function (err, result) {
+      // if (err) {
+      //   return res.send(`/api/stickynote - findOne Error : `, err);
+      // }
+      // if (result !== null) {
+      //   return res.send("findOne result is not null. 중복되는 메모가 존재합니다.");
+      // }
+      db.collection("stickynote").insertOne(newStickynote, function (err2, result2) {
+        if (err2) {
+          return res.send("/api/stickynote - insertOne Error : ", err2);
+        }
+        return res.send(true);
+      });
+    });
+  });
+
+app.put("/api/stickynote/:id", loginCheck, (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -799,6 +822,20 @@ app.put("/api/stickynote", loginCheck, (req, res) => {
   db.collection("stickynote").updateOne({ _id: findID }, { $set: newstickynote }, (err, result) => {
     if (err) {
       return res.send(`/api/stickynote - updateOne Error : ${err}`);
+    }
+    return res.send(true);
+  });
+});
+
+app.delete("/api/stickynote/:id", loginCheck, (req, res) => {
+  if (req["user"]["ID"] === "guest") {
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
+  }
+  const findID = ObjectId(req.params.id);
+  console.log(findID);
+  db.collection("stickynote").deleteOne({ _id: findID }, (err, result) => {
+    if (err) {
+      return res.send(`/api/stickynote - deleteOne Error : ${err}`);
     }
     return res.send(true);
   });

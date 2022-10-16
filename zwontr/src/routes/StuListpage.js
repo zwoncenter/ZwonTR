@@ -2,7 +2,7 @@ import "../App.scss";
 import "./StuListpage.scss";
 import { Button, Card, ListGroup, Modal, Table } from "react-bootstrap";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import absent from "./absent.png";
 import notcame from "./notcame.png";
@@ -11,7 +11,6 @@ import Draggable from "react-draggable";
 import StickyNote from "./StickyNote";
 
 // sticky note 관련 함수를 export
-
 
 function StuListpage() {
   let history = useHistory();
@@ -44,7 +43,6 @@ function StuListpage() {
   const [chosenID, setchosenID] = useState("");
   const [todayTRlist, settodayTRlist] = useState([]);
   const [studentTRlist, setstudentTRlist] = useState([]);
-  const [stickynoteValue, setstickynoteValue] = useState("");
 
   const addClick = () => {
     if (window.confirm("학생 신규 등록을 진행하시겠습니까?")) {
@@ -93,19 +91,8 @@ function StuListpage() {
       });
   }
 
-  // 첫 로딩 시, studentDBlist/todayTRlist/stickymemo 업데이트
+  // 첫 로딩 시, studentDBlist/todayTRlist업데이트
   useEffect(async () => {
-    const existstickynote = await axios
-      .get("/api/stickynote")
-      .then((result) => {
-        console.log(result.data);
-        return result.data;
-      })
-      .catch((err) => {
-        return err;
-      });
-    setstickynoteValue(existstickynote);
-
     const newstudentDBlist = await axios
       .get("/api/studentList")
       .then((result) => {
@@ -180,65 +167,74 @@ function StuListpage() {
   }, []);
 
   // draggable 메모장 관련
-  const [position, setPosition] = useState({ x: 0, y: 0 }); // box의 포지션 값
-  // // 업데이트 되는 값을 set 해줌
-  const trackPos = (data) => {
-    setPosition({ x: data.x, y: data.y });
-  };
+  const [stickynoteValue, setstickynoteValue] = useState([]);
+  const addNote = useCallback(async () => {
+    const newNote = {note: "", x: 0, y: 0}
+    await axios
+      .post(`/api/stickynote`, newNote)
+      .then(function (result) {
+        if (result.data === true) {
+          return history.push(`/studentList`);
+        } else if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        } else {
+          console.log(result.data);
+          window.alert(result.data);
+          return history.push(`/studentList`);
+        }
+      })
+      .catch(function (err) {
+        console.log("저장 실패 : ", err);
+        window.alert(err);
+      });
 
-//   const addNote = () => {
-//     setstickyNoteList([...stickyNoteList, <StickyNote x={0} y={0} addNote={addNote}/>]);
-//     console.log(stickyNoteList);
-// };
-//   const [stickyNoteList, setstickyNoteList] = useState([<StickyNote x={0} y={0} addNote={addNote}/>]);
-  
+    const existstickynote = await axios
+      .get("/api/stickynote")
+      .then((result) => {
+        return result.data;
+      })
+      .catch((err) => {
+        return err;
+      });
+    await setstickynoteValue(existstickynote);
+  });
 
-  
+  const deleteNote = useCallback(async() => {
+    const existstickynote = await axios
+      .get("/api/stickynote")
+      .then((result) => {
+        return result.data;
+      })
+      .catch((err) => {
+        return err;
+      });
+    await setstickynoteValue(existstickynote);
+    console.log(existstickynote);
+  });
+
+  useEffect(async () => {
+    const existstickynote = await axios
+      .get("/api/stickynote")
+      .then((result) => {
+        console.log("result.data: ",result.data);
+        return result.data;
+      })
+      .catch((err) => {
+        return err;
+      });
+      console.log("checknote",existstickynote);
+    setstickynoteValue(existstickynote);
+  }, []);
+  console.log(stickynoteValue);
+
   return (
     <div className="stuList-background">
       <div className={stuListShow === true ? "stuListShow stuListShowActive text-center" : "stuListShow text-center"}>
-        {/* {stickyNoteList} */}
-        <Draggable onDrag={(e, data) => trackPos(data)}>
-          <div className="stickynote">
-            <Button className="stuAddbtn"
-            onclick={()=>{
-              // addNote();
-            }}>+</Button>
-            <strong>
-              <p className="m-0">업무공유사항</p>
-            </strong>
-            <textarea
-              placeholder="여기에 입력하세요"
-              value={stickynoteValue["note"]}
-              onChange={(e) => {
-                const newstickynote = JSON.parse(JSON.stringify(stickynoteValue));
-                newstickynote["note"] = e.target.value;
-                setstickynoteValue(newstickynote);
-              }}
-              onBlur={() => {
-                console.log(stickynoteValue);
-                axios
-                  .put("/api/stickynote", stickynoteValue)
-                  .then(function (result) {
-                    if (result.data === true) {
-                      history.push("/studentList");
-                    } else if (result.data === "로그인필요") {
-                      window.alert("로그인이 필요합니다.");
-                      return history.push("/");
-                    } else {
-                      console.log(result.data);
-                      window.alert(result.data);
-                    }
-                  })
-                  .catch(function (err) {
-                    console.log("저장 실패 : ", err);
-                    window.alert(err);
-                  });
-              }}
-            ></textarea>
-            <p>* 작성/수정 후 메모장 바깥을 눌러야 저장됩니다.</p>
-          </div>
-        </Draggable>
+        {stickynoteValue.map((element, index) => {
+          return <StickyNote key={element["_id"]} id={element["_id"]} x_pos={element["x"]} y_pos={element["y"]}
+          textdata={element["note"]} addNote={addNote} deleteNote={deleteNote}/>;
+        })}
         <div className="statesBox">
           <p>활동중: {Written.filter((element) => "등원" === element).length}</p>
           <p>귀가: {Written.filter((element) => "귀가" === element).length}</p>
