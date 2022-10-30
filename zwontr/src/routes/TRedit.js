@@ -605,7 +605,7 @@ function TRedit() {
     .get(`/api/Weeklystudyfeedback/${paramID}/${formatDate(getThisWeek(formatDate(paramDate))[1])}`)
     .then((result) => {
       if (result["data"] !== null) {
-        console.log(result["data"]["thisweekGoal"]);
+        //console.log(result["data"]["thisweekGoal"]);
         return result["data"]["thisweekGoal"]
       }
     })
@@ -613,16 +613,16 @@ function TRedit() {
       return err;
     });
     await setthisweekGoal(newthisweekGoal);
-    console.log("breakpoint");
+
+    //console.log('newthisweekgoal:'+JSON.stringify(newthisweekGoal));
     
     const daysList=["일","월","화","수","목","금","토"];
     const dayOfToday=daysList[(new Date(paramDate)).getDay()];
-    console.log("tr 요일:",dayOfToday);
-    if(thisweekGoal && newthisweekGoal && newthisweekGoal.hasOwnProperty(dayOfToday)){
-      await settodayGoal(thisweekGoal[dayOfToday]);
-      console.log("check",thisweekGoal[dayOfToday]);
+    //console.log("tr 요일:",dayOfToday);
+    if(newthisweekGoal && newthisweekGoal.hasOwnProperty(dayOfToday)){
+      await settodayGoal(newthisweekGoal[dayOfToday]);
+      //console.log("check",JSON.stringify(newthisweekGoal[dayOfToday]));
     }
-    console.log("breakpoint2");
     /*let newThisWeekProgress=await getThisWeekProgress();
     console.log('before set this~: '+JSON.stringify(newThisWeekProgress));
     await setThisWeekProgress(newThisWeekProgress);
@@ -656,7 +656,7 @@ function TRedit() {
 
   useEffect(async ()=>{
     await setGoalsAndGetProgress();
-  },[thisweek,TR["요일"]]);
+  },[thisweek]);
 
   useEffect(() => {
     if (!isInitialMount.current) {
