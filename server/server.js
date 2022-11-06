@@ -696,6 +696,19 @@ app.delete("/api/Lecture/:lectureid", loginCheck, (req, res) => {
   });
 });
 
+// 강의로 수강생 검색매칭 relation
+app.get("/api/StudentOfLecture", loginCheck, (req, res) => {
+  db.collection("StudentOfLecture")
+    .find()
+    .toArray((err, result) => {
+      if (err) {
+        return res.send(`/api/StudentOfLecture - find Error ${err}`);
+      }
+      return res.json(result);
+    });
+});
+
+
 // studentName
 app.get("/api/TRnow", loginCheck, (req, res) => {
   db.collection("StudentDB")
