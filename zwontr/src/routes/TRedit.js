@@ -138,22 +138,22 @@ function TRedit() {
 
     학습: [],
 
-    문제행동: [
-      { 분류: "자해", 문제여부: false },
-      { 분류: "자기비하", 문제여부: false },
-      { 분류: "감정기복", 문제여부: false },
-      { 분류: "메타인지 부족", 문제여부: false },
-      { 분류: "중도포기 / 탈주", 문제여부: false },
-      { 분류: "TR작성 미흡", 문제여부: false },
-      { 분류: "불법행위", 문제여부: false },
-      { 분류: "거짓말/핑계/변명", 문제여부: false },
-      { 분류: "위생문제", 문제여부: false },
-      { 분류: "지각", 문제여부: false },
-      { 분류: "괴롭힘/싸움", 문제여부: false },
-      { 분류: "부모님께 무례", 문제여부: false },
-      { 분류: "연락무시/잠수", 문제여부: false },
-      { 분류: "자리정리 안함", 문제여부: false },
-    ],
+    // 문제행동: [
+    //   { 분류: "자해", 문제여부: false },
+    //   { 분류: "자기비하", 문제여부: false },
+    //   { 분류: "감정기복", 문제여부: false },
+    //   { 분류: "메타인지 부족", 문제여부: false },
+    //   { 분류: "중도포기 / 탈주", 문제여부: false },
+    //   { 분류: "TR작성 미흡", 문제여부: false },
+    //   { 분류: "불법행위", 문제여부: false },
+    //   { 분류: "거짓말/핑계/변명", 문제여부: false },
+    //   { 분류: "위생문제", 문제여부: false },
+    //   { 분류: "지각", 문제여부: false },
+    //   { 분류: "괴롭힘/싸움", 문제여부: false },
+    //   { 분류: "부모님께 무례", 문제여부: false },
+    //   { 분류: "연락무시/잠수", 문제여부: false },
+    //   { 분류: "자리정리 안함", 문제여부: false },
+    // ],
 
     프로그램시간: 0,
 
@@ -1285,7 +1285,7 @@ function TRedit() {
             }
           </div>
         </div>
-        <div className="col-xl-2 trCol">
+        {/* <div className="col-xl-2 trCol">
           <div className="trCard">
             <p className="fw-bold mt-3 mb-3">
               <strong>[ 문제행동 ]</strong>
@@ -1305,9 +1305,9 @@ function TRedit() {
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
 
-        <div className="col-xl-4 trCol">
+        <div className="col-xl-6 trCol">
           <div className="trCard">
           <h5 className="fw-bold">
               <strong>[ 수강중 강의 ]</strong>
