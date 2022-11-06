@@ -115,21 +115,21 @@ function LectureList() {
   };
 
   const reviseLecture = async () => {
-    if (lecture["lectureName"] === "") {
+    if (existlecture["lectureName"] === "") {
       window.alert("강의명이 입력되지 않았습니다.");
       return;
     }
 
-    if (lecture["subject"] === "") {
+    if (existlecture["subject"] === "") {
       window.alert("과목이 선택되지 않았습니다.");
       return;
     }
 
-    if (lecture["manager"] === "") {
+    if (existlecture["manager"] === "") {
       window.alert("담당 매니저가 선택되지 않았습니다.");
       return;
     }
-    if (lecture["startday"] === "") {
+    if (existlecture["startday"] === "") {
       window.alert("강의시작일이 입력되지 않았습니다.");
       return;
     }
