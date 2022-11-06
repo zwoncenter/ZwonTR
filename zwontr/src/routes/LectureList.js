@@ -1,13 +1,15 @@
 import { Button, Card, ListGroup, Modal, Table, InputGroup, Form } from "react-bootstrap";
+import { Typeahead } from 'react-bootstrap-typeahead';
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import "./Lecture.css";
+import 'react-bootstrap-typeahead/css/Typeahead.css';
 import { FaPencilAlt, FaTimes } from "react-icons/fa";
 
 function LectureList() {
   let history = useHistory();
-
+  
   // 날짜 관련 코드
   const now = new Date(); // 현재 시간
   const utcNow = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
@@ -61,6 +63,29 @@ function LectureList() {
       });
   };
 
+  //강의 추가 시 교재 선택 관련 코드
+  const [textBookNeedFlag,setTextBookNeedFlag]= useState(false);
+  const [textBookList,setTextBookList]=useState([]);
+  const [selectedBookList,setSelectedBookList]=useState([]);
+
+  useEffect(async ()=>{
+    if(!textBookNeedFlag) return;
+    const textBookListDocument= await axios
+    .get(`/api/Textbook`)
+    .then((result) => {
+      if (result.data === "로그인필요") {
+        window.alert("로그인이 필요합니다");
+        return history.push("/");
+      }
+      return result.data;
+    })
+    .catch((err) => {
+      return err;
+    });
+    const newTextBookList= textBookListDocument["textbookList"];
+    setTextBookList(newTextBookList);
+  },[textBookNeedFlag]);
+
   const [lecture, setlecture] = useState({
     lectureID: "",
     lectureName: "",
@@ -70,6 +95,7 @@ function LectureList() {
     lastrevise: today,
     students: {},
     studentList: [],
+    textbookIDArray: [],
     assignments: {},
     assignKey: 0,
   });
@@ -181,7 +207,7 @@ function LectureList() {
     const newmanagerList = await axios
       .get("/api/managerList")
       .then((result) => {
-        console.log(result["data"]);
+        //console.log(result["data"]);
         return result["data"];
       })
       .catch((err) => {
@@ -226,7 +252,7 @@ function LectureList() {
                   e.target.value = e.target.value.substring(0, e.target.value.length - 1);
                   return;
                 }
-                const newlecture = JSON.parse(JSON.stringify(lecture));
+                const newlecture = {...lecture};
                 newlecture["lectureName"] = e.target.value;
                 if (newlecture["lectureName"] !== "" && newlecture["manager"] !== "" && newlecture["startday"] !== "") {
                   newlecture["lectureID"] =
@@ -246,7 +272,7 @@ function LectureList() {
             <InputGroup.Text>과목</InputGroup.Text>
             <Form.Select
               onChange={(e) => {
-                const newlecture = JSON.parse(JSON.stringify(lecture));
+                const newlecture = {...lecture};
                 newlecture["subject"] = e.target.value;
                 setlecture(newlecture);
               }}
@@ -262,10 +288,30 @@ function LectureList() {
             </Form.Select>
           </InputGroup>
           <InputGroup className="mb-3">
+            <InputGroup.Text>교재</InputGroup.Text>
+            <Typeahead
+              id="select_lecture_textbook"
+              multiple
+              onChange={(selected)=>{
+                //console.log(selected);
+                const newlecture= {...lecture};
+                //setSelectedBookList(selected);
+                //console.log('sbl: '+JSON.stringify(selectedBookList));
+                newlecture["textbookIDArray"]=selected.map((element,idx)=>{
+                  return element["_id"];
+                });
+                console.log("new lecture: "+JSON.stringify(newlecture));
+                setlecture(newlecture);
+              }}
+              options={textBookList}
+              labelKey="교재"
+            />
+          </InputGroup>
+          <InputGroup className="mb-3">
             <InputGroup.Text>매니저(강사)</InputGroup.Text>
             <Form.Select
               onChange={(e) => {
-                const newlecture = JSON.parse(JSON.stringify(lecture));
+                const newlecture = {...lecture};
                 newlecture["manager"] = e.target.value;
                 if (newlecture["lectureName"] !== "" && newlecture["manager"] !== "" && newlecture["startday"] !== "") {
                   newlecture["lectureID"] =
@@ -297,7 +343,7 @@ function LectureList() {
               type="date"
               value={lecture["startday"]}
               onChange={(e) => {
-                const newlecture = JSON.parse(JSON.stringify(lecture));
+                const newlecture = {...lecture};
                 newlecture["startday"] = e.target.value;
                 if (newlecture["lectureName"] !== "" && newlecture["manager"] !== "" && newlecture["startday"] !== "") {
                   newlecture["lectureID"] =
@@ -318,6 +364,7 @@ function LectureList() {
           className="btn-edit"
             variant="secondary"
             onClick={() => {
+              console.log("sbl on button click: "+JSON.stringify(selectedBookList));
               createNewLecture();
             }}
           >
@@ -343,7 +390,7 @@ function LectureList() {
                   e.target.value = e.target.value.substring(0, e.target.value.length - 1);
                   return;
                 }
-                const newlecture = JSON.parse(JSON.stringify(existlecture));
+                const newlecture = {...existlecture};
                 newlecture["lectureName"] = e.target.value;
                 setexistlecture(newlecture);
               }}
@@ -354,7 +401,7 @@ function LectureList() {
             <Form.Select
               value={existlecture["subject"]}
               onChange={(e) => {
-                const newlecture = JSON.parse(JSON.stringify(existlecture));
+                const newlecture = {...existlecture};
                 newlecture["subject"] = e.target.value;
                 setexistlecture(newlecture);
               }}
@@ -374,7 +421,7 @@ function LectureList() {
             <Form.Select
               value={existlecture["manager"]}
               onChange={(e) => {
-                const newlecture = JSON.parse(JSON.stringify(existlecture));
+                const newlecture = {...existlecture};
                 newlecture["manager"] = e.target.value;
                 setexistlecture(newlecture);
               }}
@@ -396,7 +443,7 @@ function LectureList() {
               type="date"
               value={existlecture["startday"]}
               onChange={(e) => {
-                const newlecture = JSON.parse(JSON.stringify(existlecture));
+                const newlecture = {...existlecture};
                 newlecture["startday"] = e.target.value;
                 setexistlecture(newlecture);
               }}
@@ -452,7 +499,9 @@ function LectureList() {
         variant="secondary"
         className="btn-add w-100 mb-2"
         onClick={() => {
-          console.log(groupedlectureList);
+          //console.log(groupedlectureList);
+          //this can be problematic
+          setTextBookNeedFlag(true);
           modalOpen();
         }}
       >
@@ -473,7 +522,7 @@ function LectureList() {
           {
           Object.keys(groupedlectureList).map((element, idx)=>{
             return(
-              <tr>
+              <tr key={idx}>
                 <td>
                   <p><strong>{groupedlectureList[element][0]["manager"]}</strong></p>
                 </td>
@@ -482,7 +531,7 @@ function LectureList() {
                   return(
               <Card
                 className="mt-2 m-2 lecture-card"
-                key={idx}
+                key={i}
                 onClick={() => {
                   history.push(`/Lecture/${lecture["lectureID"]}`);
                 }}

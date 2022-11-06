@@ -533,27 +533,94 @@ app.put("/api/Todolist", loginCheck, function (req, res) {
 });
 
 app.get("/api/Textbook", loginCheck, function (req, res) {
-  db.collection("Textbook")
-    .find()
-    .toArray((err, result) => {
-      if (err) {
-        return console.log("api/Textbook - find Error : ", err);
-      }
-      res.send(result[0]);
-    });
+  // db.collection("Textbook")
+  //   .find()
+  //   .toArray((err, result) => {
+  //     if (err) {
+  //       return console.log("api/Textbook - find Error : ", err);
+  //     }
+  //     res.send(result[0]);
+  //   });
+
+  db.collection("TextBook")
+  .find()
+  .toArray((err, result) => {
+    if (err) {
+      return console.log("api/Textbook - find Error : ", err);
+    }
+    const resp={'날짜':'','textbookList':result};
+    res.send(resp);
+  });
 });
 
 app.put("/api/Textbook", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
-  const newTextbook = req.body;
-  const findID = ObjectId("62b815e210c04d831adf2f5b");
-  db.collection("Textbook").updateOne({ _id: findID }, { $set: newTextbook }, function (err3, result3) {
-    if (err3) {
+  //const newTextbook = req.body;
+  //const findID = ObjectId("62b815e210c04d831adf2f5b");
+  const edittedTextbook= req.body;
+  const findID= new ObjectId(edittedTextbook["_id"]);
+  delete edittedTextbook["_id"];
+  
+  // db.collection("TextBook").findOne({ _id:findID }, (err, result) => {
+  //   if (err) {
+  //     return res.send(`/api/Lecture - findOne Error : ${err}`);
+  //   }
+  //   if (result == null) {
+  //     return res.send(`등록되어 있지 않은 교재입니다.`);
+  //   }
+    
+  // });
+  db.collection("TextBook").updateOne({ _id: findID }, { $set: edittedTextbook },function (err, result) {
+    if (err) {
       return res.send("/api/Textbook/edit - updateOne Error : ", err3);
     }
-    console.log("터미널에 표시 : 교재리스트 수정 완료");
+    console.log("터미널에 표시 : 교재 수정 완료");
+    if(result.matchedCount==0){
+      return res.send("해당 교재가 등록되어 있지 않습니다.");
+    }
+    else{
+      return res.send(true);
+    }
+  });
+  
+});
+
+app.post("/api/Textbook", loginCheck, (req, res) => {
+  if (req["user"]["ID"] === "guest") {
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
+  }
+  const newTextbook = req.body;
+  db.collection("TextBook").findOne({ 교재: newTextbook["교재"] }, (err, result) => {
+    if (err) {
+      return res.send(`/api/Lecture - findOne Error : ${err}`);
+    }
+    if (result !== null) {
+      return res.send(`findOne result is not null. 중복되는 이름의 교재가 존재합니다.`);
+    }
+    db.collection("TextBook").insertOne(newTextbook, (err2, result2) => {
+      if (err2) {
+        return res.send(`/api/Lecture - insertOne Error : ${err2}`);
+      }
+      return res.send(true);
+    });
+  });
+});
+
+app.delete("/api/Textbook/:_id", loginCheck, (req,res)=>{
+  if (req["user"]["ID"] === "guest") {
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
+  }
+  const findID=new ObjectId(req.params._id);
+  db.collection("TextBook").deleteOne({ _id:findID }, (err, result) => {
+    if (err) {
+      return res.send(`/api/Lecture - findOne Error : ${err}`);
+    }
+    console.log("breakpoint");
+    if (result.deletedCount == 0) {
+      return res.send(`해당 교재가 등록되어 있지 않습니다.`);
+    }
     return res.send(true);
   });
 });
