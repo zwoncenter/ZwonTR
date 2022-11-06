@@ -66,7 +66,7 @@ function LectureList() {
   //강의 추가 시 교재 선택 관련 코드
   const [textBookNeedFlag,setTextBookNeedFlag]= useState(false);
   const [textBookList,setTextBookList]=useState([]);
-  const [selectedBookList,setSelectedBookList]=useState([]);
+  // const [selectedBookList,setSelectedBookList]=useState([]);
 
   useEffect(async ()=>{
     if(!textBookNeedFlag) return;
@@ -115,8 +115,26 @@ function LectureList() {
   };
 
   const reviseLecture = async () => {
-    if (!window.confirm("강의를 수정하시겠습니까?")) return;
+    if (lecture["lectureName"] === "") {
+      window.alert("강의명이 입력되지 않았습니다.");
+      return;
+    }
 
+    if (lecture["subject"] === "") {
+      window.alert("과목이 선택되지 않았습니다.");
+      return;
+    }
+
+    if (lecture["manager"] === "") {
+      window.alert("담당 매니저가 선택되지 않았습니다.");
+      return;
+    }
+    if (lecture["startday"] === "") {
+      window.alert("강의시작일이 입력되지 않았습니다.");
+      return;
+    }
+
+    if (!window.confirm("강의를 수정하시겠습니까?")) return;
     axios
       .put("/api/Lecture", existlecture)
       .then((result) => {
@@ -364,7 +382,7 @@ function LectureList() {
           className="btn-edit"
             variant="secondary"
             onClick={() => {
-              console.log("sbl on button click: "+JSON.stringify(selectedBookList));
+              // console.log("sbl on button click: "+JSON.stringify(selectedBookList));
               createNewLecture();
             }}
           >
@@ -415,6 +433,32 @@ function LectureList() {
                 );
               })}
             </Form.Select>
+          </InputGroup>
+          <InputGroup className="mb-3">
+            <InputGroup.Text>교재</InputGroup.Text>
+            <Typeahead
+              id="select_lecture_textbook"
+              multiple
+              onChange={(selected)=>{
+                //console.log(selected);
+                const newExistlecture= {...existlecture};
+                //setSelectedBookList(selected);
+                //console.log('sbl: '+JSON.stringify(selectedBookList));
+                newExistlecture["textbookIDArray"]=selected.map((element,idx)=>{
+                  return element["_id"];
+                });
+                console.log("new lecture: "+JSON.stringify(newExistlecture));
+                setexistlecture(newExistlecture);
+              }}
+              options={textBookList}
+              selected={textBookList.filter((textbook,idx)=>{
+                if(!("textbookIDArray" in existlecture))
+                  return false;
+                if(existlecture["textbookIDArray"].includes(textbook["_id"]))
+                  return true;
+              })}
+              labelKey="교재"
+            />
           </InputGroup>
           <InputGroup className="mb-3">
             <InputGroup.Text>매니저(강사)</InputGroup.Text>
@@ -545,6 +589,8 @@ function LectureList() {
                     onClick={(e) => {
                       e.stopPropagation();
                       reviseModalOpen(lecture);
+                      
+                      setTextBookNeedFlag(true);
                     }}
                     variant="secondary"
                     className="lectureEditingBtn btn-edit me-1"
