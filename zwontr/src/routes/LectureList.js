@@ -249,31 +249,27 @@ function LectureList() {
     return element.manager
   });
 
-  // 강의-학생 relation 불러오기
-  const [studentOfLecture, setstudentOfLecture] = useState([]);
-  useEffect(async () => {
-    const newstudentOfLecture = await axios
-      .get("/api/StudentOfLecture")
-      .then((result) => {
-        return result["data"];
-      })
-      .catch((err) => {
-        return window.alert(err);
-      });
-      setstudentOfLecture(newstudentOfLecture);
-  }, []);
+  // // 강의-학생 relation 불러오기
+  // const [studentOfLecture, setstudentOfLecture] = useState([]);
+  // useEffect(async () => {
+  //   const newstudentOfLecture = await axios
+  //     .get("/api/StudentOfLecture")
+  //     .then((result) => {
+  //       return result["data"];
+  //     })
+  //     .catch((err) => {
+  //       return window.alert(err);
+  //     });
+  //     setstudentOfLecture(newstudentOfLecture);
+  // }, []);
 
-  // 강의ID 별로 학생 ID를 groupby
-  // const attendingStudentList = groupBy(studentOfLecture,(element)=>{
-  //   return element.lectureID
+  // // 강의ID 별로 학생 ID를 groupby
+  // const attendingStudentList= {};
+  // studentOfLecture.map((element,idx)=>{
+  //   attendingStudentList[element["lectureID"]]=attendingStudentList[element["lectureID"]] || 0;
+  //   attendingStudentList[element["lectureID"]]+=1;
+  //   return false;
   // });
-
-  const attendingStudentList= {};
-  studentOfLecture.map((element,idx)=>{
-    attendingStudentList[element["lectureID"]]=attendingStudentList[element["lectureID"]] || 0;
-    attendingStudentList[element["lectureID"]]+=1;
-    return false;
-  });
 
   return (
     <div className="background text-center">
@@ -607,7 +603,8 @@ function LectureList() {
                   history.push(`/Lecture/${lecture["lectureID"]}`);
                 }}
               >
-                <Card.Header><p><strong>{lecture["lectureName"]} ({attendingStudentList[lecture['_id']]}명)</strong></p></Card.Header>
+                {/* <Card.Header><p><strong>{lecture["lectureName"]} ({attendingStudentList[lecture['_id']]}명)</strong></p></Card.Header> */}
+                <Card.Header><p><strong>{lecture["lectureName"]} ({lecture["studentList"].length}명)</strong></p></Card.Header>
                 <Card.Body>
                   <div className="text-start lectureCardContent">
                     <Card.Text className="lectureSubject">{lecture["subject"]}</Card.Text>
