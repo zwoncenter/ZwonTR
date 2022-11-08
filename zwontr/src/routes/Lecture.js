@@ -85,56 +85,79 @@ function Lecture() {
       return;
     }
     if (window.confirm(`${newname}을 수강생으로 등록하시겠습니까?`)) {
-      if (lecture["studentList"].includes(newname)) {
-        window.alert(`${newname} 학생은 이미 수강생으로 등록되어 있습니다.`);
-        setnewname("");
+      if(!("_id" in lecture)){
+        window.alert("다시 시도해주세요");
         return;
       }
-      // lecture 수정
-      const newlecture = JSON.parse(JSON.stringify(lecture));
-      newlecture["studentList"].push(newname);
-      newlecture["students"][newname] = {
-        진행중과제: [],
-        완료된과제: [],
-      };
-      setlecture(newlecture);
-      updatelecture(newlecture);
-
-      // stuDB 수정
-      const stuDB = await axios
-        .get(`/api/StudentDB/${newname}`)
-        .then((result) => {
-          if (result.data === "로그인필요") {
-            window.alert("로그인이 필요합니다.");
-            return history.push("/");
-          }
-          return result["data"];
-        })
-        .catch((err) => {
-          return err;
-        });
-      // 수강중강의라는 key가 stuDB에 없는 경우, 추가해준다.
-      if (!("수강중강의" in stuDB)) {
-        stuDB["수강중강의"] = [];
+      if(!(stuDBList.map((e,i)=>e["ID"]).includes(newname))){
+        window.alert("등록되지 않은 학생입니다");
+        return;
       }
-      await stuDB["수강중강의"].push(newlecture["lectureID"]);
       axios
-        .put("/api/StudentDB", stuDB)
-        .then(function (result) {
-          if (result.data === true) {
-            return window.location.reload();
-          } else if (result.data === "로그인필요") {
-            window.alert("로그인이 필요합니다.");
-            return history.push("/");
-          } else {
-            console.log(result.data);
-            window.alert(result.data);
-          }
-        })
-        .catch(function (err) {
-          window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요", err);
-        });
-      setnewname("");
+      .post(`/api/StudentOfLecture`, {lectureID:lecture["_id"],studentID:stuDBList.filter((e,idx)=>e["ID"]===newname)[0]["_id"],newflag:true})
+      .then((result) => {
+        if (result.data === true) {
+          return window.location.reload();
+        } else if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        } else {
+          window.alert(result.data);
+        }
+      })
+      .catch((err) => {
+        window.alert(err);
+      });
+      // if (lecture["studentList"].includes(newname)) {
+      //   window.alert(`${newname} 학생은 이미 수강생으로 등록되어 있습니다.`);
+      //   setnewname("");
+      //   return;
+      // }
+      // // lecture 수정
+      // const newlecture = JSON.parse(JSON.stringify(lecture));
+      // newlecture["studentList"].push(newname);
+      // newlecture["students"][newname] = {
+      //   진행중과제: [],
+      //   완료된과제: [],
+      // };
+      // setlecture(newlecture);
+      // updatelecture(newlecture);
+
+      // // stuDB 수정
+      // const stuDB = await axios
+      //   .get(`/api/StudentDB/${newname}`)
+      //   .then((result) => {
+      //     if (result.data === "로그인필요") {
+      //       window.alert("로그인이 필요합니다.");
+      //       return history.push("/");
+      //     }
+      //     return result["data"];
+      //   })
+      //   .catch((err) => {
+      //     return err;
+      //   });
+      // // 수강중강의라는 key가 stuDB에 없는 경우, 추가해준다.
+      // if (!("수강중강의" in stuDB)) {
+      //   stuDB["수강중강의"] = [];
+      // }
+      // await stuDB["수강중강의"].push(newlecture["lectureID"]);
+      // axios
+      //   .put("/api/StudentDB", stuDB)
+      //   .then(function (result) {
+      //     if (result.data === true) {
+      //       return window.location.reload();
+      //     } else if (result.data === "로그인필요") {
+      //       window.alert("로그인이 필요합니다.");
+      //       return history.push("/");
+      //     } else {
+      //       console.log(result.data);
+      //       window.alert(result.data);
+      //     }
+      //   })
+      //   .catch(function (err) {
+      //     window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요", err);
+      //   });
+      // setnewname("");
     }
   };
 

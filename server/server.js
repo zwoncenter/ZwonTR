@@ -708,6 +708,47 @@ app.get("/api/StudentOfLecture", loginCheck, (req, res) => {
     });
 });
 
+app.post("/api/StudentOfLecture", loginCheck, (req, res) => {
+  if (req["user"]["ID"] === "guest") {
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
+  }
+  //const newStudentOfLecture = {lectureID:ObjectId(req.body["lectureID"]),studentID:ObjectId(req.body["studentID"])};
+  const newStudentOfLecture={...req.body};
+  newStudentOfLecture["studentID"]=ObjectId(newStudentOfLecture["studentID"]);
+  newStudentOfLecture["lectureID"]=ObjectId(newStudentOfLecture["lectureID"]);
+  //field 비어있는지 검사
+  if(!("lectureID" in req.body) || !("studentID" in req.body)){
+    return res.send(`StudentOfLecture: 잘못된 요청입니다.`);
+  }
+  //실제 등록된 학생의 id인지 검사
+  db.collection("StudentDB").findOne({_id:ObjectId(req.body["studentID"])},(err,result)=>{
+    if (err || result===null) {
+      return res.send(`/api/StudentOfLecture - findOne Error : ${err}`);
+    }
+    //실제 등록된 강의의 id인지 검사
+    db.collection("Lecture").findOne({_id:ObjectId(req.body["lectureID"])},(err2,result2)=>{
+      if (err2 || result2===null) {
+        return res.send(`/api/StudentOfLecture - findOne Error2 : ${err2}`);
+      }
+      //이미 강의에 등록되어있는 학생인지 검사
+      db.collection("StudentOfLecture").findOne(newStudentOfLecture, (err3, result3) => {
+        if (err3) {
+          return res.send(`/api/StudentOfLecture - findOne Error3 : ${err3}`);
+        }
+        if(result3!==null){
+          return res.send(`이미 강의에 등록되어있는 학생입니다`);
+        }
+        db.collection("StudentOfLecture").insertOne(newStudentOfLecture, (err4, result4) => {
+          if (err4) {
+            return res.send(`/api/StudentOfLecture - insertOne Error : ${err4}`);
+          }
+          return res.send(true);
+        });
+      });
+    });
+  });
+});
+
 
 // studentName
 app.get("/api/TRnow", loginCheck, (req, res) => {
