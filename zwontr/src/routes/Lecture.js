@@ -94,7 +94,7 @@ function Lecture() {
         return;
       }
       axios
-      .post(`/api/StudentOfLecture`, {lectureID:lecture["_id"],studentID:stuDBList.filter((e,idx)=>e["ID"]===newname)[0]["_id"],newflag:true})
+      .post(`/api/StudentOfLecture`, {lectureID:lecture["_id"],studentID:stuDBList.filter((e,idx)=>e["ID"]===newname)[0]["_id"]})
       .then((result) => {
         if (result.data === true) {
           return window.location.reload();
