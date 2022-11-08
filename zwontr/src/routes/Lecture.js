@@ -577,6 +577,26 @@ function Lecture() {
             variant="dark"
             className="btn-edit w-90 m-3"
             onClick={() => {
+              axios
+              .get(`/api/StudentOfLecture/${paramID}`)
+              .then((result) => {
+                if (result.data === "로그인필요") {
+                  window.alert("로그인이 필요합니다.");
+                  return window.push("/");
+                }
+                return;
+              })
+              .catch((err) => {
+                return window.alert(err);
+              });
+            }}
+          >
+            join test
+          </Button>
+        <Button
+            variant="dark"
+            className="btn-edit w-90 m-3"
+            onClick={() => {
               namemodalOpen();
             }}
           >

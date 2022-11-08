@@ -708,14 +708,76 @@ app.get("/api/StudentOfLecture", loginCheck, (req, res) => {
     });
 });
 
+//개별 강의 페이지에서 lecture ID를 받아 aggregate(join)를 통해 강의 수강중인 학생 반환
+app.get("/api/StudentOfLecture/:lectureID", loginCheck, (req, res) => {
+  const paramID = decodeURIComponent(req.params.lectureID);
+  
+  //aggregate(join) query
+  db.collection("StudentOfLecture").aggregate([
+    {$lookup:{
+      from:"Lecture",
+      localField:"lectureID",
+      foreignField:"_id",
+      as:"lecture_aggregate"
+    }},
+    {$unwind:"$lecture_aggregate"},
+    {$match: {"lecture_aggregate.lectureID":paramID}},
+    {$lookup:{
+      from:"StudentDB",
+      localField:"studentID",
+      foreignField:"_id",
+      as:"studentDB_aggregate"
+    }},
+    {$unwind:"$studentDB_aggregate"},
+    {$addFields:{
+      studentName:"$studentDB_aggregate.이름"
+    }},
+    {$project:{
+      studentName:1
+    }}
+  ]).toArray((err,result)=>{
+    console.log(result,result.length);
+    return res.send(true);
+  });
+  //parameter의 lecture ID로 등록된 강의가 있는지 확인
+  // db.collection("Lecture").findOne({lectureID:paramID},(err,result)=>{
+  //   if(err){
+  //     return res.send(`/api/StudentOfLecture - findOne Error : ${err}`);
+  //   }
+  //   if(result === null){
+  //     return res.send(`해당 ID로 등록된 강의가 없습니다`);
+  //   }
+  //   //StudentOfLecture collection에서 해당 lecture ID로 등록된 학생 검색
+  //   db.collection("StudentOfLecture").find({lectureID:Object(result["_id"])}).toArray((err2,result2)=>{
+  //     if(err2){
+  //       return res.send(`/api/StudentOfLecture - find Error : ${err2}`);
+  //     }
+  //     if(result2.length==0){
+  //       return res.json(result2);
+  //     }
+      
+  //   });
+  // });
+
+  // db.collection("StudentOfLecture")
+  //   .find()
+  //   .toArray((err, result) => {
+  //     if (err) {
+  //       return res.send(`/api/StudentOfLecture - find Error ${err}`);
+  //     }
+  //     return res.json(result);
+  //   });
+});
+
 app.post("/api/StudentOfLecture", loginCheck, (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
-  //const newStudentOfLecture = {lectureID:ObjectId(req.body["lectureID"]),studentID:ObjectId(req.body["studentID"])};
-  const newStudentOfLecture={...req.body};
-  newStudentOfLecture["studentID"]=ObjectId(newStudentOfLecture["studentID"]);
-  newStudentOfLecture["lectureID"]=ObjectId(newStudentOfLecture["lectureID"]);
+  const newStudentOfLecture = {lectureID:ObjectId(req.body["lectureID"]),studentID:ObjectId(req.body["studentID"])};
+  //for debugging
+  // const newStudentOfLecture={...req.body};
+  // newStudentOfLecture["studentID"]=ObjectId(newStudentOfLecture["studentID"]);
+  // newStudentOfLecture["lectureID"]=ObjectId(newStudentOfLecture["lectureID"]);
   //field 비어있는지 검사
   if(!("lectureID" in req.body) || !("studentID" in req.body)){
     return res.send(`StudentOfLecture: 잘못된 요청입니다.`);
