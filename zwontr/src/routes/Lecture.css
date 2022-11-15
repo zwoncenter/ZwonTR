@@ -128,3 +128,8 @@
   border: 0;
   float: left;
 }
+
+.assignmentEditBtn {
+  border-radius: 20px;
+  border: 0;
+}

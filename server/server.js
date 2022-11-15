@@ -28,13 +28,24 @@ const { send } = require("process");
 app.use(cors());
 
 //db라는 변수에 zwon 데이터베이스 연결, env파일 참조
-var db;
+var db, db_session;
 MongoClient.connect(process.env.DB_URL, function (err, client) {
   if (err) {
     return console.log(err);
   }
   // db라는 변수에 zwon 데이터베이스를 연결.
   db = client.db("zwon");
+  db_session= client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+          level: 'snapshot'
+      },
+      writeConcern: {
+          w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
 
   app.listen(process.env.PORT, function () {
     console.log(`listening on ${process.env.PORT}`);
@@ -594,14 +605,14 @@ app.post("/api/Textbook", loginCheck, (req, res) => {
   const newTextbook = req.body;
   db.collection("TextBook").findOne({ 교재: newTextbook["교재"] }, (err, result) => {
     if (err) {
-      return res.send(`/api/Lecture - findOne Error : ${err}`);
+      return res.send(`/api/TextBook - findOne Error : ${err}`);
     }
     if (result !== null) {
       return res.send(`findOne result is not null. 중복되는 이름의 교재가 존재합니다.`);
     }
     db.collection("TextBook").insertOne(newTextbook, (err2, result2) => {
       if (err2) {
-        return res.send(`/api/Lecture - insertOne Error : ${err2}`);
+        return res.send(`/api/TextBook - insertOne Error : ${err2}`);
       }
       return res.send(true);
     });
@@ -615,7 +626,7 @@ app.delete("/api/Textbook/:_id", loginCheck, (req,res)=>{
   const findID=new ObjectId(req.params._id);
   db.collection("TextBook").deleteOne({ _id:findID }, (err, result) => {
     if (err) {
-      return res.send(`/api/Lecture - findOne Error : ${err}`);
+      return res.send(`/api/Textbook - findOne Error : ${err}`);
     }
     console.log("breakpoint");
     if (result.deletedCount == 0) {
@@ -641,6 +652,8 @@ app.post("/api/Lecture", loginCheck, (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
+  //이 코드 부분에서 강의 추가 시 강의에서 사용하는 교재를 TextbookOfLecture에 추가하도록 수정 필요
+  //>>transaction사용: (insertone>Lecture, insertMany>TextbookOfLecture)
   const newLecture = req.body;
   db.collection("Lecture").findOne({ lectureID: newLecture["ID"] }, (err, result) => {
     if (err) {
@@ -696,6 +709,43 @@ app.delete("/api/Lecture/:lectureid", loginCheck, (req, res) => {
   });
 });
 
+//강의에서 사용중인 교재 관련 코드
+app.get("/api/TextbookOfLecture/:lectureid", loginCheck, (req, res) => {
+  const paramID = decodeURIComponent(req.params.lectureid);
+  //aggregate(join) query
+  db.collection("Lecture").aggregate([
+    {$match: {lectureID:paramID}},
+    {$lookup:{
+      from:"TextbookOfLecture",
+      localField:"_id",
+      foreignField:"lectureID",
+      as:"TextbookOfLecture_aggregate"
+    }},
+    {$unwind:"$TextbookOfLecture_aggregate"},
+    {$lookup:{
+      from:"TextBook",
+      localField:"TextbookOfLecture_aggregate.textbookID",
+      foreignField:"_id",
+      as:"TextBook_aggregate"
+    }},
+    {$unwind:"$TextBook_aggregate"},
+    {$addFields:{
+      textbookID:"$TextBook_aggregate._id",
+      textbookName:"$TextBook_aggregate.교재"
+    }},
+    {$project:{
+      _id:0,
+      textbookID:1,
+      textbookName:1
+    }}
+  ]).toArray((err,result)=>{
+    if (err) {
+      return res.send(`/api/TextbookOfLecture - find Error ${err}`);
+    }
+    return res.json(result);
+  });
+});
+
 // 강의로 수강생 검색매칭 relation
 app.get("/api/StudentOfLecture", loginCheck, (req, res) => {
   db.collection("StudentOfLecture")
@@ -708,14 +758,67 @@ app.get("/api/StudentOfLecture", loginCheck, (req, res) => {
     });
 });
 
+// 강의에 따른 과제 검색매칭 relation
+app.get("/api/Assignment/:lectureid", loginCheck, (req, res) => {
+  const paramID = ObjectId(decodeURIComponent(req.params.lectureid));
+  db.collection("Assignment")
+  .find({lectureID: paramID})
+  .toArray((err, result) => {
+    if (err) {
+      return res.send(`/api/Assignment - find Error ${err}`);
+    }
+    return res.json(result);
+  });
+});
+//개별 강의 페이지에서 lecture ID를 받아 aggregate(join)를 통해 강의 수강중인 학생 반환
+app.get("/api/StudentOfLecture/:lectureID", loginCheck, (req, res) => {
+  const paramID = decodeURIComponent(req.params.lectureID);
+  
+  //aggregate(join) query
+  db.collection("Lecture").aggregate([
+    {$match: {lectureID:paramID}},
+    {$lookup:{
+      from:"StudentOfLecture",
+      localField:"_id",
+      foreignField:"lectureID",
+      as:"StudentOfLecture_aggregate"
+    }},
+    {$unwind:"$StudentOfLecture_aggregate"},
+    {$lookup:{
+      from:"StudentDB",
+      localField:"StudentOfLecture_aggregate.studentID",
+      foreignField:"_id",
+      as:"studentDB_aggregate"
+    }},
+    {$unwind:"$studentDB_aggregate"},
+    {$addFields:{
+      _sid:"$studentDB_aggregate._id",
+      studentID:"$studentDB_aggregate.ID",
+      studentName:"$studentDB_aggregate.이름"
+    }},
+    {$project:{
+      _id:0,
+      _sid:1,
+      studentID:1,
+      studentName:1
+    }}
+  ]).toArray((err,result)=>{
+    if (err) {
+      return res.send(`/api/StudentOfLecture - find Error ${err}`);
+    }
+    return res.json(result);
+  });
+});
+
 app.post("/api/StudentOfLecture", loginCheck, (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
-  //const newStudentOfLecture = {lectureID:ObjectId(req.body["lectureID"]),studentID:ObjectId(req.body["studentID"])};
-  const newStudentOfLecture={...req.body};
-  newStudentOfLecture["studentID"]=ObjectId(newStudentOfLecture["studentID"]);
-  newStudentOfLecture["lectureID"]=ObjectId(newStudentOfLecture["lectureID"]);
+  const newStudentOfLecture = {lectureID:ObjectId(req.body["lectureID"]),studentID:ObjectId(req.body["studentID"])};
+  //for debugging
+  // const newStudentOfLecture={...req.body};
+  // newStudentOfLecture["studentID"]=ObjectId(newStudentOfLecture["studentID"]);
+  // newStudentOfLecture["lectureID"]=ObjectId(newStudentOfLecture["lectureID"]);
   //field 비어있는지 검사
   if(!("lectureID" in req.body) || !("studentID" in req.body)){
     return res.send(`StudentOfLecture: 잘못된 요청입니다.`);
@@ -747,6 +850,23 @@ app.post("/api/StudentOfLecture", loginCheck, (req, res) => {
       });
     });
   });
+});
+
+app.delete("/api/StudentOfLecture/:lectureID/:studentID",loginCheck,async (req,res)=>{
+  const lectureID=decodeURIComponent(req.params.lectureID);
+  const studentID=decodeURIComponent(req.params.studentID);
+  try{
+    db_session.startTransaction();
+    const target_lecture= await db.collection('Lecture').findOne({lectureID:lectureID});
+    const target_student= await db.collection('StudentDB').findOne({ID:studentID});
+    db.collection('StudentOfLecture').deleteOne({lectureID:target_lecture["_id"],studentID:target_student["_id"]});
+    db_session.commitTransaction();
+    return res.send(true);
+  }
+  catch (err){
+    await db_session.abortTransaction();
+    return res.send(`/api/StudentOfLecture/ - delete ${err}`);
+  }
 });
 
 

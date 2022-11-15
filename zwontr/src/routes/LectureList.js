@@ -103,15 +103,31 @@ function LectureList() {
   // 강의 수정 관련 코드
   const [reviseModal, setreviseModal] = useState(false);
   const [existlecture, setexistlecture] = useState({});
+  const [existlectureTextbookList,setExistlectureTextbookList] = useState([]); // textbooks of exist lecture
 
-  const reviseModalOpen = (lecture) => {
+  const reviseModalOpen = async (lecture) => {
     setexistlecture(lecture);
     setreviseModal(true);
+    //here we get textbooks of specific lecture to be revised
+    const newExistlectureTextbookList = await axios
+      .get(`/api/TextbookOfLecture/${lecture["lectureID"]}`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        }
+        return result["data"];
+      })
+      .catch((err) => {
+        return err;
+      });
+    setExistlectureTextbookList(newExistlectureTextbookList);
   };
 
   const reviseModalClose = () => {
     setexistlecture({});
     setreviseModal(false);
+    setExistlectureTextbookList([]);
   };
 
   const reviseLecture = async () => {
@@ -249,27 +265,27 @@ function LectureList() {
     return element.manager
   });
 
-  // // 강의-학생 relation 불러오기
-  // const [studentOfLecture, setstudentOfLecture] = useState([]);
-  // useEffect(async () => {
-  //   const newstudentOfLecture = await axios
-  //     .get("/api/StudentOfLecture")
-  //     .then((result) => {
-  //       return result["data"];
-  //     })
-  //     .catch((err) => {
-  //       return window.alert(err);
-  //     });
-  //     setstudentOfLecture(newstudentOfLecture);
-  // }, []);
+  // 강의-학생 relation 불러오기
+  const [studentOfLecture, setstudentOfLecture] = useState([]);
+  useEffect(async () => {
+    const newstudentOfLecture = await axios
+      .get("/api/StudentOfLecture")
+      .then((result) => {
+        return result["data"];
+      })
+      .catch((err) => {
+        return window.alert(err);
+      });
+      setstudentOfLecture(newstudentOfLecture);
+  }, []);
 
-  // // 강의ID 별로 학생 ID를 groupby
-  // const attendingStudentList= {};
-  // studentOfLecture.map((element,idx)=>{
-  //   attendingStudentList[element["lectureID"]]=attendingStudentList[element["lectureID"]] || 0;
-  //   attendingStudentList[element["lectureID"]]+=1;
-  //   return false;
-  // });
+  // 강의ID 별로 학생 ID를 groupby
+  const attendingStudentList= {};
+  studentOfLecture.map((element,idx)=>{
+    attendingStudentList[element["lectureID"]]=attendingStudentList[element["lectureID"]] || 0;
+    attendingStudentList[element["lectureID"]]+=1;
+    return false;
+  });
 
   return (
     <div className="background text-center">
@@ -473,10 +489,14 @@ function LectureList() {
                 setexistlecture(newExistlecture);
               }}
               options={textBookList}
+              // selected={textBookList.filter((textbook,idx)=>{
+              //   if(!("textbookIDArray" in existlecture))
+              //     return false;
+              //   if(existlecture["textbookIDArray"].includes(textbook["_id"]))
+              //     return true;
+              // })}
               selected={textBookList.filter((textbook,idx)=>{
-                if(!("textbookIDArray" in existlecture))
-                  return false;
-                if(existlecture["textbookIDArray"].includes(textbook["_id"]))
+                if(existlectureTextbookList.map((e)=>e["textbookID"]).includes(textbook["textbookID"]))
                   return true;
               })}
               labelKey="교재"
@@ -603,8 +623,7 @@ function LectureList() {
                   history.push(`/Lecture/${lecture["lectureID"]}`);
                 }}
               >
-                {/* <Card.Header><p><strong>{lecture["lectureName"]} ({attendingStudentList[lecture['_id']]}명)</strong></p></Card.Header> */}
-                <Card.Header><p><strong>{lecture["lectureName"]} ({lecture["studentList"].length}명)</strong></p></Card.Header>
+                <Card.Header><p><strong>{lecture["lectureName"]} ({attendingStudentList[lecture['_id']]?attendingStudentList[lecture['_id']]:0}명)</strong></p></Card.Header>
                 <Card.Body>
                   <div className="text-start lectureCardContent">
                     <Card.Text className="lectureSubject">{lecture["subject"]}</Card.Text>
@@ -622,7 +641,17 @@ function LectureList() {
                     <strong>수정</strong>
                   </Button>
                   <Button
-                    className="lectureEditingBtn btn-cancel m-auto"
+                    className="lectureEditingBtn btn-edit me-1"
+                    variant="secondary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // deleteLecture(lecture["studentList"], lecture);
+                    }}
+                  >
+                    <strong>교재</strong>
+                  </Button>
+                  <Button
+                    className="lectureEditingBtn btn-cancel me-1"
                     variant="secondary"
                     onClick={(e) => {
                       e.stopPropagation();
