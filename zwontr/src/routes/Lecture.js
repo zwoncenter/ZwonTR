@@ -170,50 +170,69 @@ function Lecture() {
     if (!window.confirm(`${deletename}을 수강생에서 삭제하시겠습니까? \n해당 학생의 진행중과제/완료된과제가 전부 삭제됩니다.`)) {
       return;
     }
-    if (!lecture["studentList"].includes(deletename)) {
+    // if (!lecture["studentList"].includes(deletename)) {
+    //   window.alert(`${deletename}이 수강생으로 등록되어 있지 않습니다.`);
+    //   return;
+    // }
+    if(!studentOfLectureList.map((e,idx)=>e["studentID"]).includes(deletename)){
       window.alert(`${deletename}이 수강생으로 등록되어 있지 않습니다.`);
       return;
     }
-    const newlecture = JSON.parse(JSON.stringify(lecture));
-    // studentList와 students에서 모두 삭제.
-    newlecture["studentList"].splice(newlecture["studentList"].indexOf(deletename), 1);
-    delete newlecture["students"][newname];
-    setlecture(newlecture);
-    updatelecture(newlecture);
 
-    const stuDB = await axios
-      .get(`/api/StudentDB/${newname}`)
-      .then((result) => {
-        if (result.data === "로그인필요") {
-          window.alert("로그인이 필요합니다.");
-          return history.push("/");
-        }
-        return result["data"];
-      })
-      .catch((err) => {
-        return err;
-      });
-    // 학생DB에 수강중강의가 있고, 수강중강의에 해당 lectureID가 존재하는지부터 확인 후 제거
-    if ("수강중강의" in stuDB && stuDB["수강중강의"].includes(newlecture["lectureID"])) {
-      await stuDB["수강중강의"].splice(stuDB["수강중강의"].indexOf(newlecture["lectureID"]), 1);
-    }
     axios
-      .put("/api/StudentDB", stuDB)
-      .then(function (result) {
+      .delete(`/api/StudentOfLecture/${paramID}/${deletename}`)
+      .then((result) => {
         if (result.data === true) {
-          window.alert("삭제되었습니다.");
+          window.alert("삭제되었습니다");
           return window.location.reload();
-        } else if (result.data === "로그인필요") {
-          window.alert("로그인이 필요합니다.");
-          return history.push("/");
         } else {
-          console.log(result.data);
           window.alert(result.data);
         }
       })
-      .catch(function (err) {
-        window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
+      .catch((err) => {
+        window.alert(`삭제에 실패했습니다. ${err}`);
       });
+
+    // const newlecture = JSON.parse(JSON.stringify(lecture));
+    // // studentList와 students에서 모두 삭제.
+    // newlecture["studentList"].splice(newlecture["studentList"].indexOf(deletename), 1);
+    // delete newlecture["students"][newname];
+    // setlecture(newlecture);
+    // updatelecture(newlecture);
+
+    // const stuDB = await axios
+    //   .get(`/api/StudentDB/${newname}`)
+    //   .then((result) => {
+    //     if (result.data === "로그인필요") {
+    //       window.alert("로그인이 필요합니다.");
+    //       return history.push("/");
+    //     }
+    //     return result["data"];
+    //   })
+    //   .catch((err) => {
+    //     return err;
+    //   });
+    // // 학생DB에 수강중강의가 있고, 수강중강의에 해당 lectureID가 존재하는지부터 확인 후 제거
+    // if ("수강중강의" in stuDB && stuDB["수강중강의"].includes(newlecture["lectureID"])) {
+    //   await stuDB["수강중강의"].splice(stuDB["수강중강의"].indexOf(newlecture["lectureID"]), 1);
+    // }
+    // axios
+    //   .put("/api/StudentDB", stuDB)
+    //   .then(function (result) {
+    //     if (result.data === true) {
+    //       window.alert("삭제되었습니다.");
+    //       return window.location.reload();
+    //     } else if (result.data === "로그인필요") {
+    //       window.alert("로그인이 필요합니다.");
+    //       return history.push("/");
+    //     } else {
+    //       console.log(result.data);
+    //       window.alert(result.data);
+    //     }
+    //   })
+    //   .catch(function (err) {
+    //     window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
+    //   });
   };
 
   // 과제 추가 관련 코드
@@ -222,9 +241,13 @@ function Lecture() {
   const [assignmodal, setassignmodal] = useState(false);
   const [assignstudents, setassignstudents] = useState([]);
   const [checkall, setcheckall] = useState(true);
+
+  const [studentOfLectureList,setStudentOfLectureList]=useState([]); //강의 수강중인 학생 명단 관련 코드: DB 수정 작업
+
   const assignmodalOpen = () => {
     setassignmodal(true);
-    setassignstudents(Array.from({ length: lecture["studentList"].length }, () => true));
+    //setassignstudents(Array.from({ length: lecture["studentList"].length }, () => true));
+    setassignstudents(Array.from({length:studentOfLectureList.length},()=>true));
     setcheckall(true);
   };
   const assignmodalClose = () => {
@@ -340,7 +363,7 @@ function Lecture() {
     studentList: [],
     assignments: {},
     assignKey: 0,
-  });
+  });  
 
   useEffect(async () => {
     const newmanagerList = await axios
@@ -384,6 +407,22 @@ function Lecture() {
         return window.alert(err);
       });
     setlecture(newlecture);
+
+    //강의 수강중인 학생 명단을 StudentOfLecture를 통해 가져옴
+    const newStudentOfLectureList= await axios
+      .get(`/api/StudentOfLecture/${paramID}`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return window.push("/");
+        }
+        return result["data"];
+      })
+      .catch((err) => {
+        return window.alert(err);
+      });
+    console.log("sol:"+JSON.stringify(newStudentOfLectureList));
+    setStudentOfLectureList(newStudentOfLectureList);
   }, []);
 
   useEffect(() => {
@@ -490,10 +529,12 @@ function Lecture() {
               checked={checkall}
               onChange={() => {
                 if (checkall === false) {
-                  setassignstudents(Array.from({ length: lecture["studentList"].length }, () => true));
+                  //setassignstudents(Array.from({ length: lecture["studentList"].length }, () => true));
+                  setassignstudents(Array.from({ length: studentOfLectureList.length }, () => true));
                   setcheckall(true);
                 } else {
-                  setassignstudents(Array.from({ length: lecture["studentList"].length }, () => false));
+                  //setassignstudents(Array.from({ length: lecture["studentList"].length }, () => false));
+                  setassignstudents(Array.from({ length: studentOfLectureList.length }, () => false));
                   setcheckall(false);
                 }
               }}
@@ -501,7 +542,7 @@ function Lecture() {
           </div>
 
           <div className="row">
-            {lecture["studentList"].map((name, idx) => {
+            {/* {lecture["studentList"].map((name, idx) => {
               return (
                 <div className="col-3" key={idx}>
                   <Form.Check
@@ -521,7 +562,30 @@ function Lecture() {
                   />
                 </div>
               );
-            })}
+            })} */}
+            {
+              studentOfLectureList.map((student,idx)=>{
+                return (
+                  <div className="col-3" key={idx}>
+                    <Form.Check
+                      type="checkbox"
+                      label={student["studentID"]}
+                      checked={assignstudents[idx]}
+                      onChange={() => {
+                        const newls = [...assignstudents];
+                        newls[idx] = !newls[idx];
+                        setassignstudents(newls);
+                        if (newls.includes(false)) {
+                          setcheckall(false);
+                        } else {
+                          setcheckall(true);
+                        }
+                      }}
+                    />
+                  </div>
+                );
+              })
+            }
           </div>
 
           <Button className="btn-secondary program-add" onClick={assignAdd} type="button">
@@ -573,7 +637,7 @@ function Lecture() {
       </Modal>
 
       <div className="row">
-        <Button
+        {/* {<Button
             variant="dark"
             className="btn-edit w-90 m-3"
             onClick={() => {
@@ -592,7 +656,7 @@ function Lecture() {
             }}
           >
             join test
-          </Button>
+          </Button>} */}
         <Button
             variant="dark"
             className="btn-edit w-90 m-3"
@@ -718,7 +782,7 @@ function Lecture() {
             </div>
             <h4 className="btn-add">과제 X</h4>
             <div className="assignmentSubContainer">
-              {lecture["studentList"]
+              {/* {lecture["studentList"]
                 .filter((student) => lecture["students"][student]["진행중과제"].length === 0)
                 .map((student, index) => {
                   return (
@@ -764,6 +828,38 @@ function Lecture() {
                             })}
                             </Card.Body>
                           </Accordion.Collapse>
+                        </Card>
+                      </Accordion>
+                      <div className="text-end m-1" >
+                        <Button
+                          onClick={() => {
+                            studentDelete(student);
+                          }}
+                          variant="secondary"
+                          className="lectureEditingBtn btn-cancel m-auto rightbelow"
+                        >
+                          삭제
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })} */}
+                {
+                  console.log("list:"+JSON.stringify(studentOfLectureList.map((e,idx)=>{
+                    return e["studentID"];
+                  })))?null:null
+                }
+                {studentOfLectureList.map((student,idx)=>{
+                  // console.log(student);
+                  return student["studentID"];
+                })
+                .map((student, index) => {
+                  return (
+                    <div className="attendingStudent-card" key={index}>
+                      <p className="fs-5">{student.split("_")[0]}</p>
+                      <Accordion>
+                        <Card>
+                          
                         </Card>
                       </Accordion>
                       <div className="text-end m-1" >
