@@ -730,6 +730,26 @@ function Lecture() {
       </Modal>
 
       <div className="row">
+        {/* {<Button
+            variant="dark"
+            className="btn-edit w-90 m-3"
+            onClick={() => {
+              axios
+              .get(`/api/StudentOfLecture/${paramID}`)
+              .then((result) => {
+                if (result.data === "로그인필요") {
+                  window.alert("로그인이 필요합니다.");
+                  return window.push("/");
+                }
+                return;
+              })
+              .catch((err) => {
+                return window.alert(err);
+              });
+            }}
+          >
+            join test
+          </Button>} */}
         <Button
           variant="dark"
           className="btn-edit w-90 m-3"
@@ -851,7 +871,7 @@ function Lecture() {
             </div>
             <h4 className="btn-add">과제 X</h4>
             <div className="assignmentSubContainer">
-              {lecture["studentList"]
+              {/* {lecture["studentList"]
                 .filter((student) => lecture["students"][student]["진행중과제"].length === 0)
                 .map((student, index) => {
                   return (
@@ -913,6 +933,38 @@ function Lecture() {
                     </div>
                   );
                 })}
+                {studentOfLectureList.map((student,idx)=>{
+                  // console.log(student);
+                  return student["studentID"];
+                })
+                .map((student, index) => {
+                  return (
+                    <div className="attendingStudent-card" key={index}>
+                      <p className="fs-5">{student.split("_")[0]}</p>
+                      <Accordion>
+                        <Card>
+                          
+                        </Card>
+                      </Accordion>
+                      <div className="text-end m-1" >
+                        <Button
+                          onClick={() => {
+                            studentDelete(student);
+                          }}
+                          variant="secondary"
+                          className="lectureEditingBtn btn-cancel m-auto rightbelow"
+                        >
+                          삭제
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })} */}
+                {
+                  console.log("list:"+JSON.stringify(studentOfLectureList.map((e,idx)=>{
+                    return e["studentID"];
+                  })))?null:null
+                }
                 {studentOfLectureList.map((student,idx)=>{
                   // console.log(student);
                   return student["studentID"];

@@ -658,6 +658,16 @@ function LectureList() {
                       deleteLecture(lecture["studentList"], lecture);
                     }}
                   >
+                    <strong>교재</strong>
+                  </Button>
+                  <Button
+                    className="lectureEditingBtn btn-cancel me-1"
+                    variant="secondary"
+                    onClick={(e) => {
+                      // e.stopPropagation();
+                      // deleteLecture(lecture["studentList"], lecture);
+                    }}
+                  >
                     <strong>삭제</strong>
                   </Button>
                     </div>
