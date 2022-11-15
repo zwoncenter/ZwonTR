@@ -760,15 +760,47 @@ app.get("/api/StudentOfLecture", loginCheck, (req, res) => {
 
 // 강의에 따른 과제 검색매칭 relation
 app.get("/api/Assignment/:lectureid", loginCheck, (req, res) => {
-  const paramID = ObjectId(decodeURIComponent(req.params.lectureid));
-  db.collection("Assignment")
-  .find({lectureID: paramID})
-  .toArray((err, result) => {
+  const paramID = decodeURIComponent(req.params.lectureid);
+  db.collection("Lecture").aggregate([
+    {$match: {lectureID:paramID}},
+    {$lookup:{
+      from:"Assignment",
+      localField:"_id",
+      foreignField:"lectureID",
+      as:"Assignment_aggregate"
+    }},
+    {$unwind:"$Assignment_aggregate"},
+    {$addFields:{
+      assignmentID:"$Assignment_aggregate._id",
+      textbookID:"$Assignment_aggregate.textbookID",
+      pageRangeArray:"$Assignment_aggregate.pageRangeArray",
+      description:"$Assignment_aggregate.description",
+      duedate:"$Assignment_aggregate.duedate",
+      startdate:"$Assignment_aggregate.startdate"
+    }},
+    {$project:{
+      _id:0,
+      assignmentID:1,
+      textbookID:1,
+      pageRangeArray:1,
+      description:1,
+      duedate:1,
+      startdate:1
+    }}
+  ]).toArray((err,result)=>{
     if (err) {
-      return res.send(`/api/Assignment - find Error ${err}`);
+      return res.send(`/api/StudentOfLecture - find Error ${err}`);
     }
     return res.json(result);
   });
+  // db.collection("Assignment")
+  // .find({lectureID: paramID})
+  // .toArray((err, result) => {
+  //   if (err) {
+  //     return res.send(`/api/Assignment - find Error ${err}`);
+  //   }
+  //   return res.json(result);
+  // });
 });
 //개별 강의 페이지에서 lecture ID를 받아 aggregate(join)를 통해 강의 수강중인 학생 반환
 app.get("/api/StudentOfLecture/:lectureID", loginCheck, (req, res) => {

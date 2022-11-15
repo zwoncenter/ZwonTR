@@ -430,9 +430,9 @@ function Lecture() {
   //현재 강의의 assignment 가져오기
   useEffect(async () => {
     if (!("_id" in lecture)) return;
-    let tmp = lecture["_id"].toString();
+    // let tmp = lecture["_id"].toString();
     const existingAssignments = await axios
-      .get(`/api/Assignment/${tmp}`)
+      .get(`/api/Assignment/${paramID}`)
       .then((result) => {
         if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다.");
