@@ -311,14 +311,34 @@ function Lecture() {
     setupdateassigndate("");
   };
 
-  const assignupdate = () => {
-    if (!window.confirm(`기존 과제(${lecture["assignments"][selectedAssign]["과제내용"]})를 변경하시겠습니까?`)) return;
-    const newlecture = JSON.parse(JSON.stringify(lecture));
-    newlecture["assignments"][selectedAssign]["과제내용"] = updateassign;
-    newlecture["assignments"][selectedAssign]["과제기한"] = updateassigndate;
-    setlecture(newlecture);
-    updatelecture(newlecture);
-    assignupdatemodalClose();
+  function assignupdate(){
+    let state = true;
+    selectedAssign["pageRangeArray"].map((Range, idx)=>{
+      if (idx==0){
+        if (selectedAssign["textbookID"]==""&&(! Range.includes(""))){
+          window.alert("과제 범위의 교재가 선택되지 않았습니다.");
+          state = false;
+        }
+        if((Range[0]==""&&Range[1]!="")||(Range[0]!=""&&Range[1]=="")){
+          window.alert("빈 과제범위가 존재합니다. 범위를 작성해주세요.");
+        }
+      }
+      else {
+        if(Range[0]==""||Range[1]==""){
+          window.alert("빈 과제범위가 존재합니다. 범위를 작성하거나 삭제해주세요.");
+          state = false;
+        }
+      }
+      if (!/^[0-9]+$/.test(Range[0])||!/^[0-9]+$/.test(Range[1])) {
+        window.alert("과제 범위는 숫자만 입력 가능합니다.");
+        state = false;
+      }
+      if (selectedAssign["description"]=="" && Range[0]=="" && Range[1]=="") {
+        window.alert("과제 범위 또는 세부내용 중 최소 하나는 작성되어 있어야 합니다.");
+        state = false;
+      }
+    })
+    return state;
   };
 
   useEffect(() => {
@@ -571,6 +591,7 @@ function Lecture() {
               />
             </div>
           </div>
+          
           <div className="check-all w-100 mb-3">
             <Form.Check
               className="w-50"
@@ -687,20 +708,23 @@ function Lecture() {
                         }}
                       />
                     </div>
+                    {idx!=0 ? 
                     <div className="col-1">
-                      <Button
-                        className="assignmentDeleteBtn"
-                        variant="secondary"
-                        onClick={() => {
-                          let newselectedAssign = { ...selectedAssign };
-                          newselectedAssign["pageRangeArray"].splice(idx,1);
-                          setselectedAssign(newselectedAssign);
-                          console.log(selectedAssign);
-                        }}
-                      >
-                        x
-                      </Button>
-                    </div>
+                    <Button
+                      className="assignmentDeleteBtn"
+                      variant="secondary"
+                      onClick={() => {
+                        let newselectedAssign = { ...selectedAssign };
+                        newselectedAssign["pageRangeArray"].splice(idx,1);
+                        setselectedAssign(newselectedAssign);
+                        console.log(selectedAssign);
+                      }}
+                    >
+                      <p>x</p>
+                    </Button>
+                  </div>
+                  :null
+                    }
                   </div>
                 );
               })
@@ -757,13 +781,15 @@ function Lecture() {
             className="btn-secondary program-add"
             onClick={() => {
               console.log(selectedAssign);
-              if (window.confirm("과제정보를 수정하시겠습니까?")) {
-                axios
+              if(assignupdate()){
+                if (window.confirm("과제정보를 수정하시겠습니까?")) {
+                  axios
                   .put("/api/Assignment", selectedAssign)
                   .then(function (result) {
                     if (result.data === true) {
                       window.alert("저장되었습니다.");
-                      history.push("/studentList");
+                      window.location.reload();
+                      // history.push("/studentList");
                     } else if (result.data === "로그인필요") {
                       window.alert("로그인이 필요합니다.");
                       return history.push("/");
@@ -776,6 +802,7 @@ function Lecture() {
                     console.log("저장 실패 : ", err);
                     window.alert(err);
                   });
+              }
               }
             }}
             type="button"

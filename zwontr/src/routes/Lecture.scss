@@ -138,16 +138,18 @@
 }
 
 .assignmentDeleteBtn{
-    border-radius: 5px;
+    border-radius: 4px;
     background-color: red;
     color: white;
-    height: 50%;
-    width: 40%;
-    text-align: center;
+    height: 20px;
+    width: 20px;
     border: 0;
     font-size: 15px;
-    padding: 10px;
-    vertical-align: middle;
+    padding: 0px;
+    p {
+        margin: 0;
+        padding: 0;
+    }
 }
 
 .textbookDeleteBtn{
