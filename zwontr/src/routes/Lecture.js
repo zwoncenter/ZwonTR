@@ -321,6 +321,7 @@ function Lecture() {
         }
         if((Range[0]==""&&Range[1]!="")||(Range[0]!=""&&Range[1]=="")){
           window.alert("빈 과제범위가 존재합니다. 범위를 작성해주세요.");
+          state = false;
         }
       }
       else {
@@ -329,7 +330,7 @@ function Lecture() {
           state = false;
         }
       }
-      if (!/^[0-9]+$/.test(Range[0])||!/^[0-9]+$/.test(Range[1])) {
+      if (Range[0]!="" && Range[1]!="" && (!/^[0-9]+$/.test(Range[0])||!/^[0-9]+$/.test(Range[1]))) {
         window.alert("과제 범위는 숫자만 입력 가능합니다.");
         state = false;
       }
@@ -660,7 +661,7 @@ function Lecture() {
                     : ""
                 }
                 onChange={(e) => {
-                  let newselectedAssign = { ...selectedAssign };
+                  let newselectedAssign = JSON.parse(JSON.stringify(selectedAssign));
                   newselectedAssign["textbookID"] = e.target.value;
                   setselectedAssign(newselectedAssign);
                   // console.log(newselectedAssign);
@@ -685,7 +686,7 @@ function Lecture() {
                         type="text"
                         value={assign[0]}
                         onChange={(e) => {
-                          let newselectedAssign = { ...selectedAssign };
+                          let newselectedAssign = JSON.parse(JSON.stringify(selectedAssign));
                           newselectedAssign["pageRangeArray"][idx][0] = e.target.value;
                           setselectedAssign(newselectedAssign);
                           // console.log(selectedAssign);
@@ -701,7 +702,7 @@ function Lecture() {
                         type="text"
                         value={assign[1]}
                         onChange={(e) => {
-                          let newselectedAssign = { ...selectedAssign };
+                          let newselectedAssign = JSON.parse(JSON.stringify(selectedAssign));
                           newselectedAssign["pageRangeArray"][idx][1] = e.target.value;
                           setselectedAssign(newselectedAssign);
                           // console.log(selectedAssign);
@@ -714,7 +715,7 @@ function Lecture() {
                       className="assignmentDeleteBtn"
                       variant="secondary"
                       onClick={() => {
-                        let newselectedAssign = { ...selectedAssign };
+                        let newselectedAssign = JSON.parse(JSON.stringify(selectedAssign));
                         newselectedAssign["pageRangeArray"].splice(idx,1);
                         setselectedAssign(newselectedAssign);
                         console.log(selectedAssign);
@@ -734,7 +735,7 @@ function Lecture() {
                 className="btn-edit assignmentEditBtn"
                 variant="secondary"
                 onClick={() => {
-                  let newselectedAssign = { ...selectedAssign };
+                  let newselectedAssign = JSON.parse(JSON.stringify(selectedAssign));
                   newselectedAssign["pageRangeArray"] = [...newselectedAssign["pageRangeArray"], ["",""]];
                   setselectedAssign(newselectedAssign);
                 }}
@@ -752,7 +753,7 @@ function Lecture() {
                 value={selectedAssign["description"]}
                 placeholder="기타 세부사항 (필수작성X)"
                 onChange={(e) => {
-                  let newselectedAssign = { ...selectedAssign };
+                  let newselectedAssign = JSON.parse(JSON.stringify(selectedAssign));
                   newselectedAssign["description"] = e.target.value;
                   setselectedAssign(newselectedAssign);
                   // console.log(selectedAssign);
@@ -769,7 +770,7 @@ function Lecture() {
                 value={selectedAssign["duedate"]}
                 className="w-100"
                 onChange={(e) => {
-                  let newselectedAssign = { ...selectedAssign };
+                  let newselectedAssign = JSON.parse(JSON.stringify(selectedAssign));
                   newselectedAssign["duedate"] = e.target.value;
                   setselectedAssign(newselectedAssign);
                 }}
