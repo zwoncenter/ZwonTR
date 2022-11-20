@@ -20,7 +20,8 @@
   width: 23px;
   height: 23px;
   padding: 0px;
-  box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
 }
 
 .lectureListBox {
@@ -34,8 +35,10 @@
   float: left;
   border-radius: 15px;
   border: 2px solid black;
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  -webkit-box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+          box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
+
 .lecture-card th {
   vertical-align: bottom;
 }
@@ -56,7 +59,9 @@
 }
 
 .lectureCardContent {
-  flex: left;
+  -webkit-box-flex: left;
+      -ms-flex: left;
+          flex: left;
 }
 
 .after {
@@ -65,14 +70,14 @@
 
 .now {
   display: inline;
-  background-color: rgb(219, 190, 26);
-  color: rgb(240, 240, 240);
+  background-color: #dbbe1a;
+  color: #f0f0f0;
 }
 
 .before {
   display: inline;
-  background-color: rgb(245, 110, 110);
-  color: rgb(240, 240, 240);
+  background-color: #f56e6e;
+  color: #f0f0f0;
 }
 
 .lectureSubject {
@@ -86,7 +91,8 @@
   background-color: white;
   border-radius: 15px;
   border: 0;
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  -webkit-box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+          box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 
 .assignmentSubContainer {
@@ -95,9 +101,14 @@
   min-height: 0vh;
   background-color: white;
   border: 0;
+  display: -webkit-box;
+  display: -ms-flexbox;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: left;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  -webkit-box-pack: left;
+      -ms-flex-pack: left;
+          justify-content: left;
 }
 
 .attendingStudent-card {
@@ -105,10 +116,12 @@
   height: 30%;
   border-radius: 15px;
   border: 0;
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  -webkit-box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+          box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
   margin: 5px;
   padding: 10px;
 }
+
 .attendingStudent-card p {
   text-align: left;
 }
@@ -133,3 +146,11 @@
   border-radius: 20px;
   border: 0;
 }
+
+.textbookDeleteBtn {
+  border: 0px;
+  width: 80%;
+  height: 80%;
+  font-size: 70%;
+}
+/*# sourceMappingURL=Lecture.css.map */

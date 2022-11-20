@@ -746,6 +746,38 @@ app.get("/api/TextbookOfLecture/:lectureid", loginCheck, (req, res) => {
   });
 });
 
+app.post("/api/TextbookOfLecture", loginCheck, (req, res) => {
+  const lectureID=new ObjectId(req.body.lectureID);
+  const newTextbookList= req.body.textbookList.map((e)=>new ObjectId(e));
+
+  db.collection("TextbookOfLecture").find({
+    lectureID:lectureID,
+    textbookID:{
+      "$in":newTextbookList
+    }
+  }).toArray((err,result)=>{
+    if (err) {
+      return res.send(`/api/TextbookOfLecture - Error ${err}`);
+    }
+    if(result.length>0){
+      return res.send(`이미 등록된 교재가 포함되어있습니다.`);
+    }
+
+    try {
+      db.collection("TextbookOfLecture").insertMany(newTextbookList.map((textbookID)=>{
+        return {
+          lectureID:lectureID,
+          textbookID:textbookID,
+        };
+      }));
+      return res.send(true);
+    }
+    catch (e){
+      return res.send(`/api/TextbookOfLecture - Error ${e}`);
+    }
+  });
+});
+
 // 강의로 수강생 검색매칭 relation
 app.get("/api/StudentOfLecture", loginCheck, (req, res) => {
   db.collection("StudentOfLecture")
