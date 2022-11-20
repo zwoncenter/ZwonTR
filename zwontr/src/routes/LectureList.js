@@ -162,8 +162,11 @@ function LectureList() {
   const [existlectureTextbookList,setExistlectureTextbookList] = useState([]); // textbooks of exist lecture
   const [addedLectureTextbookList,setAddedLectureTextbookList] = useState([]); // textbooks that will be newly registered
   const [textbookRevisedLectureID,setTextbookRevisedLectureID] = useState("");
+  const [textbookRevisedLegacyLectureID,setTextbookRevisedLegacyLectureID] = useState("");
   const lectureTextbookModalOpen = async (lecture) => {
     setTextbookRevisedLectureID(lecture["_id"]);
+    setTextbookRevisedLegacyLectureID(lecture["lectureID"]);
+    console.log("trllid:"+lecture["lectureID"]);
     setLectureTextbookModal(true);
     //here we get textbooks of specific lecture to be revised
     const newExistlectureTextbookList = await axios
@@ -218,6 +221,22 @@ function LectureList() {
       })
       .catch((err) => {
         return window.alert("교재 추가에 실패했습니다", err);
+      });
+  };
+
+  const deleteTextbookOfLecture= (textbookID)=>{
+    axios
+      .delete(`/api/TextbookOfLecture/${textbookRevisedLegacyLectureID}/${textbookID}`)
+      .then((result) => {
+        if (result.data === true) {
+          window.alert("교재가 성공적으로 삭제되었습니다");
+          return window.location.reload();
+        } else {
+          window.alert(result.data);
+        }
+      })
+      .catch((err) => {
+        window.alert(`삭제에 실패했습니다. ${err}`);
       });
   };
 
@@ -648,7 +667,13 @@ function LectureList() {
                   {textbook["textbookName"]}
                 </Col>
                 <Col xs={3}>
-                  <Button className="textbookDeleteBtn btn-del" variant="danger">
+                  <Button
+                    className="textbookDeleteBtn btn-del"
+                    variant="danger"
+                    onClick={()=>{
+                      if(window.confirm(`${textbook["textbookName"]}을(를) 강의에서 삭제하시겠습니까?`))
+                        deleteTextbookOfLecture(textbook["textbookID"]);
+                    }}>
                     삭제
                   </Button>
                 </Col>
