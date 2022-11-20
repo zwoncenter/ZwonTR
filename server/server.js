@@ -789,19 +789,27 @@ app.get("/api/Assignment/:lectureid", loginCheck, (req, res) => {
     }}
   ]).toArray((err,result)=>{
     if (err) {
-      return res.send(`/api/StudentOfLecture - find Error ${err}`);
+      return res.send(`/api/Assignment - find Error ${err}`);
     }
     return res.json(result);
   });
-  // db.collection("Assignment")
-  // .find({lectureID: paramID})
-  // .toArray((err, result) => {
-  //   if (err) {
-  //     return res.send(`/api/Assignment - find Error ${err}`);
-  //   }
-  //   return res.json(result);
-  // });
 });
+
+app.put("/api/Assignment", loginCheck, (req, res) => {
+  if (req["user"]["ID"] === "guest") {
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
+  }
+  const newAssignment = req.body;
+  const findID = ObjectId(newAssignment["assignmentID"]);
+  delete newAssignment["assignmentID"];
+  db.collection("Assignment").updateOne({ _id: findID }, { $set: newAssignment }, (err, result) => {
+    if (err) {
+      return res.send(`/api/Assignment - updateOne Error : ${err}`);
+    }
+    return res.send(true);
+  });
+});
+
 //개별 강의 페이지에서 lecture ID를 받아 aggregate(join)를 통해 강의 수강중인 학생 반환
 app.get("/api/StudentOfLecture/:lectureID", loginCheck, (req, res) => {
   const paramID = decodeURIComponent(req.params.lectureID);

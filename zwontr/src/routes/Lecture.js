@@ -175,7 +175,7 @@ function Lecture() {
     //   window.alert(`${deletename}이 수강생으로 등록되어 있지 않습니다.`);
     //   return;
     // }
-    if(!studentOfLectureList.map((e,idx)=>e["studentID"]).includes(deletename)){
+    if (!studentOfLectureList.map((e, idx) => e["studentID"]).includes(deletename)) {
       window.alert(`${deletename}이 수강생으로 등록되어 있지 않습니다.`);
       return;
     }
@@ -243,12 +243,12 @@ function Lecture() {
   const [assignstudents, setassignstudents] = useState([]);
   const [checkall, setcheckall] = useState(true);
 
-  const [studentOfLectureList,setStudentOfLectureList]=useState([]); //강의 수강중인 학생 명단 관련 코드: DB 수정 작업
+  const [studentOfLectureList, setStudentOfLectureList] = useState([]); //강의 수강중인 학생 명단 관련 코드: DB 수정 작업
 
   const assignmodalOpen = () => {
     setassignmodal(true);
     //setassignstudents(Array.from({ length: lecture["studentList"].length }, () => true));
-    setassignstudents(Array.from({length:studentOfLectureList.length},()=>true));
+    setassignstudents(Array.from({ length: studentOfLectureList.length }, () => true));
     setcheckall(true);
   };
   const assignmodalClose = () => {
@@ -300,7 +300,8 @@ function Lecture() {
   const [updateassign, setupdateassign] = useState("");
   const [updateassigndate, setupdateassigndate] = useState("");
   const [assignupdatemodal, setassignupdatemodal] = useState(false);
-  const assignupdatemodalOpen = () => {
+  const assignupdatemodalOpen = (assignment) => {
+    setselectedAssign(assignment);
     setassignupdatemodal(true);
   };
   const assignupdatemodalClose = () => {
@@ -364,7 +365,7 @@ function Lecture() {
     studentList: [],
     assignments: {},
     assignKey: 0,
-  });  
+  });
 
   useEffect(async () => {
     const newmanagerList = await axios
@@ -410,7 +411,7 @@ function Lecture() {
     setlecture(newlecture);
 
     //강의 수강중인 학생 명단을 StudentOfLecture를 통해 가져옴
-    const newStudentOfLectureList= await axios
+    const newStudentOfLectureList = await axios
       .get(`/api/StudentOfLecture/${paramID}`)
       .then((result) => {
         if (result.data === "로그인필요") {
@@ -422,7 +423,7 @@ function Lecture() {
       .catch((err) => {
         return window.alert(err);
       });
-    console.log("sol:"+JSON.stringify(newStudentOfLectureList));
+    // console.log("sol:"+JSON.stringify(newStudentOfLectureList));
     setStudentOfLectureList(newStudentOfLectureList);
   }, []);
 
@@ -443,6 +444,11 @@ function Lecture() {
       .catch((err) => {
         return window.alert(err);
       });
+    existingAssignments.map((e)=>{
+      const assignment={...e};
+      if(assignment["pageRangeArray"].length==0) assignment["pageRangeArray"].push(["",""]);
+      return assignment;
+    })
     setAssignments(existingAssignments);
     console.log("assignments: ", existingAssignments);
   }, [lecture]);
@@ -466,7 +472,7 @@ function Lecture() {
         return window.alert(err);
       });
     settextbook(usingTextbook);
-    console.log(usingTextbook);
+    // console.log(usingTextbook);
   }, [lecture]);
 
   useEffect(() => {
@@ -586,29 +592,27 @@ function Lecture() {
           </div>
 
           <div className="row">
-            {
-              studentOfLectureList.map((student,idx)=>{
-                return (
-                  <div className="col-3" key={idx}>
-                    <Form.Check
-                      type="checkbox"
-                      label={student["studentID"]}
-                      checked={assignstudents[idx]}
-                      onChange={() => {
-                        const newls = [...assignstudents];
-                        newls[idx] = !newls[idx];
-                        setassignstudents(newls);
-                        if (newls.includes(false)) {
-                          setcheckall(false);
-                        } else {
-                          setcheckall(true);
-                        }
-                      }}
-                    />
-                  </div>
-                );
-              })
-            }
+            {studentOfLectureList.map((student, idx) => {
+              return (
+                <div className="col-3" key={idx}>
+                  <Form.Check
+                    type="checkbox"
+                    label={student["studentID"]}
+                    checked={assignstudents[idx]}
+                    onChange={() => {
+                      const newls = [...assignstudents];
+                      newls[idx] = !newls[idx];
+                      setassignstudents(newls);
+                      if (newls.includes(false)) {
+                        setcheckall(false);
+                      } else {
+                        setcheckall(true);
+                      }
+                    }}
+                  />
+                </div>
+              );
+            })}
           </div>
 
           <Button className="btn-secondary program-add" onClick={assignAdd} type="button">
@@ -627,15 +631,18 @@ function Lecture() {
             <div className="col-9">
               <Form.Select
                 type="text"
-                value={textbook.length>=1 && selectedAssign["textbookID"]? textbook.filter((book)=>{
-                  return(book["textbookID"] === selectedAssign["textbookID"]);
-                })[0]["textbookID"]
-                : ""}
+                value={
+                  textbook.length >= 1 && selectedAssign["textbookID"]
+                    ? textbook.filter((book) => {
+                        return book["textbookID"] === selectedAssign["textbookID"];
+                      })[0]["textbookID"]
+                    : ""
+                }
                 onChange={(e) => {
-                  let newselectedAssign = {...selectedAssign};
+                  let newselectedAssign = { ...selectedAssign };
                   newselectedAssign["textbookID"] = e.target.value;
                   setselectedAssign(newselectedAssign);
-                  console.log(newselectedAssign);
+                  // console.log(newselectedAssign);
                 }}
               >
                 <option value="">선택</option>
@@ -646,48 +653,68 @@ function Lecture() {
             </div>
           </div>
           <div className="row mb-2">
-          {selectedAssign["pageRangeArray"] ? selectedAssign["pageRangeArray"].map((assign, idx)=>{
-            return(
-              <div className="row mb-2">
-            <div className="col-3">과제 범위{idx+1}</div>
-            <div className="col-2">
-              <input
-                className="w-100"
-                type="text"
-                value={assign[0]}
-                onChange={(e) => {
-                  let newselectedAssign = {...selectedAssign};
-                  newselectedAssign["pageRangeArray"][idx][0] = e.target.value;
+            {selectedAssign["pageRangeArray"]? (
+              selectedAssign["pageRangeArray"].map((assign, idx) => {
+                return (
+                  <div className="row mb-2">
+                    <div className="col-3">과제 범위{idx + 1}</div>
+                    <div className="col-2">
+                      <input
+                        className="w-100"
+                        type="text"
+                        value={assign[0]}
+                        onChange={(e) => {
+                          let newselectedAssign = { ...selectedAssign };
+                          newselectedAssign["pageRangeArray"][idx][0] = e.target.value;
+                          setselectedAssign(newselectedAssign);
+                          // console.log(selectedAssign);
+                        }}
+                      />
+                    </div>
+                    <div className="col-1">
+                      <p>~</p>
+                    </div>
+                    <div className="col-2">
+                      <input
+                        className="w-100"
+                        type="text"
+                        value={assign[1]}
+                        onChange={(e) => {
+                          let newselectedAssign = { ...selectedAssign };
+                          newselectedAssign["pageRangeArray"][idx][1] = e.target.value;
+                          setselectedAssign(newselectedAssign);
+                          // console.log(selectedAssign);
+                        }}
+                      />
+                    </div>
+                    <div className="col-1">
+                      <Button
+                        className="assignmentDeleteBtn"
+                        variant="secondary"
+                        onClick={() => {
+                          let newselectedAssign = { ...selectedAssign };
+                          newselectedAssign["pageRangeArray"].splice(idx,1);
+                          setselectedAssign(newselectedAssign);
+                          console.log(selectedAssign);
+                        }}
+                      >
+                        x
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            ) : null}
+            <div className="col-3">
+              <Button
+                className="btn-edit assignmentEditBtn"
+                variant="secondary"
+                onClick={() => {
+                  let newselectedAssign = { ...selectedAssign };
+                  newselectedAssign["pageRangeArray"] = [...newselectedAssign["pageRangeArray"], ["",""]];
                   setselectedAssign(newselectedAssign);
                 }}
-              />
-            </div>
-            <div className="col-1">
-            <p>~</p>
-            </div>
-            <div className="col-2">
-              <input
-                className="w-100"
-                type="text"
-                value={assign[1]}
-                onChange={(e) => {
-                  let newselectedAssign = {...selectedAssign};
-                  newselectedAssign["pageRangeArray"][idx][1] = e.target.value;
-                  setselectedAssign(newselectedAssign);
-                }}
-              />
-            </div>
-          </div>
-            );
-          }) : null}
-          <div className="col-3">
-              <Button className="btn-edit assignmentEditBtn"
-              variant="secondary"
-              onClick={()=>{
-                let newselectedAssign = {...selectedAssign};
-                newselectedAssign["pageRangeArray"] = [...newselectedAssign["pageRangeArray"],[]];
-                setselectedAssign(newselectedAssign);
-              }}>
+              >
                 범위 추가
               </Button>
             </div>
@@ -698,10 +725,13 @@ function Lecture() {
               <input
                 className="w-100"
                 type="text"
-                value={updateassign}
+                value={selectedAssign["description"]}
                 placeholder="기타 세부사항 (필수작성X)"
                 onChange={(e) => {
-                  // setupdateassign(e.target.value);
+                  let newselectedAssign = { ...selectedAssign };
+                  newselectedAssign["description"] = e.target.value;
+                  setselectedAssign(newselectedAssign);
+                  // console.log(selectedAssign);
                 }}
               />
             </div>
@@ -712,16 +742,44 @@ function Lecture() {
             <div className="col-9">
               <input
                 type="date"
-                value={updateassigndate}
+                value={selectedAssign["duedate"]}
                 className="w-100"
                 onChange={(e) => {
-                  // setupdateassigndate(e.target.value);
+                  let newselectedAssign = { ...selectedAssign };
+                  newselectedAssign["duedate"] = e.target.value;
+                  setselectedAssign(newselectedAssign);
                 }}
               />
             </div>
           </div>
 
-          <Button className="btn-secondary program-add" onClick={assignupdate} type="button">
+          <Button
+            className="btn-secondary program-add"
+            onClick={() => {
+              console.log(selectedAssign);
+              if (window.confirm("과제정보를 수정하시겠습니까?")) {
+                axios
+                  .put("/api/Assignment", selectedAssign)
+                  .then(function (result) {
+                    if (result.data === true) {
+                      window.alert("저장되었습니다.");
+                      history.push("/studentList");
+                    } else if (result.data === "로그인필요") {
+                      window.alert("로그인이 필요합니다.");
+                      return history.push("/");
+                    } else {
+                      console.log(result.data);
+                      window.alert(result.data);
+                    }
+                  })
+                  .catch(function (err) {
+                    console.log("저장 실패 : ", err);
+                    window.alert(err);
+                  });
+              }
+            }}
+            type="button"
+          >
             <strong>
               <FaPencilAlt></FaPencilAlt>
             </strong>
@@ -960,12 +1018,13 @@ function Lecture() {
                     </div>
                   );
                 })} */}
-                {
+              {/* {
                   console.log("list:"+JSON.stringify(studentOfLectureList.map((e,idx)=>{
                     return e["studentID"];
                   })))?null:null
-                }
-                {studentOfLectureList.map((student,idx)=>{
+                } */}
+              {studentOfLectureList
+                .map((student, idx) => {
                   // console.log(student);
                   return student["studentID"];
                 })
@@ -974,11 +1033,9 @@ function Lecture() {
                     <div className="attendingStudent-card" key={index}>
                       <p className="fs-5">{student.split("_")[0]}</p>
                       <Accordion>
-                        <Card>
-                          
-                        </Card>
+                        <Card></Card>
                       </Accordion>
-                      <div className="text-end m-1" >
+                      <div className="text-end m-1">
                         <Button
                           onClick={() => {
                             studentDelete(student);
@@ -1025,8 +1082,13 @@ function Lecture() {
                         variant="secondary"
                         onClick={() => {
                           console.log(assignments);
-                          setselectedAssign(assignID);
-                          assignupdatemodalOpen();
+                          // setselectedAssign(assignID);
+                          // if (selectedAssign&&selectedAssign['pageRangeArray'].length==0){
+                          //  let selectedAssign = {...selectedAssign};
+                          //  selectedAssign['pageRangeArray'] = [[]];
+                          //  setselectedAssign(selectedAssign);
+                          // }
+                          assignupdatemodalOpen(assignID);
                         }}
                       >
                         <strong>수정</strong>
