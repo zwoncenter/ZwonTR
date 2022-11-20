@@ -146,3 +146,10 @@
   padding: 10px;
   vertical-align: middle;
 }
+
+.textbookDeleteBtn {
+  border: 0px;
+  width: 80%;
+  height: 80%;
+  font-size: 70%;
+}

@@ -1,5 +1,8 @@
 import { Button, Card, ListGroup, Modal, Table, InputGroup, Form } from "react-bootstrap";
-import { Typeahead } from 'react-bootstrap-typeahead';
+import Container from 'react-bootstrap/Container';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
+import { Input, Typeahead } from 'react-bootstrap-typeahead';
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -103,31 +106,15 @@ function LectureList() {
   // 강의 수정 관련 코드
   const [reviseModal, setreviseModal] = useState(false);
   const [existlecture, setexistlecture] = useState({});
-  const [existlectureTextbookList,setExistlectureTextbookList] = useState([]); // textbooks of exist lecture
 
   const reviseModalOpen = async (lecture) => {
     setexistlecture(lecture);
     setreviseModal(true);
-    //here we get textbooks of specific lecture to be revised
-    const newExistlectureTextbookList = await axios
-      .get(`/api/TextbookOfLecture/${lecture["lectureID"]}`)
-      .then((result) => {
-        if (result.data === "로그인필요") {
-          window.alert("로그인이 필요합니다.");
-          return history.push("/");
-        }
-        return result["data"];
-      })
-      .catch((err) => {
-        return err;
-      });
-    setExistlectureTextbookList(newExistlectureTextbookList);
   };
 
   const reviseModalClose = () => {
     setexistlecture({});
     setreviseModal(false);
-    setExistlectureTextbookList([]);
   };
 
   const reviseLecture = async () => {
@@ -169,6 +156,74 @@ function LectureList() {
         return window.alert("수정에 실패했습니다", err);
       });
   };
+
+  // 강의에 사용되는 교재 수정 관련 코드
+  const [lectureTextbookModal,setLectureTextbookModal] = useState(false);
+  const [existlectureTextbookList,setExistlectureTextbookList] = useState([]); // textbooks of exist lecture
+  const [addedLectureTextbookList,setAddedLectureTextbookList] = useState([]); // textbooks that will be newly registered
+  const [textbookRevisedLectureID,setTextbookRevisedLectureID] = useState("");
+  const lectureTextbookModalOpen = async (lecture) => {
+    setTextbookRevisedLectureID(lecture["_id"]);
+    setLectureTextbookModal(true);
+    //here we get textbooks of specific lecture to be revised
+    const newExistlectureTextbookList = await axios
+      .get(`/api/TextbookOfLecture/${lecture["lectureID"]}`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        }
+        return result["data"];
+      })
+      .catch((err) => {
+        return err;
+      });
+    setExistlectureTextbookList(newExistlectureTextbookList);
+  };
+  const lectureTextbookModalClose = () => {
+    setTextbookRevisedLectureID("");
+    setLectureTextbookModal(false);
+    setExistlectureTextbookList([]);
+    setAddedLectureTextbookList([]);
+  };
+
+  const addTextbooksToLecture = async () => {
+    if (textbookRevisedLectureID === "") {
+      window.alert("잘못된 접근입니다.");
+      return;
+    }
+
+    if (addedLectureTextbookList.length <= 0) {
+      window.alert("추가할 교재가 선택되지 않았습니다.");
+      return;
+    }
+
+    if (!window.confirm("강의에 교재를 추가하시겠습니까?")) return;
+    axios
+      .post("/api/TextbookOfLecture", {
+        lectureID:textbookRevisedLectureID,
+        textbookList:addedLectureTextbookList.map((e)=>e["_id"])
+      })
+      .then((result) => {
+        if (result.data === true) {
+          window.alert("교재가 성공적으로 추가되었습니다");
+          return window.location.reload();
+        } else if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        } else {
+          console.log(result.data);
+          window.alert(result.data);
+        }
+      })
+      .catch((err) => {
+        return window.alert("교재 추가에 실패했습니다", err);
+      });
+  };
+
+  // useEffect(()=>{
+  //   console.log("altl:"+JSON.stringify(addedLectureTextbookList));
+  // },[addedLectureTextbookList])
 
   // 강의 삭제 관련 코드
   const deleteLecture = async (studentList, lecture) => {
@@ -547,6 +602,63 @@ function LectureList() {
         </Modal.Body>
       </Modal>
 
+      {/* 강의에 사용되는 교재 Modal */}
+      <Modal show={lectureTextbookModal} onHide={lectureTextbookModalClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>교재 수정</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          <InputGroup className="mb-3">
+            <InputGroup.Text>교재 추가</InputGroup.Text>
+            <Typeahead
+              id="select_lecture_textbook"
+              multiple
+              onChange={(selected)=>{
+                console.log("altl: "+JSON.stringify([...selected]));
+                setAddedLectureTextbookList([...selected]);
+              }}
+              options={textBookList}
+              selected={textBookList.filter((textbook,idx)=>{
+                return addedLectureTextbookList.map((e)=>e["_id"]).includes(textbook["_id"]);
+              })}
+              labelKey="교재"
+            />
+          </InputGroup>
+          <Button
+            className="mb-3 btn-edit"
+            variant="secondary"
+            onClick={() => {
+              // reviseLecture();
+              console.log("new books: "+JSON.stringify(addedLectureTextbookList));
+              addTextbooksToLecture();
+            }}
+          >
+            추가
+          </Button>
+
+          <InputGroup className="mb-2">
+            <InputGroup.Text>등록된 교재</InputGroup.Text>
+            
+          </InputGroup>
+          <Container>
+          {existlectureTextbookList.map((textbook,idx)=>{
+            return(
+              <Row key={idx}>
+                <Col>
+                  {textbook["textbookName"]}
+                </Col>
+                <Col xs={3}>
+                  <Button className="textbookDeleteBtn btn-del" variant="danger">
+                    삭제
+                  </Button>
+                </Col>
+              </Row>
+            );
+          })}
+          </Container>
+        </Modal.Body>
+      </Modal>
+
       <div className="row m-auto lectureListBox">
         <div className="d-flex flex-row-reverse">
           <Button
@@ -632,8 +744,6 @@ function LectureList() {
                     onClick={(e) => {
                       e.stopPropagation();
                       reviseModalOpen(lecture);
-                      
-                      setTextBookNeedFlag(true);
                     }}
                     variant="secondary"
                     className="lectureEditingBtn btn-edit me-1"
@@ -645,7 +755,8 @@ function LectureList() {
                     variant="secondary"
                     onClick={(e) => {
                       e.stopPropagation();
-                      // deleteLecture(lecture["studentList"], lecture);
+                      lectureTextbookModalOpen(lecture);
+                      setTextBookNeedFlag(true);
                     }}
                   >
                     <strong>교재</strong>
@@ -654,8 +765,8 @@ function LectureList() {
                     className="lectureEditingBtn btn-cancel me-1"
                     variant="secondary"
                     onClick={(e) => {
-                      // e.stopPropagation();
-                      // deleteLecture(lecture["studentList"], lecture);
+                      e.stopPropagation();
+                      deleteLecture(lecture["studentList"], lecture);
                     }}
                   >
                     <strong>삭제</strong>
