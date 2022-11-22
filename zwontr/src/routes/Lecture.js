@@ -242,6 +242,14 @@ function Lecture() {
   const [assignmodal, setassignmodal] = useState(false);
   const [assignstudents, setassignstudents] = useState([]);
   const [checkall, setcheckall] = useState(true);
+  const [newassignment, setnewassignment] = useState({
+    lectureID: null,
+    description: "",
+    duedate: "",
+    pageRangeArray:[[]],
+    startdate: today,
+    textbookID: null 
+  });
 
   const [studentOfLectureList, setStudentOfLectureList] = useState([]); //강의 수강중인 학생 명단 관련 코드: DB 수정 작업
 
@@ -256,43 +264,44 @@ function Lecture() {
     setnewassign("");
   };
 
-  const assignAdd = () => {
+  function assignAdd(){
+    let state = true;
     // 학생을 선택하지 않은 경우
     if (!assignstudents.includes(true)) {
       window.alert("과제를 부여할 최소 1명 이상의 학생을 선택해야 합니다.");
-      return;
+      state = false;
     }
-    if (!newassign) {
-      window.alert("과제 내용을 작성해야 합니다.");
-      return;
-    }
-    if (!newassigndate) {
+    if (newassignment["duedate"]=="") {
       window.alert("과제 마감일을 선택해야 합니다.");
-      return;
+      state = false;
     }
-    if (!window.confirm("선택한 학생들에게 과제를 부여하시겠습니까?")) {
-      return;
-    }
-
-    const newlecture = JSON.parse(JSON.stringify(lecture));
-    newlecture["assignments"][newlecture["assignKey"]] = {
-      과제내용: newassign,
-      과제기한: newassigndate,
-    };
-    for (let i = 0; i < newlecture["studentList"].length; i++) {
-      if (assignstudents[i]) {
-        const tmpstudent = newlecture["studentList"][i];
-        newlecture["students"][tmpstudent]["진행중과제"].push(newlecture["assignKey"]);
-        newlecture["students"][tmpstudent]["진행중과제"].sort((a, b) => {
-          return +(newlecture["assignments"][a]["과제기한"] > newlecture["assignments"][b]["과제기한"]) - 0.5;
-        });
+    newassignment["pageRangeArray"].map((Range, idx)=>{
+      if (idx==0){
+        if (newassignment["textbookID"]==""&&(! Range.includes(""))){
+          window.alert("과제 범위의 교재가 선택되지 않았습니다.");
+          state = false;
+        }
+        if((Range[0]==""&&Range[1]!="")||(Range[0]!=""&&Range[1]=="")){
+          window.alert("빈 과제범위가 존재합니다. 범위를 작성해주세요.");
+          state = false;
+        }
       }
-    }
-    newlecture["assignKey"] = newlecture["assignKey"] + 1;
-    setlecture(newlecture);
-    updatelecture(newlecture);
-    setnewassign("");
-    setnewassigndate("");
+      else {
+        if(Range[0]==""||Range[1]==""){
+          window.alert("빈 과제범위가 존재합니다. 범위를 작성하거나 삭제해주세요.");
+          state = false;
+        }
+      }
+      if (Range[0]!="" && Range[1]!="" && (!/^[0-9]+$/.test(Range[0])||!/^[0-9]+$/.test(Range[1]))) {
+        window.alert("과제 범위는 숫자만 입력 가능합니다.");
+        state = false;
+      }
+      if (selectedAssign["description"]=="" && Range[0]=="" && Range[1]=="") {
+        window.alert("과제 범위 또는 세부내용 중 최소 하나는 작성되어 있어야 합니다.");
+        state = false;
+      }
+    })
+    return state;
   };
 
   // 과제 수정 관련 코드
@@ -430,6 +439,9 @@ function Lecture() {
         return window.alert(err);
       });
     setlecture(newlecture);
+    let tmp = JSON.parse(JSON.stringify(newassignment));
+    tmp["lectureID"] = newlecture["_id"];
+    setnewassignment(tmp);
 
     //강의 수강중인 학생 명단을 StudentOfLecture를 통해 가져옴
     const newStudentOfLectureList = await axios
@@ -565,15 +577,107 @@ function Lecture() {
         </Modal.Header>
         <Modal.Body className="text-center">
           <div className="row mb-2">
-            <div className="col-3">과제 내용</div>
+            <div className="col-3">사용 교재</div>
+            <div className="col-9">
+              <Form.Select
+                type="text"
+                value={newassignment["textbookID"]}
+                onChange={(e) => {
+                  let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+                  newselectedAssign["textbookID"] = e.target.value;
+                  setnewassignment(newselectedAssign);
+                  // console.log(newselectedAssign);
+                }}
+              >
+                <option value="">선택</option>
+                {textbook.map((value, index) => (
+                  <option value={value["textbookID"]}>{value["textbookName"]}</option>
+                ))}
+              </Form.Select>
+            </div>
+          </div>
+          <div className="row mb-2">
+            {newassignment["pageRangeArray"]? (
+              newassignment["pageRangeArray"].map((assign, idx) => {
+                return (
+                  <div className="row mb-2">
+                    <div className="col-3">과제 범위{idx + 1}</div>
+                    <div className="col-2">
+                      <input
+                        className="w-100"
+                        type="text"
+                        value={assign[0]}
+                        onChange={(e) => {
+                          let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+                          newselectedAssign["pageRangeArray"][idx][0] = e.target.value;
+                          setnewassignment(newselectedAssign);
+                          // console.log(selectedAssign);
+                        }}
+                      />
+                    </div>
+                    <div className="col-1">
+                      <p>~</p>
+                    </div>
+                    <div className="col-2">
+                      <input
+                        className="w-100"
+                        type="text"
+                        value={assign[1]}
+                        onChange={(e) => {
+                          let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+                          newselectedAssign["pageRangeArray"][idx][1] = e.target.value;
+                          setnewassignment(newselectedAssign);
+                          // console.log(selectedAssign);
+                        }}
+                      />
+                    </div>
+                    {idx!=0 ? 
+                    <div className="col-1">
+                    <Button
+                      className="assignmentDeleteBtn"
+                      variant="secondary"
+                      onClick={() => {
+                        let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+                        newselectedAssign["pageRangeArray"].splice(idx,1);
+                        setnewassignment(newselectedAssign);
+                        console.log(newassignment);
+                      }}
+                    >
+                      <p>x</p>
+                    </Button>
+                  </div>
+                  :null
+                    }
+                  </div>
+                );
+              })
+            ) : null}
+            <div className="col-3">
+              <Button
+                className="btn-edit assignmentEditBtn"
+                variant="secondary"
+                onClick={() => {
+                  let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+                  newselectedAssign["pageRangeArray"] = [...newselectedAssign["pageRangeArray"], ["",""]];
+                  setnewassignment(newselectedAssign);
+                }}
+              >
+                범위 추가
+              </Button>
+            </div>
+          </div>
+          <div className="row mb-2">
+            <div className="col-3">세부 내용</div>
             <div className="col-9">
               <input
                 className="w-100"
                 type="text"
-                value={newassign}
-                placeholder="과제 내용을 입력"
+                value={newassignment["description"]}
+                placeholder="기타 세부사항 (필수작성X)"
                 onChange={(e) => {
-                  setnewassign(e.target.value);
+                  let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+                  newselectedAssign["description"] = e.target.value;
+                  setnewassignment(newselectedAssign);
                 }}
               />
             </div>
@@ -584,15 +688,16 @@ function Lecture() {
             <div className="col-9">
               <input
                 type="date"
-                value={newassigndate}
+                value={newassignment["duedate"]}
                 className="w-100"
                 onChange={(e) => {
-                  setnewassigndate(e.target.value);
+                  let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+                  newselectedAssign["duedate"] = e.target.value;
+                  setnewassignment(newselectedAssign);
                 }}
               />
             </div>
           </div>
-          
           <div className="check-all w-100 mb-3">
             <Form.Check
               className="w-50"
@@ -637,7 +742,33 @@ function Lecture() {
             })}
           </div>
 
-          <Button className="btn-secondary program-add" onClick={assignAdd} type="button">
+          <Button className="btn-secondary program-add"
+          onClick={() => {
+            console.log(newassignment);
+            if(assignAdd()&&newassignment["lectureID"]){
+              if (window.confirm("해당 학생들에게 과제를 부여하시겠습니까?")) {
+                axios
+                .post("/api/Assignment", newassignment)
+                .then(function (result) {
+                  if (result.data === true) {
+                    window.alert("저장되었습니다.");
+                    window.location.reload();
+                  } else if (result.data === "로그인필요") {
+                    window.alert("로그인이 필요합니다.");
+                    return history.push("/");
+                  } else {
+                    console.log(result.data);
+                    window.alert(result.data);
+                  }
+                })
+                .catch(function (err) {
+                  console.log("저장 실패 : ", err);
+                  window.alert(err);
+                });
+            }
+            }
+          }}
+          type="button">
             <strong>+</strong>
           </Button>
         </Modal.Body>
