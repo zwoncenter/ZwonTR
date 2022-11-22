@@ -28,24 +28,16 @@ const { send } = require("process");
 app.use(cors());
 
 //db라는 변수에 zwon 데이터베이스 연결, env파일 참조
-var db, db_session;
+//var db, db_session;
+var db, db_client;
+
 MongoClient.connect(process.env.DB_URL, function (err, client) {
   if (err) {
     return console.log(err);
   }
   // db라는 변수에 zwon 데이터베이스를 연결.
   db = client.db("zwon");
-  db_session= client.startSession({
-    defaultTransactionOptions: {
-      readConcern: {
-          level: 'snapshot'
-      },
-      writeConcern: {
-          w: 'majority'
-      },
-      readPreference: 'primary'
-    }
-  });
+  db_client=client;
 
   app.listen(process.env.PORT, function () {
     console.log(`listening on ${process.env.PORT}`);
@@ -711,13 +703,50 @@ app.get("/api/Lecture", loginCheck, (req, res) => {
     });
 });
 
-app.post("/api/Lecture", loginCheck, (req, res) => {
+app.post("/api/Lecture", loginCheck, async (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   //이 코드 부분에서 강의 추가 시 강의에서 사용하는 교재를 TextbookOfLecture에 추가하도록 수정 필요
   //>>transaction사용: (insertone>Lecture, insertMany>TextbookOfLecture)
   const newLecture = req.body;
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+          level: 'snapshot'
+      },
+      writeConcern: {
+          w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
+  let ret_val=null;
+  try{
+    session.startTransaction();
+    const exist_lecture_document= await db.collection('Lecture').findOne({lectureID: newLecture["ID"]},{session});
+    if(exist_lecture_document) throw new Error("중복되는 강의가 존재합니다.");
+    const textbookID_list = newLecture["textbookIDArray"].map((textbookID)=>new ObjectId(textbookID));
+    delete newLecture["textbookIDArray"];
+    const new_lecture_id=new ObjectId();
+    newLecture["_id"]=new_lecture_id;
+    await db.collection('Lecture').insertOne(newLecture,{session});
+    const textbookOfLecture_list = textbookID_list.map((textbookID)=>{return {lectureID:new_lecture_id,textbookID:textbookID}});
+    await db.collection("TextbookOfLecture").insertMany(textbookOfLecture_list,{session});
+    await session.commitTransaction();
+    ret_val=true;
+    // return res.send(true);
+  }
+  catch (err){
+    await session.abortTransaction();
+    // return res.send(`/api/StudentOfLecture/ - delete ${err}`);
+    ret_val=`Error ${err}`;
+  }
+  finally{
+    await session.endSession();
+    return res.send(ret_val);
+  }
+
   db.collection("Lecture").findOne({ lectureID: newLecture["ID"] }, (err, result) => {
     if (err) {
       return res.send(`/api/Lecture - findOne Error : ${err}`);
@@ -864,13 +893,13 @@ app.delete("/api/TextbookOfLecture/:lectureID/:textbookID",loginCheck,async (req
     return res.send(`invalid access`);
   }
   try{
-    console.log("lid:"+legacyLectureID);
-    console.log("tid:"+textbookID);
+    // console.log("lid:"+legacyLectureID);
+    // console.log("tid:"+textbookID);
     
     const lectureDocument=await db.collection("Lecture").findOne({lectureID:legacyLectureID});
     if(!lectureDocument) return res.send(`invalid access`);
     lectureID=lectureDocument["_id"];
-    console.log("lec doc:",lectureDocument);
+    // console.log("lec doc:",lectureDocument);
     // return res.send("서버 점검중");
     const relatedAssignment=await db.collection("Assignment").findOne({lectureID:lectureID, textbookID:textbookID});
     if(relatedAssignment) return res.send("현재 과제에 사용중인 교재입니다.");
@@ -1042,17 +1071,35 @@ app.post("/api/StudentOfLecture", loginCheck, (req, res) => {
 app.delete("/api/StudentOfLecture/:lectureID/:studentID",loginCheck,async (req,res)=>{
   const lectureID=decodeURIComponent(req.params.lectureID);
   const studentID=decodeURIComponent(req.params.studentID);
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+          level: 'snapshot'
+      },
+      writeConcern: {
+          w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
+  let ret_val=null;
   try{
-    db_session.startTransaction();
-    const target_lecture= await db.collection('Lecture').findOne({lectureID:lectureID});
-    const target_student= await db.collection('StudentDB').findOne({ID:studentID});
-    db.collection('StudentOfLecture').deleteOne({lectureID:target_lecture["_id"],studentID:target_student["_id"]});
-    db_session.commitTransaction();
-    return res.send(true);
+    session.startTransaction();
+    const target_lecture= await db.collection('Lecture').findOne({lectureID:lectureID},{session});
+    const target_student= await db.collection('StudentDB').findOne({ID:studentID},{session});
+    await db.collection('StudentOfLecture').deleteOne({lectureID:target_lecture["_id"],studentID:target_student["_id"]},{session});
+    await session.commitTransaction();
+    ret_val=true;
+    // return res.send(true);
   }
   catch (err){
-    await db_session.abortTransaction();
-    return res.send(`/api/StudentOfLecture/ - delete ${err}`);
+    await session.abortTransaction();
+    // return res.send(`/api/StudentOfLecture/ - delete ${err}`);
+    ret_val=`Error ${err}`;
+  }
+  finally{
+    await session.endSession();
+    return res.send(ret_val);
   }
 });
 
