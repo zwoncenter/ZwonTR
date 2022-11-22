@@ -53,6 +53,7 @@ function LectureList() {
       .post(`/api/Lecture`, lecture)
       .then((result) => {
         if (result.data === true) {
+          window.alert("강의가 성공적으로 생성되었습니다");
           window.location.replace("/Lecture");
         } else if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다.");
@@ -495,7 +496,7 @@ function LectureList() {
             variant="secondary"
             onClick={() => {
               // console.log("sbl on button click: "+JSON.stringify(selectedBookList));
-              createNewLecture();
+              if(window.confirm(`새 강의를 생성하시겠습니까?`)) createNewLecture();
             }}
           >
             강의 생성
@@ -546,7 +547,7 @@ function LectureList() {
               })}
             </Form.Select>
           </InputGroup>
-          <InputGroup className="mb-3">
+          {/* {<InputGroup className="mb-3">
             <InputGroup.Text>교재</InputGroup.Text>
             <Typeahead
               id="select_lecture_textbook"
@@ -556,9 +557,9 @@ function LectureList() {
                 const newExistlecture= {...existlecture};
                 //setSelectedBookList(selected);
                 //console.log('sbl: '+JSON.stringify(selectedBookList));
-                newExistlecture["textbookIDArray"]=selected.map((element,idx)=>{
-                  return element["_id"];
-                });
+                // newExistlecture["textbookIDArray"]=selected.map((element,idx)=>{
+                //   return element["_id"];
+                // });
                 console.log("new lecture: "+JSON.stringify(newExistlecture));
                 setexistlecture(newExistlecture);
               }}
@@ -575,7 +576,7 @@ function LectureList() {
               })}
               labelKey="교재"
             />
-          </InputGroup>
+          </InputGroup>} */}
           <InputGroup className="mb-3">
             <InputGroup.Text>매니저(강사)</InputGroup.Text>
             <Form.Select
