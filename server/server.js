@@ -735,21 +735,6 @@ app.post("/api/Lecture", loginCheck, async (req, res) => {
     await session.endSession();
     return res.send(ret_val);
   }
-
-  db.collection("Lecture").findOne({ lectureID: newLecture["ID"] }, (err, result) => {
-    if (err) {
-      return res.send(`/api/Lecture - findOne Error : ${err}`);
-    }
-    if (result !== null) {
-      return res.send(`findOne result is not null. 중복되는 강의가 존재합니다.`);
-    }
-    db.collection("Lecture").insertOne(newLecture, (err2, result2) => {
-      if (err2) {
-        return res.send(`/api/Lecture - insertOne Error : ${err2}`);
-      }
-      return res.send(true);
-    });
-  });
 });
 
 app.get("/api/Lecture/:lectureid", loginCheck, (req, res) => {
