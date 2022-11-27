@@ -1062,6 +1062,106 @@ app.delete("/api/Assignment/:AssignID",loginCheck,async (req,res)=>{
 
 
 
+// 강의에 등록된 과제 검색
+app.get("/api/LectureAssignment/:lectureid",loginCheck, async (req,res)=>{
+  const paramID = decodeURIComponent(req.params.lectureid);
+  let ret_val;
+  try{
+    ret_val= 
+    await db.collection("Lecture").aggregate([
+      { $match: { lectureID: paramID } },
+      {
+        $lookup: {
+          from: "Assignment",
+          localField: "_id",
+          foreignField: "lectureID",
+          as: "Assignment_aggregate",
+        },
+      },
+      { $unwind: "$Assignment_aggregate" },
+      {
+        $addFields: {
+          assignmentID: "$Assignment_aggregate._id",
+          textbookID: "$Assignment_aggregate.textbookID",
+          pageRangeArray: "$Assignment_aggregate.pageRangeArray",
+          description: "$Assignment_aggregate.description",
+          duedate: "$Assignment_aggregate.duedate",
+          startdate: "$Assignment_aggregate.startdate",
+        },
+      },
+      {
+        $lookup: {
+          from: "AssignmentOfStudent",
+          localField: "assignmentID",
+          foreignField: "assignmentID",
+          as: "Assignment_Of_Student_aggregate",
+        },
+      },
+      { $unwind: "$Assignment_Of_Student_aggregate" },
+      {
+        $addFields: {
+          AssignmentOfStudentID: "$Assignment_Of_Student_aggregate._id",
+          studentID: "$Assignment_Of_Student_aggregate.studentID",
+          finished: "$Assignment_Of_Student_aggregate.finished",
+          finished_date: "$Assignment_Of_Student_aggregate.finished_date",
+        },
+      },
+      {
+        $lookup: {
+          from: "StudentDB",
+          localField: "studentID",
+          foreignField: "_id",
+          as: "Student_Info_aggregate",
+        },
+      },
+      { $unwind: "$Student_Info_aggregate" },
+      {
+        $addFields: {
+          studentLegacyID: "$Student_Info_aggregate.ID",
+          studentName: "$Student_Info_aggregate.이름",
+        },
+      },
+      {
+        $lookup: {
+          from: "TextBook",
+          localField: "textbookID",
+          foreignField: "_id",
+          as: "TextBook_Info_aggregate",
+        },
+      },
+      // { $unwind: "$TextBook_Info_aggregate" },
+      {
+        $addFields: {
+          textbookName: "$TextBook_Info_aggregate.교재",
+        },
+      },
+      {
+        $project: {
+          assignmentID: 1,
+          textbookID: 1,
+          textbookName: 1,
+          // TextBook_Info_aggregate: 1,
+          pageRangeArray: 1,
+          description: 1,
+          duedate: 1,
+          startdate: 1,
+          AssignmentOfStudentID: 1,
+          finished: 1,
+          finished_date: 1,
+          studentLegacyID: 1,
+          studentName: 1,
+        },
+      },
+    ]).toArray();
+  }
+  catch(error){
+    ret_val=`Error ${error}`;
+  }
+  finally{
+    return res.send(ret_val);
+  }
+});
+
 //개별 강의 페이지에서 lecture ID를 받아 aggregate(join)를 통해 강의 수강중인 학생 반환
 app.get("/api/StudentOfLecture/:lectureID", loginCheck, (req, res) => {
   const paramID = decodeURIComponent(req.params.lectureID);
