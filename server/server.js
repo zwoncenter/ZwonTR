@@ -967,19 +967,100 @@ app.put("/api/Assignment", loginCheck, (req, res) => {
   });
 });
 
-app.post("/api/Assignment", loginCheck, function (req, res) {
+app.post("/api/Assignment", loginCheck, async (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
+  //>>transaction사용: (insertone>Assignment, insertMany>AssignmentOfStudent)
   const newAssign = req.body;
-  console.log(req.body);
-  db.collection("Assignment").insertOne(newAssign, function (err2, result2) {
-    if (err2) {
-      return res.send("/api/Assignment - insertOne Error : ", err2);
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+          level: 'snapshot'
+      },
+      writeConcern: {
+          w: 'majority'
+      },
+      readPreference: 'primary'
     }
-    return res.send(true);
   });
+  let ret_val=null;
+  try{
+    session.startTransaction();
+    const studentGotAssign_list = newAssign["studentList"];
+    delete newAssign["studentList"];
+    const lect_id = new ObjectId(newAssign["lectureID"]);
+    const textbook_id = new ObjectId(newAssign["textbookID"]);
+    newAssign["lectureID"] = lect_id;
+    newAssign["textbookID"] = textbook_id;
+    const new_assignment_id=new ObjectId();
+    newAssign["_id"] = new_assignment_id;
+    await db.collection('Assignment').insertOne(newAssign,{session});
+    const AssignmentOfStudent_list = studentGotAssign_list.map((element)=>{return {
+      assignmentID:new_assignment_id,
+      studentID: new ObjectId(element),
+      finished: false,
+      finished_date: ""}});
+    await db.collection("AssignmentOfStudent").insertMany(AssignmentOfStudent_list,{session});
+    await session.commitTransaction();
+    ret_val=true;
+  }
+  catch (err){
+    await session.abortTransaction();
+    ret_val=`Error ${err}`;
+  }
+  finally{
+    await session.endSession();
+    return res.send(ret_val);
+  }
 });
+
+
+app.delete("/api/Assignment/:AssignID",loginCheck,async (req,res)=>{
+  const assignment=decodeURIComponent(req.params.AssignID);
+  console.log("assignment id:"+JSON.stringify(assignment));
+  let assignID;
+  try{
+    assignID=new ObjectId(assignment);
+  }
+  catch(error){
+    return res.send(`Error ${error}`);
+  }
+  // const AssignIDObj = new Object(AssignID);
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+          level: 'snapshot'
+      },
+      writeConcern: {
+          w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
+  let ret_val=null;
+  try{
+    session.startTransaction();
+    await db.collection('Assignment').deleteOne({_id: assignID},{session});
+    await db.collection('AssignmentOfStudent').deleteMany({assignmentID:assignID},{session});
+    // throw new Error(`error on purpose!`);
+    await session.commitTransaction();
+    ret_val=true;
+    // return res.send(true);
+  }
+  catch (err){
+    await session.abortTransaction();
+    // return res.send(`/api/StudentOfLecture/ - delete ${err}`);
+    ret_val=`Error ${err}`;
+  }
+  finally{
+    await session.endSession();
+    return res.send(ret_val);
+  }
+});
+
+
+
 
 //개별 강의 페이지에서 lecture ID를 받아 aggregate(join)를 통해 강의 수강중인 학생 반환
 app.get("/api/StudentOfLecture/:lectureID", loginCheck, (req, res) => {

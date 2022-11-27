@@ -246,9 +246,10 @@ function Lecture() {
     lectureID: null,
     description: "",
     duedate: "",
-    pageRangeArray:[[]],
+    pageRangeArray:[["",""]],
     startdate: today,
-    textbookID: null 
+    textbookID: null,
+    studentList: []
   });
 
   const [studentOfLectureList, setStudentOfLectureList] = useState([]); //강의 수강중인 학생 명단 관련 코드: DB 수정 작업
@@ -277,7 +278,7 @@ function Lecture() {
     }
     newassignment["pageRangeArray"].map((Range, idx)=>{
       if (idx==0){
-        if (newassignment["textbookID"]==""&&(! Range.includes(""))){
+        if (newassignment["textbookID"]==null&&(! Range.includes(""))){
           window.alert("과제 범위의 교재가 선택되지 않았습니다.");
           state = false;
         }
@@ -296,13 +297,24 @@ function Lecture() {
         window.alert("과제 범위는 숫자만 입력 가능합니다.");
         state = false;
       }
-      if (selectedAssign["description"]=="" && Range[0]=="" && Range[1]=="") {
+      if (newassignment["description"]=="" && Range[0]=="" && Range[1]=="") {
         window.alert("과제 범위 또는 세부내용 중 최소 하나는 작성되어 있어야 합니다.");
         state = false;
       }
     })
     return state;
   };
+
+  useEffect(()=>{
+    var studentGotAssign = studentOfLectureList.filter((stu_id, idx)=>{
+      return assignstudents[idx]===true
+    }).map((element, index)=>{
+      return element["_sid"]
+    });
+    let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+    newselectedAssign["studentList"] = studentGotAssign;
+    setnewassignment(newselectedAssign);
+  },[assignstudents])
 
   // 과제 수정 관련 코드
   const [selectedAssign, setselectedAssign] = useState({});
@@ -359,29 +371,28 @@ function Lecture() {
   }, [selectedAssign]);
 
   // 과제 삭제 관련 코드
-  const assignDelete = (assignID) => {
+  const assignDelete = async (assignID) => {
+    console.log(assignID);
     if (!window.confirm("선택한 과제를 삭제하시겠습니까?")) {
       return;
     }
-    const tmplist = [];
-    const newlecture = JSON.parse(JSON.stringify(lecture));
-    delete newlecture["assignments"][assignID];
-    for (const student in newlecture["students"]) {
-      // 진행중과제에 있는 경우에는, indexOf로 찾아서 삭제
-      if (newlecture["students"][student]["진행중과제"].includes(parseInt(assignID))) {
-        newlecture["students"][student]["진행중과제"].splice(newlecture["students"][student]["진행중과제"].indexOf(parseInt(assignID)), 1);
-      } // 완료된과제에 있는 경우에는, indexOf로 찾을 수 없으므로, 반복문을 통해서 찾아낸 후 삭제
-      else {
-        for (let i = 0; i < newlecture["students"][student]["완료된과제"].length; i++) {
-          if (newlecture["students"][student]["완료된과제"][i][0] === parseInt(assignID)) {
-            newlecture["students"][student]["완료된과제"].splice(i, 1);
-            break;
-          }
+    // if (!studentOfLectureList.map((e, idx) => e["studentID"]).includes(deletename)) {
+    //   window.alert(`${deletename}이 수강생으로 등록되어 있지 않습니다.`);
+    //   return;
+    // }
+    axios
+      .delete(`/api/Assignment/${assignID["assignmentID"]}`)
+      .then((result) => {
+        if (result.data === true) {
+          window.alert("삭제되었습니다");
+          return window.location.reload();
+        } else {
+          window.alert(result.data);
         }
-      }
-    }
-    setlecture(newlecture);
-    updatelecture(newlecture);
+      })
+      .catch((err) => {
+        window.alert(`삭제에 실패했습니다. ${err}`);
+      });
   };
 
   // 강의 state
@@ -458,6 +469,9 @@ function Lecture() {
       });
     // console.log("sol:"+JSON.stringify(newStudentOfLectureList));
     setStudentOfLectureList(newStudentOfLectureList);
+    let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+    newselectedAssign["studentList"] = new Array(newStudentOfLectureList.length).fill(true);
+    setnewassignment(newselectedAssign);
   }, []);
 
   const [assignments, setAssignments] = useState([]);
@@ -706,15 +720,14 @@ function Lecture() {
               checked={checkall}
               onChange={() => {
                 if (checkall === false) {
-                  //setassignstudents(Array.from({ length: lecture["studentList"].length }, () => true));
                   setassignstudents(Array.from({ length: studentOfLectureList.length }, () => true));
                   setcheckall(true);
                 } else {
-                  //setassignstudents(Array.from({ length: lecture["studentList"].length }, () => false));
                   setassignstudents(Array.from({ length: studentOfLectureList.length }, () => false));
                   setcheckall(false);
                 }
               }}
+              
             />
           </div>
 
@@ -724,7 +737,7 @@ function Lecture() {
                 <div className="col-3" key={idx}>
                   <Form.Check
                     type="checkbox"
-                    label={student["studentID"]}
+                    label={student["studentName"]}
                     checked={assignstudents[idx]}
                     onChange={() => {
                       const newls = [...assignstudents];
@@ -745,6 +758,7 @@ function Lecture() {
           <Button className="btn-secondary program-add"
           onClick={() => {
             console.log(newassignment);
+            console.log(assignstudents);
             if(assignAdd()&&newassignment["lectureID"]){
               if (window.confirm("해당 학생들에게 과제를 부여하시겠습니까?")) {
                 axios
@@ -947,26 +961,6 @@ function Lecture() {
       </Modal>
 
       <div className="row">
-        {/* {<Button
-            variant="dark"
-            className="btn-edit w-90 m-3"
-            onClick={() => {
-              axios
-              .get(`/api/StudentOfLecture/${paramID}`)
-              .then((result) => {
-                if (result.data === "로그인필요") {
-                  window.alert("로그인이 필요합니다.");
-                  return window.push("/");
-                }
-                return;
-              })
-              .catch((err) => {
-                return window.alert(err);
-              });
-            }}
-          >
-            join test
-          </Button>} */}
         <Button
           variant="dark"
           className="btn-edit w-90 m-3"
@@ -1256,7 +1250,7 @@ function Lecture() {
                         className="lectureEditingBtn btn-cancel m-auto"
                         variant="secondary"
                         onClick={() => {
-                          // assignDelete(assignID);
+                          assignDelete(assignID);
                         }}
                       >
                         <strong>삭제</strong>
