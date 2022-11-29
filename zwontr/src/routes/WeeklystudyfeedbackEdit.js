@@ -210,6 +210,45 @@ function WeeklystudyfeedbackEdit() {
         <strong>{param["ID"].split("_")[0]} 주간학습목표 스케줄링</strong>
       </h2>
 
+      <Modal show={assignmentDescriptionModal} onHide={assignmentDescriptionModalClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>과제 추가</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          <div className="row mb-2">
+            <div className="col-3">사용 교재</div>
+            <div className="col-9">
+            </div>
+          </div>
+          <div className="row mb-2">
+          </div>
+          <div className="row mb-2">
+            <div className="col-3">세부 내용</div>
+            <div className="col-9">
+            </div>
+          </div>
+
+          <div className="row mb-2">
+            <div className="col-3">과제 기한</div>
+            <div className="col-9">
+            </div>
+          </div>
+          <div className="check-all w-100 mb-3">
+          </div>
+
+          <div className="row">
+          </div>
+
+          <Button className="btn-secondary program-add"
+          onClick={() => {
+            
+          }}
+          type="button">
+            <strong>+</strong>
+          </Button>
+        </Modal.Body>
+      </Modal>
+
       <Button
         className="btn-commit btn-save"
         onClick={() => {
@@ -298,8 +337,7 @@ function WeeklystudyfeedbackEdit() {
           </div>
         </div>
       </Button>
-      {/* {isInitialMount.current === false ? ( */}
-      {mounted === true ? (  
+      {mounted === true ? (
         <div className="Weeklystudyfeedback-container">
         <Table striped hover size="sm" className="Weeklystudyfeedback-table">
           <thead>
@@ -397,7 +435,7 @@ function WeeklystudyfeedbackEdit() {
                 );
               }) : null
             }
-            {thisWeekAssignments!==[]?
+            {
               thisWeekAssignments.map((assignment,aidx)=>{
                 return (
                   <tr key={aidx}>
@@ -442,7 +480,7 @@ function WeeklystudyfeedbackEdit() {
                   </tr>
                 );
               })
-            : null}
+            }
           </tbody>
         </Table>
         </div>
