@@ -2,6 +2,7 @@ import "./Weeklystudyfeedback.css";
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col, Input, OverlayTrigger, Popover } from "react-bootstrap";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
+import { BsFillChatSquareFill } from "react-icons/bs";
 import axios from "axios";
 
 function WeeklystudyfeedbackWrite() {
@@ -29,6 +30,8 @@ function WeeklystudyfeedbackWrite() {
   const [entireData, setentireData] = useState([]);
   const [selectedDate, setselectedDate] = useState("");
 
+  const [mounted,setMounted]= useState(false);
+
   function getThisWeek(inputDate) {
     var inputDate = new Date(inputDate);
     inputDate.setHours(0, 0, 0, 0);
@@ -52,27 +55,55 @@ function WeeklystudyfeedbackWrite() {
         day = '0' + day;
 
     return [year, month, day].join('-');
-}
+  }
 
-function getPageName() {
-  var mm = (thisweek[0].getMonth() + 1).toString();
-  var dd = thisweek[0].getDate().toString();
-  if (dd < 10) {
-    dd = "0" + dd;
+  function getPageName() {
+    var mm = (thisweek[0].getMonth() + 1).toString();
+    var dd = thisweek[0].getDate().toString();
+    if (dd < 10) {
+      dd = "0" + dd;
+    }
+    if (mm < 10) {
+      mm = "0" + mm;
+    }
+    const starting = thisweek[0].getFullYear().toString() + "-" + mm + "-" + dd;
+    const ending = thisweek[1].toISOString().split("T")[0];
+    return [starting, ending];
   }
-  if (mm < 10) {
-    mm = "0" + mm;
-  }
-  const starting = thisweek[0].getFullYear().toString() + "-" + mm + "-" + dd;
-  const ending = thisweek[1].toISOString().split("T")[0];
-  return [starting, ending];
-}
 
-useEffect(async () => {
-  if (isInitialMount.current === false) {
-    setthisweek(getThisWeek(param["feedbackDate"]));
+  useEffect(async () => {
+    if (isInitialMount.current === false) {
+      setthisweek(getThisWeek(param["feedbackDate"]));
+    }
+  }, [param]);
+
+  //이번주에 있는 강의과제 관련 코드
+  const [thisWeekAssignments,setThisWeekAssignments]= useState([]);
+  const dayIndexArray=[0,1,2,3,4,5,6]; //0:monday, 7:sunday
+  function processThisWeekAssignmentData(thisWeekAssignmentData){
+    const ret=JSON.parse(JSON.stringify(thisWeekAssignmentData));
+    ret.forEach((element)=>{
+      element["textbookName"]=element["textbookName"].length>0?element["textbookName"][0]:"";
+      element["dayIndex"]=((new Date(element["duedate"])).getDay()+6)%7; //0:monday, 7:sunday
+      if(element["dayIndex"]==6) element["dayIndex"]=5;
+    })
+    return ret;
   }
-}, [param]);
+  function checkAssignmentNeedModal(assignment){
+    return assignment["description"]||assignment["pageRangeArray"].length>1;
+  }
+
+  //과제 상세를 보여주는 modal 관련 코드
+  const [assignmentDescriptionModal,setAssignmentDescriptionModal]= useState(false);
+  const [displayedAssignment,setDisplayedAssignment]= useState(null);
+  const assignmentDescriptionModalOpen= (targetAssignment)=>{
+    setAssignmentDescriptionModal(true);
+    setDisplayedAssignment(targetAssignment);
+  };
+  const assignmentDescriptionModalClose= ()=>{
+    setAssignmentDescriptionModal(false);
+    setDisplayedAssignment(null);
+  };
 
   useEffect(async () => {
     const existstuInfo = await axios
@@ -103,7 +134,30 @@ useEffect(async () => {
       });
     setentireData(studentTRlist);
 
-    isInitialMount.current = false;
+    // 이번주 해당 학생의 강의 과제를 가져온다(argument 많아서 post 방식 사용)
+    const requestArgument={studentID:param["ID"],
+    lastSundayDate:formatDate(thisweek[0]),
+    thisSundayDate:formatDate(thisweek[1])};
+ 
+    let thisWeekAssignmentData = await axios
+    .post(`/api/ThisWeekAssignment/`,requestArgument)
+    .then((result) => {
+      if (result.data === "로그인필요") {
+        window.alert("로그인이 필요합니다.");
+        return window.push("/");
+      }
+      else if (result["data"] !== null) {
+        return result["data"];
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+    thisWeekAssignmentData= processThisWeekAssignmentData(thisWeekAssignmentData);
+    setThisWeekAssignments(thisWeekAssignmentData);
+
+    // isInitialMount.current = false;
+    setMounted(true);
   }, [thisweek]);
 
   useEffect(async () => {
@@ -146,6 +200,66 @@ useEffect(async () => {
       <h2>
         <strong>{param["ID"].split("_")[0]} 주간학습목표 스케줄링</strong>
       </h2>
+
+      <Modal show={assignmentDescriptionModal} onHide={assignmentDescriptionModalClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>과제 상세</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          <div className="row mb-2">
+            <div className="col-3">강의명</div>
+            <div className="col-9">{displayedAssignment?displayedAssignment["lectureName"]:null}</div>
+          </div>
+          <div className="row mb-2">
+          </div>
+          <div className="row mb-2">
+            <div className="col-3">세부 내용</div>
+            <div className="col-9">{displayedAssignment?displayedAssignment["description"]:null}</div>
+          </div>
+
+          <div className="row mb-2">
+            <div className="col-3">과제 기한</div>
+            <div className="col-9">{displayedAssignment?displayedAssignment["duedate"]:null}</div>
+          </div>
+
+          {displayedAssignment && displayedAssignment["textbookName"]?
+          (<div className="row mb-2">
+            <div className="col-3">사용 교재</div>
+            <div className="col-9">{displayedAssignment["textbookName"]}</div>
+          </div>)
+          :
+          null}
+
+          {displayedAssignment && displayedAssignment["pageRangeArray"][0][0]?
+          (<>
+            {displayedAssignment["pageRangeArray"].map((range,idx)=>{
+              if(idx>0){
+                return (<div className="row mb-2">
+                  <div className="col-3">-</div>
+                  <div className="col-9">{displayedAssignment["pageRangeArray"][idx][0]} ~ {displayedAssignment["pageRangeArray"][idx][1]}</div>
+                  </div>
+                );
+              }
+              else{
+                return (
+                  <div className="row mb-2" key={idx}>
+                    <div className="col-3">과제 범위</div>
+                    <div className="col-9" key={idx}>{displayedAssignment?displayedAssignment["pageRangeArray"][idx][0]:null} ~ {displayedAssignment?displayedAssignment["pageRangeArray"][idx][1]:null}</div>
+                  </div>
+                );
+              }
+            })}
+            
+          </>)
+          :
+          null}
+          <div className="row mb-2">
+            <div className="col-3">과제 기한</div>
+            <div className="col-9">{displayedAssignment!==null?displayedAssignment["duedate"]:null}</div>
+          </div>
+        </Modal.Body>
+      </Modal>
+
       <Button
         className="btn-commit btn-save"
         onClick={() => {
@@ -233,7 +347,7 @@ useEffect(async () => {
           </div>
         </div>
       </Button>
-      {isInitialMount.current === false ? (
+      {mounted === true ? (
         <div className="Weeklystudyfeedback-container">
         <Table striped hover size="sm" className="Weeklystudyfeedback-table">
           <thead>
@@ -488,6 +602,52 @@ useEffect(async () => {
                 </tr>
               );
             })}
+            {
+              thisWeekAssignments.map((assignment,aidx)=>{
+                return (
+                  <tr key={aidx}>
+                    <td>
+                      <p m-0="true">
+                        <strong>
+                          {assignment["lectureName"]}
+                        </strong>
+                      </p>
+                    </td>
+                    {
+                      dayIndexArray.map((dayIndex,diidx)=>{
+                        return(
+                          <td key={diidx}>
+                            <div className="studyPercentageBox">
+                              {
+                                assignment["dayIndex"]==dayIndex?
+                                  (
+                                    <p><strong>
+                                      {
+                                        checkAssignmentNeedModal(assignment)?
+                                        (<Button
+                                        className=""
+                                        variant="primary"
+                                        onClick={() => {
+                                          assignmentDescriptionModalOpen(assignment);
+                                        }}
+                                        >
+                                          <BsFillChatSquareFill></BsFillChatSquareFill>
+                                        </Button>)
+                                        :`${assignment["pageRangeArray"][0][0]} ~ ${assignment["pageRangeArray"][0][1]}`
+                                      }
+                                    </strong></p>
+                                  )
+                                  :null
+                              }
+                            </div>
+                          </td>
+                        );
+                      })
+                    }
+                  </tr>
+                );
+              })
+            }
           </tbody>
         </Table>
         </div>
