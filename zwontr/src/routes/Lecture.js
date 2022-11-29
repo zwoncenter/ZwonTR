@@ -560,7 +560,7 @@ function Lecture() {
       });
     existingAssignments.map((e)=>{
       const assignment={...e};
-      if(assignment["pageRangeArray"].length==0) assignment["pageRangeArray"].push(["",""]);
+      // if(assignment["pageRangeArray"].length==0) assignment["pageRangeArray"].push(["",""]);
       return assignment;
     })
     setAssignments(existingAssignments);
