@@ -113,7 +113,7 @@ function WeeklystudyfeedbackEdit() {
           window.alert("로그인이 필요합니다.");
           return history.push("/");
         }
-        console.log(result.data);
+        // console.log(result.data);
         return result["data"]["진행중교재"];
       })
       .catch((err) => {
@@ -125,7 +125,7 @@ function WeeklystudyfeedbackEdit() {
     .get(`/api/Weeklystudyfeedback/${param["ID"]}/${param["feedbackDate"]}`)
     .then((result) => {
       if (result["data"] !== null) {
-        console.log(result.data);
+        // console.log(result.data);
         return result["data"]["thisweekGoal"];
       }
     })
@@ -146,15 +146,13 @@ function WeeklystudyfeedbackEdit() {
         console.log("/api/TR/:name fail : ", err);
       });
     setentireData(studentTRlist);
-    console.log(thisweekGoal);
+    // console.log(thisweekGoal);
 
     // 이번주 해당 학생의 강의 과제를 가져온다(argument 많아서 post 방식 사용)
     const requestArgument={studentID:param["ID"],
     lastSundayDate:formatDate(thisweek[0]),
     thisSundayDate:formatDate(thisweek[1])};
-    
-    console.log("ab");
-    console.log("thisweek:",thisweek[0], thisweek[1])
+ 
     let thisWeekAssignmentData = await axios
     .post(`/api/ThisWeekAssignment/`,requestArgument)
     .then((result) => {
@@ -163,7 +161,6 @@ function WeeklystudyfeedbackEdit() {
         return window.push("/");
       }
       else if (result["data"] !== null) {
-        console.log("twas  :"+JSON.stringify(result.data));
         return result["data"];
       }
     })
@@ -173,15 +170,10 @@ function WeeklystudyfeedbackEdit() {
     thisWeekAssignmentData= processThisWeekAssignmentData(thisWeekAssignmentData);
     setThisWeekAssignments(thisWeekAssignmentData);
 
-    console.log("breakpoint");
 
     //isInitialMount.current = false;
     setMounted(true);
   }, [thisweek]);
-
-  useEffect(()=>{
-    console.log("eye on twas: "+JSON.stringify(thisWeekAssignments));
-  },[thisWeekAssignments])
 
   useEffect(async () => {
     const temporal = entireData
