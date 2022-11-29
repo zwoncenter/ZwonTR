@@ -168,7 +168,7 @@ function Lecture() {
       window.alert("입력된 값이 ID 형식이 아닙니다. (이름_생년월일)");
       return;
     }
-    if (!window.confirm(`${deletename}을 수강생에서 삭제하시겠습니까? \n해당 학생의 진행중과제/완료된과제가 전부 삭제됩니다.`)) {
+    if (!window.confirm(`${deletename}을 수강생에서 삭제하시겠습니까? \n해당 학생의 진행중과제/완료된과제가 전부 영구히 삭제됩니다.`)) {
       return;
     }
     // if (!lecture["studentList"].includes(deletename)) {
@@ -408,7 +408,7 @@ function Lecture() {
     assignKey: 0,
   });
 
-  // 강의 과제 관련 코드
+  // 강의 듣는 학생 과제 관련 코드
   const [lectureAssignments,setLectureAssignments] = useState([]);
   function processAssignmentData(assignmentData, studentOfLectureList){
     const ret={};
@@ -417,6 +417,7 @@ function Lecture() {
     })
     assignmentData.forEach(element=>{
       const studentName=element["studentName"];
+      if(!(studentName in ret)) return; //강의 듣는 학생이 삭제된 경우 처리
       if(element["textbookName"].length>0){
         element["textbookName"]=element["textbookName"][0];
       }
@@ -428,10 +429,30 @@ function Lecture() {
       }
     });
     for(var studentName in ret){
-      ret[studentName]["ongoing"].sort((a,b)=>a<b?-1:1);
-      ret[studentName]["finished"].sort((a,b)=>a<b?-1:1);
+      ret[studentName]["ongoing"].sort((a,b)=>a["duedate"]<b["duedate"]?-1:1);
+      ret[studentName]["finished"].sort((a,b)=>a["duedate"]<b["duedate"]?-1:1);
     }
     return ret;
+  }
+
+  async function updateAssignmentOfStudentState(assignmentInfo){
+    axios
+    .post(`/api/AssignmentOfStudent/`, assignmentInfo)
+    .then(function (result) {
+      if (result.data === true) {
+        window.alert("반영되었습니다");
+        // window.location.reload();
+        // history.push("/studentList");
+      } else if (result.data === "로그인필요") {
+        window.alert("로그인이 필요합니다.");
+        return history.push("/");
+      } else {
+        console.log(result.data);
+        window.alert(result.data);
+        return false;
+      }
+    })
+    return true;
   }
 
   useEffect(async () => {
@@ -513,6 +534,7 @@ function Lecture() {
     .catch((err) => {
       return window.alert(err);
     });
+
     //console.log("data:"+JSON.stringify(processAssignmentData(lectureAssignmentData)));
     lectureAssignmentData = processAssignmentData(lectureAssignmentData, newStudentOfLectureList);
     // console.log("lAD:"+JSON.stringify(lectureAssignmentData));
@@ -1292,11 +1314,18 @@ function Lecture() {
                                     if (!window.confirm("과제를 완료 처리하시겠습니까?")) {
                                       return;
                                     }
-                                    // const newlecture = JSON.parse(JSON.stringify(lecture));
-                                    // newlecture["students"][student]["진행중과제"].splice(idx, 1);
-                                    // newlecture["students"][student]["완료된과제"].push([assign, today]);
-                                    // setlecture(newlecture);
-                                    // updatelecture(newlecture);
+                                    const assignmentInfo={assignmentOfStudentID:assignment["AssignmentOfStudentID"],finished:true,finished_date:today}
+                                    if(!updateAssignmentOfStudentState(assignmentInfo)){
+                                      window.location.reload();
+                                    }
+                                    const newLectureAssignments = JSON.parse(JSON.stringify(lectureAssignments));
+                                    const newAssignmentData = {...assignment};
+                                    newAssignmentData["finished"]=true;
+                                    newAssignmentData["finished_date"]=today;
+                                    newLectureAssignments[studentName]["ongoing"].splice(aidx,1);
+                                    newLectureAssignments[studentName]["finished"].push(newAssignmentData);
+                                    newLectureAssignments[studentName]["finished"].sort((a,b)=>a["duedate"]<b["duedate"]?-1:1);
+                                    setLectureAssignments(newLectureAssignments);
                                   }}
                                 >
                                   완료처리
@@ -1337,14 +1366,18 @@ function Lecture() {
                                     if (!window.confirm("과제를 완료해제 처리하시겠습니까? \n기록된 완료날짜가 삭제됩니다.")) {
                                       return;
                                     }
-                                    // const newlecture = JSON.parse(JSON.stringify(lecture));
-                                    // newlecture["students"][student]["완료된과제"].splice(idx, 1);
-                                    // newlecture["students"][student]["진행중과제"].push(assign[0]);
-                                    // newlecture["students"][student]["진행중과제"].sort((a, b) => {
-                                    //   return +(newlecture["assignments"][a]["과제기한"] > newlecture["assignments"][b]["과제기한"]) - 0.5;
-                                    // });
-                                    // setlecture(newlecture);
-                                    // updatelecture(newlecture);
+                                    const assignmentInfo={assignmentOfStudentID:assignment["AssignmentOfStudentID"],finished:false,finished_date:""}
+                                    if(!updateAssignmentOfStudentState(assignmentInfo)){
+                                      window.location.reload();
+                                    }
+                                    const newLectureAssignments = JSON.parse(JSON.stringify(lectureAssignments));
+                                    const newAssignmentData = {...assignment};
+                                    newAssignmentData["finished"]=false;
+                                    newAssignmentData["finished_date"]="";
+                                    newLectureAssignments[studentName]["finished"].splice(aidx,1);
+                                    newLectureAssignments[studentName]["ongoing"].push(newAssignmentData);
+                                    newLectureAssignments[studentName]["ongoing"].sort((a,b)=>a["duedate"]<b["duedate"]?-1:1);
+                                    setLectureAssignments(newLectureAssignments);
                                   }}
                                 >
                                   완료해제처리
@@ -1411,14 +1444,19 @@ function Lecture() {
                                         if (!window.confirm("과제를 완료해제 처리하시겠습니까? \n기록된 완료날짜가 삭제됩니다.")) {
                                           return;
                                         }
-                                        // const newlecture = JSON.parse(JSON.stringify(lecture));
-                                        // newlecture["students"][student]["완료된과제"].splice(idx, 1);
-                                        // newlecture["students"][student]["진행중과제"].push(assign[0]);
-                                        // newlecture["students"][student]["진행중과제"].sort((a, b) => {
-                                        //   return +(newlecture["assignments"][a]["과제기한"] > newlecture["assignments"][b]["과제기한"]) - 0.5;
-                                        // });
-                                        // setlecture(newlecture);
-                                        // updatelecture(newlecture);
+
+                                        const assignmentInfo={assignmentOfStudentID:assignment["AssignmentOfStudentID"],finished:false,finished_date:""}
+                                        if(!updateAssignmentOfStudentState(assignmentInfo)){
+                                          window.location.reload();
+                                        }
+                                        const newLectureAssignments = JSON.parse(JSON.stringify(lectureAssignments));
+                                        const newAssignmentData = {...assignment};
+                                        newAssignmentData["finished"]=false;
+                                        newAssignmentData["finished_date"]="";
+                                        newLectureAssignments[studentName]["finished"].splice(aidx,1);
+                                        newLectureAssignments[studentName]["ongoing"].push(newAssignmentData);
+                                        newLectureAssignments[studentName]["ongoing"].sort((a,b)=>a["duedate"]<b["duedate"]?-1:1);
+                                        setLectureAssignments(newLectureAssignments);
                                       }}
                                     >
                                       완료해제처리

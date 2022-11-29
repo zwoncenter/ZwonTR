@@ -2,6 +2,7 @@ import "./Weeklystudyfeedback.css";
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col, Input, OverlayTrigger, Popover } from "react-bootstrap";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
+import { BsFillChatSquareFill } from "react-icons/bs";
 import axios from "axios";
 
 function WeeklystudyfeedbackEdit() {
@@ -66,13 +67,40 @@ function WeeklystudyfeedbackEdit() {
         day = '0' + day;
 
     return [year, month, day].join('-');
-}
-
-useEffect(async () => {
-  if (isInitialMount.current === false) {
-    setthisweek(getThisWeek(param["feedbackDate"]));
   }
-}, [param]);
+
+  useEffect(async () => {
+    if (isInitialMount.current === false) {
+      setthisweek(getThisWeek(param["feedbackDate"]));
+    }
+  }, [param]);
+
+  //이번주에 있는 강의과제 관련 코드
+  const [thisWeekAssignments,setThisWeekAssignments]= useState([]);
+  const dayIndexArray=[0,1,2,3,4,5,6]; //0:monday, 7:sunday
+  function processThisWeekAssignmentData(thisWeekAssignmentData){
+    const ret=JSON.parse(JSON.stringify(thisWeekAssignmentData));
+    ret.forEach((element)=>{
+      element["textbookName"]=element["textbookName"].length>0?element["textbookName"][0]:"";
+      element["dayIndex"]=((new Date(element["duedate"])).getDay()+6)%7; //0:monday, 7:sunday
+    })
+    return ret;
+  }
+  function checkAssignmentNeedModal(assignment){
+    return assignment["description"]||assignment["pageRangeArray"].length>1;
+  }
+
+  //과제 상세를 보여주는 modal 관련 코드
+  const [assignmentDescriptionModal,setAssignmentDescriptionModal]= useState(false);
+  const [displayedAssignment,setDisplayedAssignment]= useState({});
+  const assignmentDescriptionModalOpen= (targetAssignment)=>{
+    setAssignmentDescriptionModal(true);
+    setDisplayedAssignment(targetAssignment);
+    console.log("tass:"+JSON.stringify(targetAssignment));
+  };
+  const assignmentDescriptionModalClose= ()=>{
+    setAssignmentDescriptionModal(false);
+  };
 
   useEffect(async () => {
     const existstuInfo = await axios
@@ -117,6 +145,28 @@ useEffect(async () => {
     setentireData(studentTRlist);
     // console.log(thisweekGoal);
 
+    //이번주 해당 학생의 강의 과제를 가져온다(argument 많아서 post 방식 사용)
+    // const requestArgument={studentID:param["ID"],
+    // lastSundayDate:isInitialMount.current? "2200-01-01":thisweek[0],
+    // thisSundayDate:isInitialMount.current? "2000-01-01":thisweek[1]};
+    // let thisWeekAssignmentData = await axios
+    // .post(`/api/ThisWeekAssignment/`,requestArgument)
+    // .then((result) => {
+    //   if (result.data === "로그인필요") {
+    //     window.alert("로그인이 필요합니다.");
+    //     return window.push("/");
+    //   }
+    //   else if (result["data"] !== null) {
+    //     console.log("twas:"+JSON.stringify(result.data));
+    //     return result["data"];
+    //   }
+    // })
+    // .catch((err) => {
+    //   console.log(err);
+    // });
+    // thisWeekAssignmentData= processThisWeekAssignmentData(thisWeekAssignmentData);
+    // setThisWeekAssignments(thisWeekAssignmentData);
+
     isInitialMount.current = false;
   }, [thisweek]);
 
@@ -147,6 +197,46 @@ useEffect(async () => {
       <h2>
         <strong>{param["ID"].split("_")[0]} 주간학습목표 스케줄링</strong>
       </h2>
+
+      {/* {<Modal show={assignmentDescriptionModal} onHide={assignmentDescriptionModalClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>과제 추가</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          <div className="row mb-2">
+            <div className="col-3">사용 교재</div>
+            <div className="col-9">
+            </div>
+          </div>
+          <div className="row mb-2">
+          </div>
+          <div className="row mb-2">
+            <div className="col-3">세부 내용</div>
+            <div className="col-9">
+            </div>
+          </div>
+
+          <div className="row mb-2">
+            <div className="col-3">과제 기한</div>
+            <div className="col-9">
+            </div>
+          </div>
+          <div className="check-all w-100 mb-3">
+          </div>
+
+          <div className="row">
+          </div>
+
+          <Button className="btn-secondary program-add"
+          onClick={() => {
+            
+          }}
+          type="button">
+            <strong>+</strong>
+          </Button>
+        </Modal.Body>
+      </Modal>} */}
+
       <Button
         className="btn-commit btn-save"
         onClick={() => {
@@ -332,6 +422,52 @@ useEffect(async () => {
                   </tr>
                 );
               }) : null
+            }
+            {
+              // thisWeekAssignments.map((assignment,aidx)=>{
+              //   return (
+              //     <tr key={aidx}>
+              //       <td>
+              //         <p m-0="true">
+              //           <strong>
+              //             {assignment["lectureName"]}
+              //           </strong>
+              //         </p>
+              //       </td>
+              //       {
+              //         dayIndexArray.map((dayIndex,diidx)=>{
+              //           return(
+              //             <td key={diidx}>
+              //               <div className="studyPercentageBox">
+              //                 {
+              //                   assignment["dayIndex"]==dayIndex?
+              //                     (
+              //                       <p><strong>
+              //                         {
+              //                           checkAssignmentNeedModal(assignment)?
+              //                           (<Button
+              //                           className=""
+              //                           variant="primary"
+              //                           onClick={() => {
+              //                             assignmentDescriptionModalOpen(assignment);
+              //                           }}
+              //                           >
+              //                             <BsFillChatSquareFill></BsFillChatSquareFill>
+              //                           </Button>)
+              //                           :`${assignment["pageRangeArray"][0][0]} ~ ${assignment["pageRangeArray"][0][1]}`
+              //                         }
+              //                       </strong></p>
+              //                     )
+              //                     :null
+              //                 }
+              //               </div>
+              //             </td>
+              //           );
+              //         })
+              //       }
+              //     </tr>
+              //   );
+              // })
             }
           </tbody>
         </Table>

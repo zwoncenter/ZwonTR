@@ -1162,6 +1162,28 @@ app.get("/api/LectureAssignment/:lectureid",loginCheck, async (req,res)=>{
   }
 });
 
+//특정 학생의 과제에 대한 완료 여부 업데이트
+app.post(`/api/AssignmentOfStudent/`, loginCheck, async (req,res)=>{
+  let assignmentOfStudentID;
+  try {
+   assignmentOfStudentID = new ObjectId(req.body["assignmentOfStudentID"]);
+  } catch (err) {
+    return res.send(`invalid access`);
+  }
+  const finished=req.body["finished"],finished_date=req.body["finished_date"];
+  let ret_val;
+  try{
+    await db.collection("AssignmentOfStudent").findOneAndUpdate({_id:assignmentOfStudentID},{$set:{"finished":finished,"finished_date":finished_date}});
+    ret_val=true;
+  }
+  catch(error){
+    ret_val=`Error ${error}`;
+  }
+  finally{
+    return res.send(ret_val);
+  }
+});
+
 //개별 강의 페이지에서 lecture ID를 받아 aggregate(join)를 통해 강의 수강중인 학생 반환
 app.get("/api/StudentOfLecture/:lectureID", loginCheck, (req, res) => {
   const paramID = decodeURIComponent(req.params.lectureID);
@@ -1280,7 +1302,9 @@ app.delete("/api/StudentOfLecture/:lectureID/:studentID",loginCheck,async (req,r
     session.startTransaction();
     const target_lecture= await db.collection('Lecture').findOne({lectureID:lectureID},{session});
     const target_student= await db.collection('StudentDB').findOne({ID:studentID},{session});
+    const target_assignment_ids= await db.collection('Assignment').find({lectureID:target_lecture["_id"]}).toArray();
     await db.collection('StudentOfLecture').deleteOne({lectureID:target_lecture["_id"],studentID:target_student["_id"]},{session});
+    await db.collection('AssignmentOfStudent').deleteMany({assignmentID:{$in:target_assignment_ids.map((e)=>e["_id"])},studentID:target_student["_id"]},{session})
     await session.commitTransaction();
     ret_val=true;
     // return res.send(true);
@@ -1441,6 +1465,80 @@ app.delete("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, (req, res) 
     }
     return res.send(true);
   });
+});
+
+// weeklyStudyFeedback 페이지에 표시되는 이번주 강의 과제를 찾아주는 코드
+
+app.post("/api/ThisWeekAssignment/", loginCheck, async (req,res)=>{
+  const request_arguments=req.body;
+  if(!("studentID" in request_arguments) || !("lastSundayDate" in request_arguments) || !("thisSundayDate" in request_arguments)){
+    return res.json([]);
+  }
+  const student_legacy_id=request_arguments["studentID"];
+  const last_sunday_date=request_arguments["lastSundayDate"];
+  const this_sunday_date=request_arguments["thisSundayDate"];
+  let ret_val;
+  try{
+    const target_student_doc= await db.collection("StudentDB").findOne({"ID":student_legacy_id});
+    const target_student_id= target_student_doc["_id"];
+    ret_val= await db.collection("Assignment")
+    .aggregate([
+      { $match: { duedate:{"$gt":last_sunday_date, "$lte":this_sunday_date} } },
+      {
+        $lookup: {
+          from: "AssignmentOfStudent",
+          localField: "_id",
+          foreignField: "assignmentID",
+          as: "AssignmentOfStudent_agg",
+        },
+      },
+      { $unwind: "$AssignmentOfStudent_agg" },
+      { $match: { "AssignmentOfStudent_agg.studentID":target_student_id } },
+      {
+        $lookup: {
+          from: "Lecture",
+          localField: "lectureID",
+          foreignField: "_id",
+          as: "Lecture_agg",
+        },
+      },
+      { $unwind: "$Lecture_agg" },
+      {
+        $lookup: {
+          from: "TextBook",
+          localField: "textbookID",
+          foreignField: "_id",
+          as: "TextBook_agg",
+        },
+      },
+      {
+        $addFields: {
+          lectureName:"$Lecture_agg.lectureName",
+          textbookName:"$TextBook_agg.교재",
+          finished: "$agg_fields.finished",
+          finished_date: "$agg_fields.finished_date",
+        },
+      },
+      {
+        $project: {
+          lectureName:1,
+          textbookName:1,
+          pageRangeArray:1,
+          description:1,
+          duedate:1,
+          startdate:1,
+          finished: 1,
+          finished_date: 1,
+        },
+      },
+    ]).toArray();
+  }
+  catch(error){
+    ret_val=[];
+  }
+  finally{
+    return res.json(ret_val);
+  }
 });
 
 // stickynote 관련 코드
