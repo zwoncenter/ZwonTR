@@ -71,7 +71,10 @@ function WeeklystudyfeedbackEdit() {
   }
 
   useEffect(async () => {
-    if (isInitialMount.current === false) {
+    // if (isInitialMount.current === false) {
+    //   setthisweek(getThisWeek(param["feedbackDate"]));
+    // }
+    if(mounted===true){
       setthisweek(getThisWeek(param["feedbackDate"]));
     }
   }, [param]);

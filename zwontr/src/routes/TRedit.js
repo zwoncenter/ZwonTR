@@ -1309,7 +1309,7 @@ function TRedit() {
 
         <div className="col-xl-6 trCol">
           <div className="trCard">
-          <h5 className="fw-bold">
+          {/* <h5 className="fw-bold">
               <strong>[ 수강중 강의 ]</strong>
             </h5>
             {lectureList.map((lecture, idx) => {
@@ -1405,7 +1405,7 @@ function TRedit() {
                   </Accordion.Item>
                 </Accordion>
               );
-            })}
+            })} */}
 
             
             <div className="d-flex mt-3 mb-3 justify-content-center">
