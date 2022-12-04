@@ -657,7 +657,7 @@ app.post("/api/Textbook", loginCheck, (req, res) => {
   });
 });
 
-app.delete("/api/Textbook/:_id", loginCheck, (req, res) => {
+app.delete("/api/Textbook/:_id", loginCheck, async (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -668,16 +668,38 @@ app.delete("/api/Textbook/:_id", loginCheck, (req, res) => {
     return res.send(`invalid access`);
   }
 
-  db.collection("TextBook").deleteOne({ _id: findID }, (err, result) => {
-    if (err) {
-      return res.send(`/api/Textbook - findOne Error : ${err}`);
+  let ret_val;
+
+  try{
+    const related_lecture_docs= await db.collection("TextbookOfLecture").find({textbookID:findID}).toArray();
+    if(related_lecture_docs.length>0){
+      return res.send(`해당 교재가 강의에 사용중이므로 삭제할 수 없습니다.`);
     }
-    console.log("breakpoint");
-    if (result.deletedCount == 0) {
-      return res.send(`해당 교재가 등록되어 있지 않습니다.`);
+    const del_result= await db.collection("TextBook").deleteOne({_id:findID});
+    if(del_result.deletedCount == 0){
+      ret_val="해당 교재가 등록되어 있지 않습니다";
     }
-    return res.send(true);
-  });
+    else{
+      ret_val=true;
+    }
+  }
+  catch(error){
+    ret_val=`Error: ${error}`;
+  }
+  finally{
+    return res.send(ret_val);
+  }
+
+  // db.collection("TextBook").deleteOne({ _id: findID }, (err, result) => {
+  //   if (err) {
+  //     return res.send(`/api/Textbook - findOne Error : ${err}`);
+  //   }
+  //   console.log("breakpoint");
+  //   if (result.deletedCount == 0) {
+  //     return res.send(`해당 교재가 등록되어 있지 않습니다.`);
+  //   }
+  //   return res.send(true);
+  // });
 });
 
 // Lecture 관련 코드
@@ -991,8 +1013,13 @@ app.post("/api/Assignment", loginCheck, async (req, res) => {
     delete newAssign["studentList"];
     const lect_id = new ObjectId(newAssign["lectureID"]);
     const textbook_id = new ObjectId(newAssign["textbookID"]);
+    const lecture_doc= await db.collection("Lecture").findOne({_id:lect_id}); // to check if there is such lecture document in mongodb
+    const textbook_doc= await db.collection("TextBook").findOne({_id:textbook_id}); // to check if there is such textbook document in mongodb
+    if(!lecture_doc){
+      throw new Error("등록된 강의가 없습니다");
+    }
     newAssign["lectureID"] = lect_id;
-    newAssign["textbookID"] = textbook_id;
+    newAssign["textbookID"] = textbook_doc?textbook_id:"";
     const new_assignment_id=new ObjectId();
     newAssign["_id"] = new_assignment_id;
     await db.collection('Assignment').insertOne(newAssign,{session});

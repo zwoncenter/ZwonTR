@@ -217,14 +217,15 @@ function WeeklystudyfeedbackEdit() {
           </div>
           <div className="row mb-2">
           </div>
-          <div className="row mb-2">
-            <div className="col-3">세부 내용</div>
-            <div className="col-9">{displayedAssignment?displayedAssignment["description"]:null}</div>
-          </div>
-
+          
           <div className="row mb-2">
             <div className="col-3">과제 기한</div>
             <div className="col-9">{displayedAssignment?displayedAssignment["duedate"]:null}</div>
+          </div>
+
+          <div className="row mb-2">
+            <div className="col-3">세부 내용</div>
+            <div className="col-9">{displayedAssignment?displayedAssignment["description"]:null}</div>
           </div>
 
           {displayedAssignment && displayedAssignment["textbookName"]?
@@ -258,10 +259,6 @@ function WeeklystudyfeedbackEdit() {
           </>)
           :
           null}
-          <div className="row mb-2">
-            <div className="col-3">과제 기한</div>
-            <div className="col-9">{displayedAssignment!==null?displayedAssignment["duedate"]:null}</div>
-          </div>
         </Modal.Body>
       </Modal>
 
@@ -458,7 +455,7 @@ function WeeklystudyfeedbackEdit() {
                     <td>
                       <p m-0="true">
                         <strong>
-                          {assignment["lectureName"]}
+                          [강의] {assignment["lectureName"]}
                         </strong>
                       </p>
                     </td>

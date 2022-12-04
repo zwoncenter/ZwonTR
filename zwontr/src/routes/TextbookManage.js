@@ -564,7 +564,7 @@ function TextbookManage() {
                           // if (i > -1) {
                           //   deleteOne(i);
                           // }
-                          if(window.confirm("정말 교재 정보를 삭제하시겠습니까?")){
+                          if(window.confirm(`정말 <${a["교재"]}> 교재 정보를 삭제하시겠습니까?`)){
                             deleteTextbookInfo(a["_id"]);
                           }
                         }}
