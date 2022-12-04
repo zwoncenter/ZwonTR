@@ -1541,6 +1541,80 @@ app.post("/api/ThisWeekAssignment/", loginCheck, async (req,res)=>{
   }
 });
 
+// TR 페이지에 표시되는, 해당 학생의 오늘(해당 날짜) 마감인 강의 과제를 찾아주는 코드
+
+app.post("/api/StudentTodayAssignment/", loginCheck, async (req,res)=>{
+  const request_arguments=req.body;
+  if(!("studentID" in request_arguments) || !("lastSundayDate" in request_arguments)){
+    return res.json([]);
+  }
+  const student_legacy_id=request_arguments["studentID"];
+  const today_date=request_arguments["lastSundayDate"];
+  console.log(today_date);
+  let ret_val;
+  try{
+    const target_student_doc= await db.collection("StudentDB").findOne({"ID":student_legacy_id});
+    const target_student_id= target_student_doc["_id"];
+    ret_val= await db.collection("Assignment")
+    .aggregate([
+      { $match: { duedate: today_date } },
+      {
+        $lookup: {
+          from: "AssignmentOfStudent",
+          localField: "_id",
+          foreignField: "assignmentID",
+          as: "AssignmentOfStudent_agg",
+        },
+      },
+      { $unwind: "$AssignmentOfStudent_agg" },
+      { $match: { "AssignmentOfStudent_agg.studentID":target_student_id } },
+      {
+        $lookup: {
+          from: "Lecture",
+          localField: "lectureID",
+          foreignField: "_id",
+          as: "Lecture_agg",
+        },
+      },
+      { $unwind: "$Lecture_agg" },
+      {
+        $lookup: {
+          from: "TextBook",
+          localField: "textbookID",
+          foreignField: "_id",
+          as: "TextBook_agg",
+        },
+      },
+      {
+        $addFields: {
+          lectureName:"$Lecture_agg.lectureName",
+          textbookName:"$TextBook_agg.교재",
+          finished: "$agg_fields.finished",
+          finished_date: "$agg_fields.finished_date",
+        },
+      },
+      {
+        $project: {
+          lectureName:1,
+          textbookName:1,
+          pageRangeArray:1,
+          description:1,
+          duedate:1,
+          startdate:1,
+          finished: 1,
+          finished_date: 1,
+        },
+      },
+    ]).toArray();
+  }
+  catch(error){
+    ret_val=[];
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
 // stickynote 관련 코드
 
 app.get("/api/stickynote", loginCheck, (req, res) => {

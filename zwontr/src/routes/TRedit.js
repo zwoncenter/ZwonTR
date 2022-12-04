@@ -7,7 +7,6 @@ import TimePicker from "react-time-picker";
 import { FaPencilAlt, FaTrash, FaCheck, FaUndo } from "react-icons/fa";
 import { CgMailForward } from "react-icons/cg";
 
-
 function TRedit() {
   // 공통 code
   let history = useHistory();
@@ -169,34 +168,35 @@ function TRedit() {
   });
 
   // 당일학습목표, 주간학습목표 관련 코드
-  const weekDays=['월','화','수','목','금','일'];
-  function getDayStringFromDateObject(date){
-    const day=date.getDay()==0?6:date.getDay()-1;
+  const weekDays = ["월", "화", "수", "목", "금", "일"];
+  function getDayStringFromDateObject(date) {
+    const day = date.getDay() == 0 ? 6 : date.getDay() - 1;
     return weekDays[day];
   }
-  function dateToString(date){
-    let ret=[String(date.getFullYear()),String(date.getMonth()+1),String(date.getDate())];
-    for(let i=1; i<3; i++){
-      if(ret[i].length<2){
-        ret[i]='0'+ret[i];
+  function dateToString(date) {
+    let ret = [String(date.getFullYear()), String(date.getMonth() + 1), String(date.getDate())];
+    for (let i = 1; i < 3; i++) {
+      if (ret[i].length < 2) {
+        ret[i] = "0" + ret[i];
       }
     }
-    return ret.join('-');
+    return ret.join("-");
   }
-  async function getThisWeekProgress(){
-    let ret=[];
-    for(let i=0; i<7; i++){
-      let tmpdate=new Date(thisweek[0]);
-      tmpdate.setDate(tmpdate.getDate()+i);
-      ret.push(await axios
-        .get(`/api/TR/${paramID}/${dateToString(tmpdate)}`)
-        .then((result) => {
-          //console.log('paramdate: '+dateToString(tmpdate)+" "+i+"요일 "+"data:"+JSON.stringify(result["data"]));
-          return result["data"];
-        })
-        .catch((err) => {
-          return err;
-        })
+  async function getThisWeekProgress() {
+    let ret = [];
+    for (let i = 0; i < 7; i++) {
+      let tmpdate = new Date(thisweek[0]);
+      tmpdate.setDate(tmpdate.getDate() + i);
+      ret.push(
+        await axios
+          .get(`/api/TR/${paramID}/${dateToString(tmpdate)}`)
+          .then((result) => {
+            //console.log('paramdate: '+dateToString(tmpdate)+" "+i+"요일 "+"data:"+JSON.stringify(result["data"]));
+            return result["data"];
+          })
+          .catch((err) => {
+            return err;
+          })
       );
     }
     //console.log('get~ ret val: '+JSON.stringify(ret));
@@ -210,97 +210,93 @@ function TRedit() {
     목: {},
     금: {},
     일: {},
-    마감일: {}
+    마감일: {},
   });
   const [thisWeekProgress, setThisWeekProgress] = useState([]);
   const [thisweek, setthisweek] = useState(getThisWeek(paramDate));
   //const [bookNamesDictionary,setBookNamesDictionary]= useState({});
   //const [bookNamesList,setBookNamesList]= useState([]);
-  let bookNamesDictionary={};
-  let bookNamesList=[];
-  function checkThisWeekGoalHasValidElement(){
-    if(!thisweekGoal) return false;
-    for(let i=0; i<weekDays.length; i++){
-      let tmpDay=weekDays[i];
-      let tmpGoal=thisweekGoal[tmpDay];
-      if(Object.keys(tmpGoal).length>0) return true;
+  let bookNamesDictionary = {};
+  let bookNamesList = [];
+  function checkThisWeekGoalHasValidElement() {
+    if (!thisweekGoal) return false;
+    for (let i = 0; i < weekDays.length; i++) {
+      let tmpDay = weekDays[i];
+      let tmpGoal = thisweekGoal[tmpDay];
+      if (Object.keys(tmpGoal).length > 0) return true;
     }
     return false;
   }
-  function checkTodayIsSunday(){
-    return (new Date(paramDate)).getDay()==0;
+  function checkTodayIsSunday() {
+    return new Date(paramDate).getDay() == 0;
   }
-  function checkThisWeekProgressHasValidElement(){
-    if(!thisWeekProgress || thisWeekProgress.length==0) return false;
-    for(let i=0; i<thisWeekProgress.length; i++){
-      if(thisWeekProgress[i]!=null && thisWeekProgress!=undefined &&
-        thisWeekProgress[i].hasOwnProperty("학습")) return true;
+  function checkThisWeekProgressHasValidElement() {
+    if (!thisWeekProgress || thisWeekProgress.length == 0) return false;
+    for (let i = 0; i < thisWeekProgress.length; i++) {
+      if (thisWeekProgress[i] != null && thisWeekProgress != undefined && thisWeekProgress[i].hasOwnProperty("학습")) return true;
     }
     return false;
   }
-  function collectBookNamesFromProgressAndGoal(){
+  function collectBookNamesFromProgressAndGoal() {
     //let newBookNamesDictionary={};
-    if(thisweekGoal && thisweekGoal.hasOwnProperty("교재캡쳐")){
-      let booklist=thisweekGoal["교재캡쳐"];
-      for(let i=0; i<booklist.length; i++){
-        let bookName=booklist[i]["교재"];
-        if(!bookNamesDictionary.hasOwnProperty(bookName)){
-          bookNamesDictionary[bookName]=booklist[i].hasOwnProperty("총교재량")?booklist[i]["총교재량"]:null;
+    if (thisweekGoal && thisweekGoal.hasOwnProperty("교재캡쳐")) {
+      let booklist = thisweekGoal["교재캡쳐"];
+      for (let i = 0; i < booklist.length; i++) {
+        let bookName = booklist[i]["교재"];
+        if (!bookNamesDictionary.hasOwnProperty(bookName)) {
+          bookNamesDictionary[bookName] = booklist[i].hasOwnProperty("총교재량") ? booklist[i]["총교재량"] : null;
         }
       }
     }
-    if(thisWeekProgress && thisWeekProgress.length>0){
-      for(let i=0; i<thisWeekProgress.length; i++){
-        let dayElement=thisWeekProgress[i];
-        if(!(dayElement && dayElement.hasOwnProperty("학습")))
-          continue;
-        for(let j=0; j<dayElement["학습"].length; j++){
-          let bookElement=dayElement["학습"][j];
-          if(!bookElement.hasOwnProperty("교재"))
-            continue;
-          let bookName=bookElement["교재"];
-          if(!bookNamesDictionary.hasOwnProperty(bookName)){
-            bookNamesDictionary[bookName]=bookElement.hasOwnProperty("총교재량")?bookElement["총교재량"]:null;
+    if (thisWeekProgress && thisWeekProgress.length > 0) {
+      for (let i = 0; i < thisWeekProgress.length; i++) {
+        let dayElement = thisWeekProgress[i];
+        if (!(dayElement && dayElement.hasOwnProperty("학습"))) continue;
+        for (let j = 0; j < dayElement["학습"].length; j++) {
+          let bookElement = dayElement["학습"][j];
+          if (!bookElement.hasOwnProperty("교재")) continue;
+          let bookName = bookElement["교재"];
+          if (!bookNamesDictionary.hasOwnProperty(bookName)) {
+            bookNamesDictionary[bookName] = bookElement.hasOwnProperty("총교재량") ? bookElement["총교재량"] : null;
           }
         }
       }
     }
-    let newBookNamesList= Object.keys(bookNamesDictionary);
+    let newBookNamesList = Object.keys(bookNamesDictionary);
     //console.log("book names dict: "+JSON.stringify(bookNamesDictionary));
-    bookNamesList=Object.keys(bookNamesDictionary);
+    bookNamesList = Object.keys(bookNamesDictionary);
     //console.log("book names list: "+JSON.stringify(bookNamesList));
     //setBookNamesDictionary(newBookNamesDictionary);
     //setBookNamesList(newBookNamesList);
   }
   collectBookNamesFromProgressAndGoal();
-  function checkWeekProgressTableNeeded(){
-    return (checkThisWeekProgressHasValidElement() || checkThisWeekGoalHasValidElement());
+  function checkWeekProgressTableNeeded() {
+    return checkThisWeekProgressHasValidElement() || checkThisWeekGoalHasValidElement();
   }
-  function getGoalFromDayAndBook(day,bookName){
-    if(!thisweekGoal || !thisweekGoal.hasOwnProperty(day) || !thisweekGoal[day].hasOwnProperty(bookName)) return null;
+  function getGoalFromDayAndBook(day, bookName) {
+    if (!thisweekGoal || !thisweekGoal.hasOwnProperty(day) || !thisweekGoal[day].hasOwnProperty(bookName)) return null;
     return thisweekGoal[day][bookName];
   }
-  function getProgressFromDayAndBook(day,bookName){
-    if(!thisWeekProgress || thisWeekProgress.length==0) return null;
-    let dplist= thisWeekProgress
-    .filter((dayProgress,dpInex)=>{
-      if(!dayProgress || !dayProgress.hasOwnProperty("요일")) return false;
-      return day === dayProgress["요일"]
+  function getProgressFromDayAndBook(day, bookName) {
+    if (!thisWeekProgress || thisWeekProgress.length == 0) return null;
+    let dplist = thisWeekProgress.filter((dayProgress, dpInex) => {
+      if (!dayProgress || !dayProgress.hasOwnProperty("요일")) return false;
+      return day === dayProgress["요일"];
     });
     //console.log("breakpoint0");
-    if(dplist.length==0 || !dplist[0].hasOwnProperty("학습")) {
+    if (dplist.length == 0 || !dplist[0].hasOwnProperty("학습")) {
       //console.log("return condition satisfied, dplist: "+JSON.stringify(dplist));
       return null;
     }
-    let bookinfo=dplist[0]["학습"].filter((studyingBook,sbIndex)=>{
-      return studyingBook["교재"]===bookName;
+    let bookinfo = dplist[0]["학습"].filter((studyingBook, sbIndex) => {
+      return studyingBook["교재"] === bookName;
     });
-    if(bookinfo.length==0) {
+    if (bookinfo.length == 0) {
       //console.log("return condition satisfied, bookinfo: "+JSON.stringify(bookinfo));
       return null;
     }
     //console.log("breakpoint");
-    return !bookinfo[0]["최근진도"]?null:bookinfo[0]["최근진도"];
+    return !bookinfo[0]["최근진도"] ? null : bookinfo[0]["최근진도"];
   }
   function getThisWeek(inputDate) {
     //console.log(inputDate);
@@ -314,20 +310,19 @@ function TRedit() {
     var enddate = new Date(inputDate.setDate(inputDate.getDate() + 7));
     return [startdate, enddate];
   }
+
   // 하루 전 날짜를 문자열로 반환
   function formatDate(date) {
     var d = new Date(date),
-        month = '' + (d.getMonth() + 1),
-        day = '' + (d.getDate()-1),
-        year = d.getFullYear();
+      month = "" + (d.getMonth() + 1),
+      day = "" + (d.getDate() - 1),
+      year = d.getFullYear();
 
-    if (month.length < 2) 
-        month = '0' + month;
-    if (day.length < 2) 
-        day = '0' + day;
+    if (month.length < 2) month = "0" + month;
+    if (day.length < 2) day = "0" + day;
 
-    return [year, month, day].join('-');
-}
+    return [year, month, day].join("-");
+  }
 
   // 날짜 관련 코드
   const now = new Date(); // 현재 시간
@@ -335,7 +330,6 @@ function TRedit() {
   const koreaTimeDiff = 9 * 60 * 60 * 1000;
   const koreaNow = new Date(utcNow + koreaTimeDiff);
   const today = koreaNow.toISOString().split("T")[0];
-
 
   // 수강중강의 관련 코드
   const [lectureList, setlectureList] = useState([]);
@@ -357,7 +351,7 @@ function TRedit() {
         return window.alert(err);
       });
     if (existlecture["version"] !== newlecture["version"]) {
-      window.alert("강의가 업데이트 되었습니다. 다시 시도해주세요.")
+      window.alert("강의가 업데이트 되었습니다. 다시 시도해주세요.");
       const newlectureList = [];
       for (let lectureID of stuDB["수강중강의"]) {
         let newlecture = await axios
@@ -375,7 +369,7 @@ function TRedit() {
         newlectureList.push(newlecture);
       }
       setlectureList(newlectureList);
-      return
+      return;
     }
     newlecture["lastrevise"] = today;
     newlecture["version"] += 1;
@@ -460,14 +454,14 @@ function TRedit() {
       for (let lecture of lectureList) {
         for (let assignID of lecture["students"][paramID]["진행중과제"]) {
           if (today === lecture["assignments"][assignID]["과제기한"]) {
-            if (window.confirm(`${lecture["assignments"][assignID]["과제내용"]}(이)가 오늘까지 입니다. 저장을 진행하시겠습니까?`) === false) return false
+            if (window.confirm(`${lecture["assignments"][assignID]["과제내용"]}(이)가 오늘까지 입니다. 저장을 진행하시겠습니까?`) === false) return false;
           }
         }
       }
     }
 
     if (TR.작성매니저 && TR.매니저피드백.length < 40) {
-      window.alert("귀가 피드백은 최소 40자 이상 입력되어야 합니다.")
+      window.alert("귀가 피드백은 최소 40자 이상 입력되어야 합니다.");
       return false;
     }
 
@@ -542,7 +536,28 @@ function TRedit() {
   const [selectedDate, setselectedDate] = useState(paramDate);
   const isInitialMount = useRef(true);
 
+  const [thisWeekAssignments, setThisWeekAssignments] = useState([]);
   useEffect(async () => {
+    // 오늘 마감인 해당 학생의 강의 과제를 가져온다 (post 방식 사용)
+    const requestArgument = { studentID: paramID, today_date: paramDate};
+
+    let thisWeekAssignmentData = await axios
+      .post(`/api/StudentTodayAssignment/`, requestArgument)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return window.push("/");
+        } else if (result["data"] !== null) {
+          return result["data"];
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    // thisWeekAssignmentData = processThisWeekAssignmentData(thisWeekAssignmentData);
+    setThisWeekAssignments(thisWeekAssignmentData);
+    console.log("check: ", thisWeekAssignmentData);
+
     const newstuDB = await axios
       .get(`/api/StudentDB/${paramID}`)
       .then((result) => {
@@ -600,20 +615,20 @@ function TRedit() {
     isInitialMount.current = false;
   }, [paramDate]);
 
-  async function setGoalsAndGetProgress(){
+  async function setGoalsAndGetProgress() {
     const newthisweekGoal = await axios
-    .get(`/api/Weeklystudyfeedback/${paramID}/${formatDate(getThisWeek(formatDate(paramDate))[1])}`)
-    .then((result) => {
-      if (result["data"] !== null) {
-        console.log(result["data"]["thisweekGoal"]);
-        return result["data"]["thisweekGoal"]
-      }
-    })
-    .catch((err) => {
-      return err;
-    });
+      .get(`/api/Weeklystudyfeedback/${paramID}/${formatDate(getThisWeek(formatDate(paramDate))[1])}`)
+      .then((result) => {
+        if (result["data"] !== null) {
+          console.log(result["data"]["thisweekGoal"]);
+          return result["data"]["thisweekGoal"];
+        }
+      })
+      .catch((err) => {
+        return err;
+      });
     await setthisweekGoal(newthisweekGoal);
-    if(thisweekGoal && newthisweekGoal && newthisweekGoal.hasOwnProperty(TR["요일"][0])){
+    if (thisweekGoal && newthisweekGoal && newthisweekGoal.hasOwnProperty(TR["요일"][0])) {
       await settodayGoal(thisweekGoal[TR["요일"][0]]);
     }
     /*let newThisWeekProgress=await getThisWeekProgress();
@@ -624,7 +639,7 @@ function TRedit() {
     //collectBookNamesFromProgressAndGoal();
   }
 
-  useEffect(async() => {
+  useEffect(async () => {
     if (!isInitialMount.current) {
       const newTR = JSON.parse(JSON.stringify(TR));
       const trDate = new Date(TR.날짜);
@@ -633,23 +648,22 @@ function TRedit() {
       await setTR(newTR);
     }
 
-    const newthisweek=getThisWeek(TR.날짜);
-    let sameweek=true;
-    for(let i=0; i<newthisweek.length; i++){
-      if(newthisweek[i].getTime()!=thisweek[i].getTime()){
-        sameweek=false;
+    const newthisweek = getThisWeek(TR.날짜);
+    let sameweek = true;
+    for (let i = 0; i < newthisweek.length; i++) {
+      if (newthisweek[i].getTime() != thisweek[i].getTime()) {
+        sameweek = false;
         break;
       }
     }
-    if(!sameweek){
+    if (!sameweek) {
       await setthisweek(newthisweek);
     }
-    
   }, [TR.날짜]);
 
-  useEffect(async ()=>{
+  useEffect(async () => {
     await setGoalsAndGetProgress();
-  },[thisweek]);
+  }, [thisweek]);
 
   useEffect(() => {
     if (!isInitialMount.current) {
@@ -721,7 +735,7 @@ function TRedit() {
                   variant="secondary"
                   className="btn-commit btn-attend"
                   onClick={() => {
-                  change_depth_one("결석여부", false);
+                    change_depth_one("결석여부", false);
                     console.log(TR);
                   }}
                 >
@@ -942,10 +956,7 @@ function TRedit() {
                               <p className="fs-13px">{a.총교재량}</p>
                             </td>
                             <td>
-                            <p className="fs-13px">
-                              {todayGoal ? todayGoal[a.교재]
-                              : null}
-                              </p>
+                              <p className="fs-13px">{todayGoal ? todayGoal[a.교재] : null}</p>
                             </td>
                             <td>
                               <input
@@ -1180,7 +1191,6 @@ function TRedit() {
                   </Table>
                 </div>
                 {/*일간 TR 내 주간 학습 계획*/}
-
               </div>
             ) : TR.결석여부 === "등원예정" ? (
               <></>
@@ -1212,77 +1222,59 @@ function TRedit() {
                 ></textarea>
               </div>
             )}
-            {
-              checkTodayIsSunday()? (
+            {checkTodayIsSunday() ? (
               <div mt-3>
                 <div className="trCard">
-                  {
-                    checkWeekProgressTableNeeded()?
-                    (<Table striped hover size="sm" className="mt-3">
+                  {checkWeekProgressTableNeeded() ? (
+                    <Table striped hover size="sm" className="mt-3">
                       <thead>
-                        <th width="30%">
-                          교재명
-                        </th>
-                        {
-                          weekDays.map((day,dayIndex)=>{
-                            return (
-                              <th key={dayIndex} width="10%">
-                                {day}
-                              </th>
-                            );
-                          })
-                        }
+                        <th width="30%">교재명</th>
+                        {weekDays.map((day, dayIndex) => {
+                          return (
+                            <th key={dayIndex} width="10%">
+                              {day}
+                            </th>
+                          );
+                        })}
                       </thead>
                       <tbody>
-                        {
-                          bookNamesList.map((bookName,bookNameIndex)=>{
-                            return(
-                              <tr key={bookNameIndex}>
-                                <td>
-                                  <p m-0="true">
-                                    <strong>
-                                      {bookName} {bookNamesDictionary[bookName] ? `(총 ${bookNamesDictionary[bookName]})` : null}
-                                    </strong>
-                                  </p>
-                                </td>
-                                {
-                                  weekDays.map((day,dayIndex)=>{
-                                    return(
-                                      <td key={dayIndex}>
-                                        <div className="studyPercentageBox">
-                                          <p>
-                                            <strong>
-                                              {
-                                                getProgressFromDayAndBook(day+"요일",bookName)?
-                                                getProgressFromDayAndBook(day+"요일",bookName)
-                                                :"-"
-                                              }
-                                            </strong>
-                                            /
-                                            {
-                                              (thisweekGoal && getGoalFromDayAndBook(day,bookName))
-                                              ? (getGoalFromDayAndBook(day,bookName))
-                                              : "-"
-                                            }
-                                          </p>
-                                        </div>
-                                      </td>
-                                    );
-                                  })
-                                }
-                              </tr>
-                            );
-                          })
-                          
-                        }
+                        {bookNamesList.map((bookName, bookNameIndex) => {
+                          return (
+                            <tr key={bookNameIndex}>
+                              <td>
+                                <p m-0="true">
+                                  <strong>
+                                    {bookName} {bookNamesDictionary[bookName] ? `(총 ${bookNamesDictionary[bookName]})` : null}
+                                  </strong>
+                                </p>
+                              </td>
+                              {weekDays.map((day, dayIndex) => {
+                                return (
+                                  <td key={dayIndex}>
+                                    <div className="studyPercentageBox">
+                                      <p>
+                                        <strong>
+                                          {getProgressFromDayAndBook(day + "요일", bookName) ? getProgressFromDayAndBook(day + "요일", bookName) : "-"}
+                                        </strong>
+                                        /{thisweekGoal && getGoalFromDayAndBook(day, bookName) ? getGoalFromDayAndBook(day, bookName) : "-"}
+                                      </p>
+                                    </div>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
                       </tbody>
-                    </Table>)
-                    :(<p><strong>이번 주 학습 목표, 학습 진행 상황이 없습니다</strong></p>)
-                  }
+                    </Table>
+                  ) : (
+                    <p>
+                      <strong>이번 주 학습 목표, 학습 진행 상황이 없습니다</strong>
+                    </p>
+                  )}
                 </div>
-              </div>)
-              :null
-            }
+              </div>
+            ) : null}
           </div>
         </div>
         {/* <div className="col-xl-2 trCol">
@@ -1309,105 +1301,6 @@ function TRedit() {
 
         <div className="col-xl-6 trCol">
           <div className="trCard">
-          {/* <h5 className="fw-bold">
-              <strong>[ 수강중 강의 ]</strong>
-            </h5>
-            {lectureList.map((lecture, idx) => {
-              return (
-                <Accordion key={idx} className="mt-2" defaultActiveKey="0">
-                  <Accordion.Item eventKey="0">
-                    <Accordion.Header>
-                      <p>
-                        {lecture["lectureName"]}({lecture["students"][paramID]["진행중과제"].length})
-                      </p>
-                    </Accordion.Header>
-                    <Accordion.Body>
-                      {lecture["students"][paramID]["진행중과제"].map((assign, idx) => {
-                        return (
-                          <ul key={idx}>
-                            <p>
-                              {lecture["assignments"][assign]["과제내용"]} /
-                              <p
-                                className={
-                                  today < lecture["assignments"][assign]["과제기한"]
-                                    ? "after"
-                                    : today == lecture["assignments"][assign]["과제기한"]
-                                    ? "now"
-                                    : "before"
-                                }
-                              >
-                                {lecture["assignments"][assign]["과제기한"]}
-                              </p>
-                              <Button
-                                className="ms-2 btn-del"
-                                onClick={() => {
-                                  if (!window.confirm("과제를 완료 처리하시겠습니까?")) {
-                                    return;
-                                  }
-                                  const newlectureList = [...lectureList];
-                                  const newlecture = JSON.parse(JSON.stringify(lecture));
-                                  newlecture["students"][paramID]["진행중과제"].splice(idx, 1);
-                                  newlecture["students"][paramID]["완료된과제"].push([assign, today]);
-                                  newlectureList[idx] = newlecture;
-                                  setlectureList(newlectureList);
-                                  updatelecture(newlecture);
-                                }}
-                              >
-                                <CgMailForward></CgMailForward>
-                              </Button>
-                            </p>
-                          </ul>
-                        );
-                      })}
-                      <Accordion className="mt-3">
-                        <Accordion.Item eventKey="0">
-                          <Accordion.Header>
-                            <p>완료된 과제({lecture["students"][paramID]["완료된과제"].length})</p>
-                          </Accordion.Header>
-                          <Accordion.Body>
-                            {lecture["students"][paramID]["완료된과제"].map((assign, idx) => {
-                              return (
-                                <ul key={idx}>
-                                  <p>
-                                    {lecture["assignments"][assign[0]]["과제내용"]} /
-                                    <p className={assign[1] <= lecture["assignments"][assign[0]]["과제기한"] ? "after" : "before"}>
-                                      {lecture["assignments"][assign[0]]["과제기한"]}
-                                    </p>{" "}
-                                    / {assign[1]}
-                                    <Button
-                                      className="ms-2 btn-del"
-                                      onClick={() => {
-                                        if (!window.confirm("과제를 완료해제 처리하시겠습니까? \n기록된 완료날짜가 삭제됩니다.")) {
-                                          return;
-                                        }
-                                        const newlectureList = [...lectureList];
-                                        const newlecture = JSON.parse(JSON.stringify(lecture));
-                                        newlecture["students"][paramID]["완료된과제"].splice(idx, 1);
-                                        newlecture["students"][paramID]["진행중과제"].push(assign[0]);
-                                        newlecture["students"][paramID]["진행중과제"].sort((a, b) => {
-                                          return +(newlecture["assignments"][a]["과제기한"] > newlecture["assignments"][b]["과제기한"]) - 0.5;
-                                        });
-                                        newlectureList[idx] = newlecture;
-                                        setlectureList(newlectureList);
-                                        updatelecture(newlecture);
-                                      }}
-                                    >
-                                      <FaUndo></FaUndo>
-                                    </Button>
-                                  </p>
-                                </ul>
-                              );
-                            })}
-                          </Accordion.Body>
-                        </Accordion.Item>
-                      </Accordion>
-                    </Accordion.Body>
-                  </Accordion.Item>
-                </Accordion>
-              );
-            })} */}
-
-            
             <div className="d-flex mt-3 mb-3 justify-content-center">
               <div className="feedback-sub">
                 <h5 className="fw-bold">
@@ -1630,7 +1523,7 @@ function TRedit() {
                       })
                       .catch(function (err) {
                         window.alert(err, "삭제에 실패했습니다 개발/데이터 팀에게 문의해주세요");
-                      })
+                      });
                   }
                 }}
               >
