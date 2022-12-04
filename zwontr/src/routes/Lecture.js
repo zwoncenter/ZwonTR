@@ -499,7 +499,7 @@ function Lecture() {
     setlecture(newlecture);
     let tmpassignment = JSON.parse(JSON.stringify(newassignment));
     tmpassignment["lectureID"] = newlecture["_id"];
-    console.log("tmpassignment: "+JSON.stringify(tmpassignment));
+    // console.log("tmpassignment: "+JSON.stringify(tmpassignment));
     // setnewassignment(tmpassignment);
 
     //강의 수강중인 학생 명단을 StudentOfLecture를 통해 가져옴
@@ -564,7 +564,7 @@ function Lecture() {
       return assignment;
     })
     setAssignments(existingAssignments);
-    console.log("assignments: ", existingAssignments);
+    // console.log("assignments: ", existingAssignments);
   }, [lecture]);
 
   const [textbook, settextbook] = useState([]);
@@ -1062,7 +1062,7 @@ function Lecture() {
         {/* 학생리스트 */}
         <div className="col-md-8">
           <div className="assignmentContainer">
-            <h5 className="btn-add">과제 O</h5>
+            {/* {<h5 className="btn-add">과제 O</h5>
             <div className="assignmentSubContainer">
               {lecture["studentList"]
                 .filter((student) => lecture["students"][student]["진행중과제"].length !== 0)
@@ -1168,8 +1168,8 @@ function Lecture() {
                     </div>
                   );
                 })}
-            </div>
-            <h4 className="btn-add">과제 X</h4>
+            </div>} */}
+            {/* {<h4 className="btn-add">과제 X</h4>
             <div className="assignmentSubContainer">
               {lecture["studentList"]
                 .filter((student) => lecture["students"][student]["진행중과제"].length === 0)
@@ -1233,12 +1233,7 @@ function Lecture() {
                     </div>
                   );
                 })}
-              {/* {
-                  console.log("list:"+JSON.stringify(studentOfLectureList.map((e,idx)=>{
-                    return e["studentID"];
-                  })))?null:null
-                } */}
-            </div>
+            </div>} */}
 
             {/* {<h4 className="btn-add">수강생 불러오기 test</h4>
             <div className="assignmentSubContainer">
@@ -1270,7 +1265,7 @@ function Lecture() {
                 })}
             </div>} */}
 
-            <h4 className="btn-add">과제 O mimiced</h4>
+            <h4 className="btn-add">과제 O</h4>
             <div className="assignmentSubContainer">
             {Object.keys(lectureAssignments).map((studentName,index)=>{
 
@@ -1405,7 +1400,7 @@ function Lecture() {
             })}
             </div>
 
-            <h4 className="btn-add">과제 X mimiced</h4>
+            <h4 className="btn-add">과제 X</h4>
             <div className="assignmentSubContainer">
               {Object.keys(lectureAssignments)
                 .map((studentName, index) => {
@@ -1514,7 +1509,7 @@ function Lecture() {
                         className="lectureEditingBtn btn-edit me-1"
                         variant="secondary"
                         onClick={() => {
-                          console.log(assignments);
+                          // console.log(assignments);
                           // setselectedAssign(assignID);
                           // if (selectedAssign&&selectedAssign['pageRangeArray'].length==0){
                           //  let selectedAssign = {...selectedAssign};
