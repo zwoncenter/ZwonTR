@@ -87,6 +87,7 @@ function WeeklystudyfeedbackEdit() {
     ret.forEach((element)=>{
       element["textbookName"]=element["textbookName"].length>0?element["textbookName"][0]:"";
       element["dayIndex"]=((new Date(element["duedate"])).getDay()+6)%7; //0:monday, 7:sunday
+      if(element["dayIndex"]==6) element["dayIndex"]=5;
     })
     return ret;
   }
@@ -96,14 +97,14 @@ function WeeklystudyfeedbackEdit() {
 
   //과제 상세를 보여주는 modal 관련 코드
   const [assignmentDescriptionModal,setAssignmentDescriptionModal]= useState(false);
-  const [displayedAssignment,setDisplayedAssignment]= useState({});
+  const [displayedAssignment,setDisplayedAssignment]= useState(null);
   const assignmentDescriptionModalOpen= (targetAssignment)=>{
     setAssignmentDescriptionModal(true);
     setDisplayedAssignment(targetAssignment);
-    console.log("tass:"+JSON.stringify(targetAssignment));
   };
   const assignmentDescriptionModalClose= ()=>{
     setAssignmentDescriptionModal(false);
+    setDisplayedAssignment(null);
   };
 
   useEffect(async () => {
@@ -207,40 +208,60 @@ function WeeklystudyfeedbackEdit() {
 
       <Modal show={assignmentDescriptionModal} onHide={assignmentDescriptionModalClose}>
         <Modal.Header closeButton>
-          <Modal.Title>과제 추가</Modal.Title>
+          <Modal.Title>과제 상세</Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center">
           <div className="row mb-2">
-            <div className="col-3">사용 교재</div>
-            <div className="col-9">
-            </div>
+            <div className="col-3">강의명</div>
+            <div className="col-9">{displayedAssignment?displayedAssignment["lectureName"]:null}</div>
           </div>
           <div className="row mb-2">
           </div>
           <div className="row mb-2">
             <div className="col-3">세부 내용</div>
-            <div className="col-9">
-            </div>
+            <div className="col-9">{displayedAssignment?displayedAssignment["description"]:null}</div>
           </div>
 
           <div className="row mb-2">
             <div className="col-3">과제 기한</div>
-            <div className="col-9">
-            </div>
-          </div>
-          <div className="check-all w-100 mb-3">
+            <div className="col-9">{displayedAssignment?displayedAssignment["duedate"]:null}</div>
           </div>
 
-          <div className="row">
-          </div>
+          {displayedAssignment && displayedAssignment["textbookName"]?
+          (<div className="row mb-2">
+            <div className="col-3">사용 교재</div>
+            <div className="col-9">{displayedAssignment["textbookName"]}</div>
+          </div>)
+          :
+          null}
 
-          <Button className="btn-secondary program-add"
-          onClick={() => {
+          {displayedAssignment && displayedAssignment["pageRangeArray"][0][0]?
+          (<>
+            {displayedAssignment["pageRangeArray"].map((range,idx)=>{
+              if(idx>0){
+                return (<div className="row mb-2">
+                  <div className="col-3">-</div>
+                  <div className="col-9">{displayedAssignment["pageRangeArray"][idx][0]} ~ {displayedAssignment["pageRangeArray"][idx][1]}</div>
+                  </div>
+                );
+              }
+              else{
+                return (
+                  <div className="row mb-2" key={idx}>
+                    <div className="col-3">과제 범위</div>
+                    <div className="col-9" key={idx}>{displayedAssignment?displayedAssignment["pageRangeArray"][idx][0]:null} ~ {displayedAssignment?displayedAssignment["pageRangeArray"][idx][1]:null}</div>
+                  </div>
+                );
+              }
+            })}
             
-          }}
-          type="button">
-            <strong>+</strong>
-          </Button>
+          </>)
+          :
+          null}
+          <div className="row mb-2">
+            <div className="col-3">과제 기한</div>
+            <div className="col-9">{displayedAssignment!==null?displayedAssignment["duedate"]:null}</div>
+          </div>
         </Modal.Body>
       </Modal>
 
