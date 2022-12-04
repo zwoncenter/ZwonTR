@@ -1,11 +1,12 @@
 import "./TRWriteEdit.scss";
-import { Form, Button, Card, ListGroup, Table, Modal, Row, Col, Accordion } from "react-bootstrap";
+import { Form, Button, Card, ListGroup, Table, Modal, Row, Col, Accordion, OverlayTrigger, Popover } from "react-bootstrap";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import TimePicker from "react-time-picker";
-import { FaPencilAlt, FaTrash, FaCheck, FaUndo } from "react-icons/fa";
-import { CgMailForward } from "react-icons/cg";
+// import { FaPencilAlt, FaTrash, FaCheck, FaUndo } from "react-icons/fa";
+// import { CgMailForward } from "react-icons/cg";
+import { BsFillChatSquareFill } from "react-icons/bs";
 
 function TRedit() {
   // 공통 code
@@ -539,7 +540,7 @@ function TRedit() {
   const [thisWeekAssignments, setThisWeekAssignments] = useState([]);
   useEffect(async () => {
     // 오늘 마감인 해당 학생의 강의 과제를 가져온다 (post 방식 사용)
-    const requestArgument = { studentID: paramID, today_date: paramDate};
+    const requestArgument = { studentID: paramID, today_date: paramDate };
 
     let thisWeekAssignmentData = await axios
       .post(`/api/StudentTodayAssignment/`, requestArgument)
@@ -899,14 +900,84 @@ function TRedit() {
 
                 <div className="trCard">
                   <Table striped hover size="sm" className="mt-3">
+                  <thead>
+                      <tr>
+                        <th width="10%">강사</th>
+                        <th width="20%">강의명</th>
+                        <th width="25%">교재</th>
+                        <th width="15%">과제범위</th>
+                        <th width="10%">세부사항</th>
+                        <th width="10%">완료여부</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {thisWeekAssignments.map(function (a, i) {
+                        return (
+                          <tr key={i}>
+                            <td>
+                              <p>{a["manager"]}</p>
+                            </td>
+                            <td>
+                              <p>{a["lectureName"]}</p>
+                            </td>
+                            <td>
+                              <p>{a["textbookName"][0]}</p>
+                            </td>
+                            <td>
+                              <p className="fs-13px">
+                                {a["pageRangeArray"].map((page, idx) => {
+                                  return (
+                                    <p>
+                                      {page[0]} 부터 {page[1]} 까지
+                                    </p>
+                                  );
+                                })}
+                              </p>
+                            </td>
+                            <td>
+                              {a["description"] != "" ? (
+                                <OverlayTrigger
+                                  trigger="click"
+                                  placement="right"
+                                  overlay={
+                                    <Popover id="popover-basic">
+                                      <Popover.Body>{a["description"]}</Popover.Body>
+                                    </Popover>
+                                  }
+                                >
+                                  <Button>
+                                    <BsFillChatSquareFill></BsFillChatSquareFill>
+                                  </Button>
+                                </OverlayTrigger>
+                              ) : (
+                                "-"
+                              )}
+                            </td>
+                            <td>
+                              {/* <Form.Check
+                                className="AssignmentCheck"
+                                type="checkbox"
+                                checked={a['finished']}
+                                onChange={(e) => {
+                                  // api 변경
+                                }}
+                              /> */}
+                              준비중
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    </Table>
+                    <Table striped hover size="sm" className="mt-3">
                     <thead>
                       <tr>
                         <th width="15%">학습</th>
-                        <th>교재</th>
+                        <th width="15%">교재</th>
                         <th width="10%">총교재량</th>
-                        <th width="10%">오늘목표량 (까지)</th>
-                        <th width="15%">최근진도</th>
-                        <th width="15%">학습시간</th>
+                        <th width="10%">오늘목표량</th>
+                        <th width="10%">최근진도</th>
+                        <th width="10%">학습시간</th>
                         <th width="10%"></th>
                       </tr>
                     </thead>

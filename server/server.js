@@ -1515,8 +1515,8 @@ app.post("/api/ThisWeekAssignment/", loginCheck, async (req,res)=>{
         $addFields: {
           lectureName:"$Lecture_agg.lectureName",
           textbookName:"$TextBook_agg.교재",
-          finished: "$agg_fields.finished",
-          finished_date: "$agg_fields.finished_date",
+          finished: "$AssignmentOfStudent_agg.finished",
+          finished_date: "$AssignmentOfStudent_agg.finished_date",
         },
       },
       {
@@ -1545,11 +1545,11 @@ app.post("/api/ThisWeekAssignment/", loginCheck, async (req,res)=>{
 
 app.post("/api/StudentTodayAssignment/", loginCheck, async (req,res)=>{
   const request_arguments=req.body;
-  if(!("studentID" in request_arguments) || !("lastSundayDate" in request_arguments)){
+  if(!("studentID" in request_arguments) || !("today_date" in request_arguments)){
     return res.json([]);
   }
   const student_legacy_id=request_arguments["studentID"];
-  const today_date=request_arguments["lastSundayDate"];
+  const today_date=request_arguments["today_date"];
   console.log(today_date);
   let ret_val;
   try{
@@ -1587,10 +1587,11 @@ app.post("/api/StudentTodayAssignment/", loginCheck, async (req,res)=>{
       },
       {
         $addFields: {
+          manager: "$Lecture_agg.manager",
           lectureName:"$Lecture_agg.lectureName",
           textbookName:"$TextBook_agg.교재",
-          finished: "$agg_fields.finished",
-          finished_date: "$agg_fields.finished_date",
+          finished: "$AssignmentOfStudent_agg.finished",
+          finished_date: "$AssignmentOfStudent_agg.finished_date",
         },
       },
       {
@@ -1603,6 +1604,7 @@ app.post("/api/StudentTodayAssignment/", loginCheck, async (req,res)=>{
           startdate:1,
           finished: 1,
           finished_date: 1,
+          manager: 1
         },
       },
     ]).toArray();
@@ -1614,6 +1616,10 @@ app.post("/api/StudentTodayAssignment/", loginCheck, async (req,res)=>{
     return res.json(ret_val);
   }
 });
+
+
+
+
 
 // stickynote 관련 코드
 
