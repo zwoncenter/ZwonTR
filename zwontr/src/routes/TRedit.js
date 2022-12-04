@@ -907,7 +907,7 @@ function TRedit() {
                         <th width="25%">교재</th>
                         <th width="15%">과제범위</th>
                         <th width="10%">세부사항</th>
-                        <th width="10%">완료여부</th>
+                        {/* <th width="10%">완료여부</th> */}
                       </tr>
                     </thead>
                     <tbody>
@@ -926,11 +926,9 @@ function TRedit() {
                             <td>
                               <p className="fs-13px">
                                 {a["pageRangeArray"].map((page, idx) => {
-                                  return (
-                                    <p>
-                                      {page[0]} 부터 {page[1]} 까지
-                                    </p>
-                                  );
+                                  if (page[0]!=""){
+                                    return(<p>{page[0]} 부터 {page[1]} 까지</p>);
+                                  }
                                 })}
                               </p>
                             </td>
@@ -953,17 +951,16 @@ function TRedit() {
                                 "-"
                               )}
                             </td>
-                            <td>
-                              {/* <Form.Check
+                            {/* <td>
+                              <Form.Check
                                 className="AssignmentCheck"
                                 type="checkbox"
                                 checked={a['finished']}
                                 onChange={(e) => {
                                   // api 변경
                                 }}
-                              /> */}
-                              준비중
-                            </td>
+                              />
+                            </td> */}
                           </tr>
                         );
                       })}
