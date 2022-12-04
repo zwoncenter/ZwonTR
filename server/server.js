@@ -991,8 +991,13 @@ app.post("/api/Assignment", loginCheck, async (req, res) => {
     delete newAssign["studentList"];
     const lect_id = new ObjectId(newAssign["lectureID"]);
     const textbook_id = new ObjectId(newAssign["textbookID"]);
+    const lecture_doc= await db.collection("Lecture").findOne({_id:lect_id}); // to check if there is such lecture document in mongodb
+    const textbook_doc= await db.collection("TextBook").findOne({_id:textbook_id}); // to check if there is such textbook document in mongodb
+    if(!lecture_doc){
+      throw new Error("등록된 강의가 없습니다");
+    }
     newAssign["lectureID"] = lect_id;
-    newAssign["textbookID"] = textbook_id;
+    newAssign["textbookID"] = textbook_doc?textbook_id:"";
     const new_assignment_id=new ObjectId();
     newAssign["_id"] = new_assignment_id;
     await db.collection('Assignment').insertOne(newAssign,{session});
