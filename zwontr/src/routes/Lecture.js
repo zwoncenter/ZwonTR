@@ -542,6 +542,10 @@ function Lecture() {
   }, []);
 
   const [assignments, setAssignments] = useState([]);
+  //assignments state의 pageRangeArray가 비었는지 확인하는 함수
+  function checkPageRangeArrayEmpty(pageRangeArray){
+    return !!pageRangeArray[0][0];
+  }
   //현재 강의의 assignment 가져오기
   useEffect(async () => {
     if (!("_id" in lecture)) return;
@@ -568,6 +572,13 @@ function Lecture() {
   }, [lecture]);
 
   const [textbook, settextbook] = useState([]);
+  //assignments state에 들어있는 textbookID로 textbook array에 있는 textbookName을 가져오는 함수
+  function getTextbookNameFromID(textbookID){
+    const ret=textbook.filter((element,idx)=>{
+      return element["textbookID"] === textbookID;
+    })[0];
+    return ret?ret["textbookName"]:null;
+  }
   // const [selectedTextbook, setselectedTextbook] = useState(null);
   //매칭되는 textbook의 _id, 이름을 가져오기
   useEffect(async () => {
@@ -1501,7 +1512,13 @@ function Lecture() {
                 return (
                   <ListGroup.Item key={index}>
                     <p>
-                      <strong>{assignID["description"]}</strong>
+                      <strong>{getTextbookNameFromID(assignID["textbookID"])}</strong>
+                    </p>
+                    {checkPageRangeArrayEmpty(assignID["pageRangeArray"])?assignID["pageRangeArray"].map((range,ridx)=>{
+                      return (<p key={ridx}>{range[0]} ~ {range[1]}</p>);
+                    }):null}
+                    <p>
+                      {assignID["description"]}
                     </p>
                     <p>{assignID["duedate"]} 까지</p>
                     <div>

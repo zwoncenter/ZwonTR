@@ -74,10 +74,11 @@ function WeeklystudyfeedbackEdit() {
     // if (isInitialMount.current === false) {
     //   setthisweek(getThisWeek(param["feedbackDate"]));
     // }
-    if(mounted===true){
-      setthisweek(getThisWeek(param["feedbackDate"]));
-    }
-  }, [param]);
+    // if(mounted===true){
+    //   setthisweek(getThisWeek(param["feedbackDate"]));
+    // }
+    setthisweek(getThisWeek(param["feedbackDate"]));
+  }, [param["feedbackDate"]]);
 
   //이번주에 있는 강의과제 관련 코드
   const [thisWeekAssignments,setThisWeekAssignments]= useState([]);
@@ -173,7 +174,6 @@ function WeeklystudyfeedbackEdit() {
     });
     thisWeekAssignmentData= processThisWeekAssignmentData(thisWeekAssignmentData);
     setThisWeekAssignments(thisWeekAssignmentData);
-
 
     //isInitialMount.current = false;
     setMounted(true);
@@ -455,7 +455,7 @@ function WeeklystudyfeedbackEdit() {
                     <td>
                       <p m-0="true">
                         <strong>
-                          [강의] {assignment["lectureName"]}
+                          [강의] {assignment["textbookName"]?assignment["textbookName"]:assignment["lectureName"]}
                         </strong>
                       </p>
                     </td>
