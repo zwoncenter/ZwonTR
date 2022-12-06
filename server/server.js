@@ -296,7 +296,7 @@ app.put("/api/TR", loginCheck, function (req, res) {
   const newTR = req.body;
   let findID;
   try {
-    findID = new bjectId(newTR._id);
+    findID = new ObjectId(newTR._id);
   } catch (err) {
     return res.send(`invalid access`);
   }
