@@ -979,7 +979,14 @@ app.put("/api/Assignment", loginCheck, (req, res) => {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const newAssignment = req.body;
-  const findID = ObjectId(newAssignment["assignmentID"]);
+  let findID;
+  try{
+    findID = new ObjectId(newAssignment["assignmentID"]);
+    newAssignment["textbookID"]= new ObjectId(newAssignment["textbookID"]);
+  }
+  catch(error){
+    return res.send(`invalid access  ${error}`);
+  }
   delete newAssignment["assignmentID"];
   db.collection("Assignment").updateOne({ _id: findID }, { $set: newAssignment }, (err, result) => {
     if (err) {
