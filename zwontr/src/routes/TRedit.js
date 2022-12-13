@@ -907,7 +907,7 @@ function TRedit() {
                         <th width="25%">교재</th>
                         <th width="15%">과제범위</th>
                         <th width="10%">세부사항</th>
-                        {/* <th width="10%">완료여부</th> */}
+                        <th width="10%">완료여부</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -951,7 +951,7 @@ function TRedit() {
                                 "-"
                               )}
                             </td>
-                            {/* <td>
+                            <td>
                               <Form.Check
                                 className="AssignmentCheck"
                                 type="checkbox"
@@ -960,7 +960,7 @@ function TRedit() {
                                   // api 변경
                                 }}
                               />
-                            </td> */}
+                            </td>
                           </tr>
                         );
                       })}
