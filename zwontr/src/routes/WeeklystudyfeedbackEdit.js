@@ -172,7 +172,9 @@ function WeeklystudyfeedbackEdit() {
     .catch((err) => {
       console.log(err);
     });
+    // console.log("twad raw:"+JSON.stringify(thisWeekAssignmentData));
     thisWeekAssignmentData= processThisWeekAssignmentData(thisWeekAssignmentData);
+    // console.log("twad:"+JSON.stringify(thisWeekAssignmentData));
     setThisWeekAssignments(thisWeekAssignmentData);
 
     //isInitialMount.current = false;
