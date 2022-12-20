@@ -103,6 +103,8 @@ function StuInfoAdd() {
     진행중교재: [],
     완료된교재: [],
     프로그램분류: ["자기인식", "진로탐색", "헬스", "외부활동", "독서", "외국어"],
+    graduated:false, //센터 졸업 여부 플래그
+    graduated_date:"", //센터 졸업일
   };
   const [stuInfo, setstuInfo] = useState(writeform);
   function phoneNumber(value) {

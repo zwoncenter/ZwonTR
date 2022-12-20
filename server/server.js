@@ -117,6 +117,19 @@ function loginCheck(req, res, next) {
   }
 }
 
+//
+function getCurrentKoreaDateYYYYMMDD(){
+  const curr=new Date();
+  const utc = 
+      curr.getTime() + 
+      (curr.getTimezoneOffset() * 60 * 1000);
+
+  const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
+  const kr_curr = 
+        new Date(utc + (KR_TIME_DIFF));
+  return [kr_curr.getFullYear(),kr_curr.getMonth()+1,kr_curr.getDate()].join("-");
+}
+
 // collection 중 StudentDB의 모든 Document find 및 전송
 app.get("/api/studentList", loginCheck, function (req, res) {
   db.collection("StudentDB")
@@ -128,6 +141,22 @@ app.get("/api/studentList", loginCheck, function (req, res) {
       console.log("api/studentList - find result length   :", result.length);
       res.json(result);
     });
+});
+
+// StudentDB의 모든 Document 중 graduated: false인 document만 찾는 코드
+app.get("/api/ActiveStudentList", loginCheck, async (req,res)=>{
+  const ret_val={"success":false, "ret":null};
+  try{
+    const acitve_student_list= await db.collection("StudentDB").find({"graduated":false}).toArray();
+    ret_val["success"]=true;
+    ret_val["ret"]=acitve_student_list;
+  }
+  catch(error){
+    ret_val["ret"]=`error ${error}`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
 });
 
 app.get("/api/managerList", loginCheck, (req, res) => {
@@ -229,6 +258,28 @@ app.delete("/api/StudentDB/:ID", loginCheck, function (req, res) {
       return res.send("deleteOne의 결과가 null입니다. 개발/데이터 팀에 문의해주세요.");
     }
   });
+});
+
+//학생의 상태를 졸업으로 처리(activation flag: false)하는 코드
+app.post("/api/DoGraduate/", loginCheck, async (req,res)=>{
+  const ret_val={"success":false,"ret":null};
+  try{
+    if (req["user"]["ID"] === "guest") {
+      ret_val["ret"]="게스트 계정은 저장, 수정, 삭제가 불가능합니다.";
+      return;
+    }
+    const student_legacy_id = req.body["studentLegacyID"];
+    await db.collection("StudentDB").updateOne({"ID":student_legacy_id},{"$set":{"graduated":true,"graduated_date":getCurrentKoreaDateYYYYMMDD()}});
+    ret_val["success"]=true;
+    ret_val["ret"]="successfully graduated";
+  }
+  catch(error){
+    ret_val["ret"]= `error ${error}`
+  }
+  finally{
+    return res.json(ret_val);
+  }
+  
 });
 
 // collection 중 TR의 해당 날짜의 Document find 및 전송

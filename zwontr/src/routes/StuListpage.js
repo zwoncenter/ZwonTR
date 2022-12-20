@@ -105,14 +105,36 @@ function StuListpage() {
       });
     setstickynoteValue(existstickynote);
 
+
+    // :: legacy code to get student list
+    // const newstudentDBlist = await axios
+    //   .get("/api/studentList")
+    //   .then((result) => {
+    //     // console.log(result.data);
+    //     return result.data;
+    //   })
+    //   .catch((err) => {
+    //     return err;
+    //   });
+
     const newstudentDBlist = await axios
-      .get("/api/studentList")
+      .get("/api/ActiveStudentList")
       .then((result) => {
         // console.log(result.data);
-        return result.data;
+        if(result.data==="로그인필요"){
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        }
+        else if(result.data["ret"] && result.data["success"]){
+          return result.data["ret"];
+        }
+        else{
+          window.alert(result.data["ret"]);
+          return history.push("/");
+        }
       })
       .catch((err) => {
-        return err;
+        window.alert(`error\n ${err}`);
       });
 
     if (newstudentDBlist && newstudentDBlist == "로그인필요") {
