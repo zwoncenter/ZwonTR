@@ -399,6 +399,63 @@ app.delete("/api/TR/:id", loginCheck, function (req, res) {
   });
 });
 
+app.post("/api/DailyGoalCheckLog", loginCheck, async (req,res)=>{
+  if (req["user"]["ID"] === "guest") {
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
+  }
+  let ret_val=true;
+  try{
+    //여기에 transaction으로 assignment인 경우에 state change도 해줘야됨
+    const logData= req.body;
+    const textbookID= logData["textbookID"]?new ObjectId(logData["textbookID"]):""; // should do validity check?
+    console.log("textbookid:",textbookID);
+    const AOSID= logData["AOSID"]?new ObjectId(logData["AOSID"]):"";
+    const AOSTextbookID= logData["AOSTextbookID"]?new ObjectId(logData["AOSTextbookID"]):"";
+    const studentLegacyID= logData["studentLegacyID"];
+    const finishedState=logData["finishedState"];
+    const excuse=logData["excuse"];
+    const description= logData["description"];
+
+    let date=/[\d][\d][\d][\d]-[\d][\d]-[\d][\d]/g.exec(logData["date"]);
+    if(!date){
+      ret_val=`invalid date`;
+      return;
+    }
+    date=date[0];
+    if(isNaN(new Date(date))){
+      ret_val=`invalid date`;
+      return;
+    }
+    logData["date"]=date;
+
+    const student_doc= await db.collection("StudentDB").findOne({"ID":studentLegacyID});
+    if(!student_doc){
+      ret_val=`error there is no such student`
+      return;
+    }
+    const student_id=student_doc["_id"];
+    const studentName=student_doc["이름"];
+    delete logData["studentLegacyID"];
+    logData["studentID"]=student_id;
+    logData["studentName"]=studentName;
+
+    await db.collection("DailyGoalCheckLog").updateOne(
+      {"textbookID":textbookID,"AOSID":AOSID,"studentID":student_id,"date":date},
+      {"$set":{"AOSTextbookID":AOSTextbookID,'studentName':studentName, "description":description},"$push":{"finishedStateList":finishedState,"excuseList":excuse}},
+      {"upsert":true}
+    );
+  }
+  catch(error){
+    console.log(`error ${error}`)
+    ret_val=`error ${error}`;
+  }
+  finally{
+    return res.send(ret_val);
+  }
+  console.log("req.body:"+JSON.stringify(req.body));
+  return res.send(true);
+})
+
 app.post("/api/Closemeeting/:date", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
@@ -751,6 +808,80 @@ app.delete("/api/Textbook/:_id", loginCheck, async (req, res) => {
   //   }
   //   return res.send(true);
   // });
+});
+
+//student legacy id로 해당 학생의 모든 진행중 교재의 id를 찾아주는 코드
+app.get(`/api/TextbookInProgressOfStudent/:studentLegacyID`, loginCheck, async(req,res)=>{
+  const ret={"success":false,"ret":null};
+  try{
+    const studentLegacyID = decodeURIComponent(req.params.studentLegacyID);
+    const student_doc= await db.collection("StudentDB").findOne({"ID":studentLegacyID});
+    if(!student_doc) throw new Error("there is no such student");
+    const student_id= student_doc["_id"];
+    
+    if(!student_doc["진행중교재"] || student_doc["진행중교재"].length==0){
+      ret["success"]=true; ret["ret"]=[]; return;
+    }
+    const textbookList= student_doc["진행중교재"].map((e)=>e["교재"]); // this structure of mongodb document is problematic
+
+    const data= await db.collection("TextBook").find({"교재":{"$in":textbookList}}).project({"_id":1,"교재":1}).toArray();
+    ret["success"]=true; ret["ret"]=data;
+  }
+  catch(error){
+    ret["success"]=false; ret["ret"]=`error ${error}`;
+  }
+  finally{
+    return res.json(ret);
+  }
+});
+
+//post 방식으로 한번에 여러 교재 이름 받아서 교재의 id들을 찾아주는 코드
+app.post("/api/getTextbookIDsByTextbookName", loginCheck, async (req,res)=>{
+  const nameData= req.body;
+  let ret_val;
+  let success;
+  try{
+    const nameList=nameData["textbookNames"]?nameData["textbookNames"]:[];
+    ret_val= await db.collection("TextBook").find({"교재":{"$in":nameList}}).project({"_id":1,"교재":1}).toArray();
+    success=true;
+  }
+  catch(error){
+    ret_val=`error ${error}`;
+    success=false;
+  }
+  finally{
+    return res.json({"success":success,"ret":ret_val});
+  }
+});
+
+//학생의 legacy id와 날짜를 받아서 해당 날짜의 daily goal check log들을 찾아주는 코드
+app.get("/api/SavedDailyGoalCheckLogData/:studentLegacyID/:date", loginCheck, async (req,res)=>{
+  const ret={"success":false,"ret":null};
+  try{
+    //date validity check
+    let date= /[\d][\d][\d][\d]-[\d][\d]-[\d][\d]/g.exec(decodeURIComponent(req.params.date));
+    if(!date) throw new Error("invalid date");
+    date=date[0];
+    if(isNaN(new Date(date))) throw new Error("invalid date");
+    
+    //student validity check
+    const studentLegacyID = decodeURIComponent(req.params.studentLegacyID);
+    const student_doc= await db.collection("StudentDB").findOne({"ID":studentLegacyID});
+    if(!student_doc) throw new Error("there is no such student");
+    const student_id= student_doc["_id"];
+
+    const logData= await db.collection("DailyGoalCheckLog")
+      .find({"studentID":student_id, "date":date})
+      .project({"_id":0,"AOSID":1,"textbookID":1,"excuseList":{"$slice":-1},"finishedStateList":{"$slice":-1},"date":1})
+      .toArray();
+    ret["success"]=true; ret["ret"]=logData;
+  }
+  catch(error){
+    ret["success"]=false; ret["ret"]=`error ${error}`;
+  }
+  finally{
+    return res.json(ret);
+  }
 });
 
 // Lecture 관련 코드
@@ -1674,14 +1805,19 @@ app.post("/api/StudentTodayAssignment/", loginCheck, async (req,res)=>{
         $addFields: {
           manager: "$Lecture_agg.manager",
           lectureName:"$Lecture_agg.lectureName",
+          lectureSubject:"$Lecture_agg.subject",
           textbookName:"$TextBook_agg.교재",
           finished: "$AssignmentOfStudent_agg.finished",
           finished_date: "$AssignmentOfStudent_agg.finished_date",
+          AOSID: "$AssignmentOfStudent_agg._id",
+          AOSTextbookID: "$TextBook_agg._id"
         },
       },
       {
         $project: {
+          _id:0,
           lectureName:1,
+          lectureSubject:1,
           textbookName:1,
           pageRangeArray:1,
           description:1,
@@ -1689,7 +1825,9 @@ app.post("/api/StudentTodayAssignment/", loginCheck, async (req,res)=>{
           startdate:1,
           finished: 1,
           finished_date: 1,
-          manager: 1
+          manager: 1,
+          AOSID: 1,
+          AOSTextbookID: 1
         },
       },
     ]).toArray();

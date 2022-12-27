@@ -2,6 +2,7 @@ import "./TRWriteEdit.scss";
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col, Accordion, OverlayTrigger, Popover } from "react-bootstrap";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
+import {FaCheck, FaSistrix, FaTrash, FaTimes} from "react-icons/fa"
 import axios from "axios";
 import TimePicker from "react-time-picker";
 // import { FaPencilAlt, FaTrash, FaCheck, FaUndo } from "react-icons/fa";
@@ -171,6 +172,7 @@ function TRwrite() {
     밤샘여부: false,
 
     학습: [],
+    강의과제학습: {}, // 강의 과제 학습 시간 기록
 
     // 문제행동: [
     //   { 분류: "자해", 문제여부: false },
@@ -293,19 +295,29 @@ function TRwrite() {
     }
 
     if (TR.작성매니저 && TR.학습) {
+      let validStudyCount=0;
       for (let i = 0; i < TR.학습.length; i++) {
+        if(checkTextBookOfAssignment(TR.학습[i].교재)) continue;
+        validStudyCount++;
         if (TR.학습[i].과목 == "선택") {
-          window.alert(`${i + 1}번째 학습의 과목이 선택되지 않았습니다.`);
+          // window.alert(`${i + 1}번째 학습의 과목이 선택되지 않았습니다.`);
+          window.alert(`${validStudyCount}번째 학습의 과목이 선택되지 않았습니다.`);
           return false;
         }
         if (TR.학습[i].교재 == "선택") {
-          window.alert(`${i + 1}번째 학습의 교재가 선택되지 않았습니다.`);
+          // window.alert(`${i + 1}번째 학습의 교재가 선택되지 않았습니다.`);
+          window.alert(`${validStudyCount}번째 학습의 교재가 선택되지 않았습니다.`);
           return false;
         }
         if (!TR.학습[i].학습시간 || TR.학습[i].학습시간 === "00:00") {
+          // window.alert(
+          //   `${
+          //     i + 1
+          //   }번째 학습의 학습시간이 입력되지 않았습니다. \n학습이 진행되지 않은 경우, 해당 항목을 삭제해주세요. \n귀가 매니저가 입력된 경우, 귀가검사를 진행한 것으로 파악하고 학습시간을 입력하도록 강제해두었습니다. \n중간 저장인 경우 귀가 매니저를 선택하지 않아야 경고문이 뜨지 않습니다`
+          // );
           window.alert(
             `${
-              i + 1
+              validStudyCount
             }번째 학습의 학습시간이 입력되지 않았습니다. \n학습이 진행되지 않은 경우, 해당 항목을 삭제해주세요. \n귀가 매니저가 입력된 경우, 귀가검사를 진행한 것으로 파악하고 학습시간을 입력하도록 강제해두었습니다. \n중간 저장인 경우 귀가 매니저를 선택하지 않아야 경고문이 뜨지 않습니다`
           );
           return false;
@@ -340,6 +352,14 @@ function TRwrite() {
       window.alert("귀가 피드백은 최소 40자 이상 입력되어야 합니다.")
       return false;
     }
+
+    if(TR.작성매니저 && TR.매니저피드백){ // 마감피드백 저장 전에 오늘 과제 완료했는지 확인
+      if(!(isLectureAssignmentFinished() && isTextbookAssignmentFinished())){
+        window.alert("마감 피드백 작성 전 완료/사유작성 되지 않은 과제가 있습니다");
+        return false;
+      }
+    }
+
     return true;
   }
 
@@ -424,7 +444,7 @@ function TRwrite() {
       });
     setstuDB(newstuDB);
 
-    if ("수강중강의" in newstuDB) {
+    if ("수강중강의" in newstuDB) { //this is too slow: should be fixed later
       const newlectureList = [];
       for (let lectureID of newstuDB["수강중강의"]) {
         let newlecture = await axios
@@ -508,10 +528,237 @@ function TRwrite() {
     isInitialMount.current = false;
   }, []);
 
+  //교재 이름과 db _id를 매핑해주는 코드
+  const [textbookIDMapping,setTextbookIDMapping]= useState({}); //교재 이름과 db _id를 매핑해주는 dictionary
+  function checkTextbookIsValid(textbookName){
+    return textbookIDMapping[textbookName]?true:false;
+  }
+  useEffect(async ()=>{
+    const nameToIDArray= await axios.get(`/api/TextbookInProgressOfStudent/${paramID}`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return window.push("/");
+        } else if (result["data"] !== null) {
+          if(result["data"]["success"])
+            return result["data"]["ret"];
+          else{
+            console.log("error: "+result["data"]["ret"]);
+            return [];
+          }
+        }
+        else{
+          return [];
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    const nameToIDMapping= {};
+    nameToIDArray.forEach((e,idx)=>{
+      nameToIDMapping[e["교재"]]=e["_id"];
+    });
+    // console.log("data fnc:"+JSON.stringify(nameToIDArray));
+    setTextbookIDMapping(nameToIDMapping);
+    // console.log("name id mapping:"+JSON.stringify(nameToIDMapping));
+  },[]);
+
+  //과제 완료 여부 관련 코드
+  const dailyGoalCheckLogDataTemplate={
+    "textbookID":"",
+    "AOSID":"",
+    "AOSTextbookID":"",
+    "studentLegacyID":paramID,
+    "date":today,
+    "finishedState":"",
+    "excuse":"",
+    "description":""
+  };
+
+  //강의 과제 관련 코드
+  const [thisWeekAssignments, setThisWeekAssignments] = useState([]);
+
+  function processThisWeekAssignmentData(thisWeekAssignmentData){ //post request로 받아온 데이터 전처리
+    const ret=JSON.parse(JSON.stringify(thisWeekAssignmentData));
+    ret.forEach((e,idx)=>{
+      e["textbookName"]=e["textbookName"].length>0?e["textbookName"][0]:"";
+      e["AOSTextbookID"]=e["AOSTextbookID"].length>0?e["AOSTextbookID"][0]:"";
+    });
+    return ret;
+  }
+  function getDescriptionStringFromAssignment(assignment){
+    let ret=assignment["description"];
+    try{
+      if(assignment["textbookName"]){
+        ret+=" "+assignment["textbookName"];
+        for(let i=0; i<assignment["pageRangeArray"].length; i++){
+          let range=assignment["pageRangeArray"][i];
+          ret+=` ${range[0]}~${range[1]},`
+        }
+      }
+    }
+    catch(error){
+
+    }
+    return ret;
+  }
+  function getDailyGoalCheckLogDataFromAssignment(assignmentData,finished_flag,excuse){
+    const ret=JSON.parse(JSON.stringify(dailyGoalCheckLogDataTemplate));
+    ret["AOSID"]=assignmentData["AOSID"];
+    ret["AOSTextbookID"]=assignmentData["AOSTextbookID"];
+    ret["finishedState"]=finished_flag;
+    ret["excuse"]=excuse;
+    ret["description"]=getDescriptionStringFromAssignment(assignmentData);
+    return ret;
+  }
+  function getDailyGoalCheckLogDataFromTextbookName(textbookName,finished_flag,excuse){
+    const ret=JSON.parse(JSON.stringify(dailyGoalCheckLogDataTemplate));
+    ret["textbookID"]=textbookIDMapping[textbookName];
+    ret["finishedState"]=finished_flag;
+    ret["excuse"]=excuse;
+    ret["description"]=textbookName;
+    return ret;
+  }
+  const [textbookOfAssignment,setTextbookOfAssignment]=useState({}); // 강의 과제의 교재와 자체 진도 교재가 겹치지 않으므로 강의에서 사용되는 교재 저장
+  function checkTextBookOfAssignment(textbookName){
+    return textbookName in textbookOfAssignment;
+  }
+  function getTextbookOfAssignmentFromThisWeekAssignments(thisWeekAssignmentData){
+    const ret={};
+    for(let i=0; i<thisWeekAssignmentData.length; i++){
+      const assignment=thisWeekAssignmentData[i];
+      if(assignment["textbookName"] === "") continue;
+      ret[assignment["textbookName"]]=true;
+    }
+    return ret;
+  }
+  const [assignmentStudyTime,setAssignmentStudyTime]= useState({}); // 강의 과제의 학습 시간을 담는 dictionary
+  function getAssignmentStudyTimeElementFromAssignmentData(assignmentData){
+    return {
+      과목: assignmentData["lectureSubject"],
+      교재: assignmentData["textbookName"],
+      총교재량: "",
+      최근진도: "",
+      학습시간: "00:00",
+    };
+  }
+
+  // daily goal check log(강의 과제, 진도 교재 완료 여부) 관련 코드
+  const [savedDailyGoalCheckLogData,setSavedDailyGoalCheckLogData]= useState([]); //goal check log data in db
+  const [AOSIDToSavedGoalStateMapping,setAOSIDToSavedGoalStateMapping]=useState({}); // aosid to state goal state mapping
+  function makeAOSIDToSavedGoalStateMapping(savedDailyGoalCheckLogData){
+    const newMapping={};
+    savedDailyGoalCheckLogData.forEach((e,idx)=>{
+      if(!e["AOSID"]) return;
+      newMapping[e["AOSID"]]={"finishedState":e["finishedStateList"][0],"excuse":e["excuseList"][0]};
+    });
+    return newMapping;
+  }
+  const [textbookIDToSavedGoalStateMapping,setTextbookIDToSavedGoalStateMapping]= useState({});
+  function makeTextbookIDToSavedGoalStateMapping(savedDailyGoalCheckLogData){ // textbook id to goal state mapping
+    const newMapping={};
+    savedDailyGoalCheckLogData.forEach((e,idx)=>{
+      if(!e["textbookID"]) return;
+      newMapping[e["textbookID"]]={"finishedState":e["finishedStateList"][0],"excuse":e["excuseList"][0]};
+    });
+    return newMapping;
+  }
+
+  const goalAttributes={Assignment:0,textbookProgress:1};
+  async function updateGoalState(goalCheckData,goalAttribute,relatedID,finishedState){
+    //db update
+    let dbUpdateSuccess=false;
+    await axios
+    .post(`/api/DailyGoalCheckLog/`, goalCheckData)
+    .then((result) => {
+      if (result.data === true) {
+        window.alert("저장되었습니다.");
+        dbUpdateSuccess=true;
+        // history.push("/studentList");
+      } else if (result.data === "로그인필요") {
+        window.alert("로그인이 필요합니다.");
+        return history.push("/");
+      } else {
+        console.log(result.data);
+        window.alert(result.data);
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+
+    //page state update
+    if(dbUpdateSuccess){
+      if(goalAttribute===goalAttributes.Assignment){
+        const tmp_goalStateMapping=JSON.parse(JSON.stringify(AOSIDToSavedGoalStateMapping));
+        if(finishedState===true) tmp_goalStateMapping[relatedID]={"finishedState":true,"excuse":""};
+        else tmp_goalStateMapping[relatedID]={"finishedState":false,"excuse":goalCheckData["excuse"]};
+        setAOSIDToSavedGoalStateMapping(tmp_goalStateMapping);
+        if(relatedID in highlightedLectureAssignments){ // 완료/사유작성 안되어서 생긴 강조처리 삭제
+          const newHighlightedLectureAssignments= JSON.parse(JSON.stringify(highlightedLectureAssignments));
+          delete newHighlightedLectureAssignments[relatedID];
+          setHighlightedLectureAssignments(newHighlightedLectureAssignments);
+        }
+      }
+      else if(goalAttribute===goalAttributes.textbookProgress){
+        const tmp_goalStateMapping=JSON.parse(JSON.stringify(textbookIDToSavedGoalStateMapping));
+        if(finishedState===true) tmp_goalStateMapping[relatedID]={"finishedState":true,"excuse":""};
+        else tmp_goalStateMapping[relatedID]={"finishedState":false,"excuse":goalCheckData["excuse"]};
+        setTextbookIDToSavedGoalStateMapping(tmp_goalStateMapping);
+        if(relatedID in highlightedTextbookAssignments){ // 완료/사유작성 안되어서 생긴 강조처리 삭제
+          const newHighlightedTextbookAssignments= JSON.parse(JSON.stringify(highlightedTextbookAssignments));
+          delete newHighlightedTextbookAssignments[relatedID];
+          setHighlightedTextbookAssignments(newHighlightedTextbookAssignments);
+        }
+      }
+    }
+  }
+  const [highlightedLectureAssignments,setHighlightedLectureAssignments]= useState({});
+  const [highlightedTextbookAssignments,setHighlightedTextbookAssignments]= useState({});
+  function isLectureAssignmentFinished(){ // 강의 과제 완료여부 확인
+    for(let i=0; i<thisWeekAssignments.length; i++){
+      const assignment= thisWeekAssignments[i];
+      if(!(assignment["AOSID"] in AOSIDToSavedGoalStateMapping)) {
+        const newHighlightedLectureAssignments= JSON.parse(JSON.stringify(highlightedLectureAssignments));
+        newHighlightedLectureAssignments[assignment["AOSID"]]=true;
+        setHighlightedLectureAssignments(newHighlightedLectureAssignments);
+        return false;// goal state 자체가 없으면 완료/사유작성 안된 것
+      }
+    }
+    return true;
+  }
+  function isTextbookAssignmentFinished(){ // 진도 교재 완료여부 확인
+    for(let i=0; i<TR.학습.length; i++){
+      const textbookName=TR.학습[i]["교재"];
+      const textbookID=textbookIDMapping[textbookName];
+      if(!textbookID) continue; // db에 등록되지 않은 교재인 경우 건너뜀
+      if(checkTextBookOfAssignment(textbookName)) continue; // 강의 과제에 사용된 교재인 경우 확인 건너뜀
+      if(!(textbookID in textbookIDToSavedGoalStateMapping)){
+        const newHighlightedTextbookAssignments= JSON.parse(JSON.stringify(highlightedTextbookAssignments));
+        newHighlightedTextbookAssignments[textbookID]=true;
+        setHighlightedTextbookAssignments(newHighlightedTextbookAssignments);
+        return false; // goal state 자체가 없으면 완료/사유작성 안된 것
+      }
+    }
+    console.log("textbook assignment done");
+    return true;
+  }
+
+  const [currentExcuseInfo,setCurrentExcuseInfo]= useState({}); //excuse modal related data
+  const [showExcuseModal,setShowExcuseModal]= useState(false); //excuse modal open/close state
+  const openExcuseModal= (newGoalExcuseData)=>{
+    setCurrentExcuseInfo(newGoalExcuseData);
+    setShowExcuseModal(true);
+  };
+  const closeExcusemodal= ()=>{
+    setCurrentExcuseInfo({});
+    setShowExcuseModal(false);
+  }
+
   useEffect(async()=>{
-    console.log(formatDate(getThisWeek(today)[1]));
+    // console.log(formatDate(getThisWeek(today)[1]));
     const newtodayGoal = await axios
-    .get(`/api/Weeklystudyfeedback/${paramID}/${formatDate(getThisWeek(today)[1])}`)
+    .get(`/api/Weeklystudyfeedback/${paramID}/${formatDate(getThisWeek(TR.날짜)[1])}`)
     .then((result) => {
       if (result["data"] !== null) {
         return result["data"]["thisweekGoal"][TR["요일"].split("요일")[0]];
@@ -523,7 +770,7 @@ function TRwrite() {
     await settodayGoal(newtodayGoal);
 
     // 오늘 마감인 해당 학생의 강의 과제를 가져온다 (post 방식 사용)
-    const requestArgument = { studentID: paramID, today_date: formatDate(getThisWeek(today)[1]) };
+    const requestArgument = { studentID: paramID, today_date: TR.날짜 };
     let thisWeekAssignmentData = await axios
       .post(`/api/StudentTodayAssignment/`, requestArgument)
       .then((result) => {
@@ -537,14 +784,52 @@ function TRwrite() {
       .catch((err) => {
         console.log(err);
       });
-    // thisWeekAssignmentData = processThisWeekAssignmentData(thisWeekAssignmentData);
+    thisWeekAssignmentData = processThisWeekAssignmentData(thisWeekAssignmentData);
     setThisWeekAssignments(thisWeekAssignmentData);
-    console.log("check: ", thisWeekAssignmentData);
+    // console.log("check: ", thisWeekAssignmentData);
 
-  },[TR.요일]);
+    //자체 진도 교재 중 강의에서 사용중인 교재를 걸러내기 위한 state
+    setTextbookOfAssignment(getTextbookOfAssignmentFromThisWeekAssignments(thisWeekAssignmentData));
 
+    //강의 과제 학습 시간도 TR.실제학습시간에 반영하기 위한 state
+    const newAssignmentStudyTime= {};
+    thisWeekAssignmentData.map((assignment,idx)=>{
+      newAssignmentStudyTime[assignment["AOSID"]]=getAssignmentStudyTimeElementFromAssignmentData(assignment);
+    });
+    setAssignmentStudyTime(newAssignmentStudyTime);
+    // console.log("ast: "+JSON.stringify(newAssignmentStudyTime));
+    // console.log("tr.날짜:"+JSON.stringify(TR.날짜));
+  },[TR.날짜]);
 
-  const [thisWeekAssignments, setThisWeekAssignments] = useState([]);
+  useEffect(async()=>{
+    const newSavedDailyGoalCheckLogData = await axios.get(`/api/SavedDailyGoalCheckLogData/${paramID}/${today}`)
+    .then((result) => {
+      if (result.data === "로그인필요") {
+        window.alert("로그인이 필요합니다.");
+        return window.push("/");
+      } else if (result["data"] !== null) {
+        if(result["data"]["success"])
+          return result["data"]["ret"];
+        else{
+          console.log("error: "+result["data"]["ret"]);
+          return [];
+        }
+      }
+      else{
+        return [];
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+    // console.log("sdgcld:"+JSON.stringify(newSavedDailyGoalCheckLogData));
+    setSavedDailyGoalCheckLogData(newSavedDailyGoalCheckLogData);
+    setAOSIDToSavedGoalStateMapping(makeAOSIDToSavedGoalStateMapping(newSavedDailyGoalCheckLogData));
+    setTextbookIDToSavedGoalStateMapping(makeTextbookIDToSavedGoalStateMapping(newSavedDailyGoalCheckLogData));
+    // console.log("mapping: "+JSON.stringify(AOSIDToSavedGoalStateMapping));
+    // console.log("mapping2: "+JSON.stringify(textbookIDToSavedGoalStateMapping));
+  },[today]);
+  
   useEffect(async() => {
     if (!isInitialMount.current) {
       const newTR = JSON.parse(JSON.stringify(TR));
@@ -623,6 +908,46 @@ function TRwrite() {
 
   return (
     <div className="trEdit-background">
+      <Modal show={showExcuseModal} onHide={closeExcusemodal}>
+        <Modal.Header closeButton>
+          <Modal.Title>과제 미완료 사유 작성</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          <div className="row mb-5">
+            <div className="col-3">과제 상세</div>
+            <div className="col-9">{currentExcuseInfo["description"]}</div>
+          </div>
+
+          <Form.Control
+            as="textarea"
+            placeholder="여기에 사유를 입력해주세요(15자 이상)"
+            className="mb-3 ModalTextarea"
+            onChange={(event)=>{
+              const newGoalExcuseData= JSON.parse(JSON.stringify(currentExcuseInfo));
+              newGoalExcuseData["excuse"]=event.target.value;
+              // console.log("excuse input: "+newGoalExcuseData["excuse"]);
+              setCurrentExcuseInfo(newGoalExcuseData);
+            }}
+          />
+          <Button
+            className="btn-secondary"
+            onClick={async ()=>{
+              if(!window.confirm("과제 미완료 사유를 저장하시겠습니까?")) return;
+              if(currentExcuseInfo["excuse"].length<15){
+                window.alert("사유를 15자 이상 입력해주세요");
+                return;
+              }
+              // console.log("cei: "+JSON.stringify(currentExcuseInfo));
+              const goalAttribute= currentExcuseInfo["AOSID"]?goalAttributes.Assignment:goalAttributes.textbookProgress;
+              const relatedID= currentExcuseInfo["AOSID"]?currentExcuseInfo["AOSID"]:currentExcuseInfo["textbookID"];
+              updateGoalState(currentExcuseInfo,goalAttribute,relatedID,false);
+              closeExcusemodal();
+            }}
+            type="button">
+            <strong>입력 완료</strong>
+          </Button>
+        </Modal.Body>
+      </Modal>
       <div className="row">
         <div className="col-xl-6 trCol">
           <div>
@@ -812,18 +1137,35 @@ function TRwrite() {
                 <Table striped hover size="sm" className="mt-3">
                   <thead>
                       <tr>
-                        <th width="10%">강사</th>
-                        <th width="20%">강의명</th>
-                        <th width="25%">교재</th>
+                        <th width="7%">과목</th>
+                        <th width="7%">강사</th>
+                        <th width="18%">강의명</th>
+                        <th width="23%">교재</th>
                         <th width="15%">과제범위</th>
                         <th width="10%">세부사항</th>
-                        {/* <th width="10%">완료여부</th> */}
+                        <th width="10%">학습시간</th>
+                        <th width="10%">완료여부<br/>/사유작성</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {thisWeekAssignments.map(function (a, i) {
+                      {thisWeekAssignments.map((a, i)=> {
+                        let tableRowClassName="";
+                        const goalState=AOSIDToSavedGoalStateMapping[a["AOSID"]];
+                        if(a["AOSID"] in highlightedLectureAssignments){
+                          tableRowClassName="AssignmentHighlighted";
+                        }
+                        else{
+                          if(goalState){
+                            if(goalState["finishedState"]===true) tableRowClassName="AssignmentChecked";
+                            else tableRowClassName="AssignmentNotFinished";
+                          }
+                          else tableRowClassName="";
+                        }
                         return (
-                          <tr key={i}>
+                          <tr key={i} className={tableRowClassName}>
+                            <td>
+                              <p>{a["lectureSubject"]}</p>
+                            </td>
                             <td>
                               <p>{a["manager"]}</p>
                             </td>
@@ -831,7 +1173,7 @@ function TRwrite() {
                               <p>{a["lectureName"]}</p>
                             </td>
                             <td>
-                              <p>{a["textbookName"][0]}</p>
+                              <p>{a["textbookName"]}</p>
                             </td>
                             <td>
                               <p className="fs-13px">
@@ -861,16 +1203,74 @@ function TRwrite() {
                                 "-"
                               )}
                             </td>
-                            {/* <td>
-                              <Form.Check
+                            <td>
+                              <TimePicker
+                                className="timepicker"
+                                locale="sv-sv"
+                                value={a["AOSID"] in assignmentStudyTime?assignmentStudyTime[a["AOSID"]]["학습시간"]:""}
+                                openClockOnFocus={false}
+                                clearIcon={null}
+                                clockIcon={null}
+                                onChange={(value) => {
+                                  if(!value) value="0:00"
+                                  const newAST=JSON.parse(JSON.stringify(assignmentStudyTime));
+                                  if(!(a["AOSID"] in newAST)) newAST[a["AOSID"]]=getAssignmentStudyTimeElementFromAssignmentData(a);
+                                  newAST[a["AOSID"]]["학습시간"]=value;
+                                  setAssignmentStudyTime(newAST);
+
+                                  //전체 학습시간 업데이트
+                                  const newTR = JSON.parse(JSON.stringify(TR));
+                                  let 실제학습시간 = 0;
+                                  let 실제학습분 = 0;
+                                  const astKeys= Object.keys(newAST);
+                                  for(let i=0; i<astKeys.length; i++){
+                                    const studyTime=newAST[astKeys[i]];
+                                    실제학습시간 += parseInt(studyTime["학습시간"].split(":")[0]);
+                                    실제학습분 += parseInt(studyTime["학습시간"].split(":")[1]);
+                                  }
+                                  newTR.학습.map(function (b, j) {
+                                    if (b.학습시간) {
+                                      실제학습시간 += parseInt(b.학습시간.split(":")[0]);
+                                      실제학습분 += parseInt(b.학습시간.split(":")[1]);
+                                    }
+                                  });
+                                  newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
+                                  setTR(newTR);
+                                }}
+                              ></TimePicker>
+                            </td>
+                            <td>
+                              {/* {<Form.Check
                                 className="AssignmentCheck"
                                 type="checkbox"
                                 checked={a['finished']}
                                 onChange={(e) => {
                                   // api 변경
                                 }}
-                              />
-                            </td> */}
+                              />} */}
+                              <button
+                                className="btn btn-success btn-opaque"
+                                onClick={async ()=>{
+                                  if(!window.confirm(`선택한 강의 과제를 완료 처리 하시겠습니까?`)) return;
+                                  const assignmentData=a;
+                                  const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,true,"");
+                                  //db & page state update
+                                  await updateGoalState(dailyGoalCheckLogData,goalAttributes.Assignment,a["AOSID"], true);
+                                }}
+                              >
+                                <FaCheck></FaCheck>
+                              </button>
+                              <button
+                                className="btn btn-danger btn-opaque"
+                                onClick={async ()=>{
+                                  const assignmentData=a;
+                                  const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,false,"");
+                                  openExcuseModal(dailyGoalCheckLogData);
+                                }}
+                              >
+                                <FaTimes></FaTimes>
+                              </button>
+                            </td>
                           </tr>
                         );
                       })}
@@ -879,19 +1279,62 @@ function TRwrite() {
                   <Table striped hover size="sm" className="mt-3">
                     <thead>
                       <tr>
-                        <th width="15%">학습</th>
-                        <th>교재</th>
-                        <th width="15%">총교재량</th>
+                        <th width="5%"></th>
+                        <th width="10%">학습</th>
+                        <th width="15%">교재</th>
+                        <th width="10%">총교재량</th>
                         <th width="10%">오늘목표량</th>
-                        <th width="15%">최근진도</th>
-                        <th width="15%">학습시간</th>
-                        <th width="10%"></th>
+                        <th width="10%">최근진도</th>
+                        <th width="10%">학습시간</th>
+                        <th width="10%">완료여부<br/>/사유작성</th>
                       </tr>
                     </thead>
                     <tbody>
                       {TR.학습.map(function (a, i) {
+                        const textbookName=a["교재"];
+                        const textbookID=textbookIDMapping[a["교재"]];
+                        if(checkTextBookOfAssignment(textbookName)) return null;
+                        let tableRowClassName="";
+                        if(textbookID){
+                          if(textbookID in highlightedTextbookAssignments){
+                            tableRowClassName="AssignmentHighlighted";
+                          }
+                          else{
+                            const goalState=textbookIDToSavedGoalStateMapping[textbookID];
+                          if(goalState){
+                            if(goalState["finishedState"]===true) tableRowClassName="AssignmentChecked";
+                            else tableRowClassName="AssignmentNotFinished";
+                          }
+                          else tableRowClassName="";
+                          }
+                        }
                         return (
-                          <tr key={i}>
+                          <tr key={i} className={tableRowClassName}>
+                            <td>
+                              <button
+                                className="btn btn-opaque"
+                                onClick={() => {
+                                  if (i > -1) {
+                                    if (window.confirm("삭제하시겠습니까?")) {
+                                      var newTR = JSON.parse(JSON.stringify(TR));
+                                      newTR.학습.splice(i, 1);
+                                      let 실제학습시간 = 0;
+                                      let 실제학습분 = 0;
+                                      newTR.학습.map(function (b, j) {
+                                        if (b.학습시간) {
+                                          실제학습시간 += parseInt(b.학습시간.split(":")[0]);
+                                          실제학습분 += parseInt(b.학습시간.split(":")[1]);
+                                        }
+                                      });
+                                      newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
+                                      setTR(newTR);
+                                    }
+                                  }
+                                }}
+                              >
+                                <strong><FaTrash></FaTrash></strong>
+                              </button>
+                            </td>
                             <td>
                               <Form.Select
                                 size="sm"
@@ -956,10 +1399,17 @@ function TRwrite() {
                                 clearIcon={null}
                                 clockIcon={null}
                                 onChange={(value) => {
+                                  if(!value) value="0:00"
                                   var newTR = JSON.parse(JSON.stringify(TR));
                                   newTR.학습[i].학습시간 = value;
                                   let 실제학습시간 = 0;
                                   let 실제학습분 = 0;
+                                  const astKeys= Object.keys(assignmentStudyTime);
+                                  for(let i=0; i<astKeys.length; i++){
+                                    const studyTime=assignmentStudyTime[astKeys[i]];
+                                    실제학습시간 += parseInt(studyTime["학습시간"].split(":")[0]);
+                                    실제학습분 += parseInt(studyTime["학습시간"].split(":")[1]);
+                                  }
                                   newTR.학습.map(function (b, j) {
                                     if (b.학습시간) {
                                       실제학습시간 += parseInt(b.학습시간.split(":")[0]);
@@ -972,29 +1422,32 @@ function TRwrite() {
                               ></TimePicker>
                             </td>
                             <td>
-                              <button
-                                className="btn btn-delete"
-                                onClick={() => {
-                                  if (i > -1) {
-                                    if (window.confirm("삭제하시겠습니까?")) {
-                                      var newTR = JSON.parse(JSON.stringify(TR));
-                                      newTR.학습.splice(i, 1);
-                                      let 실제학습시간 = 0;
-                                      let 실제학습분 = 0;
-                                      newTR.학습.map(function (b, j) {
-                                        if (b.학습시간) {
-                                          실제학습시간 += parseInt(b.학습시간.split(":")[0]);
-                                          실제학습분 += parseInt(b.학습시간.split(":")[1]);
-                                        }
-                                      });
-                                      newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
-                                      setTR(newTR);
-                                    }
-                                  }
-                                }}
-                              >
-                                <strong>x</strong>
-                              </button>
+                              {checkTextbookIsValid(a["교재"])?(<>
+                                <button
+                                  className="btn btn-success btn-opaque"
+                                  onClick={async ()=>{
+                                    if(!window.confirm(`선택한 진도 교재를 완료 처리 하시겠습니까?`)) return;
+                                    const textbookName=a["교재"];
+                                    // console.log("textbookname: ",textbookName);
+                                    const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromTextbookName(textbookName,true,"");
+                                    // console.log("dgcld:"+JSON.stringify(dailyGoalCheckLogData));
+                                    //db & page state update
+                                    await updateGoalState(dailyGoalCheckLogData,goalAttributes.textbookProgress,textbookIDMapping[a["교재"]], true);
+                                  }}
+                                >
+                                  <FaCheck></FaCheck>
+                                </button>
+                                <button
+                                  className="btn btn-danger btn-opaque"
+                                  onClick={()=>{
+                                    const textbookName=a["교재"];
+                                    const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromTextbookName(textbookName,false,"");
+                                    openExcuseModal(dailyGoalCheckLogData);
+                                  }}
+                                >
+                                  <FaTimes></FaTimes>
+                                </button>
+                              </>):null}
                             </td>
                           </tr>
                         );
@@ -1003,10 +1456,10 @@ function TRwrite() {
                       <tr>
                         <td colSpan={5}>목표 학습 - {TR.목표학습} 시간</td>
                         <td> {TR.실제학습} 시간</td>
-                        <td>{TR.학습차이}시간</td>
+                        <td colSpan={2}>{TR.학습차이}시간</td>
                       </tr>
                       <tr>
-                        <td colSpan={7}>
+                        <td colSpan={8}>
                           {" "}
                           <button
                             className="btn btn-add program-add"
@@ -1032,17 +1485,42 @@ function TRwrite() {
                   <Table striped hover size="sm" className="mt-3">
                     <thead>
                       <tr>
+                        <th width="5%"></th>
                         <th width="20%">프로그램</th>
                         <th width="20%">매니저</th>
                         <th width="15%">소요시간</th>
                         <th width="35%">상세내용</th>
-                        <th width="10%"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {TR.프로그램.map(function (a, i) {
                         return (
                           <tr key={i}>
+                            <td>
+                              <button
+                                className="btn btn-opaque"
+                                onClick={() => {
+                                  if (i > -1) {
+                                    if (window.confirm("삭제하시겠습니까?")) {
+                                      var newTR = JSON.parse(JSON.stringify(TR));
+                                      newTR.프로그램.splice(i, 1);
+                                      let 실제시간 = 0;
+                                      let 실제분 = 0;
+                                      newTR.프로그램.map(function (c, k) {
+                                        if (c.소요시간) {
+                                          실제시간 += parseInt(c.소요시간.split(":")[0]);
+                                          실제분 += parseInt(c.소요시간.split(":")[1]);
+                                        }
+                                      });
+                                      newTR.프로그램시간 = Math.round((실제시간 + 실제분 / 60) * 10) / 10;
+                                      setTR(newTR);
+                                    }
+                                  }
+                                }}
+                              >
+                                <strong><FaTrash></FaTrash></strong>
+                              </button>
+                            </td>
                             <td>
                               <Form.Select
                                 size="sm"
@@ -1115,31 +1593,6 @@ function TRwrite() {
                                   change_depth_three("프로그램", i, "상세내용", e.target.value);
                                 }}
                               ></textarea>
-                            </td>
-                            <td>
-                              <button
-                                className="btn btn-delete"
-                                onClick={() => {
-                                  if (i > -1) {
-                                    if (window.confirm("삭제하시겠습니까?")) {
-                                      var newTR = JSON.parse(JSON.stringify(TR));
-                                      newTR.프로그램.splice(i, 1);
-                                      let 실제시간 = 0;
-                                      let 실제분 = 0;
-                                      newTR.프로그램.map(function (c, k) {
-                                        if (c.소요시간) {
-                                          실제시간 += parseInt(c.소요시간.split(":")[0]);
-                                          실제분 += parseInt(c.소요시간.split(":")[1]);
-                                        }
-                                      });
-                                      newTR.프로그램시간 = Math.round((실제시간 + 실제분 / 60) * 10) / 10;
-                                      setTR(newTR);
-                                    }
-                                  }
-                                }}
-                              >
-                                <strong>x</strong>
-                              </button>
                             </td>
                           </tr>
                         );
@@ -1355,8 +1808,11 @@ function TRwrite() {
                       });
                   }
 
+                  const postedTR=JSON.parse(JSON.stringify(TR));
+                  postedTR["강의과제학습"]=assignmentStudyTime; //TR 객체의 강의 과제 학습 시간 관련 state를 새로 추가하여 post: 더 나은 방법 찾아봐야
+
                   axios
-                    .post("/api/TR", TR)
+                    .post("/api/TR", postedTR)
                     .then(function (result) {
                       if (result.data === true) {
                         window.alert("저장되었습니다.");
