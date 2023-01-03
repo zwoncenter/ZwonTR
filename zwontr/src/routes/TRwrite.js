@@ -41,11 +41,30 @@ function TRwrite() {
 }
 
   // 날짜 관련 코드
+  function getCurrentKoreaDateYYYYMMDD(){ // get current server date in yyyy-mm-dd format
+    const curr=new Date();
+    const utc = 
+        curr.getTime() + 
+        (curr.getTimezoneOffset() * 60 * 1000);
+
+    const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
+    const kr_curr = 
+          new Date(utc + (KR_TIME_DIFF));
+    const year_string= String(kr_curr.getFullYear());
+    let month_string= String(kr_curr.getMonth()+1);
+    if(month_string.length==1) month_string="0"+month_string;
+    let date_string= String(kr_curr.getDate());
+    if(date_string.length==1) date_string="0"+date_string;
+
+    // return [kr_curr.getFullYear(),kr_curr.getMonth()+1,kr_curr.getDate()].join("-");
+    return [year_string,month_string,date_string].join("-");
+  }
   const now = new Date(); // 현재 시간
   const utcNow = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
   const koreaTimeDiff = 9 * 60 * 60 * 1000;
   const koreaNow = new Date(utcNow + koreaTimeDiff);
-  const today = koreaNow.toISOString().split("T")[0];
+  // const today = koreaNow.toISOString().split("T")[0];
+  const today = getCurrentKoreaDateYYYYMMDD();
 
   const [managerList, setmanagerList] = useState([]);
 
@@ -141,7 +160,8 @@ function TRwrite() {
   const [TR, setTR] = useState({
     ID: paramID,
     이름: paramID.split("_")[0],
-    날짜: new Date().toISOString().split("T")[0],
+    // 날짜: new Date().toISOString().split("T")[0],
+    날짜: today,
     TR작성여부: false,
     요일: "",
     작성매니저: "",
