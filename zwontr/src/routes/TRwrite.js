@@ -353,8 +353,15 @@ function TRwrite() {
       return false;
     }
 
-    if(TR.작성매니저 && TR.매니저피드백){ // 마감피드백 저장 전에 오늘 과제 완료했는지 확인
-      if(!(isLectureAssignmentFinished() && isTextbookAssignmentFinished())){
+    if(TR.작성매니저 && TR.매니저피드백){ // 마감피드백 저장 전에
+      // 완료처리 하였으나 학습시간 입력 안한 강의과제 있는지 확인
+      if(!checkStudyTimeOfFinishedLectureAssignment()){
+        console.log("breakpoint");
+        window.alert("완료 처리 되었으나 학습 시간이 입력되지 않은 강의 과제가 있습니다");
+        return false;
+      }
+      // 오늘 강의과제, 진도교재 모두 확인 완료했는지 확인
+      if(!(isLectureAssignmentChecked() && isTextbookAssignmentChecked())){
         window.alert("마감 피드백 작성 전 완료/사유작성 되지 않은 과제가 있습니다");
         return false;
       }
@@ -569,7 +576,7 @@ function TRwrite() {
     "AOSID":"",
     "AOSTextbookID":"",
     "studentLegacyID":paramID,
-    "date":today,
+    "date":TR.날짜,
     "finishedState":"",
     "excuse":"",
     "description":""
@@ -715,8 +722,25 @@ function TRwrite() {
   }
   const [highlightedLectureAssignments,setHighlightedLectureAssignments]= useState({});
   const [highlightedTextbookAssignments,setHighlightedTextbookAssignments]= useState({});
-  function isLectureAssignmentFinished(){ // 강의 과제 완료여부 확인
-    for(let i=0; i<thisWeekAssignments.length; i++){
+  function checkStudyTimeOfFinishedLectureAssignment(){ // 완료된 과제에 학습시간이 입력되었는지 확인
+    for(let i=0; i<thisWeekAssignments.length; i++) {
+      const assignment= thisWeekAssignments[i];
+      const AOSID=assignment["AOSID"];
+      if(!(AOSID in AOSIDToSavedGoalStateMapping)) continue;
+      if(AOSIDToSavedGoalStateMapping[AOSID]["finishedState"]===true){
+        if(!(AOSID in assignmentStudyTime) || assignmentStudyTime[AOSID]["학습시간"]==="0:00" || assignmentStudyTime[AOSID]["학습시간"]==="00:00") {
+          console.log("study time: "+assignmentStudyTime[AOSID]);
+          const newHighlightedLectureAssignments= JSON.parse(JSON.stringify(highlightedLectureAssignments));
+          newHighlightedLectureAssignments[assignment["AOSID"]]=true;
+          setHighlightedLectureAssignments(newHighlightedLectureAssignments);
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+  function isLectureAssignmentChecked(){ // 강의 과제 완료여부 확인
+    for(let i=0; i<thisWeekAssignments.length; i++) {
       const assignment= thisWeekAssignments[i];
       if(!(assignment["AOSID"] in AOSIDToSavedGoalStateMapping)) {
         const newHighlightedLectureAssignments= JSON.parse(JSON.stringify(highlightedLectureAssignments));
@@ -724,10 +748,10 @@ function TRwrite() {
         setHighlightedLectureAssignments(newHighlightedLectureAssignments);
         return false;// goal state 자체가 없으면 완료/사유작성 안된 것
       }
-    }
+    };
     return true;
   }
-  function isTextbookAssignmentFinished(){ // 진도 교재 완료여부 확인
+  function isTextbookAssignmentChecked(){ // 진도 교재 완료여부 확인
     for(let i=0; i<TR.학습.length; i++){
       const textbookName=TR.학습[i]["교재"];
       const textbookID=textbookIDMapping[textbookName];
@@ -802,7 +826,7 @@ function TRwrite() {
   },[TR.날짜]);
 
   useEffect(async()=>{
-    const newSavedDailyGoalCheckLogData = await axios.get(`/api/SavedDailyGoalCheckLogData/${paramID}/${today}`)
+    const newSavedDailyGoalCheckLogData = await axios.get(`/api/SavedDailyGoalCheckLogData/${paramID}/${TR.날짜}`)
     .then((result) => {
       if (result.data === "로그인필요") {
         window.alert("로그인이 필요합니다.");
@@ -828,7 +852,7 @@ function TRwrite() {
     setTextbookIDToSavedGoalStateMapping(makeTextbookIDToSavedGoalStateMapping(newSavedDailyGoalCheckLogData));
     // console.log("mapping: "+JSON.stringify(AOSIDToSavedGoalStateMapping));
     // console.log("mapping2: "+JSON.stringify(textbookIDToSavedGoalStateMapping));
-  },[today]);
+  },[TR.날짜]);
   
   useEffect(async() => {
     if (!isInitialMount.current) {

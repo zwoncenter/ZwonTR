@@ -25,6 +25,7 @@ app.use(passport.session());
 app.use(express.json());
 var cors = require("cors");
 const { send } = require("process");
+const { finished } = require("stream");
 app.use(cors());
 
 //db라는 변수에 zwon 데이터베이스 연결, env파일 참조
@@ -117,7 +118,7 @@ function loginCheck(req, res, next) {
   }
 }
 
-//
+// get current server date in yyyy-mm-dd format
 function getCurrentKoreaDateYYYYMMDD(){
   const curr=new Date();
   const utc = 
@@ -127,7 +128,14 @@ function getCurrentKoreaDateYYYYMMDD(){
   const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
   const kr_curr = 
         new Date(utc + (KR_TIME_DIFF));
-  return [kr_curr.getFullYear(),kr_curr.getMonth()+1,kr_curr.getDate()].join("-");
+  const year_string= String(kr_curr.getFullYear());
+  let month_string= String(kr_curr.getMonth()+1);
+  if(month_string.length==1) month_string="0"+month_string;
+  let date_string= String(kr_curr.getDate());
+  if(date_string.length==1) date_string="0"+date_string;
+
+  // return [kr_curr.getFullYear(),kr_curr.getMonth()+1,kr_curr.getDate()].join("-");
+  return [year_string,month_string,date_string].join("-");
 }
 
 // collection 중 StudentDB의 모든 Document find 및 전송
@@ -408,11 +416,10 @@ app.post("/api/DailyGoalCheckLog", loginCheck, async (req,res)=>{
     //여기에 transaction으로 assignment인 경우에 state change도 해줘야됨
     const logData= req.body;
     const textbookID= logData["textbookID"]?new ObjectId(logData["textbookID"]):""; // should do validity check?
-    console.log("textbookid:",textbookID);
     const AOSID= logData["AOSID"]?new ObjectId(logData["AOSID"]):"";
     const AOSTextbookID= logData["AOSTextbookID"]?new ObjectId(logData["AOSTextbookID"]):"";
     const studentLegacyID= logData["studentLegacyID"];
-    const finishedState=logData["finishedState"];
+    const finishedState=logData["finishedState"]?true:false;
     const excuse=logData["excuse"];
     const description= logData["description"];
 
@@ -444,6 +451,13 @@ app.post("/api/DailyGoalCheckLog", loginCheck, async (req,res)=>{
       {"$set":{"AOSTextbookID":AOSTextbookID,'studentName':studentName, "description":description},"$push":{"finishedStateList":finishedState,"excuseList":excuse}},
       {"upsert":true}
     );
+
+    //lecture assignment인 경우 해당 AssignmentOfStudent document의 finished 상태도 바꾸어준다
+    if(AOSID){
+      const finishedDate=finishedState?getCurrentKoreaDateYYYYMMDD():"";
+      await db.collection("AssignmentOfStudent").updateOne({"_id":AOSID},{"$set":{"finished":finishedState,"finished_date":finishedDate}});
+    }
+    
   }
   catch(error){
     console.log(`error ${error}`)
@@ -452,8 +466,6 @@ app.post("/api/DailyGoalCheckLog", loginCheck, async (req,res)=>{
   finally{
     return res.send(ret_val);
   }
-  console.log("req.body:"+JSON.stringify(req.body));
-  return res.send(true);
 })
 
 app.post("/api/Closemeeting/:date", loginCheck, function (req, res) {
