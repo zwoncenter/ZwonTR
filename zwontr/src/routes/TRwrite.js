@@ -329,19 +329,20 @@ function TRwrite() {
           window.alert(`${validStudyCount}번째 학습의 교재가 선택되지 않았습니다.`);
           return false;
         }
-        if (!TR.학습[i].학습시간 || TR.학습[i].학습시간 === "00:00") {
-          // window.alert(
-          //   `${
-          //     i + 1
-          //   }번째 학습의 학습시간이 입력되지 않았습니다. \n학습이 진행되지 않은 경우, 해당 항목을 삭제해주세요. \n귀가 매니저가 입력된 경우, 귀가검사를 진행한 것으로 파악하고 학습시간을 입력하도록 강제해두었습니다. \n중간 저장인 경우 귀가 매니저를 선택하지 않아야 경고문이 뜨지 않습니다`
-          // );
-          window.alert(
-            `${
-              validStudyCount
-            }번째 학습의 학습시간이 입력되지 않았습니다. \n학습이 진행되지 않은 경우, 해당 항목을 삭제해주세요. \n귀가 매니저가 입력된 경우, 귀가검사를 진행한 것으로 파악하고 학습시간을 입력하도록 강제해두었습니다. \n중간 저장인 경우 귀가 매니저를 선택하지 않아야 경고문이 뜨지 않습니다`
-          );
-          return false;
-        }
+        // 귀가 검사 시 종이 TR과 웹TR을 대조하는 전제 하에 이 조건을 삭제
+        // if (!TR.학습[i].학습시간 || TR.학습[i].학습시간 === "00:00") {
+        //   // window.alert(
+        //   //   `${
+        //   //     i + 1
+        //   //   }번째 학습의 학습시간이 입력되지 않았습니다. \n학습이 진행되지 않은 경우, 해당 항목을 삭제해주세요. \n귀가 매니저가 입력된 경우, 귀가검사를 진행한 것으로 파악하고 학습시간을 입력하도록 강제해두었습니다. \n중간 저장인 경우 귀가 매니저를 선택하지 않아야 경고문이 뜨지 않습니다`
+        //   // );
+        //   window.alert(
+        //     `${
+        //       validStudyCount
+        //     }번째 학습의 학습시간이 입력되지 않았습니다. \n학습이 진행되지 않은 경우, 해당 항목을 삭제해주세요. \n귀가 매니저가 입력된 경우, 귀가검사를 진행한 것으로 파악하고 학습시간을 입력하도록 강제해두었습니다. \n중간 저장인 경우 귀가 매니저를 선택하지 않아야 경고문이 뜨지 않습니다`
+        //   );
+        //   return false;
+        // }
         // if (TR.학습[i].최근진도 >= parseInt(newstuDB["진행중교재"][i]["총교재량"].match(/\d+/))) {
         //   window.alert("")
         //   return false;
@@ -374,10 +375,12 @@ function TRwrite() {
     }
 
     if(TR.작성매니저 && TR.매니저피드백){ // 마감피드백 저장 전에
-      // 완료처리 하였으나 학습시간 입력 안한 강의과제 있는지 확인
-      if(!checkStudyTimeOfFinishedLectureAssignment()){
-        console.log("breakpoint");
+      if(!checkStudyTimeOfFinishedLectureAssignment()){// 완료처리 하였으나 학습시간 입력 안한 강의과제 있는지 확인
         window.alert("완료 처리 되었으나 학습 시간이 입력되지 않은 강의 과제가 있습니다");
+        return false;
+      }
+      if(!checkStudyTimeOfFinishedTextbookAssignment()){// 완료처리 하였으나 학습시간 입력 안한 자체진도교재 있는지 확인
+        window.alert("완료 처리 되었으나 학습 시간이 입력되지 않은 자체 진도 교재가 있습니다");
         return false;
       }
       // 오늘 강의과제, 진도교재 모두 확인 완료했는지 확인
@@ -753,6 +756,24 @@ function TRwrite() {
           const newHighlightedLectureAssignments= JSON.parse(JSON.stringify(highlightedLectureAssignments));
           newHighlightedLectureAssignments[assignment["AOSID"]]=true;
           setHighlightedLectureAssignments(newHighlightedLectureAssignments);
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+  function checkStudyTimeOfFinishedTextbookAssignment(){ // 완료된 자체 진도 교재에 학습시간이 입력되었는지 확인
+    for(let i=0; i<TR.학습.length; i++) {
+      const textbookName= TR.학습[i].교재;
+      if(!(textbookName in textbookIDMapping)) continue;
+      const textbookID= textbookIDMapping[textbookName];
+      if(!(textbookID in textbookIDToSavedGoalStateMapping)) continue;
+      if(textbookIDToSavedGoalStateMapping[textbookID]["finishedState"]===true){
+        const textbookStudyTime= TR.학습[i].학습시간;
+        if(textbookStudyTime==="0:00" || textbookStudyTime==="00:00") {
+          const newHighlightedTextbookAssignments= JSON.parse(JSON.stringify(highlightedTextbookAssignments));
+          newHighlightedTextbookAssignments[textbookID]=true;
+          setHighlightedTextbookAssignments(newHighlightedTextbookAssignments);
           return false;
         }
       }
