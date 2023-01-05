@@ -10,7 +10,7 @@ import TimePicker from "react-time-picker";
 import { BsFillChatSquareFill } from "react-icons/bs";
 
 function TRedit() {
-  // 공통 code 
+  // 공통 code
   let history = useHistory();
   let paramID = useParams()["ID"];
   let paramDate = useParams()["date"];
@@ -108,7 +108,8 @@ function TRedit() {
     ID: paramID,
     이름: paramID.split("_")[0],
     // 날짜: new Date().toISOString().split("T")[0],
-    날짜: today,
+    // TODO : " 날짜 : today " 라고 하면 개발용 화면에서는 오류가 난다.
+    // 날짜: today,
     TR작성여부: false,
     요일: "",
     작성매니저: "",
@@ -337,12 +338,12 @@ function TRedit() {
   // 날짜 관련 코드
   function getCurrentKoreaDateYYYYMMDD(){ // get current server date in yyyy-mm-dd format
     const curr=new Date();
-    const utc = 
-        curr.getTime() + 
+    const utc =
+        curr.getTime() +
         (curr.getTimezoneOffset() * 60 * 1000);
 
     const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
-    const kr_curr = 
+    const kr_curr =
           new Date(utc + (KR_TIME_DIFF));
     const year_string= String(kr_curr.getFullYear());
     let month_string= String(kr_curr.getMonth()+1);
@@ -702,7 +703,7 @@ function TRedit() {
       학습시간: "00:00",
     };
   }
-  
+
   // daily goal check log(강의 과제, 진도 교재 완료 여부) 관련 코드
   const [savedDailyGoalCheckLogData,setSavedDailyGoalCheckLogData]= useState([]); //goal check log data in db
   const [AOSIDToSavedGoalStateMapping,setAOSIDToSavedGoalStateMapping]=useState({}); // aosid to state goal state mapping
@@ -1594,9 +1595,9 @@ function TRedit() {
                                   <FaTimes></FaTimes>
                                 </button>
                               </>):null}
-                              
+
                             </td>
-                            
+
                           </tr>
                         );
                       })}

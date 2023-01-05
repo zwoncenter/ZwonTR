@@ -1285,13 +1285,15 @@ function StudentEdit() {
                 }
               }
               if (window.confirm(`${stuDB.이름} 학생의 DB를 수정하시겠습니까?`)) {
+                console.log("==================>>>>>============");
+                console.log(stuDB)
                 axios
                   .put("/api/StudentDB", stuDB)
                   .then(function (result) {
                     if (result.data === "로그인필요") {
                       window.alert("로그인이 필요합니다.");
                       return history.push("/");
-                    } 
+                    }
                     if (result.data === true) {
                       window.alert("수정되었습니다");
                       return history.push("/studentList");

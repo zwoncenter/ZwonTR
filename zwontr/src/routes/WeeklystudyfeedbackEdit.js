@@ -62,9 +62,9 @@ function WeeklystudyfeedbackEdit() {
         day = '' + (d.getDate()-1),
         year = d.getFullYear();
 
-    if (month.length < 2) 
+    if (month.length < 2)
         month = '0' + month;
-    if (day.length < 2) 
+    if (day.length < 2)
         day = '0' + day;
 
     return [year, month, day].join('-');
@@ -109,7 +109,7 @@ function WeeklystudyfeedbackEdit() {
   };
 
   useEffect(async () => {
-    
+
 
     const existstuInfo = await axios
       .get(`/api/StudentDB/${param["ID"]}`)
@@ -133,11 +133,15 @@ function WeeklystudyfeedbackEdit() {
         // console.log(result.data);
         return result["data"]["thisweekGoal"];
       }
+
+
     })
     .catch((err) => {
       console.log(err);
     });
+    console.log(existGoal)
     setthisweekGoal(existGoal);
+
 
     const studentTRlist = await axios
       .get(`/api/TR/${param["ID"]}`)
@@ -151,13 +155,15 @@ function WeeklystudyfeedbackEdit() {
         console.log("/api/TR/:name fail : ", err);
       });
     setentireData(studentTRlist);
-    // console.log(thisweekGoal);
+
+    console.log("=======================");
+    console.log(thisweekGoal);
 
     // 이번주 해당 학생의 강의 과제를 가져온다(argument 많아서 post 방식 사용)
     const requestArgument={studentID:param["ID"],
     lastSundayDate:formatDate(thisweek[0]),
     thisSundayDate:formatDate(thisweek[1])};
- 
+
     let thisWeekAssignmentData = await axios
     .post(`/api/ThisWeekAssignment/`,requestArgument)
     .then((result) => {
@@ -172,6 +178,7 @@ function WeeklystudyfeedbackEdit() {
     .catch((err) => {
       console.log(err);
     });
+
     // console.log("twad raw:"+JSON.stringify(thisWeekAssignmentData));
     thisWeekAssignmentData= processThisWeekAssignmentData(thisWeekAssignmentData);
     // console.log("twad:"+JSON.stringify(thisWeekAssignmentData));
@@ -219,7 +226,7 @@ function WeeklystudyfeedbackEdit() {
           </div>
           <div className="row mb-2">
           </div>
-          
+
           <div className="row mb-2">
             <div className="col-3">과제 기한</div>
             <div className="col-9">{displayedAssignment?displayedAssignment["duedate"]:null}</div>
@@ -257,7 +264,7 @@ function WeeklystudyfeedbackEdit() {
                 );
               }
             })}
-            
+
           </>)
           :
           null}
@@ -267,7 +274,7 @@ function WeeklystudyfeedbackEdit() {
       <Button
         className="btn-commit btn-save"
         onClick={() => {
-          console.log(thisweekGoal);
+
           if (window.confirm("주간학습목표 스케줄링 내용을 수정하시겠습니까?")) {
             axios
               .put(`/api/Weeklystudyfeedback/${param["ID"]}/${param["feedbackDate"]}`, {
@@ -431,7 +438,7 @@ function WeeklystudyfeedbackEdit() {
                           <input
                             type="date"
                             className="w-100"
-                            value={thisweekGoal? 
+                            value={thisweekGoal?
                               thisweekGoal["마감일"][book["교재"]]
                             : ""}
                             onChange={(e) => {

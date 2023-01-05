@@ -121,12 +121,12 @@ function loginCheck(req, res, next) {
 // get current server date in yyyy-mm-dd format
 function getCurrentKoreaDateYYYYMMDD(){
   const curr=new Date();
-  const utc = 
-      curr.getTime() + 
+  const utc =
+      curr.getTime() +
       (curr.getTimezoneOffset() * 60 * 1000);
 
   const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
-  const kr_curr = 
+  const kr_curr =
         new Date(utc + (KR_TIME_DIFF));
   const year_string= String(kr_curr.getFullYear());
   let month_string= String(kr_curr.getMonth()+1);
@@ -228,6 +228,8 @@ app.put("/api/StudentDB", loginCheck, function (req, res) {
   }
   const newstuDB = req.body;
   const findID = newstuDB["ID"];
+  console.log("---------------------------")
+  console.log(newstuDB["진행중교재"])
   delete newstuDB._id;
   db.collection(`StudentDB`).findOne({ ID: findID }, function (err, result) {
     if (err) {
@@ -236,17 +238,29 @@ app.put("/api/StudentDB", loginCheck, function (req, res) {
     if (result === null) {
       return res.send("동일한 ID의 학생DB가 존재하지 않습니다. 개발 / 데이터 팀에 문의해주세요");
     }
+    // 학생DB update
     db.collection("StudentDB").updateOne({ ID: findID }, { $set: newstuDB }, function (err2, result2) {
       if (err2) {
         return res.send("/api/StudentEdit - updateOne Error : ", err2);
       }
+      // 학생DB_Log update
       db.collection("StudentDB_Log").insertOne(newstuDB, (err3, result3) => {
         if (err3) {
           return res.send("기존학생 로그데이터 저장 실패");
         }
       });
+
+      // WeeklyStudyfeedback 콜렉션 업데이트
+      db.collection("WeeklyStudyfeedback").updateOne({"학생ID": "신재우_070122","피드백일" : "2023-01-08"}, {$set: {"thisweekGoal.교재캡쳐":
+              newstuDB["진행중교재"]
+        }
+      });
       return res.send(true);
     });
+
+    // db.collection("WeeklyStudyfeedback").update({
+    //   ""
+    // })
   });
 });
 
@@ -287,7 +301,7 @@ app.post("/api/DoGraduate/", loginCheck, async (req,res)=>{
   finally{
     return res.json(ret_val);
   }
-  
+
 });
 
 // collection 중 TR의 해당 날짜의 Document find 및 전송
@@ -457,7 +471,7 @@ app.post("/api/DailyGoalCheckLog", loginCheck, async (req,res)=>{
       const finishedDate=finishedState?getCurrentKoreaDateYYYYMMDD():"";
       await db.collection("AssignmentOfStudent").updateOne({"_id":AOSID},{"$set":{"finished":finishedState,"finished_date":finishedDate}});
     }
-    
+
   }
   catch(error){
     console.log(`error ${error}`)
@@ -830,7 +844,7 @@ app.get(`/api/TextbookInProgressOfStudent/:studentLegacyID`, loginCheck, async(r
     const student_doc= await db.collection("StudentDB").findOne({"ID":studentLegacyID});
     if(!student_doc) throw new Error("there is no such student");
     const student_id= student_doc["_id"];
-    
+
     if(!student_doc["진행중교재"] || student_doc["진행중교재"].length==0){
       ret["success"]=true; ret["ret"]=[]; return;
     }
@@ -875,7 +889,7 @@ app.get("/api/SavedDailyGoalCheckLogData/:studentLegacyID/:date", loginCheck, as
     if(!date) throw new Error("invalid date");
     date=date[0];
     if(isNaN(new Date(date))) throw new Error("invalid date");
-    
+
     //student validity check
     const studentLegacyID = decodeURIComponent(req.params.studentLegacyID);
     const student_doc= await db.collection("StudentDB").findOne({"ID":studentLegacyID});
@@ -1095,7 +1109,7 @@ app.delete("/api/TextbookOfLecture/:lectureID/:textbookID", loginCheck, async (r
   try{
     // console.log("lid:"+legacyLectureID);
     // console.log("tid:"+textbookID);
-    
+
     const lectureDocument=await db.collection("Lecture").findOne({lectureID:legacyLectureID});
     if(!lectureDocument) return res.send(`invalid access`);
     lectureID=lectureDocument["_id"];
@@ -1295,7 +1309,7 @@ app.get("/api/LectureAssignment/:lectureid",loginCheck, async (req,res)=>{
   const paramID = decodeURIComponent(req.params.lectureid);
   let ret_val;
   try{
-    ret_val= 
+    ret_val=
     await db.collection("Lecture").aggregate([
       { $match: { lectureID: paramID } },
       {
@@ -1657,6 +1671,7 @@ app.get("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, (req, res) => 
   const paramDate = decodeURIComponent(req.params.feedbackDate);
   const ID = decodeURIComponent(req.params.ID);
   db.collection("WeeklyStudyfeedback").findOne({ 학생ID: ID, 피드백일: paramDate }, (err, result) => {
+    console.log("==============================")
     console.log(result);
     if (err) {
       return res.send(`/api/Weeklystudyfeedback/${ID}/${paramDate} - findOne Error : ${err}`);
@@ -1760,6 +1775,9 @@ app.post("/api/ThisWeekAssignment/", loginCheck, async (req,res)=>{
         },
       },
     ]).toArray();
+    console.log("==============================")
+    console.log(ret_val);
+
   }
   catch(error){
     ret_val=[];
