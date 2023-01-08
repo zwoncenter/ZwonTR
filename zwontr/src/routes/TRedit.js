@@ -1070,6 +1070,17 @@ function TRedit() {
     }
   }, [TR.큐브책]);
 
+  //귀가 피드백 textarea placeholder string
+  const gohome_feedback_placeholder="학생과 대화하며 자신의 하루를 돌아보고\n"+
+    "어떻게 하면 더 성장할 수 있을지\n"+
+    "잠시라도 고민할 수 있게 한다면 좋은 귀가 피드백입니다.\n"+
+    "\n"+
+    "- 오늘 스스로를 칭찬해 볼만한 것은?\n"+
+    "- 오늘 배운 점이 있다면?\n"+
+    "- 오늘 목표를 지키지 못했다면 어떤 점이 부족했을까?\n"+
+    "- 내일 꼭 개선해야 된다고 생각하는 부분은?\n"+
+    "등 학생이 스스로에 대해 돌아볼 수 있는 질문을 많이 던져 주시고, 기록해 주시면 됩니다.\n";
+
   return (
     <div className="trEdit-background">
       <Modal show={showExcuseModal} onHide={closeExcusemodal}>
@@ -1986,6 +1997,7 @@ function TRedit() {
                   <textarea
                     rows="10"
                     className="textArea"
+                    placeholder={gohome_feedback_placeholder}
                     value={TR.매니저피드백}
                     onChange={(e) => {
                       change_depth_one("매니저피드백", e.target.value);
