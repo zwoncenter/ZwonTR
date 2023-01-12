@@ -46,7 +46,7 @@ function TextbookManage() {
   }
 
   // 인증 Modal 관련 코드
-  const [show, setShow] = useState(true);
+  const [show, setShow] = useState(false); // false- 교재관리 페이지 비밀번호 입력 안해도 되도록
   const [inputPW, setinputPW] = useState("");
   function checkPassword() {
     const result = inputPW == "ryworhksfl";
