@@ -1499,6 +1499,12 @@ function TRedit() {
                                       newTR.학습.splice(i, 1);
                                       let 실제학습시간 = 0;
                                       let 실제학습분 = 0;
+                                      const astKeys= Object.keys(assignmentStudyTime);
+                                      for(let i=0; i<astKeys.length; i++){
+                                        const studyTime=assignmentStudyTime[astKeys[i]];
+                                        실제학습시간 += parseInt(studyTime["학습시간"].split(":")[0]);
+                                        실제학습분 += parseInt(studyTime["학습시간"].split(":")[1]);
+                                      } 
                                       newTR.학습.map(function (b, j) {
                                         if (b.학습시간) {
                                           실제학습시간 += parseInt(b.학습시간.split(":")[0]);
