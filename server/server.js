@@ -7,6 +7,11 @@ const MongoClient = require("mongodb").MongoClient;
 // ObjectId type casting을 위한 import
 const ObjectId = require("mongodb").ObjectId;
 
+// 시간 모듈 moment 설치
+const moment = require('moment');
+require('moment-timezone');
+moment.tz.setDefault("Asia/Seoul");
+
 // .env
 require("dotenv").config();
 
@@ -32,7 +37,8 @@ app.use(cors());
 //var db, db_session;
 var db, db_client;
 
-MongoClient.connect(process.env.DB_URL, function (err, client) {
+// TODO : 배포 전에 반드시 DB_URL로 바꿀 것!!
+MongoClient.connect(process.env.LOCAL_URL, function (err, client) {
   if (err) {
     return console.log(err);
   }
@@ -221,34 +227,194 @@ app.get("/api/StudentDB/:ID", loginCheck, function (req, res) {
 });
 
 // StudentDB에 수정 요청
-app.put("/api/StudentDB", loginCheck, function (req, res) {
+
+/** ---------------객체 비교 함수 ------------- **/
+
+/*function deepEqual(object1, object2) {
+  const keys1 = Object.keys(object1);
+  const keys2 = Object.keys(object2);
+
+  let temp = []
+
+  for (const key of keys1) {
+    const val1 = object1[key];
+    const val2 = object2[key];
+    const areObjects = isObject(val1) && isObject(val2);
+    if (
+        areObjects && !deepEqual(val1, val2) ||
+        !areObjects && val1 !== val2
+    ) {
+      temp.push(val2);
+    }
+  }
+
+  return temp;
+}
+
+function isObject(object) {
+  return object != null && typeof object === 'object';
+}*/
+
+function isEqualObject(existObj,newObj){
+
+  let temp = []
+
+  // for(let i = 0; i < loop; i++){
+  /*   let exist_sort = Object.keys(existObj[i])
+         .sort()
+         .reduce((obj, key) => (obj[key] = existObj[key], obj), {});
+
+     console.log(exist_sort)
+
+     let new_sort = Object.keys(newObj[i])
+         .sort()
+         .reduce((obj, key) => (obj[key] = newObj[key], obj), {});
+
+     console.log(new_sort)*/
+
+  for(let i in newObj){
+    /** 각 객체를 stringfy 해서 key value 모두 비교 **/
+    if(JSON.stringify(existObj[i]) !== JSON.stringify(newObj[i])){
+      // 다른 객체의 인덱스를 temp 배열에 저장
+      temp.push(i)
+    }
+
+  }
+
+  return temp;
+
+}
+
+/** ------------------------------------------- **/
+
+/** ---------------- 교재 수정사항 점검 함수 ---------------- **/
+function filterTextBook (firstTextbook,secondTextbook) {
+  let totalLoop = firstTextbook.length - secondTextbook.length;
+
+  /** 필터링된 데이터 저장 **/
+  let filtered = [];
+  for (let i = 1; i <= totalLoop; i++){
+    filtered.push(firstTextbook[(secondTextbook.length - 1) + i]);
+  }
+
+  return filtered;
+}
+
+/** ---------------------------------------- **/
+
+// StudentDB에 수정 요청
+app.put("/api/StudentDB", loginCheck, async (req, res) => {
   console.log(req["user"], req["user"]["ID"] === "guest");
+
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
+
+  let ret_val;
+  let success;
+
   const newstuDB = req.body;
+
   const findID = newstuDB["ID"];
-  delete newstuDB._id;
-  db.collection(`StudentDB`).findOne({ ID: findID }, function (err, result) {
-    if (err) {
-      return res.send(`/api/StudentEdit - findOne Error : `, err);
-    }
-    if (result === null) {
-      return res.send("동일한 ID의 학생DB가 존재하지 않습니다. 개발 / 데이터 팀에 문의해주세요");
-    }
-    db.collection("StudentDB").updateOne({ ID: findID }, { $set: newstuDB }, function (err2, result2) {
-      if (err2) {
-        return res.send("/api/StudentEdit - updateOne Error : ", err2);
+
+  /** 새롭게 수정 요청된 학생 교재 리스트 **/
+
+
+  /** 기존 WeeklyStudyfeedback 콜렉션의 교재와 새롭게 수정된 교재 비교 **/
+
+  let existingTextbook;
+
+
+  try {
+    // findOne에는 toArray() 쓰면 안됨
+    let studentDB_result = await db.collection(`StudentDB`).findOne({ ID: findID });
+
+    /** 업데이트되기 전 학생교재 **/
+    existingTextbook = studentDB_result["진행중교재"];
+
+
+    /** 새롭게 수정 요청된 학생 교재 리스트 **/
+    const newTextbook =  newstuDB["진행중교재"];
+
+    /** WeeklyStudentfeedback 콜렉션에 저장된 모든 날짜들 **/
+    let feedbackWeekArr = await db.collection("WeeklyStudyfeedback")
+        .find({"학생ID": newstuDB["ID"]})
+        .project({"피드백일" : 1})
+        .sort()
+        .toArray()
+
+    /** 가장 최근에 WeeklyStudentfeedback 콜렉션에 저장된 날짜 **/
+    let feedbackDate = feedbackWeekArr.at(-1)["피드백일"];
+
+    /** ----------- 교재수정에 따른 WeeklyStudyfeedback 수정 ---------------- **/
+
+    /** ------ 경우 1) 교재 추가 시 업데이트 진행 ------ **/
+
+    if(newTextbook.length > existingTextbook.length) {
+
+
+      /** ----------- 새롭게 추가된 교재만 필터링 ------------**/
+      let filtered = filterTextBook(newTextbook,existingTextbook)
+
+      for(let i in filtered){
+
+       await db.collection("WeeklyStudyfeedback").updateOne({"학생ID": newstuDB["ID"],"피드백일" : feedbackDate}, {$push: {"thisweekGoal.교재캡쳐":
+               filtered[i]
+          }
+        })
       }
-      db.collection("StudentDB_Log").insertOne(newstuDB, (err3, result3) => {
-        if (err3) {
-          return res.send("기존학생 로그데이터 저장 실패");
+
+    }
+
+    /** ------------------------------------------------ **/
+
+    /** ------ 경우 2) 교재 삭제 시 업데이트 진행 ------ **/
+    else if(newTextbook.length < existingTextbook.length){
+      let filtered = filterTextBook(existingTextbook,newTextbook);
+      let dayIndex = ['월','화','수','목','금','일'];
+      for(let i in filtered){
+        await db.collection("WeeklyStudyfeedback").updateOne({"학생ID": newstuDB["ID"],"피드백일" : feedbackDate},
+            {$pull: {"thisweekGoal.교재캡쳐": filtered[i]
+          }
+        })
+
+      }
+
+      /** 주간 학습스케쥴링에서 월 ~ 금 까지 지정했던 목표학습량까지 삭제 **/
+      for(let i in dayIndex){
+
+        for(let j in filtered){
+
+          await db.collection("WeeklyStudyfeedback").updateOne({"학생ID":newstuDB["ID"],"피드백일": feedbackDate},
+              {$unset:{[`thisweekGoal.${dayIndex[i]}.${filtered[j]["교재"]}`]: ""}
+        })
         }
-      });
-      return res.send(true);
-    });
-  });
+      }
+
+
+    }
+    /** -------------------------------------------- **/
+
+
+
+    delete newstuDB._id; //MongoDB에서 Object_id 중복을 막기 위해 id 삭제
+
+    await db.collection("StudentDB").updateOne({ ID: findID }, { $set: newstuDB })
+
+    await db.collection("StudentDB_Log").insertOne(newstuDB)
+
+    return res.json({"success":true});
+  }
+  catch (err){
+    ret_val=`error ${err}`;
+    success=false;
+    console.log(err)
+    return res.json({"success":false,"ret_val" : err});
+  }
+
+
 });
+
 
 // StudentDB에 삭제 요청
 app.delete("/api/StudentDB/:ID", loginCheck, function (req, res) {
@@ -707,6 +873,11 @@ app.get("/api/Textbook", loginCheck, function (req, res) {
   //     res.send(result[0]);
   //   });
 
+  try{
+    
+  }catch (e) {
+    
+  }
   db.collection("TextBook")
     .find()
     .toArray((err, result) => {
