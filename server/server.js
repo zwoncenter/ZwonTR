@@ -228,79 +228,39 @@ app.get("/api/StudentDB/:ID", loginCheck, function (req, res) {
 
 // StudentDB에 수정 요청
 
-/** ---------------객체 비교 함수 ------------- **/
+/** ---------------- 교재 수정사항 점검 함수 ---------------- **/
 
-/*function deepEqual(object1, object2) {
-  const keys1 = Object.keys(object1);
-  const keys2 = Object.keys(object2);
+function filterTextBook(first,second){
 
-  let temp = []
+  let firstArray = [];
 
-  for (const key of keys1) {
-    const val1 = object1[key];
-    const val2 = object2[key];
-    const areObjects = isObject(val1) && isObject(val2);
-    if (
-        areObjects && !deepEqual(val1, val2) ||
-        !areObjects && val1 !== val2
-    ) {
-      temp.push(val2);
-    }
+   first.filter((ele,index)=>{
+    firstArray.push(ele["교재"])
+  })
+
+
+  let secondArray = [];
+
+  second.filter((ele,index)=>{
+    secondArray.push(ele["교재"])
+  })
+
+  let filteredNameArray = firstArray.filter(ele => !secondArray.includes(ele));
+  let indexes= []
+  for(let i in filteredNameArray){
+    indexes.push(first.findIndex(e => e["교재"]===filteredNameArray[i]))
   }
 
-  return temp;
-}
-
-function isObject(object) {
-  return object != null && typeof object === 'object';
-}*/
-
-function isEqualObject(existObj,newObj){
-
-  let temp = []
-
-  // for(let i = 0; i < loop; i++){
-  /*   let exist_sort = Object.keys(existObj[i])
-         .sort()
-         .reduce((obj, key) => (obj[key] = existObj[key], obj), {});
-
-     console.log(exist_sort)
-
-     let new_sort = Object.keys(newObj[i])
-         .sort()
-         .reduce((obj, key) => (obj[key] = newObj[key], obj), {});
-
-     console.log(new_sort)*/
-
-  for(let i in newObj){
-    /** 각 객체를 stringfy 해서 key value 모두 비교 **/
-    if(JSON.stringify(existObj[i]) !== JSON.stringify(newObj[i])){
-      // 다른 객체의 인덱스를 temp 배열에 저장
-      temp.push(i)
-    }
-
+  let returnArray = []
+  for(let i in indexes){
+    returnArray.push(first[indexes[i]])
   }
 
-  return temp;
 
 }
 
 /** ------------------------------------------- **/
 
-/** ---------------- 교재 수정사항 점검 함수 ---------------- **/
-function filterTextBook (firstTextbook,secondTextbook) {
-  let totalLoop = firstTextbook.length - secondTextbook.length;
-
-  /** 필터링된 데이터 저장 **/
-  let filtered = [];
-  for (let i = 1; i <= totalLoop; i++){
-    filtered.push(firstTextbook[(secondTextbook.length - 1) + i]);
-  }
-
-  return filtered;
-}
-
-/** ---------------------------------------- **/
 
 // StudentDB에 수정 요청
 app.put("/api/StudentDB", loginCheck, async (req, res) => {
@@ -343,59 +303,62 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
         .sort()
         .toArray()
 
-    /** 가장 최근에 WeeklyStudentfeedback 콜렉션에 저장된 날짜 **/
-    let feedbackDate = feedbackWeekArr.at(-1)["피드백일"];
-
-    /** ----------- 교재수정에 따른 WeeklyStudyfeedback 수정 ---------------- **/
-
-    /** ------ 경우 1) 교재 추가 시 업데이트 진행 ------ **/
-
-    if(newTextbook.length > existingTextbook.length) {
 
 
-      /** ----------- 새롭게 추가된 교재만 필터링 ------------**/
-      let filtered = filterTextBook(newTextbook,existingTextbook)
+    /** Validation : 신규 학생이 WeeklyStudyfeedback 콜렉션에 정보가 없을 때 건너뛰기 **/
+    if(feedbackWeekArr.length !== 0){
 
-      for(let i in filtered){
+      /** 가장 최근에 WeeklyStudentfeedback 콜렉션에 저장된 날짜 **/
+      let feedbackDate = feedbackWeekArr.at(-1)["피드백일"];
 
-       await db.collection("WeeklyStudyfeedback").updateOne({"학생ID": newstuDB["ID"],"피드백일" : feedbackDate}, {$push: {"thisweekGoal.교재캡쳐":
-               filtered[i]
-          }
-        })
-      }
+      /** ----------- 교재수정에 따른 WeeklyStudyfeedback 수정 ---------------- **/
+      // /****/ 주석은 푸쉬할때 사라지나?
+      /** ------ 경우 1) 교재 추가 시 업데이트 진행 ------ **/
+      if(newTextbook.length > existingTextbook.length) {
 
-    }
 
-    /** ------------------------------------------------ **/
+        /** ----------- 새롭게 추가된 교재만 필터링 ------------**/
+        let filtered = filterTextBook(newTextbook,existingTextbook)
 
-    /** ------ 경우 2) 교재 삭제 시 업데이트 진행 ------ **/
-    else if(newTextbook.length < existingTextbook.length){
-      let filtered = filterTextBook(existingTextbook,newTextbook);
-      let dayIndex = ['월','화','수','목','금','일'];
-      for(let i in filtered){
-        await db.collection("WeeklyStudyfeedback").updateOne({"학생ID": newstuDB["ID"],"피드백일" : feedbackDate},
-            {$pull: {"thisweekGoal.교재캡쳐": filtered[i]
-          }
-        })
+        for(let i in filtered){
 
-      }
-
-      /** 주간 학습스케쥴링에서 월 ~ 금 까지 지정했던 목표학습량까지 삭제 **/
-      for(let i in dayIndex){
-
-        for(let j in filtered){
-
-          await db.collection("WeeklyStudyfeedback").updateOne({"학생ID":newstuDB["ID"],"피드백일": feedbackDate},
-              {$unset:{[`thisweekGoal.${dayIndex[i]}.${filtered[j]["교재"]}`]: ""}
-        })
+          await db.collection("WeeklyStudyfeedback").updateOne({"학생ID": newstuDB["ID"],"피드백일" : feedbackDate}, {$push: {"thisweekGoal.교재캡쳐":
+                  filtered[i]
+            }
+          })
         }
+
       }
 
+          /** ------------------------------------------------ **/
 
+      /** ------ 경우 2) 교재 삭제 시 업데이트 진행 ------ **/
+      else if(newTextbook.length < existingTextbook.length){
+        let filtered = filterTextBook(existingTextbook,newTextbook);
+        let dayIndex = ['월','화','수','목','금','일'];
+        for(let i in filtered){
+          await db.collection("WeeklyStudyfeedback").updateOne({"학생ID": newstuDB["ID"],"피드백일" : feedbackDate},
+              {$pull: {"thisweekGoal.교재캡쳐": filtered[i]
+                }
+              })
+
+        }
+
+        /** 주간 학습스케쥴링에서 월 ~ 금 까지 지정했던 목표학습량까지 삭제 **/
+        for(let i in dayIndex){
+
+          for(let j in filtered){
+
+            await db.collection("WeeklyStudyfeedback").updateOne({"학생ID":newstuDB["ID"],"피드백일": feedbackDate},
+                {$unset:{[`thisweekGoal.${dayIndex[i]}.${filtered[j]["교재"]}`]: ""}
+                })
+          }
+        }
+
+
+      }
+      /** -------------------------------------------- **/
     }
-    /** -------------------------------------------- **/
-
-
 
     delete newstuDB._id; //MongoDB에서 Object_id 중복을 막기 위해 id 삭제
 
