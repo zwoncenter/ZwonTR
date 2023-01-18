@@ -540,7 +540,7 @@ function TRedit() {
 
     return Math.round(diff * 10) / 10;
   }
-
+ /**  **/
   function centerTimeDiff(backHome,centerArrival){
     // backHome = 귀가 시간 | centerArrival = 등원 시간
     if(!backHome||!centerArrival){
