@@ -1283,7 +1283,7 @@ function TRwrite() {
       });
       newTR.학습차이 = Math.round((TR.실제학습 - TR.목표학습) * 10) / 10;
       newTR.센터내시간 = centerTimeDiff(newTR.실제귀가, newTR.실제등원);
-      newTR.센터활용률 = Math.round(((newTR.프로그램시간 + newTR.실제학습) / TR.센터내시간) * 1000) / 10;
+      newTR.센터활용률 = Math.round(((newTR.프로그램시간 + newTR.실제학습) / newTR.센터내시간) * 1000) / 10;
       newTR.센터학습활용률 = Math.round((newTR.실제학습 / newTR.센터내시간) * 1000) / 10;
       setTR(newTR);
     }
