@@ -138,6 +138,16 @@ function getCurrentKoreaDateYYYYMMDD(){
   return [year_string,month_string,date_string].join("-");
 }
 
+//
+function getValidDateString(dateString){
+  //date validity check
+  let date= /[\d][\d][\d][\d]-[\d][\d]-[\d][\d]/g.exec(decodeURIComponent(dateString));
+  if(!date) return null;
+  date=date[0];
+  if(isNaN(new Date(date))) return null;
+  return date;
+}
+
 // collection 중 StudentDB의 모든 Document find 및 전송
 app.get("/api/studentList", loginCheck, function (req, res) {
   db.collection("StudentDB")
@@ -326,6 +336,25 @@ app.get("/api/TR/:ID/:date", loginCheck, function (req, res) {
   });
 });
 
+//특정 날짜 범위 내에 있는 TR들을 가져오는 URI
+app.post("/api/TRByDateRange/", loginCheck, async function(req,res){
+  const ret_val={"success":false, "ret":null};
+  try{
+    const student_legacy_id= req.body["studentLegacyID"];
+    const from_date= req.body["fromDate"];
+    const to_date= req.body["toDate"];
+    const tr_list= await db.collection("TR").find({ID:student_legacy_id,날짜: {"$gt":from_date, "$lte":to_date}}).toArray();
+    ret_val["success"]=true; ret_val["ret"]=tr_list;
+  }
+  catch(error){
+    ret_val["ret"]=`Error ${error}`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
+
 app.post("/api/TR", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
@@ -467,6 +496,149 @@ app.post("/api/DailyGoalCheckLog", loginCheck, async (req,res)=>{
     return res.send(ret_val);
   }
 })
+
+app.post("/api/DailyGoalCheckLogByDateRange", loginCheck, async (req,res)=>{
+  const ret={"success":false,"ret":null};
+  try{
+    //check date validity
+    const from_date= getValidDateString(decodeURIComponent(req.body.fromDate));
+    const to_date= getValidDateString(decodeURIComponent(req.body.toDate));
+    if(from_date===null || to_date===null) throw new Error("invalid date");
+    
+    //check whether student registered 
+    const student_legacy_id= decodeURIComponent(req.body.studentLegacyID);
+    const student_doc= await db.collection("StudentDB").findOne({ID:student_legacy_id});
+    if(student_doc===null) throw new Error("no such student");
+    const student_id= student_doc["_id"];
+    
+    const find_result= await db.collection("DailyGoalCheckLog").aggregate([
+      {
+        $match:{
+          studentID:student_id,
+          date: {"$gt":from_date, "$lte":to_date}
+        },
+      },
+      {
+        $lookup: {
+          from: "AssignmentOfStudent",
+          localField: "AOSID",
+          foreignField: "_id",
+          as: "AOS_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$AOS_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      {
+        $addFields: {
+          assignmentID: "$AOS_aggregate.assignmentID",
+          finishedDate: "$AOS_aggregate.finished_date",
+        },
+      },
+      {
+        $lookup: {
+          from: "Assignment",
+          localField: "assignmentID",
+          foreignField: "_id",
+          as: "Assignment_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path: "$Assignment_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      {
+        $addFields: {
+          lectureID: "$Assignment_aggregate.lectureID",
+          pageRangeArray: "$Assignment_aggregate.pageRangeArray",
+          assignmentDescription: "$Assignment_aggregate.description",
+        },
+      },
+      {
+        $lookup: {
+          from: "Lecture",
+          localField: "lectureID",
+          foreignField: "_id",
+          as: "Lecture_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path: "$Lecture_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      {
+        $addFields: {
+          lectureName: "$Lecture_aggregate.lectureName",
+          lectureManager: "$Lecture_aggregate.manager",
+          lectureSubject: "$Lecture_aggregate.subject",
+        },
+      },
+      {
+        $lookup: {
+          from: "TextBook",
+          localField: "AOSTextbookID",
+          foreignField: "_id",
+          as: "AOSTextbook_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path: "$AOSTextbook_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      {
+        $lookup: {
+          from: "TextBook",
+          localField: "textbookID",
+          foreignField: "_id",
+          as: "Textbook_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path: "$Textbook_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      {
+        $addFields: {
+          textbookName: "$Textbook_aggregate.교재",
+          AOSTextbookName: "$AOSTextbook_aggregate.교재",
+        },
+      },
+      {
+        $project: {
+          lectureName: "$Lecture_aggregate.lectureName",
+          lectureManager: "$Lecture_aggregate.manager",
+          lectureSubject: "$Lecture_aggregate.subject",
+          pageRangeArray: "$Assignment_aggregate.pageRangeArray",
+          assignmentDescription: "$Assignment_aggregate.description",
+          date: 1,
+          studentName: 1,
+          excuse: {$arrayElemAt:["$excuseList",-1]},
+          finishedState: {$arrayElemAt:["$finishedStateList",-1]},
+          textbookName: "$Textbook_aggregate.교재",
+          AOSTextbookName: "$AOSTextbook_aggregate.교재",
+        },
+      }
+    ]).toArray();
+    ret["success"]=true; ret["ret"]=find_result;
+  }
+  catch(error){
+    ret["ret"]=`Error ${error}`;
+  }
+  finally{
+    return res.json(ret);
+  }
+});
 
 app.post("/api/Closemeeting/:date", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
@@ -871,10 +1043,8 @@ app.get("/api/SavedDailyGoalCheckLogData/:studentLegacyID/:date", loginCheck, as
   const ret={"success":false,"ret":null};
   try{
     //date validity check
-    let date= /[\d][\d][\d][\d]-[\d][\d]-[\d][\d]/g.exec(decodeURIComponent(req.params.date));
-    if(!date) throw new Error("invalid date");
-    date=date[0];
-    if(isNaN(new Date(date))) throw new Error("invalid date");
+    const date=getValidDateString(decodeURIComponent(req.params.date));
+    if(date===null) throw new Error("invalid date");
     
     //student validity check
     const studentLegacyID = decodeURIComponent(req.params.studentLegacyID);

@@ -199,28 +199,9 @@ function TRedit() {
     }
     return ret.join("-");
   }
-  async function getThisWeekProgress() {
-    let ret = [];
-    for (let i = 0; i < 7; i++) {
-      let tmpdate = new Date(thisweek[0]);
-      tmpdate.setDate(tmpdate.getDate() + i);
-      ret.push(
-        await axios
-          .get(`/api/TR/${paramID}/${dateToString(tmpdate)}`)
-          .then((result) => {
-            //console.log('paramdate: '+dateToString(tmpdate)+" "+i+"요일 "+"data:"+JSON.stringify(result["data"]));
-            return result["data"];
-          })
-          .catch((err) => {
-            return err;
-          })
-      );
-    }
-    //console.log('get~ ret val: '+JSON.stringify(ret));
-    setThisWeekProgress(ret);
-  }
-  const [todayGoal, settodayGoal] = useState([]);
-  const [thisweekGoal, setthisweekGoal] = useState({
+  
+  const [todayGoal, settodayGoal] = useState([]); // 오늘의 학습 계획(weeklystudyfeedback document에서 가져옴)
+  const [thisweekGoal, setthisweekGoal] = useState({ // 주간 학습 계획(weeklystudyfeedback document에서 가져옴)
     월: {},
     화: {},
     수: {},
@@ -229,12 +210,16 @@ function TRedit() {
     일: {},
     마감일: {},
   });
-  const [thisWeekProgress, setThisWeekProgress] = useState([]);
-  const [thisweek, setthisweek] = useState(getThisWeek(paramDate));
-  //const [bookNamesDictionary,setBookNamesDictionary]= useState({});
-  //const [bookNamesList,setBookNamesList]= useState([]);
-  let bookNamesDictionary = {};
-  let bookNamesList = [];
+
+  //일요일에 한주간의 학습 진행 상황 및 학습 목표 정리하는 table 표시하기 위한 코드
+  const [thisWeekProgress, setThisWeekProgress] = useState([]); // TR document에서 가져온 이번주 교재별 최근 진도(TR.학습.진행중교재.최근진도)
+  const [thisweek, setthisweek] = useState(getThisWeek(paramDate)); // :[저번주일요일 date string, 이번주 일요일 date string]
+  const [bookVolumeDictionary,setbookVolumeDictionary]= useState({}); // key: 교재명, value: 총 교재량
+  const [bookNamesList,setBookNamesList]= useState([]); // thisweekgoal,thisweekprogress에 저장된 교재들의 이름을 담는 list
+  // let bookVolumeDictionary = {};
+  // let bookNamesList = [];
+  //
+  //state "thisweekGoal"에 valid element가 있는지 검사
   function checkThisWeekGoalHasValidElement() {
     if (!thisweekGoal) return false;
     for (let i = 0; i < weekDays.length; i++) {
@@ -244,9 +229,11 @@ function TRedit() {
     }
     return false;
   }
+  //paramdate가 일요일인지 검사
   function checkTodayIsSunday() {
     return new Date(paramDate).getDay() == 0;
   }
+  // state "thisWeekProgress"에 valid element가 있는지 검사
   function checkThisWeekProgressHasValidElement() {
     if (!thisWeekProgress || thisWeekProgress.length == 0) return false;
     for (let i = 0; i < thisWeekProgress.length; i++) {
@@ -254,14 +241,15 @@ function TRedit() {
     }
     return false;
   }
+  // this week goal, this week progress 로부터 책 이름과 해당 책의 총 분량을 state "bookNamesList", "bookVolumeDictionary"에 저장
   function collectBookNamesFromProgressAndGoal() {
-    //let newBookNamesDictionary={};
+    const newbookVolumeDictionary={};
     if (thisweekGoal && thisweekGoal.hasOwnProperty("교재캡쳐")) {
       let booklist = thisweekGoal["교재캡쳐"];
       for (let i = 0; i < booklist.length; i++) {
         let bookName = booklist[i]["교재"];
-        if (!bookNamesDictionary.hasOwnProperty(bookName)) {
-          bookNamesDictionary[bookName] = booklist[i].hasOwnProperty("총교재량") ? booklist[i]["총교재량"] : null;
+        if (!newbookVolumeDictionary.hasOwnProperty(bookName)) {
+          newbookVolumeDictionary[bookName] = booklist[i].hasOwnProperty("총교재량") ? booklist[i]["총교재량"] : null;
         }
       }
     }
@@ -273,20 +261,23 @@ function TRedit() {
           let bookElement = dayElement["학습"][j];
           if (!bookElement.hasOwnProperty("교재")) continue;
           let bookName = bookElement["교재"];
-          if (!bookNamesDictionary.hasOwnProperty(bookName)) {
-            bookNamesDictionary[bookName] = bookElement.hasOwnProperty("총교재량") ? bookElement["총교재량"] : null;
+          if (!newbookVolumeDictionary.hasOwnProperty(bookName)) {
+            newbookVolumeDictionary[bookName] = bookElement.hasOwnProperty("총교재량") ? bookElement["총교재량"] : null;
           }
         }
       }
     }
-    let newBookNamesList = Object.keys(bookNamesDictionary);
-    //console.log("book names dict: "+JSON.stringify(bookNamesDictionary));
-    bookNamesList = Object.keys(bookNamesDictionary);
+    // let newBookNamesList = Object.keys(newbookVolumeDictionary);
+    setbookVolumeDictionary(newbookVolumeDictionary);
+    //console.log("book names dict: "+JSON.stringify(newbookVolumeDictionary));
+    // bookNamesList = Object.keys(newbookVolumeDictionary);
+    setBookNamesList(Object.keys(newbookVolumeDictionary));
     //console.log("book names list: "+JSON.stringify(bookNamesList));
-    //setBookNamesDictionary(newBookNamesDictionary);
+    //setbookVolumeDictionary(newbookVolumeDictionary);
     //setBookNamesList(newBookNamesList);
   }
-  collectBookNamesFromProgressAndGoal();
+  // collectBookNamesFromProgressAndGoal();
+  // 주간 학습 진행상황을 보여주는 표(숫자가 table cell에 표시되는 표)를 보여줄 수 있는지 검사
   function checkWeekProgressTableNeeded() {
     return checkThisWeekProgressHasValidElement() || checkThisWeekGoalHasValidElement();
   }
@@ -315,7 +306,7 @@ function TRedit() {
     //console.log("breakpoint");
     return !bookinfo[0]["최근진도"] ? null : bookinfo[0]["최근진도"];
   }
-  function getThisWeek(inputDate) {
+  function getThisWeek(inputDate) { //return two dates: sunday to sunday; parameter: date string
     //console.log(inputDate);
     var inputDate = new Date(inputDate);
     //console.log(inputDate);
@@ -326,6 +317,107 @@ function TRedit() {
     var startdate = new Date(inputDate.setDate(inputDate.getDate()));
     var enddate = new Date(inputDate.setDate(inputDate.getDate() + 7));
     return [startdate, enddate];
+  }
+  function getThisWeekStrings(dateString){ //return two date strings: sunday to sunday; parameter: date string
+    const day_in_milliseconds= 24*3600*1000;
+    const date= new Date(dateString);
+    const date_day= date.getDay();
+    let start_date;
+    if(date_day===0) start_date= new Date(date.getTime()-day_in_milliseconds*7);
+    else start_date= new Date(date.getTime() - date_day*day_in_milliseconds);
+    const start_date_string= start_date.toISOString().split("T")[0];
+    const end_date= new Date(start_date.getTime() + 7*day_in_milliseconds);
+    const end_date_string= end_date.toISOString().split("T")[0];
+    return [start_date_string,end_date_string];
+  }
+  function getDateStringByDayIndex(day){ // return date string of day(0:monday, 6:sunday) of the week which includes the date 'paramDate'
+    const last_sunday_date=new Date(getThisWeekStrings(paramDate)[0]);
+    const day_in_milliseconds= 3600*24*1000;
+    const date= new Date(last_sunday_date.getTime()+day_in_milliseconds*(day+1));
+    return date.toISOString().split("T")[0];
+  }
+
+  //이번주에 해당하는 weeklystudyfeedback documnent를 가져와서 state "thisweekGoal","todayGoal"에 저장하는 함수
+  async function getGoals(){
+    const newthisweekGoal = await axios
+      .get(`/api/Weeklystudyfeedback/${paramID}/${getThisWeekStrings(paramDate)[1]}`)
+      .then((result) => {
+        if (result["data"] !== null) {
+          // console.log(result["data"]["thisweekGoal"]);
+          return result["data"]["thisweekGoal"];
+        }
+        return null;
+      })
+      .catch((err) => {
+        return err;
+      });
+    if(newthisweekGoal) {
+      // console.log("twg: "+JSON.stringify(newthisweekGoal));
+      await setthisweekGoal(newthisweekGoal);
+      await settodayGoal(newthisweekGoal[getDayString()]);
+    }
+  }
+
+  //이번 주 날짜에 해당하는 TR document에서 진행중 교재에 해당하는 최근 진도를 가져와서 state "thisWeekProgress"에 저장하는 함수
+  async function getThisWeekProgress() {
+    // let ret = [];
+    // for (let i = 0; i < 7; i++) {
+    //   let tmpdate = new Date(thisweek[0]);
+    //   tmpdate.setDate(tmpdate.getDate() + i);
+    //   ret.push(
+    //     await axios
+    //       .get(`/api/TR/${paramID}/${dateToString(tmpdate)}`)
+    //       .then((result) => {
+    //         //console.log('paramdate: '+dateToString(tmpdate)+" "+i+"요일 "+"data:"+JSON.stringify(result["data"]));
+    //         return result["data"];
+    //       })
+    //       .catch((err) => {
+    //         return err;
+    //       })
+    //   );
+    // }
+    //console.log('get~ ret val: '+JSON.stringify(ret));
+    // setThisWeekProgress(ret);
+
+    const thisWeekDateString=getThisWeekStrings(paramDate);
+    const payload={studentLegacyID:paramID,fromDate:thisWeekDateString[0],toDate:thisWeekDateString[1]};
+    const tr_list=await axios
+      .post(`/api/TRByDateRange`,payload)
+      .then((result) => {
+        //console.log('paramdate: '+dateToString(tmpdate)+" "+i+"요일 "+"data:"+JSON.stringify(result["data"]));
+        const res=result["data"];
+        if(res["success"]) return res["ret"];
+        else return [];
+      })
+      .catch((err) => {
+        return err;
+      })
+    const proj_data= tr_list.map((e,idx)=>{
+      return {
+        ID:e["ID"],
+        요일:e["요일"],
+        날짜:e["날짜"],
+        학습:e["학습"]
+      }
+    })
+    const proj_data_dictionary={} //key: date, value: proj_data_element
+    proj_data.forEach((e,idx)=>{
+      // console.log("date:"+e["date"]);
+      proj_data_dictionary[e["날짜"]]=e;
+    });
+
+    const newThisWeekProgress=[];
+    const day_in_milliseconds=3600*24*1000;
+    const thisweek_sunday_date=new Date(getThisWeekStrings(paramDate)[0]);
+    for(let i=1; i<=7; i++){
+      const date=new Date(thisweek_sunday_date.getTime()+i*day_in_milliseconds);
+      const date_string=date.toISOString().split("T")[0];
+      newThisWeekProgress.push(proj_data_dictionary[date_string]);
+    }
+    // newThisWeekProgress.forEach((e,idx)=>{
+    //   console.log(idx,JSON.stringify(e));
+    // });
+    setThisWeekProgress(newThisWeekProgress);
   }
 
   // 하루 전 날짜를 문자열로 반환
@@ -539,25 +631,6 @@ function TRedit() {
     }
 
     return Math.round(diff * 10) / 10;
-  }
-
-  function centerTimeDiff(backHome,centerArrival){
-    // backHome = 귀가 시간 | centerArrival = 등원 시간
-    if(!backHome||!centerArrival){
-      return NaN;
-    }
-    let [backHomeHour, backHomeMin] = backHome.split(":");
-    let [centerArrivalHour, centerArrivalMin] = centerArrival.split(":");
-
-    let backHomeTime = (parseInt(backHomeHour) * 60) + parseInt(backHomeMin);
-    let centerArrivalTime = (parseInt(centerArrivalHour) * 60) + parseInt(centerArrivalMin);
-    let diff = backHomeTime - centerArrivalTime;
-
-    let result = (diff/60)
-
-    return Math.round(result * 10) /10;
-
-
   }
 
   function 차이출력(stayup, diff, 종류) {
@@ -870,6 +943,79 @@ function TRedit() {
     setCurrentExcuseInfo({});
     setShowExcuseModal(false);
   }
+  
+  //일요일에 그 주 (월~금) daily goal check log 모아 볼 수 있게 하는 코드
+  const [thisWeekGoalCheckLog,setThisWeekGoalCheckLog] = useState({}); // key: 강의 과제 이름(교재 있는 경우 교재명, 교재 없는 경우 강의명), value: {0~5(dayindex):[](list of lecture assignments of the day)}
+  // dayindex 0~4:monday~friday, 5:sunday
+  // const dayIndexArray=[0,1,2,3,4,5,6]; //0:monday, 6:sunday: legacy
+  const dayArray=['월','화','수','목','금','일'];
+  function processThisWeekGoalCheckLogData(thisWeekGoalCheckLogData){
+    const data_copy=JSON.parse(JSON.stringify(thisWeekGoalCheckLogData));
+    const ret={};
+    const assignmentInfoTemplate={
+      isKeyLectureName:false,
+    };
+    for(let i=0; i<6; i++) assignmentInfoTemplate[i]={
+      list:[],
+      total_count:0,
+      finished_count:0,
+    };
+    data_copy.forEach((element)=>{
+      let log_day = (new Date(element["date"])).getDay();
+      log_day= log_day===0? 5: log_day-1;
+      element["dayIndex"]= log_day;
+      let is_key_lecture_name=false; // assignmentKey값이 강의 이름인지 저장하는 flag
+      if(element["textbookName"]){ // textbookName 필드가 있으면 자체 진도 교재 과제, 아닌 경우 강의 과제
+        element["assignmentKey"]=element["textbookName"];
+      }
+      else if(element["AOSTextbookName"]){ // 강의 과제라도 교재를 사용한 경우 key를 교재명으로 한다
+        element["assignmentKey"]=element["AOSTextbookName"];
+      }
+      else{ // 교재를 사용하지 않은 강의 과제인 경우 강의 명을 key로 한다
+        element["assignmentKey"]=element["lectureName"];
+        is_key_lecture_name=true;
+      }
+      
+      const assignmentKey= element["assignmentKey"];
+      if(!(assignmentKey in ret)) {
+        ret[assignmentKey]=JSON.parse(JSON.stringify(assignmentInfoTemplate));
+        ret[assignmentKey]["isKeyLectureName"]=is_key_lecture_name;
+      }
+      const assignmentInfo= ret[assignmentKey];
+      const day_index=element["dayIndex"]
+      assignmentInfo[day_index]["list"].push(element);
+      assignmentInfo[day_index]["total_count"]+=1;
+      if(element["finishedState"]===true) assignmentInfo[day_index]["finished_count"]+=1;
+    })
+    return ret;
+  }
+  function checkThisWeekGoalCheckLogTableNeeded(){
+    return Object.keys(thisWeekGoalCheckLog).length>0;
+  }
+
+  //한 주의 학습 요약 표에서 셀 클릭 시 과제 상세를 보여주는 modal 관련 코드
+  const [assignmentDescriptionModal,setAssignmentDescriptionModal]= useState(false);
+  const displayedAssignmentInfoTemplate={
+    date:"", //date string
+    day:"", //day string in korean
+    assignmentKey:"",
+    isKeyLectureName:false,
+    assignmentList:[],
+    total_assignment_count:0,
+    finished_assignment_Count:0,
+  };
+  const [displayedAssignmentInfo,setDisplayedAssignmentInfo] = useState(displayedAssignmentInfoTemplate);
+  const assignmentDescriptionModalOpen= (targetAssignmentInfo)=>{
+    setAssignmentDescriptionModal(true);
+    setDisplayedAssignmentInfo(targetAssignmentInfo);
+  };
+  const assignmentDescriptionModalClose= ()=>{
+    setAssignmentDescriptionModal(false);
+    setDisplayedAssignmentInfo(displayedAssignmentInfoTemplate);
+  };
+  function getPercentage(dividend,divisor){
+    return (Math.round(dividend/divisor*1000))/10;
+  }
 
   useEffect(async () => {
     // 오늘 마감인 해당 학생의 강의 과제를 가져온다 (post 방식 사용)
@@ -994,6 +1140,7 @@ function TRedit() {
     // console.log("ast: "+JSON.stringify(newAssignmentStudyTime));
   },[TR.강의과제학습]);
 
+  //deprecated: 이번주에 해당하는 weeklystudyfeedback documnent, 그리고 "TR.진행중교재.최근진도"를 가져와서 state "thisweekGoal", "thisWeekProgress"에 저장하는 함수
   async function setGoalsAndGetProgress() {
     const newthisweekGoal = await axios
       .get(`/api/Weeklystudyfeedback/${paramID}/${formatDate(getThisWeek(formatDate(paramDate))[1])}`)
@@ -1002,12 +1149,16 @@ function TRedit() {
           // console.log(result["data"]["thisweekGoal"]);
           return result["data"]["thisweekGoal"];
         }
+        return null;
       })
       .catch((err) => {
         return err;
       });
-    await setthisweekGoal(newthisweekGoal);
-    if(newthisweekGoal) await settodayGoal(newthisweekGoal[getDayString()]);
+    if(newthisweekGoal) {
+      // console.log("twg: "+JSON.stringify(newthisweekGoal));
+      await setthisweekGoal(newthisweekGoal);
+      await settodayGoal(newthisweekGoal[getDayString()]);
+    }
     // if (newthisweekGoal && newthisweekGoal.hasOwnProperty(TR["요일"][0])) {
     //   await settodayGoal(newthisweekGoal[getDayString()]);
     // }
@@ -1041,9 +1192,34 @@ function TRedit() {
     }
   }, [TR.날짜]);
 
-  useEffect(async () => {
-    await setGoalsAndGetProgress();
-  }, [thisweek]);
+  // useEffect(async () => {
+  //   await setGoalsAndGetProgress();
+  // }, [thisweek]);
+
+  useEffect(async()=>{
+    const date=new Date(paramDate);
+    getGoals();
+    if(checkTodayIsSunday()){
+      getThisWeekProgress();
+      //이번주 각 과제에 대한 완료 확인 로그를 가져온다
+      const this_week_strings=getThisWeekStrings(paramDate);
+      const log_query_payload= {fromDate:this_week_strings[0], toDate:this_week_strings[1], studentLegacyID:paramID};
+      const thisWeekGoalCheckLogData= await axios.post("/api/DailyGoalCheckLogByDateRange",log_query_payload)
+        .then((result) => {
+          const find_result= result["data"];
+          if(find_result["success"]) return find_result["ret"];
+          else return [];
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+      setThisWeekGoalCheckLog(processThisWeekGoalCheckLogData(thisWeekGoalCheckLogData));
+    }
+  },[paramDate]);
+
+  useEffect(()=>{ // this week goal, this week progress state로부터 교재명, 교재 분량 모으는 effect
+    collectBookNamesFromProgressAndGoal();
+  },[thisweekGoal,thisWeekProgress]);
 
   useEffect(() => {
     if (!isInitialMount.current) {
@@ -1052,7 +1228,7 @@ function TRedit() {
         newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
       });
       newTR.학습차이 = Math.round((TR.실제학습 - TR.목표학습) * 10) / 10;
-      newTR.센터내시간 = centerTimeDiff(newTR.실제귀가, newTR.실제등원);
+      newTR.센터내시간 = 차이계산(newTR.실제귀가, newTR.실제등원);
       newTR.센터활용률 = Math.round(((newTR.프로그램시간 + newTR.실제학습) / TR.센터내시간) * 1000) / 10;
       newTR.센터학습활용률 = Math.round((newTR.실제학습 / newTR.센터내시간) * 1000) / 10;
       setTR(newTR);
@@ -1102,6 +1278,7 @@ function TRedit() {
 
   return (
     <div className="trEdit-background">
+      {/*당일 과제 미완료 사유 작성 modal*/}
       <Modal show={showExcuseModal} onHide={closeExcusemodal}>
         <Modal.Header closeButton>
           <Modal.Title>과제 미완료 사유 작성</Modal.Title>
@@ -1142,6 +1319,154 @@ function TRedit() {
           </Button>
         </Modal.Body>
       </Modal>
+          
+      {/*한 주 학습 요약 표에서 특정 셀 정보 보여주는 modal*/}
+      <Modal show={assignmentDescriptionModal} onHide={assignmentDescriptionModalClose} scrollable={true}>
+        <Modal.Header closeButton>
+          <Modal.Title>과제 상세</Modal.Title>
+          
+          
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          <div className="square border-bottom border-dark border-3 mb-3">
+            <div className="row mb-2">
+              <div className="col-3">{displayedAssignmentInfo["isKeyLectureName"]?"강의명":"교재명"}</div>
+              <div className="col-9">{displayedAssignmentInfo["assignmentKey"]}</div>
+            </div>
+            <div className="row mb-2">
+              <div className="col-3">날짜</div>
+              <div className="col-9">{displayedAssignmentInfo["date"]} ({displayedAssignmentInfo["day"]})</div>
+            </div>
+            <div className="row mb-2">
+              <div className="col-3">과제 완료율</div>
+              <div className="col-9">{displayedAssignmentInfo["finished_assignment_count"]} / {displayedAssignmentInfo["total_assignment_count"]}
+              &nbsp;&nbsp;({getPercentage(displayedAssignmentInfo["finished_assignment_count"],displayedAssignmentInfo["total_assignment_count"])} %)</div>
+            </div>
+          </div>
+          {
+            displayedAssignmentInfo["assignmentList"].map((displayedAssignment,idx)=>{
+              return (
+                <div className={"square border-bottom border-3 mb-3" + " " + (displayedAssignment["finishedState"]===true?"AssignmentChecked":"AssignmentNotFinished")}>
+                  <div className="row mb-2">
+                    <div className="col-3">과제 구분</div>
+                    {/* {<div className="col-9">{displayedAssignment?displayedAssignment["lectureName"]:null}</div>} */}
+                    <div className="col-9">{("textbookName" in displayedAssignment)?"자체 진도 교재":"강의 과제"}</div>
+                  </div>
+
+                  {("lectureName" in displayedAssignment)?(
+                    <div className="row mb-2">
+                      <div className="col-3">강사명</div>
+                      {/* {<div className="col-9">{displayedAssignment?displayedAssignment["lectureName"]:null}</div>} */}
+                      <div className="col-9">{displayedAssignment["lectureManager"]}</div>
+                    </div>
+                  ):null}
+
+                  {("lectureName" in displayedAssignment)?(
+                    <div className="row mb-2">
+                      <div className="col-3">강의명</div>
+                      {/* {<div className="col-9">{displayedAssignment?displayedAssignment["lectureName"]:null}</div>} */}
+                      <div className="col-9">{displayedAssignment["lectureName"]}</div>
+                    </div>
+                  ):null}
+                  
+                  <div className="row mb-2">
+                    <div className="col-3">완료여부</div>
+                    {/* {<div className="col-9">{displayedAssignment?displayedAssignment["duedate"]:null}</div>} */}
+                    <div className="col-9">{(displayedAssignment["finishedState"]===true)?"완료":"미완료"}</div>
+                  </div>
+
+                  {/*자체 진도 교재의 범위(~까지)를 보여준다*/}
+                  {/* {console.log("reading undefined:"+JSON.stringify(thisweekGoal[displayedAssignmentInfo["day"]]))?null:null} */}
+                  {/* {console.log("twg in modal:"+JSON.stringify(thisweekGoal))?null:null} */}
+                  {("textbookName" in displayedAssignment) && (displayedAssignment["textbookName"] in thisweekGoal[displayedAssignmentInfo["day"]]) &&
+                    (thisweekGoal[displayedAssignmentInfo["day"]][displayedAssignment["textbookName"]])?
+                  (
+                    <div className="row mb-2">
+                      <div className="col-3">범위(~까지)</div>
+                      {/* {<div className="col-9">{displayedAssignment?displayedAssignment["lectureName"]:null}</div>} */}
+                      <div className="col-9">{thisweekGoal[displayedAssignmentInfo["day"]][displayedAssignment["textbookName"]]}</div>
+                    </div>
+                  ):null
+                  }
+
+                  {/*페이지 범위 있는 강의 과제의 페이지 범위를 보여준다*/}
+                  {("pageRangeArray" in displayedAssignment) && displayedAssignment["pageRangeArray"][0][0]?
+                  (<>
+                    {displayedAssignment["pageRangeArray"].map((range,idx)=>{
+                      if(idx>0){
+                        return (<div className="row mb-2">
+                          <div className="col-3">-</div>
+                          <div className="col-9">{displayedAssignment["pageRangeArray"][idx][0]} ~ {displayedAssignment["pageRangeArray"][idx][1]}</div>
+                          </div>
+                        );
+                      }
+                      else{
+                        return (
+                          <div className="row mb-2" key={idx}>
+                            <div className="col-3">과제 범위</div>
+                            <div className="col-9" key={idx}>{displayedAssignment["pageRangeArray"][idx][0]} ~ {displayedAssignment["pageRangeArray"][idx][1]}</div>
+                          </div>
+                        );
+                      }
+                    })}
+                  </>):null
+                  }
+
+                  {/*강의 과제 세부사항이 있는 경우 세부사항을 보여준다*/}
+                  {("assignmentDescription" in displayedAssignment) && displayedAssignment["assignmentDescription"]?(
+                    <div className="row mb-2">
+                      <div className="col-3">과제 세부 사항</div>
+                      {/* {<div className="col-9">{displayedAssignment?displayedAssignment["lectureName"]:null}</div>} */}
+                      <div className="col-9">{displayedAssignment["assignmentDescription"]}</div>
+                    </div>
+                  ):null
+                  }
+
+                  {displayedAssignment["finishedState"]===false?(<div className="row mb-2">
+                    <div className="col-3">미완료 사유</div>
+                    {/* {<div className="col-9">{displayedAssignment?displayedAssignment["description"]:null}</div>} */}
+                    <div className="col-9">{displayedAssignment["excuse"]}</div>
+                  </div>):null}
+
+                  {/* {{displayedAssignment["textbookName"]?
+                  (<div className="row mb-2">
+                    <div className="col-3">사용 교재</div>
+                    <div className="col-9">{displayedAssignment["textbookName"]}</div>
+                  </div>)
+                  :
+                  null}
+
+                  {displayedAssignment["pageRangeArray"][0][0]?
+                  (<>
+                    {displayedAssignment["pageRangeArray"].map((range,idx)=>{
+                      if(idx>0){
+                        return (<div className="row mb-2">
+                          <div className="col-3">-</div>
+                          <div className="col-9">{displayedAssignment["pageRangeArray"][idx][0]} ~ {displayedAssignment["pageRangeArray"][idx][1]}</div>
+                          </div>
+                        );
+                      }
+                      else{
+                        return (
+                          <div className="row mb-2" key={idx}>
+                            <div className="col-3">과제 범위</div>
+                            <div className="col-9" key={idx}>{displayedAssignment["pageRangeArray"][idx][0]} ~ {displayedAssignment["pageRangeArray"][idx][1]}</div>
+                          </div>
+                        );
+                      }
+                    })}
+                    
+                  </>)
+                  :
+                  null}} */}
+                </div>
+              )
+            })
+          }
+          
+        </Modal.Body>
+      </Modal>
+
       <div className="row">
         <div className="col-xl-6 trCol">
           <div>
@@ -1422,15 +1747,20 @@ function TRedit() {
                                   const astKeys= Object.keys(newAST);
                                   for(let i=0; i<astKeys.length; i++){
                                     const studyTime=newAST[astKeys[i]];
+                                    console.log("studytime: "+JSON.stringify(studyTime));
                                     실제학습시간 += parseInt(studyTime["학습시간"].split(":")[0]);
                                     실제학습분 += parseInt(studyTime["학습시간"].split(":")[1]);
                                   }
+                                  console.log("breakpoint");
                                   newTR.학습.map(function (b, j) {
                                     if (b.학습시간) {
+                                      console.log("b: "+JSON.stringify(b));
                                       실제학습시간 += parseInt(b.학습시간.split(":")[0]);
                                       실제학습분 += parseInt(b.학습시간.split(":")[1]);
                                     }
                                   });
+                                  console.log("hour:"+실제학습시간);
+                                  console.log("minute:"+실제학습분);
                                   newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
                                   newTR["강의과제학습"]=newAST; // this line is necessary!: only needed in TREdit file
                                   setTR(newTR);
@@ -1881,7 +2211,7 @@ function TRedit() {
                               <td>
                                 <p m-0="true">
                                   <strong>
-                                    {bookName} {bookNamesDictionary[bookName] ? `(총 ${bookNamesDictionary[bookName]})` : null}
+                                    {bookName} {bookVolumeDictionary[bookName] ? `(총 ${bookVolumeDictionary[bookName]})` : null}
                                   </strong>
                                 </p>
                               </td>
@@ -1904,6 +2234,100 @@ function TRedit() {
                         })}
                       </tbody>
                     </Table>
+                  ) : (
+                    <p>
+                      <strong>이번 주 학습 목표, 학습 진행 상황이 없습니다</strong>
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
+            {checkTodayIsSunday() ? (
+              <div mt-3>
+                <div className="trCard">
+                  {checkThisWeekGoalCheckLogTableNeeded() ? (
+                    <>
+                    <h4>이번 주 학습 요약</h4>
+                    <Table striped hover size="sm" className="mt-3">
+                      <thead>
+                        <th width="30%">교재명/강의명</th>
+                        {dayArray.map((day, dayIndex) => {
+                          if(day==="일") return null; // 현재는 일요일을 표시하지 않음
+                          return (
+                            <th key={dayIndex} width="10%">
+                              {day}
+                            </th>
+                          );
+                        })}
+                      </thead>
+                      <tbody>
+                        {Object.keys(thisWeekGoalCheckLog).map((assignmentKey, aidx) => {
+                          return (
+                            <tr key={aidx}>
+                              <td>
+                                <p m-0="true">
+                                  <strong>
+                                    {assignmentKey}
+                                  </strong>
+                                </p>
+                              </td>
+                              {dayArray.map((day, day_idx) => {
+                                if(day==="일") return null; // 현재는 일요일을 표시하지 않음
+                                const assignments_list= thisWeekGoalCheckLog[assignmentKey][day_idx]["list"];
+                                if(assignments_list.length===0){
+                                  return (
+                                    <td key={day_idx} className="NoGoal">
+                                      <div className="studyPercentageBox">
+                                        <p>
+                                        </p>
+                                      </div>
+                                    </td>
+                                  );
+                                }
+                                let td_base_class_name= "onHoverHighlighted";
+                                let td_class_name= "";
+                                
+                                const assignment_count=thisWeekGoalCheckLog[assignmentKey][day_idx]["total_count"];
+                                const finished_count=thisWeekGoalCheckLog[assignmentKey][day_idx]["finished_count"];
+                                if(finished_count===assignment_count) td_class_name="GoalFinished";
+                                else if(finished_count===0) td_class_name="GoalNotFinished";
+                                else{
+                                  const over_five_fraction= Math.floor(Math.round(finished_count/assignment_count*10)/2);
+                                  td_class_name=`GoalFinished_${over_five_fraction}_of_5`;
+                                }
+                                td_class_name+=" "+td_base_class_name;
+                                // console.log("something: "+JSON.stringify(thisWeekGoalCheckLog[assignmentKey]));
+                                return (
+                                  <td
+                                    key={day_idx}
+                                    className={td_class_name}
+                                    onClick={()=>{
+                                      const assignmentInfo= JSON.parse(JSON.stringify(displayedAssignmentInfoTemplate));
+                                      assignmentInfo["day"]=day;
+                                      assignmentInfo["date"]=getDateStringByDayIndex(day_idx);
+                                      assignmentInfo["assignmentKey"]=assignmentKey;
+                                      assignmentInfo["isKeyLectureName"]=thisWeekGoalCheckLog[assignmentKey]["isKeyLectureName"];
+                                      assignmentInfo["assignmentList"]=assignments_list;
+                                      assignmentInfo["total_assignment_count"]=assignment_count;
+                                      assignmentInfo["finished_assignment_count"]=finished_count;
+                                      
+                                      assignmentDescriptionModalOpen(assignmentInfo);
+                                    }}
+                                  >
+                                    <div className="studyPercentageBox">
+                                      <p>
+                                      </p>
+                                    </div>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </Table>
+                    </>
                   ) : (
                     <p>
                       <strong>이번 주 학습 목표, 학습 진행 상황이 없습니다</strong>
