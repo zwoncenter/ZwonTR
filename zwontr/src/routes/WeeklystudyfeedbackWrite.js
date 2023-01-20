@@ -80,8 +80,9 @@ function WeeklystudyfeedbackWrite() {
   }, [param["feedbackDate"]]);
 
   //이번주에 있는 강의과제 관련 코드
-  const [thisWeekAssignments,setThisWeekAssignments]= useState([]);
-  const dayIndexArray=[0,1,2,3,4,5,6]; //0:monday, 6:sunday
+  const [thisWeekAssignments,setThisWeekAssignments]= useState([]); // key: 강의 과제 이름(교재 있는 경우 교재명, 교재 없는 경우 강의명), value: {0~5(dayindex):[](list of lecture assignments of the day)}
+  // dayindex 0~4:monday~friday, 5:sunday
+  // const dayIndexArray=[0,1,2,3,4,5,6]; //0:monday, 6:sunday: legacy
   const dayArray=['월','화','수','목','금','일'];
   function processThisWeekAssignmentData(thisWeekAssignmentData){
     const data_copy=JSON.parse(JSON.stringify(thisWeekAssignmentData));
@@ -120,7 +121,7 @@ function WeeklystudyfeedbackWrite() {
   const [assignmentDescriptionModal,setAssignmentDescriptionModal]= useState(false);
   // const [displayedAssignment,setDisplayedAssignment]= useState(null);
   const [displayedAssignmentList,setDisplayedAssignmentList] = useState([]);
-  const assignmentDescriptionModalOpen= (targetAssignment,targetAssignmentList)=>{
+  const assignmentDescriptionModalOpen= (targetAssignmentList)=>{
     setAssignmentDescriptionModal(true);
     // setDisplayedAssignment(targetAssignment);
     setDisplayedAssignmentList(targetAssignmentList);
@@ -658,7 +659,7 @@ function WeeklystudyfeedbackWrite() {
                         <td key={day_idx}>
                           <div className="studyPercentageBox">
                               {
-                                assignment?
+                                assignments_list.length>0?
                                   (
                                     <p><strong>
                                       {
@@ -667,7 +668,8 @@ function WeeklystudyfeedbackWrite() {
                                         className=""
                                         variant="primary"
                                         onClick={() => {
-                                          assignmentDescriptionModalOpen(assignment,assignments_list);
+                                          // assignmentDescriptionModalOpen(assignment,assignments_list);
+                                          assignmentDescriptionModalOpen(assignments_list);
                                         }}
                                         >
                                           <BsFillChatSquareFill></BsFillChatSquareFill>

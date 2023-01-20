@@ -74,31 +74,31 @@ app.post("/api/login", function (req, res, next) {
 
 // ID와 PW를 검사해주는 코드.
 passport.use(
-  new LocalStrategy(
-    {
-      usernameField: "id", // form의 name이 id 인 것이 username
-      passwordField: "pw", // form의 name이 pw 인 것이 password
-      session: true, // session을 저장할 것인지
-      passReqToCallback: false, // id/pw 외에 다른 정보 검증 시
-    },
-    function (inputID, inputPW, done) {
-      console.log(inputID, "login trial");
-      db.collection("account").findOne({ ID: inputID }, function (err, result) {
-        if (err) return done(err);
-        // done 문법 (서버에러, 성공시 사용자 DB, 에러메세지)
-        if (!result) return done(null, false, { message: "존재하지 않는 아이디 입니다." });
-        // buf 참조해서 암호화 및 비교진행
-        if (inputPW == result.PW) {
-          console.log("로그인 성공, ", result);
-          return done(null, result);
-        } else {
-          return done(null, false, {
-            message: "비밀번호가 일치하지 않습니다.",
+    new LocalStrategy(
+        {
+          usernameField: "id", // form의 name이 id 인 것이 username
+          passwordField: "pw", // form의 name이 pw 인 것이 password
+          session: true, // session을 저장할 것인지
+          passReqToCallback: false, // id/pw 외에 다른 정보 검증 시
+        },
+        function (inputID, inputPW, done) {
+          console.log(inputID, "login trial");
+          db.collection("account").findOne({ ID: inputID }, function (err, result) {
+            if (err) return done(err);
+            // done 문법 (서버에러, 성공시 사용자 DB, 에러메세지)
+            if (!result) return done(null, false, { message: "존재하지 않는 아이디 입니다." });
+            // buf 참조해서 암호화 및 비교진행
+            if (inputPW == result.PW) {
+              console.log("로그인 성공, ", result);
+              return done(null, result);
+            } else {
+              return done(null, false, {
+                message: "비밀번호가 일치하지 않습니다.",
+              });
+            }
           });
         }
-      });
-    }
-  )
+    )
 );
 
 // id를 이용해서 세션을 저장시키는 코드(로그인 성공 시)
@@ -127,13 +127,13 @@ function loginCheck(req, res, next) {
 // get current server date in yyyy-mm-dd format
 function getCurrentKoreaDateYYYYMMDD(){
   const curr=new Date();
-  const utc = 
-      curr.getTime() + 
+  const utc =
+      curr.getTime() +
       (curr.getTimezoneOffset() * 60 * 1000);
 
   const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
-  const kr_curr = 
-        new Date(utc + (KR_TIME_DIFF));
+  const kr_curr =
+      new Date(utc + (KR_TIME_DIFF));
   const year_string= String(kr_curr.getFullYear());
   let month_string= String(kr_curr.getMonth()+1);
   if(month_string.length==1) month_string="0"+month_string;
@@ -147,14 +147,14 @@ function getCurrentKoreaDateYYYYMMDD(){
 // collection 중 StudentDB의 모든 Document find 및 전송
 app.get("/api/studentList", loginCheck, function (req, res) {
   db.collection("StudentDB")
-    .find()
-    .toArray(function (err, result) {
-      if (err) {
-        return console.log("api/studentList - find Error : ", err);
-      }
-      console.log("api/studentList - find result length   :", result.length);
-      res.json(result);
-    });
+      .find()
+      .toArray(function (err, result) {
+        if (err) {
+          return console.log("api/studentList - find Error : ", err);
+        }
+        console.log("api/studentList - find result length   :", result.length);
+        res.json(result);
+      });
 });
 
 // StudentDB의 모든 Document 중 graduated: false인 document만 찾는 코드
@@ -175,13 +175,13 @@ app.get("/api/ActiveStudentList", loginCheck, async (req,res)=>{
 
 app.get("/api/managerList", loginCheck, (req, res) => {
   db.collection("Manager")
-    .find()
-    .toArray((err, result) => {
-      if (err) {
-        return console.log("api/managerList - find Error : ", err);
-      }
-      res.send(result[0]["매니저"]);
-    });
+      .find()
+      .toArray((err, result) => {
+        if (err) {
+          return console.log("api/managerList - find Error : ", err);
+        }
+        res.send(result[0]["매니저"]);
+      });
 });
 
 // StudentDB에 새로운 stuDB 추가 요청
@@ -235,7 +235,7 @@ function filterTextBook(first,second){
 
   let firstArray = [];
 
-   first.filter((ele,index)=>{
+  first.filter((ele,index)=>{
     firstArray.push(ele["교재"])
   })
 
@@ -284,7 +284,7 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
       readPreference: 'primary'
     }
   });
-/** ------------------------------------------------------------- **/
+  /** ------------------------------------------------------------- **/
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -319,11 +319,11 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
     /** WeeklyStudentfeedback 콜렉션에 저장된 모든 날짜들 **/
         // 피드백 : limit(1)을 통해 모든 리스트를 가져오는 것이 아니라 1개만 가져옴으로써 연산량 줄임
     let feedbackWeekArr = await db.collection("WeeklyStudyfeedback")
-        .find({"학생ID": newstuDB["ID"]})
-        .project({"피드백일" : 1},{_id:0})
-        .sort()
-        .limit(1)
-        .toArray();
+            .find({"학생ID": newstuDB["ID"]})
+            .project({"피드백일" : 1},{_id:0})
+            .sort({"피드백일":-1})
+            .limit(1)
+            .toArray();
 
 
     /** Validation : 신규 학생이 WeeklyStudyfeedback 콜렉션에 정보가 없을 때 건너뛰기 **/
@@ -369,13 +369,9 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
         let filtered = filterTextBook(existingTextbook,newTextbook);
 
 
-        for(let i in filtered){
-          await db.collection("WeeklyStudyfeedback").updateOne({"학생ID": newstuDB["ID"],"피드백일" : feedbackDate},
-              {$pull: {"thisweekGoal.교재캡쳐": filtered[i]
-                }
-              })
-
-        }
+        await db.collection("WeeklyStudyfeedback").updateOne({"학생ID": newstuDB["ID"],"피드백일" : feedbackDate},
+            {$pullAll: {"thisweekGoal.교재캡쳐": filtered}
+            })
 
         let dict = {}
         /** 주간 학습스케쥴링에서 월 ~ 금 까지 지정했던 목표학습량까지 삭제 **/
@@ -393,10 +389,10 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
         await db.collection("WeeklyStudyfeedback").updateOne({"학생ID":newstuDB["ID"],"피드백일": feedbackDate},
             {$unset:dict})
-        }
-
       }
-      /** -------------------------------------------- **/
+
+    }
+    /** -------------------------------------------- **/
 
     delete newstuDB._id; //MongoDB에서 Object_id 중복을 막기 위해 id 삭제
 
@@ -457,32 +453,32 @@ app.post("/api/DoGraduate/", loginCheck, async (req,res)=>{
   finally{
     return res.json(ret_val);
   }
-  
+
 });
 
 // collection 중 TR의 해당 날짜의 Document find 및 전송
 app.get("/api/TRlist/:date", loginCheck, function (req, res) {
   const paramDate = req.params.date;
   db.collection("TR")
-    .find({ 날짜: paramDate })
-    .toArray(function (err, result) {
-      if (err) {
-        return res.send("api/TRlist/:date - find Error : ", err);
-      }
-      return res.json(result);
-    });
+      .find({ 날짜: paramDate })
+      .toArray(function (err, result) {
+        if (err) {
+          return res.send("api/TRlist/:date - find Error : ", err);
+        }
+        return res.json(result);
+      });
 });
 
 app.get("/api/TR/:ID", loginCheck, function (req, res) {
   const paramID = decodeURIComponent(req.params.ID);
   db.collection("TR")
-    .find({ ID: paramID })
-    .toArray(function (err, result) {
-      if (err) {
-        return res.send("/api/TR/:ID - find Error : ", err);
-      }
-      return res.json(result);
-    });
+      .find({ ID: paramID })
+      .toArray(function (err, result) {
+        if (err) {
+          return res.send("/api/TR/:ID - find Error : ", err);
+        }
+        return res.json(result);
+      });
 });
 
 app.get("/api/TR/:ID/:date", loginCheck, function (req, res) {
@@ -617,9 +613,9 @@ app.post("/api/DailyGoalCheckLog", loginCheck, async (req,res)=>{
     logData["studentName"]=studentName;
 
     await db.collection("DailyGoalCheckLog").updateOne(
-      {"textbookID":textbookID,"AOSID":AOSID,"studentID":student_id,"date":date},
-      {"$set":{"AOSTextbookID":AOSTextbookID,'studentName':studentName, "description":description},"$push":{"finishedStateList":finishedState,"excuseList":excuse}},
-      {"upsert":true}
+        {"textbookID":textbookID,"AOSID":AOSID,"studentID":student_id,"date":date},
+        {"$set":{"AOSTextbookID":AOSTextbookID,'studentName':studentName, "description":description},"$push":{"finishedStateList":finishedState,"excuseList":excuse}},
+        {"upsert":true}
     );
 
     //lecture assignment인 경우 해당 AssignmentOfStudent document의 finished 상태도 바꾸어준다
@@ -627,7 +623,7 @@ app.post("/api/DailyGoalCheckLog", loginCheck, async (req,res)=>{
       const finishedDate=finishedState?getCurrentKoreaDateYYYYMMDD():"";
       await db.collection("AssignmentOfStudent").updateOne({"_id":AOSID},{"$set":{"finished":finishedState,"finished_date":finishedDate}});
     }
-    
+
   }
   catch(error){
     console.log(`error ${error}`)
@@ -837,13 +833,13 @@ app.delete("/api/Middlemeeting/:id", loginCheck, function (req, res) {
 
 app.get("/api/Todolist", loginCheck, function (req, res) {
   db.collection("Todolist")
-    .find()
-    .toArray((err, result) => {
-      if (err) {
-        return console.log("api/Todolist - find Error : ", err);
-      }
-      res.send(result[0]["Todolist"]);
-    });
+      .find()
+      .toArray((err, result) => {
+        if (err) {
+          return console.log("api/Todolist - find Error : ", err);
+        }
+        res.send(result[0]["Todolist"]);
+      });
 });
 
 app.put("/api/Todolist", loginCheck, function (req, res) {
@@ -878,19 +874,19 @@ app.get("/api/Textbook", loginCheck, function (req, res) {
   //   });
 
   try{
-    
+
   }catch (e) {
-    
+
   }
   db.collection("TextBook")
-    .find()
-    .toArray((err, result) => {
-      if (err) {
-        return console.log("api/Textbook - find Error : ", err);
-      }
-      const resp = { 날짜: "", textbookList: result };
-      res.send(resp);
-    });
+      .find()
+      .toArray((err, result) => {
+        if (err) {
+          return console.log("api/Textbook - find Error : ", err);
+        }
+        const resp = { 날짜: "", textbookList: result };
+        res.send(resp);
+      });
 });
 
 app.put("/api/Textbook", loginCheck, function (req, res) {
@@ -1005,7 +1001,7 @@ app.get(`/api/TextbookInProgressOfStudent/:studentLegacyID`, loginCheck, async(r
     const student_doc= await db.collection("StudentDB").findOne({"ID":studentLegacyID});
     if(!student_doc) throw new Error("there is no such student");
     const student_id= student_doc["_id"];
-    
+
     if(!student_doc["진행중교재"] || student_doc["진행중교재"].length==0){
       ret["success"]=true; ret["ret"]=[]; return;
     }
@@ -1050,7 +1046,7 @@ app.get("/api/SavedDailyGoalCheckLogData/:studentLegacyID/:date", loginCheck, as
     if(!date) throw new Error("invalid date");
     date=date[0];
     if(isNaN(new Date(date))) throw new Error("invalid date");
-    
+
     //student validity check
     const studentLegacyID = decodeURIComponent(req.params.studentLegacyID);
     const student_doc= await db.collection("StudentDB").findOne({"ID":studentLegacyID});
@@ -1058,9 +1054,9 @@ app.get("/api/SavedDailyGoalCheckLogData/:studentLegacyID/:date", loginCheck, as
     const student_id= student_doc["_id"];
 
     const logData= await db.collection("DailyGoalCheckLog")
-      .find({"studentID":student_id, "date":date})
-      .project({"_id":0,"AOSID":1,"textbookID":1,"excuseList":{"$slice":-1},"finishedStateList":{"$slice":-1},"date":1})
-      .toArray();
+        .find({"studentID":student_id, "date":date})
+        .project({"_id":0,"AOSID":1,"textbookID":1,"excuseList":{"$slice":-1},"finishedStateList":{"$slice":-1},"date":1})
+        .toArray();
     ret["success"]=true; ret["ret"]=logData;
   }
   catch(error){
@@ -1074,13 +1070,13 @@ app.get("/api/SavedDailyGoalCheckLogData/:studentLegacyID/:date", loginCheck, as
 // Lecture 관련 코드
 app.get("/api/Lecture", loginCheck, (req, res) => {
   db.collection("Lecture")
-    .find()
-    .toArray((err, result) => {
-      if (err) {
-        return res.send(`/api/Lecture - find Error ${err}`);
-      }
-      return res.json(result);
-    });
+      .find()
+      .toArray((err, result) => {
+        if (err) {
+          return res.send(`/api/Lecture - find Error ${err}`);
+        }
+        return res.json(result);
+      });
 });
 
 app.post("/api/Lecture", loginCheck, async (req, res) => {
@@ -1093,10 +1089,10 @@ app.post("/api/Lecture", loginCheck, async (req, res) => {
   const session=db_client.startSession({
     defaultTransactionOptions: {
       readConcern: {
-          level: 'snapshot'
+        level: 'snapshot'
       },
       writeConcern: {
-          w: 'majority'
+        w: 'majority'
       },
       readPreference: 'primary'
     }
@@ -1177,46 +1173,46 @@ app.get("/api/TextbookOfLecture/:lectureid", loginCheck, (req, res) => {
   const paramID = decodeURIComponent(req.params.lectureid);
   //aggregate(join) query
   db.collection("Lecture")
-    .aggregate([
-      { $match: { lectureID: paramID } },
-      {
-        $lookup: {
-          from: "TextbookOfLecture",
-          localField: "_id",
-          foreignField: "lectureID",
-          as: "TextbookOfLecture_aggregate",
+      .aggregate([
+        { $match: { lectureID: paramID } },
+        {
+          $lookup: {
+            from: "TextbookOfLecture",
+            localField: "_id",
+            foreignField: "lectureID",
+            as: "TextbookOfLecture_aggregate",
+          },
         },
-      },
-      { $unwind: "$TextbookOfLecture_aggregate" },
-      {
-        $lookup: {
-          from: "TextBook",
-          localField: "TextbookOfLecture_aggregate.textbookID",
-          foreignField: "_id",
-          as: "TextBook_aggregate",
+        { $unwind: "$TextbookOfLecture_aggregate" },
+        {
+          $lookup: {
+            from: "TextBook",
+            localField: "TextbookOfLecture_aggregate.textbookID",
+            foreignField: "_id",
+            as: "TextBook_aggregate",
+          },
         },
-      },
-      { $unwind: "$TextBook_aggregate" },
-      {
-        $addFields: {
-          textbookID: "$TextBook_aggregate._id",
-          textbookName: "$TextBook_aggregate.교재",
+        { $unwind: "$TextBook_aggregate" },
+        {
+          $addFields: {
+            textbookID: "$TextBook_aggregate._id",
+            textbookName: "$TextBook_aggregate.교재",
+          },
         },
-      },
-      {
-        $project: {
-          _id: 0,
-          textbookID: 1,
-          textbookName: 1,
+        {
+          $project: {
+            _id: 0,
+            textbookID: 1,
+            textbookName: 1,
+          },
         },
-      },
-    ])
-    .toArray((err, result) => {
-      if (err) {
-        return res.send(`/api/TextbookOfLecture - find Error ${err}`);
-      }
-      return res.json(result);
-    });
+      ])
+      .toArray((err, result) => {
+        if (err) {
+          return res.send(`/api/TextbookOfLecture - find Error ${err}`);
+        }
+        return res.json(result);
+      });
 });
 
 app.post("/api/TextbookOfLecture", loginCheck, (req, res) => {
@@ -1229,34 +1225,34 @@ app.post("/api/TextbookOfLecture", loginCheck, (req, res) => {
   }
 
   db.collection("TextbookOfLecture")
-    .find({
-      lectureID: lectureID,
-      textbookID: {
-        $in: newTextbookList,
-      },
-    })
-    .toArray((err, result) => {
-      if (err) {
-        return res.send(`/api/TextbookOfLecture - Error ${err}`);
-      }
-      if (result.length > 0) {
-        return res.send(`이미 등록된 교재가 포함되어있습니다.`);
-      }
+      .find({
+        lectureID: lectureID,
+        textbookID: {
+          $in: newTextbookList,
+        },
+      })
+      .toArray((err, result) => {
+        if (err) {
+          return res.send(`/api/TextbookOfLecture - Error ${err}`);
+        }
+        if (result.length > 0) {
+          return res.send(`이미 등록된 교재가 포함되어있습니다.`);
+        }
 
-      try {
-        db.collection("TextbookOfLecture").insertMany(
-          newTextbookList.map((textbookID) => {
-            return {
-              lectureID: lectureID,
-              textbookID: textbookID,
-            };
-          })
-        );
-        return res.send(true);
-      } catch (e) {
-        return res.send(`/api/TextbookOfLecture - Error ${e}`);
-      }
-    });
+        try {
+          db.collection("TextbookOfLecture").insertMany(
+              newTextbookList.map((textbookID) => {
+                return {
+                  lectureID: lectureID,
+                  textbookID: textbookID,
+                };
+              })
+          );
+          return res.send(true);
+        } catch (e) {
+          return res.send(`/api/TextbookOfLecture - Error ${e}`);
+        }
+      });
 });
 
 app.delete("/api/TextbookOfLecture/:lectureID/:textbookID", loginCheck, async (req, res) => {
@@ -1270,7 +1266,7 @@ app.delete("/api/TextbookOfLecture/:lectureID/:textbookID", loginCheck, async (r
   try{
     // console.log("lid:"+legacyLectureID);
     // console.log("tid:"+textbookID);
-    
+
     const lectureDocument=await db.collection("Lecture").findOne({lectureID:legacyLectureID});
     if(!lectureDocument) return res.send(`invalid access`);
     lectureID=lectureDocument["_id"];
@@ -1289,58 +1285,58 @@ app.delete("/api/TextbookOfLecture/:lectureID/:textbookID", loginCheck, async (r
 // 강의로 수강생 검색매칭 relation
 app.get("/api/StudentOfLecture", loginCheck, (req, res) => {
   db.collection("StudentOfLecture")
-    .find()
-    .toArray((err, result) => {
-      if (err) {
-        return res.send(`/api/StudentOfLecture - find Error ${err}`);
-      }
-      return res.json(result);
-    });
+      .find()
+      .toArray((err, result) => {
+        if (err) {
+          return res.send(`/api/StudentOfLecture - find Error ${err}`);
+        }
+        return res.json(result);
+      });
 });
 
 // 강의에 따른 과제 검색매칭 relation
 app.get("/api/Assignment/:lectureid", loginCheck, (req, res) => {
   const paramID = decodeURIComponent(req.params.lectureid);
   db.collection("Lecture")
-    .aggregate([
-      { $match: { lectureID: paramID } },
-      {
-        $lookup: {
-          from: "Assignment",
-          localField: "_id",
-          foreignField: "lectureID",
-          as: "Assignment_aggregate",
+      .aggregate([
+        { $match: { lectureID: paramID } },
+        {
+          $lookup: {
+            from: "Assignment",
+            localField: "_id",
+            foreignField: "lectureID",
+            as: "Assignment_aggregate",
+          },
         },
-      },
-      { $unwind: "$Assignment_aggregate" },
-      {
-        $addFields: {
-          assignmentID: "$Assignment_aggregate._id",
-          textbookID: "$Assignment_aggregate.textbookID",
-          pageRangeArray: "$Assignment_aggregate.pageRangeArray",
-          description: "$Assignment_aggregate.description",
-          duedate: "$Assignment_aggregate.duedate",
-          startdate: "$Assignment_aggregate.startdate",
+        { $unwind: "$Assignment_aggregate" },
+        {
+          $addFields: {
+            assignmentID: "$Assignment_aggregate._id",
+            textbookID: "$Assignment_aggregate.textbookID",
+            pageRangeArray: "$Assignment_aggregate.pageRangeArray",
+            description: "$Assignment_aggregate.description",
+            duedate: "$Assignment_aggregate.duedate",
+            startdate: "$Assignment_aggregate.startdate",
+          },
         },
-      },
-      {
-        $project: {
-          _id: 0,
-          assignmentID: 1,
-          textbookID: 1,
-          pageRangeArray: 1,
-          description: 1,
-          duedate: 1,
-          startdate: 1,
+        {
+          $project: {
+            _id: 0,
+            assignmentID: 1,
+            textbookID: 1,
+            pageRangeArray: 1,
+            description: 1,
+            duedate: 1,
+            startdate: 1,
+          },
         },
-      },
-    ])
-    .toArray((err, result) => {
-      if (err) {
-        return res.send(`/api/StudentOfLecture - find Error ${err}`);
-      }
-      return res.json(result);
-    });
+      ])
+      .toArray((err, result) => {
+        if (err) {
+          return res.send(`/api/StudentOfLecture - find Error ${err}`);
+        }
+        return res.json(result);
+      });
 });
 
 app.put("/api/Assignment", loginCheck, (req, res) => {
@@ -1374,10 +1370,10 @@ app.post("/api/Assignment", loginCheck, async (req, res) => {
   const session=db_client.startSession({
     defaultTransactionOptions: {
       readConcern: {
-          level: 'snapshot'
+        level: 'snapshot'
       },
       writeConcern: {
-          w: 'majority'
+        w: 'majority'
       },
       readPreference: 'primary'
     }
@@ -1433,10 +1429,10 @@ app.delete("/api/Assignment/:AssignID",loginCheck,async (req,res)=>{
   const session=db_client.startSession({
     defaultTransactionOptions: {
       readConcern: {
-          level: 'snapshot'
+        level: 'snapshot'
       },
       writeConcern: {
-          w: 'majority'
+        w: 'majority'
       },
       readPreference: 'primary'
     }
@@ -1470,92 +1466,92 @@ app.get("/api/LectureAssignment/:lectureid",loginCheck, async (req,res)=>{
   const paramID = decodeURIComponent(req.params.lectureid);
   let ret_val;
   try{
-    ret_val= 
-    await db.collection("Lecture").aggregate([
-      { $match: { lectureID: paramID } },
-      {
-        $lookup: {
-          from: "Assignment",
-          localField: "_id",
-          foreignField: "lectureID",
-          as: "Assignment_aggregate",
-        },
-      },
-      { $unwind: "$Assignment_aggregate" },
-      {
-        $addFields: {
-          assignmentID: "$Assignment_aggregate._id",
-          textbookID: "$Assignment_aggregate.textbookID",
-          pageRangeArray: "$Assignment_aggregate.pageRangeArray",
-          description: "$Assignment_aggregate.description",
-          duedate: "$Assignment_aggregate.duedate",
-          startdate: "$Assignment_aggregate.startdate",
-        },
-      },
-      {
-        $lookup: {
-          from: "AssignmentOfStudent",
-          localField: "assignmentID",
-          foreignField: "assignmentID",
-          as: "Assignment_Of_Student_aggregate",
-        },
-      },
-      { $unwind: "$Assignment_Of_Student_aggregate" },
-      {
-        $addFields: {
-          AssignmentOfStudentID: "$Assignment_Of_Student_aggregate._id",
-          studentID: "$Assignment_Of_Student_aggregate.studentID",
-          finished: "$Assignment_Of_Student_aggregate.finished",
-          finished_date: "$Assignment_Of_Student_aggregate.finished_date",
-        },
-      },
-      {
-        $lookup: {
-          from: "StudentDB",
-          localField: "studentID",
-          foreignField: "_id",
-          as: "Student_Info_aggregate",
-        },
-      },
-      { $unwind: "$Student_Info_aggregate" },
-      {
-        $addFields: {
-          studentLegacyID: "$Student_Info_aggregate.ID",
-          studentName: "$Student_Info_aggregate.이름",
-        },
-      },
-      {
-        $lookup: {
-          from: "TextBook",
-          localField: "textbookID",
-          foreignField: "_id",
-          as: "TextBook_Info_aggregate",
-        },
-      },
-      // { $unwind: "$TextBook_Info_aggregate" },
-      {
-        $addFields: {
-          textbookName: "$TextBook_Info_aggregate.교재",
-        },
-      },
-      {
-        $project: {
-          assignmentID: 1,
-          textbookID: 1,
-          textbookName: 1,
-          // TextBook_Info_aggregate: 1,
-          pageRangeArray: 1,
-          description: 1,
-          duedate: 1,
-          startdate: 1,
-          AssignmentOfStudentID: 1,
-          finished: 1,
-          finished_date: 1,
-          studentLegacyID: 1,
-          studentName: 1,
-        },
-      },
-    ]).toArray();
+    ret_val=
+        await db.collection("Lecture").aggregate([
+          { $match: { lectureID: paramID } },
+          {
+            $lookup: {
+              from: "Assignment",
+              localField: "_id",
+              foreignField: "lectureID",
+              as: "Assignment_aggregate",
+            },
+          },
+          { $unwind: "$Assignment_aggregate" },
+          {
+            $addFields: {
+              assignmentID: "$Assignment_aggregate._id",
+              textbookID: "$Assignment_aggregate.textbookID",
+              pageRangeArray: "$Assignment_aggregate.pageRangeArray",
+              description: "$Assignment_aggregate.description",
+              duedate: "$Assignment_aggregate.duedate",
+              startdate: "$Assignment_aggregate.startdate",
+            },
+          },
+          {
+            $lookup: {
+              from: "AssignmentOfStudent",
+              localField: "assignmentID",
+              foreignField: "assignmentID",
+              as: "Assignment_Of_Student_aggregate",
+            },
+          },
+          { $unwind: "$Assignment_Of_Student_aggregate" },
+          {
+            $addFields: {
+              AssignmentOfStudentID: "$Assignment_Of_Student_aggregate._id",
+              studentID: "$Assignment_Of_Student_aggregate.studentID",
+              finished: "$Assignment_Of_Student_aggregate.finished",
+              finished_date: "$Assignment_Of_Student_aggregate.finished_date",
+            },
+          },
+          {
+            $lookup: {
+              from: "StudentDB",
+              localField: "studentID",
+              foreignField: "_id",
+              as: "Student_Info_aggregate",
+            },
+          },
+          { $unwind: "$Student_Info_aggregate" },
+          {
+            $addFields: {
+              studentLegacyID: "$Student_Info_aggregate.ID",
+              studentName: "$Student_Info_aggregate.이름",
+            },
+          },
+          {
+            $lookup: {
+              from: "TextBook",
+              localField: "textbookID",
+              foreignField: "_id",
+              as: "TextBook_Info_aggregate",
+            },
+          },
+          // { $unwind: "$TextBook_Info_aggregate" },
+          {
+            $addFields: {
+              textbookName: "$TextBook_Info_aggregate.교재",
+            },
+          },
+          {
+            $project: {
+              assignmentID: 1,
+              textbookID: 1,
+              textbookName: 1,
+              // TextBook_Info_aggregate: 1,
+              pageRangeArray: 1,
+              description: 1,
+              duedate: 1,
+              startdate: 1,
+              AssignmentOfStudentID: 1,
+              finished: 1,
+              finished_date: 1,
+              studentLegacyID: 1,
+              studentName: 1,
+            },
+          },
+        ]).toArray();
   }
   catch(error){
     ret_val=`Error ${error}`;
@@ -1569,7 +1565,7 @@ app.get("/api/LectureAssignment/:lectureid",loginCheck, async (req,res)=>{
 app.post(`/api/AssignmentOfStudent/`, loginCheck, async (req,res)=>{
   let assignmentOfStudentID;
   try {
-   assignmentOfStudentID = new ObjectId(req.body["assignmentOfStudentID"]);
+    assignmentOfStudentID = new ObjectId(req.body["assignmentOfStudentID"]);
   } catch (err) {
     return res.send(`invalid access`);
   }
@@ -1593,48 +1589,48 @@ app.get("/api/StudentOfLecture/:lectureID", loginCheck, (req, res) => {
 
   //aggregate(join) query
   db.collection("Lecture")
-    .aggregate([
-      { $match: { lectureID: paramID } },
-      {
-        $lookup: {
-          from: "StudentOfLecture",
-          localField: "_id",
-          foreignField: "lectureID",
-          as: "StudentOfLecture_aggregate",
+      .aggregate([
+        { $match: { lectureID: paramID } },
+        {
+          $lookup: {
+            from: "StudentOfLecture",
+            localField: "_id",
+            foreignField: "lectureID",
+            as: "StudentOfLecture_aggregate",
+          },
         },
-      },
-      { $unwind: "$StudentOfLecture_aggregate" },
-      {
-        $lookup: {
-          from: "StudentDB",
-          localField: "StudentOfLecture_aggregate.studentID",
-          foreignField: "_id",
-          as: "studentDB_aggregate",
+        { $unwind: "$StudentOfLecture_aggregate" },
+        {
+          $lookup: {
+            from: "StudentDB",
+            localField: "StudentOfLecture_aggregate.studentID",
+            foreignField: "_id",
+            as: "studentDB_aggregate",
+          },
         },
-      },
-      { $unwind: "$studentDB_aggregate" },
-      {
-        $addFields: {
-          _sid: "$studentDB_aggregate._id",
-          studentID: "$studentDB_aggregate.ID",
-          studentName: "$studentDB_aggregate.이름",
+        { $unwind: "$studentDB_aggregate" },
+        {
+          $addFields: {
+            _sid: "$studentDB_aggregate._id",
+            studentID: "$studentDB_aggregate.ID",
+            studentName: "$studentDB_aggregate.이름",
+          },
         },
-      },
-      {
-        $project: {
-          _id: 0,
-          _sid: 1,
-          studentID: 1,
-          studentName: 1,
+        {
+          $project: {
+            _id: 0,
+            _sid: 1,
+            studentID: 1,
+            studentName: 1,
+          },
         },
-      },
-    ])
-    .toArray((err, result) => {
-      if (err) {
-        return res.send(`/api/StudentOfLecture - find Error ${err}`);
-      }
-      return res.json(result);
-    });
+      ])
+      .toArray((err, result) => {
+        if (err) {
+          return res.send(`/api/StudentOfLecture - find Error ${err}`);
+        }
+        return res.json(result);
+      });
 });
 
 app.post("/api/StudentOfLecture", loginCheck, (req, res) => {
@@ -1692,10 +1688,10 @@ app.delete("/api/StudentOfLecture/:lectureID/:studentID",loginCheck,async (req,r
   const session=db_client.startSession({
     defaultTransactionOptions: {
       readConcern: {
-          level: 'snapshot'
+        level: 'snapshot'
       },
       writeConcern: {
-          w: 'majority'
+        w: 'majority'
       },
       readPreference: 'primary'
     }
@@ -1726,21 +1722,21 @@ app.delete("/api/StudentOfLecture/:lectureID/:studentID",loginCheck,async (req,r
 // studentName
 app.get("/api/TRnow", loginCheck, (req, res) => {
   db.collection("StudentDB")
-    .find()
-    .toArray(function (err, result) {
-      if (err) {
-        return console.log("api/studentList - find Error : ", err);
-      }
-      const stuNameList = result.map((stuDB) => stuDB["ID"]);
-      db.collection("TR")
-        .find({ ID: { $in: stuNameList } })
-        .toArray((err2, result2) => {
-          if (err2) {
-            return res.send(`/api/TRnow - find Error : ${err2}`);
-          }
-          return res.json(result2);
-        });
-    });
+      .find()
+      .toArray(function (err, result) {
+        if (err) {
+          return console.log("api/studentList - find Error : ", err);
+        }
+        const stuNameList = result.map((stuDB) => stuDB["ID"]);
+        db.collection("TR")
+            .find({ ID: { $in: stuNameList } })
+            .toArray((err2, result2) => {
+              if (err2) {
+                return res.send(`/api/TRnow - find Error : ${err2}`);
+              }
+              return res.json(result2);
+            });
+      });
 });
 
 // Weeklymeeting 관련 코드
@@ -1885,56 +1881,56 @@ app.post("/api/ThisWeekAssignment/", loginCheck, async (req,res)=>{
     const target_student_doc= await db.collection("StudentDB").findOne({"ID":student_legacy_id});
     const target_student_id= target_student_doc["_id"];
     ret_val= await db.collection("Assignment")
-    .aggregate([
-      { $match: { duedate:{"$gt":last_sunday_date, "$lte":this_sunday_date} } },
-      {
-        $lookup: {
-          from: "AssignmentOfStudent",
-          localField: "_id",
-          foreignField: "assignmentID",
-          as: "AssignmentOfStudent_agg",
-        },
-      },
-      { $unwind: "$AssignmentOfStudent_agg" },
-      { $match: { "AssignmentOfStudent_agg.studentID":target_student_id } },
-      {
-        $lookup: {
-          from: "Lecture",
-          localField: "lectureID",
-          foreignField: "_id",
-          as: "Lecture_agg",
-        },
-      },
-      { $unwind: "$Lecture_agg" },
-      {
-        $lookup: {
-          from: "TextBook",
-          localField: "textbookID",
-          foreignField: "_id",
-          as: "TextBook_agg",
-        },
-      },
-      {
-        $addFields: {
-          lectureName:"$Lecture_agg.lectureName",
-          textbookName:"$TextBook_agg.교재",
-          finished: "$AssignmentOfStudent_agg.finished",
-          finished_date: "$AssignmentOfStudent_agg.finished_date",
-        },
-      },
-      {
-        $project: {
-          lectureName:1,
-          textbookName:1,
-          pageRangeArray:1,
-          description:1,
-          duedate:1,
-          startdate:1,
-          finished: 1,
-          finished_date: 1,
-        },
-      },
-    ]).toArray();
+        .aggregate([
+          { $match: { duedate:{"$gt":last_sunday_date, "$lte":this_sunday_date} } },
+          {
+            $lookup: {
+              from: "AssignmentOfStudent",
+              localField: "_id",
+              foreignField: "assignmentID",
+              as: "AssignmentOfStudent_agg",
+            },
+          },
+          { $unwind: "$AssignmentOfStudent_agg" },
+          { $match: { "AssignmentOfStudent_agg.studentID":target_student_id } },
+          {
+            $lookup: {
+              from: "Lecture",
+              localField: "lectureID",
+              foreignField: "_id",
+              as: "Lecture_agg",
+            },
+          },
+          { $unwind: "$Lecture_agg" },
+          {
+            $lookup: {
+              from: "TextBook",
+              localField: "textbookID",
+              foreignField: "_id",
+              as: "TextBook_agg",
+            },
+          },
+          {
+            $addFields: {
+              lectureName:"$Lecture_agg.lectureName",
+              textbookName:"$TextBook_agg.교재",
+              finished: "$AssignmentOfStudent_agg.finished",
+              finished_date: "$AssignmentOfStudent_agg.finished_date",
+            },
+          },
+          {
+            $project: {
+              lectureName:1,
+              textbookName:1,
+              pageRangeArray:1,
+              description:1,
+              duedate:1,
+              startdate:1,
+              finished: 1,
+              finished_date: 1,
+            },
+          },
+        ]).toArray();
   }
   catch(error){
     ret_val=[];
@@ -1959,65 +1955,65 @@ app.post("/api/StudentTodayAssignment/", loginCheck, async (req,res)=>{
     const target_student_doc= await db.collection("StudentDB").findOne({"ID":student_legacy_id});
     const target_student_id= target_student_doc["_id"];
     ret_val= await db.collection("Assignment")
-    .aggregate([
-      { $match: { duedate: today_date } },
-      {
-        $lookup: {
-          from: "AssignmentOfStudent",
-          localField: "_id",
-          foreignField: "assignmentID",
-          as: "AssignmentOfStudent_agg",
-        },
-      },
-      { $unwind: "$AssignmentOfStudent_agg" },
-      { $match: { "AssignmentOfStudent_agg.studentID":target_student_id } },
-      {
-        $lookup: {
-          from: "Lecture",
-          localField: "lectureID",
-          foreignField: "_id",
-          as: "Lecture_agg",
-        },
-      },
-      { $unwind: "$Lecture_agg" },
-      {
-        $lookup: {
-          from: "TextBook",
-          localField: "textbookID",
-          foreignField: "_id",
-          as: "TextBook_agg",
-        },
-      },
-      {
-        $addFields: {
-          manager: "$Lecture_agg.manager",
-          lectureName:"$Lecture_agg.lectureName",
-          lectureSubject:"$Lecture_agg.subject",
-          textbookName:"$TextBook_agg.교재",
-          finished: "$AssignmentOfStudent_agg.finished",
-          finished_date: "$AssignmentOfStudent_agg.finished_date",
-          AOSID: "$AssignmentOfStudent_agg._id",
-          AOSTextbookID: "$TextBook_agg._id"
-        },
-      },
-      {
-        $project: {
-          _id:0,
-          lectureName:1,
-          lectureSubject:1,
-          textbookName:1,
-          pageRangeArray:1,
-          description:1,
-          duedate:1,
-          startdate:1,
-          finished: 1,
-          finished_date: 1,
-          manager: 1,
-          AOSID: 1,
-          AOSTextbookID: 1
-        },
-      },
-    ]).toArray();
+        .aggregate([
+          { $match: { duedate: today_date } },
+          {
+            $lookup: {
+              from: "AssignmentOfStudent",
+              localField: "_id",
+              foreignField: "assignmentID",
+              as: "AssignmentOfStudent_agg",
+            },
+          },
+          { $unwind: "$AssignmentOfStudent_agg" },
+          { $match: { "AssignmentOfStudent_agg.studentID":target_student_id } },
+          {
+            $lookup: {
+              from: "Lecture",
+              localField: "lectureID",
+              foreignField: "_id",
+              as: "Lecture_agg",
+            },
+          },
+          { $unwind: "$Lecture_agg" },
+          {
+            $lookup: {
+              from: "TextBook",
+              localField: "textbookID",
+              foreignField: "_id",
+              as: "TextBook_agg",
+            },
+          },
+          {
+            $addFields: {
+              manager: "$Lecture_agg.manager",
+              lectureName:"$Lecture_agg.lectureName",
+              lectureSubject:"$Lecture_agg.subject",
+              textbookName:"$TextBook_agg.교재",
+              finished: "$AssignmentOfStudent_agg.finished",
+              finished_date: "$AssignmentOfStudent_agg.finished_date",
+              AOSID: "$AssignmentOfStudent_agg._id",
+              AOSTextbookID: "$TextBook_agg._id"
+            },
+          },
+          {
+            $project: {
+              _id:0,
+              lectureName:1,
+              lectureSubject:1,
+              textbookName:1,
+              pageRangeArray:1,
+              description:1,
+              duedate:1,
+              startdate:1,
+              finished: 1,
+              finished_date: 1,
+              manager: 1,
+              AOSID: 1,
+              AOSTextbookID: 1
+            },
+          },
+        ]).toArray();
   }
   catch(error){
     ret_val=[];
@@ -2035,14 +2031,14 @@ app.post("/api/StudentTodayAssignment/", loginCheck, async (req,res)=>{
 
 app.get("/api/stickynote", loginCheck, (req, res) => {
   db.collection("stickynote")
-    .find()
-    .toArray(function (err, result) {
-      if (err) {
-        return res.send(`/api/stickynote - find Error : ${err}`);
-      }
-      console.log("api/stickynote - find result length   :", result.length);
-      return res.json(result);
-    });
+      .find()
+      .toArray(function (err, result) {
+        if (err) {
+          return res.send(`/api/stickynote - find Error : ${err}`);
+        }
+        console.log("api/stickynote - find result length   :", result.length);
+        return res.json(result);
+      });
 });
 
 app.post("/api/stickynote", loginCheck, function (req, res) {

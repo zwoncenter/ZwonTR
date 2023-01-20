@@ -1,4 +1,7 @@
+@use "sass:math";
 @import url(https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/nanumsquare.css);
+
+
 
 * p,
 span,
@@ -202,4 +205,32 @@ textarea {
   resize:none;
   margin-left:auto;
   margin-right:auto;
+}
+
+td.NoGoal{
+  // background-color:rgba(128, 128, 128, 1);
+}
+
+td.GoalFinished{
+  background-color:rgba(0, 150, 0, 1);
+}
+
+@for $i from 1 through 5{
+  td.GoalFinished_#{$i}_of_5{
+    background-color:rgba(0, 150, 0, $i/5);
+  }
+}
+
+td.GoalNotFinished{
+  background-color:rgba(150, 0, 0, 1);
+}
+
+td.onHoverHighlighted:HOVER{
+  // border: 3px solid rgba(255,255,0, 1);
+  // background-color:rgba(255,255,0, 0);
+  background-image: 
+    linear-gradient(
+      rgba(255,255,0,.4),
+      rgba(255,255,0,.4)
+    );
 }
