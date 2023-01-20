@@ -37,8 +37,8 @@ app.use(cors());
 //var db, db_session;
 var db, db_client;
 
-// TODO : 배포 전에 반드시 DB_URL로 바꿀 것!!
-MongoClient.connect(process.env.LOCAL_URL, function (err, client) {
+// TODO : 배포 전에 반드시 실제 서비스(DB_URL)로 바꿀 것!!
+MongoClient.connect(process.env.TEST_DB_URL, function (err, client) {
   if (err) {
     return console.log(err);
   }
@@ -229,6 +229,7 @@ app.get("/api/StudentDB/:ID", loginCheck, function (req, res) {
 // StudentDB에 수정 요청
 
 /** ---------------- 교재 수정사항 점검 함수 ---------------- **/
+// 피드백 : 교재명이 key 값과 같이 동작하므로(unique Key로 설정했었음) 교재명으로 추가/삭제를 걸러내보자
 
 function filterTextBook(first,second){
 
@@ -256,6 +257,7 @@ function filterTextBook(first,second){
     returnArray.push(first[indexes[i]])
   }
 
+  return returnArray;
 
 }
 
@@ -265,7 +267,24 @@ function filterTextBook(first,second){
 // StudentDB에 수정 요청
 app.put("/api/StudentDB", loginCheck, async (req, res) => {
   console.log(req["user"], req["user"]["ID"] === "guest");
-
+  /** 서버로직 처리 중 err 발생시 전체 구문 rollback을 위한 트랜잭션 처리 선언
+   session.startSession() = 트랜잭션 처리 시작
+   session.commitTransaction() = 트랜잭션 반영
+   session.endSession() = 트랜잭션을 위한 세션 종료
+   session.abortTransaction() = 트랜잭션 처리 중 오류 발생 시 rollback
+   * **/
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
+/** ------------------------------------------------------------- **/
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -273,12 +292,11 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
   let ret_val;
   let success;
 
+  let dayIndex = ['월','화','수','목','금','일'];
+
   const newstuDB = req.body;
 
   const findID = newstuDB["ID"];
-
-  /** 새롭게 수정 요청된 학생 교재 리스트 **/
-
 
   /** 기존 WeeklyStudyfeedback 콜렉션의 교재와 새롭게 수정된 교재 비교 **/
 
@@ -286,6 +304,8 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
 
   try {
+
+    session.startTransaction();
     // findOne에는 toArray() 쓰면 안됨
     let studentDB_result = await db.collection(`StudentDB`).findOne({ ID: findID });
 
@@ -297,12 +317,13 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
     const newTextbook =  newstuDB["진행중교재"];
 
     /** WeeklyStudentfeedback 콜렉션에 저장된 모든 날짜들 **/
+        // 피드백 : limit(1)을 통해 모든 리스트를 가져오는 것이 아니라 1개만 가져옴으로써 연산량 줄임
     let feedbackWeekArr = await db.collection("WeeklyStudyfeedback")
         .find({"학생ID": newstuDB["ID"]})
-        .project({"피드백일" : 1})
+        .project({"피드백일" : 1},{_id:0})
         .sort()
-        .toArray()
-
+        .limit(1)
+        .toArray();
 
 
     /** Validation : 신규 학생이 WeeklyStudyfeedback 콜렉션에 정보가 없을 때 건너뛰기 **/
@@ -320,14 +341,25 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
         /** ----------- 새롭게 추가된 교재만 필터링 ------------**/
         let filtered = filterTextBook(newTextbook,existingTextbook)
 
-        for(let i in filtered){
+        // for 문을 통해 여러번 updateOne 하지 말고 객체로 묶어서 한꺼번에 입력하자 = filtered
+        await db.collection("WeeklyStudyfeedback").updateOne({"학생ID": newstuDB["ID"],"피드백일" : feedbackDate},
+            {$push: {"thisweekGoal.교재캡쳐" : {$each : filtered}}}
+        )
 
-          await db.collection("WeeklyStudyfeedback").updateOne({"학생ID": newstuDB["ID"],"피드백일" : feedbackDate}, {$push: {"thisweekGoal.교재캡쳐":
-                  filtered[i]
-            }
-          })
+        let dict = {}
+        for(let i in dayIndex){
+
+          for(let j in filtered){
+            let string_tmp=`thisweekGoal.${dayIndex[i]}.${filtered[j]["교재"]}`;
+            let deadline_string = `thisweekGoal.마감일.${filtered[j]["교재"]}`
+            dict[string_tmp] =""
+            dict[deadline_string] = feedbackDate
+          }
+
         }
 
+        await db.collection("WeeklyStudyfeedback").updateOne({"학생ID":newstuDB["ID"],"피드백일": feedbackDate},
+            {$set:dict})
       }
 
           /** ------------------------------------------------ **/
@@ -335,7 +367,8 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
       /** ------ 경우 2) 교재 삭제 시 업데이트 진행 ------ **/
       else if(newTextbook.length < existingTextbook.length){
         let filtered = filterTextBook(existingTextbook,newTextbook);
-        let dayIndex = ['월','화','수','목','금','일'];
+
+
         for(let i in filtered){
           await db.collection("WeeklyStudyfeedback").updateOne({"학생ID": newstuDB["ID"],"피드백일" : feedbackDate},
               {$pull: {"thisweekGoal.교재캡쳐": filtered[i]
@@ -344,21 +377,26 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
         }
 
+        let dict = {}
         /** 주간 학습스케쥴링에서 월 ~ 금 까지 지정했던 목표학습량까지 삭제 **/
         for(let i in dayIndex){
 
+          //데이터 관리에 있어서 이미 있는 데이터 틀이기 때문에 조금 보수적으로 접근해서 모든 틀에 맞추자.
           for(let j in filtered){
-
-            await db.collection("WeeklyStudyfeedback").updateOne({"학생ID":newstuDB["ID"],"피드백일": feedbackDate},
-                {$unset:{[`thisweekGoal.${dayIndex[i]}.${filtered[j]["교재"]}`]: ""}
-                })
+            let string_tmp=`thisweekGoal.${dayIndex[i]}.${filtered[j]["교재"]}`;
+            let deadline_string = `thisweekGoal.마감일.${filtered[j]["교재"]}`
+            dict[string_tmp] =""
+            dict[deadline_string] =""
           }
+
         }
 
+        await db.collection("WeeklyStudyfeedback").updateOne({"학생ID":newstuDB["ID"],"피드백일": feedbackDate},
+            {$unset:dict})
+        }
 
       }
       /** -------------------------------------------- **/
-    }
 
     delete newstuDB._id; //MongoDB에서 Object_id 중복을 막기 위해 id 삭제
 
@@ -366,15 +404,18 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
     await db.collection("StudentDB_Log").insertOne(newstuDB)
 
+    session.commitTransaction();
+    session.endSession();
+
     return res.json({"success":true});
   }
   catch (err){
     ret_val=`error ${err}`;
     success=false;
     console.log(err)
+    session.abortTransaction();
     return res.json({"success":false,"ret_val" : err});
   }
-
 
 });
 
