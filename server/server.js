@@ -1346,10 +1346,16 @@ app.put("/api/Assignment", loginCheck, (req, res) => {
   let findID;
   try{
     findID = new ObjectId(newAssignment["assignmentID"]);
-    newAssignment["textbookID"]= new ObjectId(newAssignment["textbookID"]);
+    if(typeof(newAssignment["textbookID"])==="string") { // "textbookID" 필드 값은 string이어야 한다
+      if(newAssignment["textbookID"].length>0) // newAssignment "textbookID" 필드가 non-empty string인 경우에만 objectid로 바꾸기 시도
+        newAssignment["textbookID"]= new ObjectId(newAssignment["textbookID"]);
+    }
+    else {
+      throw new Error("invalid textbook Id");
+    }
   }
   catch(error){
-    return res.send(`invalid access  ${error}`);
+    return res.send(`invalid access:  ${error}`);
   }
   delete newAssignment["assignmentID"];
   db.collection("Assignment").updateOne({ _id: findID }, { $set: newAssignment }, (err, result) => {
@@ -1383,7 +1389,14 @@ app.post("/api/Assignment", loginCheck, async (req, res) => {
     const studentGotAssign_list = newAssign["studentList"];
     delete newAssign["studentList"];
     const lect_id = new ObjectId(newAssign["lectureID"]);
-    const textbook_id = new ObjectId(newAssign["textbookID"]);
+    let textbook_id="";
+    if(typeof(newAssign["textbookID"])==="string") { // "textbookID" 필드 값은 string이어야 한다
+      if(newAssign["textbookID"].length>0) // newAssignment "textbookID" 필드가 non-empty string인 경우에만 objectid로 바꾸기 시도
+        textbook_id= new ObjectId(newAssign["textbookID"]);
+    }
+    else {
+      throw new Error("invalid textbook Id");
+    }
     const lecture_doc= await db.collection("Lecture").findOne({_id:lect_id}); // to check if there is such lecture document in mongodb
     const textbook_doc= await db.collection("TextBook").findOne({_id:textbook_id}); // to check if there is such textbook document in mongodb
     if(!lecture_doc){
@@ -1405,7 +1418,7 @@ app.post("/api/Assignment", loginCheck, async (req, res) => {
   }
   catch (err){
     await session.abortTransaction();
-    ret_val=`Error ${err}`;
+    ret_val=`Error: ${err}`;
   }
   finally{
     await session.endSession();
