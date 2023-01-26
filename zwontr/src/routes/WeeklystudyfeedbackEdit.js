@@ -315,7 +315,8 @@ function WeeklystudyfeedbackEdit() {
               .then(function (result) {
                 if (result.data === true) {
                   window.alert("수정되었습니다.");
-                  history.push(`/Weeklystudyfeedback/${param["ID"]}/${param["feedbackDate"]}`);
+                  // history.push(`/WeeklystudyfeedbackEdit/${param["ID"]}/${param["feedbackDate"]}`);
+                  window.location.reload();
                 } else if (result.data === "로그인필요") {
                   window.alert("로그인이 필요합니다.");
                   return history.push("/");
