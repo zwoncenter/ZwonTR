@@ -349,9 +349,6 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
     /** 추가하고 삭제해야할 책 정보 **/
     const updateTextbookInfo = filterTextBook(existingTextbook, newTextbook);
 
-    console.log(updateTextbookInfo)
-
-
     /** WeeklyStudentfeedback 콜렉션에 저장된 모든 날짜들 **/
         // 피드백 : limit(1)을 통해 모든 리스트를 가져오는 것이 아니라 1개만 가져옴으로써 연산량 줄임
     let feedbackWeekArr = await db.collection("WeeklyStudyfeedback")
@@ -2029,7 +2026,6 @@ app.get("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, (req, res) => 
   const paramDate = decodeURIComponent(req.params.feedbackDate);
   const ID = decodeURIComponent(req.params.ID);
   db.collection("WeeklyStudyfeedback").findOne({ 학생ID: ID, 피드백일: paramDate }, (err, result) => {
-    console.log(result);
     if (err) {
       return res.send(`/api/Weeklystudyfeedback/${ID}/${paramDate} - findOne Error : ${err}`);
     }
