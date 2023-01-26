@@ -258,34 +258,31 @@ function filterTextBook(exist,newOne){
   })
 
 
-  let existTextbookList = new Set(existArray);
-  let newTextbookList = new Set(newArray);
+  let existTextbookSet = new Set(existArray);
+  let newTextbookSet = new Set(newArray);
 
   /** 삭제해야할 책 제목 = 기존교재이름과 새교재이름의 차집합 **/
-  let deleteList = [...existTextbookList].filter(x => !newTextbookList.has(x))
+  let deleteSet = new Set(
+      [...existTextbookSet].filter(x => !newTextbookSet.has(x))
+  );
+
+  /** 삭제해야할 책 제목을 통해 기존 교재목록 정보 추출 **/
+  let deleteArray = exist.filter((ele,idx)=>{
+    return deleteSet.has(ele["교재"]);
+  })
 
 
-  /** 삭제해야할 책 제목을 통해 기존 교재목록인 exist에서 인덱스를 찾아 정보 추출 **/
-  let deleteArray = [];
-  for(let i in deleteList){
-    let index = (exist.findIndex(e => e["교재"]===deleteList[i]));
-    deleteArray.push(exist[index]);
-  }
 
 
   /** 추가할 교재이름 = 새교재이름과 기존교재이름의 차집합 **/
-  let insertList = [...newTextbookList].filter(x => !existTextbookList.has(x));
-
+  let insertSet = new Set(
+      [...newTextbookSet].filter(x => !existTextbookSet.has(x))
+  )
   /** 추가해야할 책 제목을 통해 기존 교재목록인 newOne에서 인덱스를 찾아 정보 추출 **/
-  let insertArray = [];
-  for(let i in insertList){
-    let index = (newOne.findIndex(e => e["교재"]===insertList[i]));
-    insertArray.push(newOne[index]);
-  }
+  let insertArray = newOne.filter((ele,idx)=>{
+    return insertSet.has(ele["교재"]);
+  });
 
-  /** 사용한 Set 정리 **/
-  existTextbookList.clear();
-  newTextbookList.clear();
 
   return {
     deleteTextbook: deleteArray,
@@ -351,6 +348,8 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
     /** 추가하고 삭제해야할 책 정보 **/
     const updateTextbookInfo = filterTextBook(existingTextbook, newTextbook);
+
+    console.log(updateTextbookInfo)
 
 
     /** WeeklyStudentfeedback 콜렉션에 저장된 모든 날짜들 **/
