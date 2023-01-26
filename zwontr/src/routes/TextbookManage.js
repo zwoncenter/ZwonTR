@@ -206,6 +206,7 @@ function TextbookManage() {
       .catch((err) => {
         return err;
       });
+    console.log(existDocument)
     setlastRevise(existDocument["날짜"]);
     settextbookList(existDocument["textbookList"]);
   }, []);

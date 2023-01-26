@@ -632,6 +632,44 @@ function TRedit() {
 
     return Math.round(diff * 10) / 10;
   }
+ /**  **/
+  function centerTimeDiff(backHome,centerArrival){
+    // backHome = 귀가 시간 | centerArrival = 등원 시간
+    if(!backHome||!centerArrival){
+      return NaN;
+    }
+    let [backHomeHour, backHomeMin] = backHome.split(":");
+    let [centerArrivalHour, centerArrivalMin] = centerArrival.split(":");
+
+    let backHomeTime = (parseInt(backHomeHour) * 60) + parseInt(backHomeMin);
+    let centerArrivalTime = (parseInt(centerArrivalHour) * 60) + parseInt(centerArrivalMin);
+    let diff = backHomeTime - centerArrivalTime;
+
+    let result = (diff/60) + ((diff%60)/60)
+
+    return Math.round(result * 10) /10;
+
+
+  }
+
+  function centerTimeDiff(backHome,centerArrival){
+    // backHome = 귀가 시간 | centerArrival = 등원 시간
+    if(!backHome||!centerArrival){
+      return NaN;
+    }
+    let [backHomeHour, backHomeMin] = backHome.split(":");
+    let [centerArrivalHour, centerArrivalMin] = centerArrival.split(":");
+
+    let backHomeTime = (parseInt(backHomeHour) * 60) + parseInt(backHomeMin);
+    let centerArrivalTime = (parseInt(centerArrivalHour) * 60) + parseInt(centerArrivalMin);
+    let diff = backHomeTime - centerArrivalTime;
+
+    let result = (diff/60)
+
+    return Math.round(result * 10) /10;
+
+
+  }
 
   function centerTimeDiff(backHome,centerArrival){
     // backHome = 귀가 시간 | centerArrival = 등원 시간
