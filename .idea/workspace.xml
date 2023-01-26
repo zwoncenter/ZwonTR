@@ -4,109 +4,57 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-    <list default="true" id="6acec966-1b28-4030-b137-2482d83e6e67" name="Changes" comment="">
-=======
-    <list default="true" id="3903e546-9c69-4904-852a-2eebb220eeaf" name="Changes" comment="">
->>>>>>> Stashed changes
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/server.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/zwontr/src/routes/TRWriteEdit.css" beforeDir="false" afterPath="$PROJECT_DIR$/zwontr/src/routes/TRWriteEdit.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/zwontr/src/routes/TRWriteEdit.scss" beforeDir="false" afterPath="$PROJECT_DIR$/zwontr/src/routes/TRWriteEdit.scss" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/zwontr/src/routes/TRedit.js" beforeDir="false" afterPath="$PROJECT_DIR$/zwontr/src/routes/TRedit.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/zwontr/src/routes/TRwrite.js" beforeDir="false" afterPath="$PROJECT_DIR$/zwontr/src/routes/TRwrite.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/zwontr/src/routes/WeeklystudyfeedbackEdit.js" beforeDir="false" afterPath="$PROJECT_DIR$/zwontr/src/routes/WeeklystudyfeedbackEdit.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/zwontr/src/routes/WeeklystudyfeedbackWrite.js" beforeDir="false" afterPath="$PROJECT_DIR$/zwontr/src/routes/WeeklystudyfeedbackWrite.js" afterDir="false" />
+    <list default="true" id="44048983-f0d5-473b-9126-0ccce737664c" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
-=======
-    <list default="true" id="3903e546-9c69-4904-852a-2eebb220eeaf" name="Changes" comment="" />
->>>>>>> 97e10848263fb1d354f33f3848a01a5ec4ba2e06
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_BRANCH_BY_REPOSITORY">
-      <map>
-        <entry key="$PROJECT_DIR$" value="weeklyStudyFeedbackBugFix" />
-      </map>
-    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
-  <component name="ProjectId" id="2KFS4heeWzUb3klg0myqMeOUVZe" />
+  <component name="ProjectId" id="2Kr8Zr1K5pXgBVW52xGY4bXnJIH" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/jknad/WebstormProjects/Web-Server&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;editor.preferences.fonts.default&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;C:\\Program Files\\JetBrains\\WebStorm 2022.3.1\\plugins\\javascript-impl\\jsLanguageServicesImpl\\external&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
-  <component name="RecentsManager">
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="C:\Users\jknad\WebstormProjects\ZwonTR\zwontr" />
-      <recent name="C:\Users\jknad\WebstormProjects\ZwonTR\server" />
-      <recent name="C:\Users\jknad\WebstormProjects\ZwonTR" />
-    </key>
-  </component>
+}]]></component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="3903e546-9c69-4904-852a-2eebb220eeaf" name="Changes" comment="" />
-      <created>1673568647163</created>
+      <changelist id="44048983-f0d5-473b-9126-0ccce737664c" name="Changes" comment="" />
+      <created>1674687982718</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1673568647163</updated>
-      <workItem from="1673568648328" duration="1023000" />
-      <workItem from="1673569891196" duration="19503000" />
-      <workItem from="1673826731894" duration="20207000" />
-      <workItem from="1673933555298" duration="7845000" />
-      <workItem from="1673996433879" duration="13639000" />
-      <workItem from="1674089998277" duration="4524000" />
+      <updated>1674687982718</updated>
+      <workItem from="1674687985368" duration="13714000" />
+      <workItem from="1674721404604" duration="248000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
-  <component name="UnknownFeatures">
-    <option featureType="com.intellij.fileTypeFactory" implementationName=".env" />
-  </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
       <map>
         <entry key="MAIN">
           <value>
-            <State>
-              <option name="FILTERS">
-                <map>
-                  <entry key="branch">
-                    <value>
-                      <list>
-                        <option value="weeklyStudyFeedbackBugFix" />
-                      </list>
-                    </value>
-                  </entry>
-                </map>
-              </option>
-            </State>
+            <State />
           </value>
         </entry>
       </map>
