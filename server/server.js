@@ -333,7 +333,6 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
   let existingTextbook;
 
-
   try {
 
     session.startTransaction();
@@ -363,7 +362,8 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
     if (feedbackWeekArr.length !== 0) {
 
       /** 가장 최근에 WeeklyStudentfeedback 콜렉션에 저장된 날짜 **/
-      let feedbackDate = feedbackWeekArr.at(-1)["피드백일"];
+      // let feedbackDate = feedbackWeekArr.at(-1)["피드백일"];
+      let feedbackDate = feedbackWeekArr[0]["피드백일"];
 
       /** ----------- 교재수정에 따른 WeeklyStudyfeedback 수정 ---------------- **/
       // /****/ 주석은 푸쉬할때 사라지나?
@@ -427,15 +427,15 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
       session.commitTransaction();
       session.endSession();
 
-      return res.json({"success": true});
+      return res.json({"success": true, "ret_val":""});
 
   }
   catch (err){
+    session.abortTransaction();
     ret_val=`error ${err}`;
     success=false;
-    console.error(err)
-    session.abortTransaction();
-    return res.json({"success":false,"ret_val" : err});
+    console.error(err);
+    return res.json({"success":success,"ret_val" : ret_val});
   }
 
 });

@@ -1298,7 +1298,11 @@ function StudentEdit() {
                       return history.push("/studentList");
                     }
                     else{
-                      return window.alert(result.data);
+                      // return window.alert(result.data);
+                      // console.log("result.data.success: "+JSON.stringify(result.data.success));
+                      // console.log("result.data.ret_val: "+JSON.stringify(result.data.ret_val));
+                      return window.alert("저장중 에러가 발생했습니다");
+
                     }
                   })
                   .catch(function (err) {
