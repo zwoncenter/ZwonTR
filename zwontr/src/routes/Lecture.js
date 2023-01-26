@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import TimePicker from "react-time-picker";
 import "./Lecture.css";
-import { FaPencilAlt, FaTimes, FaCheck, FaUndo } from "react-icons/fa";
+import { FaPencilAlt, FaTimes, FaCheck, FaUndo, FaSearch } from "react-icons/fa";
 // import Accordion from 'react-bootstrap/Accordion';
 import { useAccordionButton } from "react-bootstrap/AccordionButton";
 import Card from "react-bootstrap/Card";
@@ -248,7 +248,7 @@ function Lecture() {
     duedate: "",
     pageRangeArray:[["",""]],
     startdate: today,
-    textbookID: null,
+    textbookID: "", // set this field's default value as empty string: related to "ObjectId" object constructor 
     studentList: []
   });
 
@@ -270,39 +270,53 @@ function Lecture() {
     // 학생을 선택하지 않은 경우
     if (!assignstudents.includes(true)) {
       window.alert("과제를 부여할 최소 1명 이상의 학생을 선택해야 합니다.");
-      state = false;
+      // state = false;
+      return false;
+    }
+    if(newassignment["textbookID"].length===0 && newassignment["description"].length>0 && newassignment["pageRangeArray"][0][0].length>0){
+      window.alert("교재가 선택되지 않았는데 페이지 범위가 설정되어있습니다");
+      return false;
     }
     if (newassignment["duedate"]=="") {
       window.alert("과제 마감일을 선택해야 합니다.");
-      state = false;
+      // state = false;
+      return false;
     }
-    newassignment["pageRangeArray"].map((Range, idx)=>{
-      if (idx==0){
-        if (newassignment["textbookID"]==null&&(! Range.includes(""))){
+    for(let i=0; i<newassignment["pageRangeArray"].length; i++){
+      const pageRange=newassignment["pageRangeArray"][i];
+      if (i==0){
+        if (newassignment["textbookID"]==null&&(! pageRange.includes(""))){
           window.alert("과제 범위의 교재가 선택되지 않았습니다.");
-          state = false;
+          // state = false;
+          return false;
         }
-        if((Range[0]==""&&Range[1]!="")||(Range[0]!=""&&Range[1]=="")){
+        if((pageRange[0]==""&&pageRange[1]!="")||(pageRange[0]!=""&&pageRange[1]=="")){
           window.alert("빈 과제범위가 존재합니다. 범위를 작성해주세요.");
-          state = false;
+          // state = false;
+          return false;
         }
       }
       else {
-        if(Range[0]==""||Range[1]==""){
+        if(pageRange[0]==""||pageRange[1]==""){
           window.alert("빈 과제범위가 존재합니다. 범위를 작성하거나 삭제해주세요.");
-          state = false;
+          // state = false;
+          return false;
         }
       }
-      if (Range[0]!="" && Range[1]!="" && (!/^[0-9]+$/.test(Range[0])||!/^[0-9]+$/.test(Range[1]))) {
+      if (pageRange[0]!="" && pageRange[1]!="" && (!/^[0-9]+$/.test(pageRange[0])||!/^[0-9]+$/.test(pageRange[1]))) {
         window.alert("과제 범위는 숫자만 입력 가능합니다.");
-        state = false;
+        // state = false;
+        return false;
       }
-      if (newassignment["description"]=="" && Range[0]=="" && Range[1]=="") {
+      if (newassignment["description"]=="" && pageRange[0]=="" && pageRange[1]=="") {
         window.alert("과제 범위 또는 세부내용 중 최소 하나는 작성되어 있어야 합니다.");
-        state = false;
+        // state = false;
+        return false;
       }
-    })
-    return state;
+    }
+
+    // return state;
+    return true;
   };
 
   useEffect(()=>{
@@ -703,7 +717,7 @@ function Lecture() {
                           let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
                           newselectedAssign["pageRangeArray"][idx][0] = e.target.value;
                           setnewassignment(newselectedAssign);
-                          // console.log(selectedAssign);
+                          // console.log(JSON.stringify(newselectedAssign));
                         }}
                       />
                     </div>
@@ -719,7 +733,7 @@ function Lecture() {
                           let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
                           newselectedAssign["pageRangeArray"][idx][1] = e.target.value;
                           setnewassignment(newselectedAssign);
-                          // console.log(selectedAssign);
+                          // console.log(JSON.stringify(newselectedAssign));
                         }}
                       />
                     </div>

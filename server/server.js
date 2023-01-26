@@ -144,6 +144,16 @@ function getCurrentKoreaDateYYYYMMDD(){
   return [year_string,month_string,date_string].join("-");
 }
 
+//
+function getValidDateString(dateString){
+  //date validity check
+  let date= /[\d][\d][\d][\d]-[\d][\d]-[\d][\d]/g.exec(decodeURIComponent(dateString));
+  if(!date) return null;
+  date=date[0];
+  if(isNaN(new Date(date))) return null;
+  return date;
+}
+
 // collection 중 StudentDB의 모든 Document find 및 전송
 app.get("/api/studentList", loginCheck, function (req, res) {
   db.collection("StudentDB")
@@ -231,33 +241,57 @@ app.get("/api/StudentDB/:ID", loginCheck, function (req, res) {
 /** ---------------- 교재 수정사항 점검 함수 ---------------- **/
 // 피드백 : 교재명이 key 값과 같이 동작하므로(unique Key로 설정했었음) 교재명으로 추가/삭제를 걸러내보자
 
-function filterTextBook(first,second){
+function filterTextBook(exist,newOne){
 
-  let firstArray = [];
+  /**
+   * exist : 기존 학생DB를 조회해서 얻은 수정사항 적용 전 진행중인 교재정보
+   * newOne : 이번에 학생 DB를 수정하며 새롭게 얻은 교재정보
+   * **/
 
-  first.filter((ele,index)=>{
-    firstArray.push(ele["교재"])
+  let existArray = exist.map((e)=>{
+    return e["교재"];
+  });
+
+
+  let newArray = newOne.map((e)=>{
+    return e["교재"];
   })
 
 
-  let secondArray = [];
+  let existTextbookList = new Set(existArray);
+  let newTextbookList = new Set(newArray);
 
-  second.filter((ele,index)=>{
-    secondArray.push(ele["교재"])
-  })
+  /** 삭제해야할 책 제목 = 기존교재이름과 새교재이름의 차집합 **/
+  let deleteList = [...existTextbookList].filter(x => !newTextbookList.has(x))
 
-  let filteredNameArray = firstArray.filter(ele => !secondArray.includes(ele));
-  let indexes= []
-  for(let i in filteredNameArray){
-    indexes.push(first.findIndex(e => e["교재"]===filteredNameArray[i]))
+
+  /** 삭제해야할 책 제목을 통해 기존 교재목록인 exist에서 인덱스를 찾아 정보 추출 **/
+  let deleteArray = [];
+  for(let i in deleteList){
+    let index = (exist.findIndex(e => e["교재"]===deleteList[i]));
+    deleteArray.push(exist[index]);
   }
 
-  let returnArray = []
-  for(let i in indexes){
-    returnArray.push(first[indexes[i]])
+
+  /** 추가할 교재이름 = 새교재이름과 기존교재이름의 차집합 **/
+  let insertList = [...newTextbookList].filter(x => !existTextbookList.has(x));
+
+  /** 추가해야할 책 제목을 통해 기존 교재목록인 newOne에서 인덱스를 찾아 정보 추출 **/
+  let insertArray = [];
+  for(let i in insertList){
+    let index = (newOne.findIndex(e => e["교재"]===insertList[i]));
+    insertArray.push(newOne[index]);
   }
 
-  return returnArray;
+  /** 사용한 Set 정리 **/
+  existTextbookList.clear();
+  newTextbookList.clear();
+
+  return {
+    deleteTextbook: deleteArray,
+    insertTextbook: insertArray
+  };
+
 
 }
 
@@ -307,108 +341,103 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
     session.startTransaction();
     // findOne에는 toArray() 쓰면 안됨
-    let studentDB_result = await db.collection(`StudentDB`).findOne({ ID: findID });
+    let studentDB_result = await db.collection(`StudentDB`).findOne({ID: findID});
 
     /** 업데이트되기 전 학생교재 **/
     existingTextbook = studentDB_result["진행중교재"];
 
-
     /** 새롭게 수정 요청된 학생 교재 리스트 **/
-    const newTextbook =  newstuDB["진행중교재"];
+    const newTextbook = newstuDB["진행중교재"];
+
+    /** 추가하고 삭제해야할 책 정보 **/
+    const updateTextbookInfo = filterTextBook(existingTextbook, newTextbook);
+
 
     /** WeeklyStudentfeedback 콜렉션에 저장된 모든 날짜들 **/
         // 피드백 : limit(1)을 통해 모든 리스트를 가져오는 것이 아니라 1개만 가져옴으로써 연산량 줄임
     let feedbackWeekArr = await db.collection("WeeklyStudyfeedback")
             .find({"학생ID": newstuDB["ID"]})
-            .project({"피드백일" : 1},{_id:0})
-            .sort({"피드백일":-1})
+            .project({"피드백일": 1}, {_id: 0})
+            .sort({"피드백일": -1})
             .limit(1)
             .toArray();
 
 
     /** Validation : 신규 학생이 WeeklyStudyfeedback 콜렉션에 정보가 없을 때 건너뛰기 **/
-    if(feedbackWeekArr.length !== 0){
+    if (feedbackWeekArr.length !== 0) {
 
       /** 가장 최근에 WeeklyStudentfeedback 콜렉션에 저장된 날짜 **/
       let feedbackDate = feedbackWeekArr.at(-1)["피드백일"];
 
       /** ----------- 교재수정에 따른 WeeklyStudyfeedback 수정 ---------------- **/
       // /****/ 주석은 푸쉬할때 사라지나?
-      /** ------ 경우 1) 교재 추가 시 업데이트 진행 ------ **/
-      if(newTextbook.length > existingTextbook.length) {
+            /** ------ 교재 추가 업데이트 진행 ------ **/
+            if(updateTextbookInfo.insertTextbook.length !== 0){
 
+              await db.collection("WeeklyStudyfeedback").updateOne({"학생ID": newstuDB["ID"],"피드백일" : feedbackDate},
+                  {$push: {"thisweekGoal.교재캡쳐" : {$each : updateTextbookInfo.insertTextbook}}});
 
-        /** ----------- 새롭게 추가된 교재만 필터링 ------------**/
-        let filtered = filterTextBook(newTextbook,existingTextbook)
+              let dict = {};
+              for(let i in updateTextbookInfo.insertTextbook){
 
-        // for 문을 통해 여러번 updateOne 하지 말고 객체로 묶어서 한꺼번에 입력하자 = filtered
-        await db.collection("WeeklyStudyfeedback").updateOne({"학생ID": newstuDB["ID"],"피드백일" : feedbackDate},
-            {$push: {"thisweekGoal.교재캡쳐" : {$each : filtered}}}
-        )
+                let deadline_string = `thisweekGoal.마감일.${updateTextbookInfo.insertTextbook[i]["교재"]}`
+                dict[deadline_string] = feedbackDate;
 
-        let dict = {}
-        for(let i in dayIndex){
+                for(let j in dayIndex){
+                  let string_tmp=`thisweekGoal.${dayIndex[j]}.${updateTextbookInfo.insertTextbook[i]["교재"]}`;
+                  dict[string_tmp] ="";
+                }
 
-          for(let j in filtered){
-            let string_tmp=`thisweekGoal.${dayIndex[i]}.${filtered[j]["교재"]}`;
-            let deadline_string = `thisweekGoal.마감일.${filtered[j]["교재"]}`
-            dict[string_tmp] =""
-            dict[deadline_string] = feedbackDate
+              }
+
+              await db.collection("WeeklyStudyfeedback").updateOne({"학생ID":newstuDB["ID"],"피드백일": feedbackDate},
+                  {$set:dict});
+            }
+
+            /** ------ 교재 삭제 업데이트 진행 ------ **/
+            if(updateTextbookInfo.deleteTextbook.length !== 0){
+
+              await db.collection("WeeklyStudyfeedback").updateOne({"학생ID": newstuDB["ID"],"피드백일" : feedbackDate},
+                  {$pullAll: {"thisweekGoal.교재캡쳐": updateTextbookInfo.deleteTextbook}
+                  });
+
+              let dict = {};
+              for(let i in updateTextbookInfo.deleteTextbook){
+
+                let deadline_string = `thisweekGoal.마감일.${updateTextbookInfo.deleteTextbook[i]["교재"]}`
+                dict[deadline_string] ="";
+
+                for(let j in dayIndex){
+                  let string_tmp=`thisweekGoal.${dayIndex[j]}.${updateTextbookInfo.deleteTextbook[i]["교재"]}`;
+                  dict[string_tmp] ="";
+                }
+
+              }
+
+              await db.collection("WeeklyStudyfeedback").updateOne({"학생ID":newstuDB["ID"],"피드백일": feedbackDate},
+                  {$unset:dict});
+
+            }
+
           }
+      /** -------------------------------------------- **/
 
-        }
+      delete newstuDB._id; //MongoDB에서 Object_id 중복을 막기 위해 id 삭제
 
-        await db.collection("WeeklyStudyfeedback").updateOne({"학생ID":newstuDB["ID"],"피드백일": feedbackDate},
-            {$set:dict})
-      }
+      await db.collection("StudentDB").updateOne({ ID: findID }, { $set: newstuDB });
 
-          /** ------------------------------------------------ **/
+      await db.collection("StudentDB_Log").insertOne(newstuDB);
 
-      /** ------ 경우 2) 교재 삭제 시 업데이트 진행 ------ **/
-      else if(newTextbook.length < existingTextbook.length){
-        let filtered = filterTextBook(existingTextbook,newTextbook);
+      session.commitTransaction();
+      session.endSession();
 
+      return res.json({"success": true});
 
-        await db.collection("WeeklyStudyfeedback").updateOne({"학생ID": newstuDB["ID"],"피드백일" : feedbackDate},
-            {$pullAll: {"thisweekGoal.교재캡쳐": filtered}
-            })
-
-        let dict = {}
-        /** 주간 학습스케쥴링에서 월 ~ 금 까지 지정했던 목표학습량까지 삭제 **/
-        for(let i in dayIndex){
-
-          //데이터 관리에 있어서 이미 있는 데이터 틀이기 때문에 조금 보수적으로 접근해서 모든 틀에 맞추자.
-          for(let j in filtered){
-            let string_tmp=`thisweekGoal.${dayIndex[i]}.${filtered[j]["교재"]}`;
-            let deadline_string = `thisweekGoal.마감일.${filtered[j]["교재"]}`
-            dict[string_tmp] =""
-            dict[deadline_string] =""
-          }
-
-        }
-
-        await db.collection("WeeklyStudyfeedback").updateOne({"학생ID":newstuDB["ID"],"피드백일": feedbackDate},
-            {$unset:dict})
-      }
-
-    }
-    /** -------------------------------------------- **/
-
-    delete newstuDB._id; //MongoDB에서 Object_id 중복을 막기 위해 id 삭제
-
-    await db.collection("StudentDB").updateOne({ ID: findID }, { $set: newstuDB })
-
-    await db.collection("StudentDB_Log").insertOne(newstuDB)
-
-    session.commitTransaction();
-    session.endSession();
-
-    return res.json({"success":true});
   }
   catch (err){
     ret_val=`error ${err}`;
     success=false;
-    console.log(err)
+    console.error(err)
     session.abortTransaction();
     return res.json({"success":false,"ret_val" : err});
   }
@@ -491,6 +520,25 @@ app.get("/api/TR/:ID/:date", loginCheck, function (req, res) {
     return res.json(result);
   });
 });
+
+//특정 날짜 범위 내에 있는 TR들을 가져오는 URI
+app.post("/api/TRByDateRange/", loginCheck, async function(req,res){
+  const ret_val={"success":false, "ret":null};
+  try{
+    const student_legacy_id= req.body["studentLegacyID"];
+    const from_date= req.body["fromDate"];
+    const to_date= req.body["toDate"];
+    const tr_list= await db.collection("TR").find({ID:student_legacy_id,날짜: {"$gt":from_date, "$lte":to_date}}).toArray();
+    ret_val["success"]=true; ret_val["ret"]=tr_list;
+  }
+  catch(error){
+    ret_val["ret"]=`Error ${error}`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
 
 app.post("/api/TR", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
@@ -633,6 +681,149 @@ app.post("/api/DailyGoalCheckLog", loginCheck, async (req,res)=>{
     return res.send(ret_val);
   }
 })
+
+app.post("/api/DailyGoalCheckLogByDateRange", loginCheck, async (req,res)=>{
+  const ret={"success":false,"ret":null};
+  try{
+    //check date validity
+    const from_date= getValidDateString(decodeURIComponent(req.body.fromDate));
+    const to_date= getValidDateString(decodeURIComponent(req.body.toDate));
+    if(from_date===null || to_date===null) throw new Error("invalid date");
+    
+    //check whether student registered 
+    const student_legacy_id= decodeURIComponent(req.body.studentLegacyID);
+    const student_doc= await db.collection("StudentDB").findOne({ID:student_legacy_id});
+    if(student_doc===null) throw new Error("no such student");
+    const student_id= student_doc["_id"];
+    
+    const find_result= await db.collection("DailyGoalCheckLog").aggregate([
+      {
+        $match:{
+          studentID:student_id,
+          date: {"$gt":from_date, "$lte":to_date}
+        },
+      },
+      {
+        $lookup: {
+          from: "AssignmentOfStudent",
+          localField: "AOSID",
+          foreignField: "_id",
+          as: "AOS_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$AOS_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      {
+        $addFields: {
+          assignmentID: "$AOS_aggregate.assignmentID",
+          finishedDate: "$AOS_aggregate.finished_date",
+        },
+      },
+      {
+        $lookup: {
+          from: "Assignment",
+          localField: "assignmentID",
+          foreignField: "_id",
+          as: "Assignment_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path: "$Assignment_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      {
+        $addFields: {
+          lectureID: "$Assignment_aggregate.lectureID",
+          pageRangeArray: "$Assignment_aggregate.pageRangeArray",
+          assignmentDescription: "$Assignment_aggregate.description",
+        },
+      },
+      {
+        $lookup: {
+          from: "Lecture",
+          localField: "lectureID",
+          foreignField: "_id",
+          as: "Lecture_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path: "$Lecture_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      {
+        $addFields: {
+          lectureName: "$Lecture_aggregate.lectureName",
+          lectureManager: "$Lecture_aggregate.manager",
+          lectureSubject: "$Lecture_aggregate.subject",
+        },
+      },
+      {
+        $lookup: {
+          from: "TextBook",
+          localField: "AOSTextbookID",
+          foreignField: "_id",
+          as: "AOSTextbook_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path: "$AOSTextbook_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      {
+        $lookup: {
+          from: "TextBook",
+          localField: "textbookID",
+          foreignField: "_id",
+          as: "Textbook_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path: "$Textbook_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      {
+        $addFields: {
+          textbookName: "$Textbook_aggregate.교재",
+          AOSTextbookName: "$AOSTextbook_aggregate.교재",
+        },
+      },
+      {
+        $project: {
+          lectureName: "$Lecture_aggregate.lectureName",
+          lectureManager: "$Lecture_aggregate.manager",
+          lectureSubject: "$Lecture_aggregate.subject",
+          pageRangeArray: "$Assignment_aggregate.pageRangeArray",
+          assignmentDescription: "$Assignment_aggregate.description",
+          date: 1,
+          studentName: 1,
+          excuse: {$arrayElemAt:["$excuseList",-1]},
+          finishedState: {$arrayElemAt:["$finishedStateList",-1]},
+          textbookName: "$Textbook_aggregate.교재",
+          AOSTextbookName: "$AOSTextbook_aggregate.교재",
+        },
+      }
+    ]).toArray();
+    ret["success"]=true; ret["ret"]=find_result;
+  }
+  catch(error){
+    ret["ret"]=`Error ${error}`;
+  }
+  finally{
+    return res.json(ret);
+  }
+});
 
 app.post("/api/Closemeeting/:date", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
@@ -1042,10 +1233,8 @@ app.get("/api/SavedDailyGoalCheckLogData/:studentLegacyID/:date", loginCheck, as
   const ret={"success":false,"ret":null};
   try{
     //date validity check
-    let date= /[\d][\d][\d][\d]-[\d][\d]-[\d][\d]/g.exec(decodeURIComponent(req.params.date));
-    if(!date) throw new Error("invalid date");
-    date=date[0];
-    if(isNaN(new Date(date))) throw new Error("invalid date");
+    const date=getValidDateString(decodeURIComponent(req.params.date));
+    if(date===null) throw new Error("invalid date");
 
     //student validity check
     const studentLegacyID = decodeURIComponent(req.params.studentLegacyID);
@@ -1347,10 +1536,16 @@ app.put("/api/Assignment", loginCheck, (req, res) => {
   let findID;
   try{
     findID = new ObjectId(newAssignment["assignmentID"]);
-    newAssignment["textbookID"]= new ObjectId(newAssignment["textbookID"]);
+    if(typeof(newAssignment["textbookID"])==="string") { // "textbookID" 필드 값은 string이어야 한다
+      if(newAssignment["textbookID"].length>0) // newAssignment "textbookID" 필드가 non-empty string인 경우에만 objectid로 바꾸기 시도
+        newAssignment["textbookID"]= new ObjectId(newAssignment["textbookID"]);
+    }
+    else {
+      throw new Error("invalid textbook Id");
+    }
   }
   catch(error){
-    return res.send(`invalid access  ${error}`);
+    return res.send(`invalid access:  ${error}`);
   }
   delete newAssignment["assignmentID"];
   db.collection("Assignment").updateOne({ _id: findID }, { $set: newAssignment }, (err, result) => {
@@ -1384,7 +1579,14 @@ app.post("/api/Assignment", loginCheck, async (req, res) => {
     const studentGotAssign_list = newAssign["studentList"];
     delete newAssign["studentList"];
     const lect_id = new ObjectId(newAssign["lectureID"]);
-    const textbook_id = new ObjectId(newAssign["textbookID"]);
+    let textbook_id="";
+    if(typeof(newAssign["textbookID"])==="string") { // "textbookID" 필드 값은 string이어야 한다
+      if(newAssign["textbookID"].length>0) // newAssignment "textbookID" 필드가 non-empty string인 경우에만 objectid로 바꾸기 시도
+        textbook_id= new ObjectId(newAssign["textbookID"]);
+    }
+    else {
+      throw new Error("invalid textbook Id");
+    }
     const lecture_doc= await db.collection("Lecture").findOne({_id:lect_id}); // to check if there is such lecture document in mongodb
     const textbook_doc= await db.collection("TextBook").findOne({_id:textbook_id}); // to check if there is such textbook document in mongodb
     if(!lecture_doc){
@@ -1406,7 +1608,7 @@ app.post("/api/Assignment", loginCheck, async (req, res) => {
   }
   catch (err){
     await session.abortTransaction();
-    ret_val=`Error ${err}`;
+    ret_val=`Error: ${err}`;
   }
   finally{
     await session.endSession();

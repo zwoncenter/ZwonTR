@@ -4,6 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
+<<<<<<< HEAD
 <<<<<<< Updated upstream
     <list default="true" id="6acec966-1b28-4030-b137-2482d83e6e67" name="Changes" comment="">
 =======
@@ -18,6 +19,9 @@
       <change beforePath="$PROJECT_DIR$/zwontr/src/routes/WeeklystudyfeedbackEdit.js" beforeDir="false" afterPath="$PROJECT_DIR$/zwontr/src/routes/WeeklystudyfeedbackEdit.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/zwontr/src/routes/WeeklystudyfeedbackWrite.js" beforeDir="false" afterPath="$PROJECT_DIR$/zwontr/src/routes/WeeklystudyfeedbackWrite.js" afterDir="false" />
     </list>
+=======
+    <list default="true" id="3903e546-9c69-4904-852a-2eebb220eeaf" name="Changes" comment="" />
+>>>>>>> 97e10848263fb1d354f33f3848a01a5ec4ba2e06
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
