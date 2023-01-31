@@ -345,13 +345,22 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
     /** 새롭게 수정 요청된 학생 교재 리스트 **/
     const newTextbook = newstuDB["진행중교재"];
 
+    /** 오늘이 속한 주의 마지막 일요일 날짜를 가져오기
+     * => 이번주에 주간학습스케줄링이 기록되어 있느냐.
+     * **/
+    let todayFeedback = moment().day(7).format('YYYY-MM-DD');
+
+    if(moment().day() === 0 ){
+      todayFeedback = moment().format('YYYY-MM-DD');
+    }
+
     /** 추가하고 삭제해야할 책 정보 **/
     const updateTextbookInfo = filterTextBook(existingTextbook, newTextbook);
 
     /** WeeklyStudentfeedback 콜렉션에 저장된 모든 날짜들 **/
         // 피드백 : limit(1)을 통해 모든 리스트를 가져오는 것이 아니라 1개만 가져옴으로써 연산량 줄임
     let feedbackWeekArr = await db.collection("WeeklyStudyfeedback")
-            .find({"학생ID": newstuDB["ID"]})
+            .find({"학생ID": newstuDB["ID"],"피드백일":todayFeedback})
             .project({"피드백일": 1}, {_id: 0})
             .sort({"피드백일": -1})
             .limit(1)

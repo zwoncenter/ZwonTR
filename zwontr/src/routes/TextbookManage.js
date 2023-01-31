@@ -201,12 +201,13 @@ function TextbookManage() {
           window.alert("로그인이 필요합니다");
           return history.push("/");
         }
+
         return result.data;
       })
       .catch((err) => {
         return err;
       });
-    console.log(existDocument)
+
     setlastRevise(existDocument["날짜"]);
     settextbookList(existDocument["textbookList"]);
   }, []);
