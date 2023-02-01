@@ -2548,7 +2548,7 @@ function TRwrite() {
                         }
                         if (result.data !== true) {
                           console.log(result.data);
-                          window.alert(result.data);
+                          // window.alert(result.data);
                         }
                       })
                       .catch(function (err) {

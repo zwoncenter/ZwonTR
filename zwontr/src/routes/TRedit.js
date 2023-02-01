@@ -2589,7 +2589,7 @@ function TRedit() {
                           }
                           if (result.data !== true) {
                             console.log(result.data);
-                            window.alert(result.data);
+                            // window.alert(result.data);
                           }
                         })
                         .catch(function (err) {
@@ -2610,7 +2610,7 @@ function TRedit() {
                             return history.push("/");
                           } else {
                             console.log(result.data);
-                            window.alert(result.data);
+                            // window.alert(result.data);
                           }
                         })
                         .catch(function (err) {

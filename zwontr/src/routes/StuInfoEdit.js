@@ -906,7 +906,7 @@ function StuInfoEdit() {
                     return history.push("/");
                   } else {
                     console.log(result.data);
-                    window.alert(result.data);
+                    // window.alert(result.data);
                   }
                 })
                 .catch(function (err) {
