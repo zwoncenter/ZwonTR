@@ -395,6 +395,7 @@ function TRwrite() {
     // 날짜: new Date().toISOString().split("T")[0],
     날짜: today,
     TR작성여부: false,
+    "등교" : false,
     요일: "",
     작성매니저: "",
 
@@ -729,6 +730,8 @@ function TRwrite() {
   const isInitialMount = useRef(true);
 
   useEffect(async () => {
+    console.log(typeof TR)
+    console.log(TR)
     const newstuDB = await axios
       .get(`/api/StudentDB/${paramID}`)
       .then((result) => {
@@ -1598,7 +1601,7 @@ function TRwrite() {
                 </Button>
               </div>
 
-              <div className="col-2 p-0">
+{/*              <div className="col-2 p-0">
                 <Form.Check
                   className="TRWriteCheck"
                   type="checkbox"
@@ -1609,6 +1612,19 @@ function TRwrite() {
                     newTR["TR작성여부"] = e.target.checked;
                     setTR(newTR);
                   }}
+                />
+              </div>*/}
+              <div className="col-2 p-0">
+                <Form.Check
+                    className="schoolAttendingCheck"
+                    type="checkbox"
+                    label="학생 등교 시 체크"
+                    checked={TR["등교"]}
+                    onChange={(e) => {
+                      let newTR = JSON.parse(JSON.stringify(TR));
+                      newTR["등교"] = e.target.checked;
+                      setTR(newTR);
+                    }}
                 />
               </div>
             </div>
@@ -2524,68 +2540,68 @@ function TRwrite() {
             variant="secondary"
             className="btn-commit btn-edit"
             onClick={async () => {
-              console.log(TR);
               if (입력확인()) {
-                if (window.confirm(`${TR.이름}학생의 ${TR.날짜} 일간하루를 저장하시겠습니까?`)) {
-                  let fail_flag=false; // midpoint check if first request failed or not
-                  if (TR.결석여부 === false) {
-                    const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                    for (let i = 0; i < stuDB["진행중교재"].length; i++) {
-                      for (let j = 0; j < TR["학습"].length; j++) {
-                        if (stuDB["진행중교재"][i]["과목"] == TR["학습"][j]["과목"] && stuDB["진행중교재"][i]["교재"] == TR["학습"][j]["교재"]) {
+                if (window.confirm("등교 여부를 체크하셨습니까?")) {
+                  if (window.confirm(`${TR.이름}학생의 ${TR.날짜} 일간하루를 저장하시겠습니까?`)) {
+                    let fail_flag = false; // midpoint check if first request failed or not
+                    if (TR.결석여부 === false) {
+                      const newstuDB = JSON.parse(JSON.stringify(stuDB));
+                     for (let i = 0; i < stuDB["진행중교재"].length; i++) {
+                       for (let j = 0; j < TR["학습"].length; j++) {
+                         if (stuDB["진행중교재"][i]["과목"] == TR["학습"][j]["과목"] && stuDB["진행중교재"][i]["교재"] == TR["학습"][j]["교재"]) {
                           newstuDB["진행중교재"][i]["최근진도"] = Math.max(newstuDB["진행중교재"][i]["최근진도"], TR["학습"][j]["최근진도"]);
                           newstuDB["진행중교재"][i]["최근진도율"] = newstuDB["진행중교재"][i]["총교재량"]
-                            ? Math.round((newstuDB["진행중교재"][i]["최근진도"] / parseInt(newstuDB["진행중교재"][i]["총교재량"].match(/\d+/))) * 100)
-                            : 0;
+                              ? Math.round((newstuDB["진행중교재"][i]["최근진도"] / parseInt(newstuDB["진행중교재"][i]["총교재량"].match(/\d+/))) * 100)
+                              : 0;
                         }
                       }
                     }
                     await axios
-                      .put("/api/StudentDB", newstuDB)
+                        .put("/api/StudentDB", newstuDB)
+                        .then(function (result) {
+                          if (result.data === "로그인필요") {
+                            window.alert("로그인이 필요합니다.");
+                            return history.push("/");
+                          }
+                          if ("success" in result.data && result.data.success === true) {
+                            console.log(result.data);
+                            // window.alert(result.data);
+                          } else {
+                            fail_flag = true;
+                            console.log(result.data);
+                            window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요, 0");
+                          }
+                        })
+                        .catch(function (err) {
+                          window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요, 1");
+                        });
+                  }
+
+                  if (fail_flag) return;
+
+                  const postedTR = JSON.parse(JSON.stringify(TR));
+                  postedTR["강의과제학습"] = assignmentStudyTime; //TR 객체의 강의 과제 학습 시간 관련 state를 새로 추가하여 post: 더 나은 방법 찾아봐야
+
+                  axios
+                      .post("/api/TR", postedTR)
                       .then(function (result) {
-                        if (result.data === "로그인필요") {
+                        if (result.data === true) {
+                          window.alert("저장되었습니다.");
+                          history.push("/studentList");
+                        } else if (result.data === "로그인필요") {
                           window.alert("로그인이 필요합니다.");
                           return history.push("/");
-                        }
-                        if ("success" in result.data && result.data.success === true) {
+                        } else {
                           console.log(result.data);
-                          // window.alert(result.data);
-                        }
-                        else{
-                          fail_flag=true;
-                          console.log(result.data);
-                          window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요, 0");
+                          window.alert(result.data);
                         }
                       })
                       .catch(function (err) {
-                        window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요, 1");
+                        console.log("저장 실패 : ", err);
+                        window.alert(err);
                       });
-                  }
-
-                  if(fail_flag) return;
-
-                  const postedTR=JSON.parse(JSON.stringify(TR));
-                  postedTR["강의과제학습"]=assignmentStudyTime; //TR 객체의 강의 과제 학습 시간 관련 state를 새로 추가하여 post: 더 나은 방법 찾아봐야
-
-                  axios
-                    .post("/api/TR", postedTR)
-                    .then(function (result) {
-                      if (result.data === true) {
-                        window.alert("저장되었습니다.");
-                        history.push("/studentList");
-                      } else if (result.data === "로그인필요") {
-                        window.alert("로그인이 필요합니다.");
-                        return history.push("/");
-                      } else {
-                        console.log(result.data);
-                        window.alert(result.data);
-                      }
-                    })
-                    .catch(function (err) {
-                      console.log("저장 실패 : ", err);
-                      window.alert(err);
-                    });
                 }
+              }
               }
             }}
           >

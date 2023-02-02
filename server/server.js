@@ -604,6 +604,7 @@ app.put("/api/TR", loginCheck, function (req, res) {
   });
 });
 
+
 app.delete("/api/TR/:id", loginCheck, function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
