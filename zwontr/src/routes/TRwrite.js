@@ -2527,6 +2527,7 @@ function TRwrite() {
               console.log(TR);
               if (입력확인()) {
                 if (window.confirm(`${TR.이름}학생의 ${TR.날짜} 일간하루를 저장하시겠습니까?`)) {
+                  let fail_flag=false; // midpoint check if first request failed or not
                   if (TR.결석여부 === false) {
                     const newstuDB = JSON.parse(JSON.stringify(stuDB));
                     for (let i = 0; i < stuDB["진행중교재"].length; i++) {
@@ -2546,15 +2547,22 @@ function TRwrite() {
                           window.alert("로그인이 필요합니다.");
                           return history.push("/");
                         }
-                        if (result.data !== true) {
+                        if ("success" in result.data && result.data.success === true) {
                           console.log(result.data);
                           // window.alert(result.data);
                         }
+                        else{
+                          fail_flag=true;
+                          console.log(result.data);
+                          window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요, 0");
+                        }
                       })
                       .catch(function (err) {
-                        window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
+                        window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요, 1");
                       });
                   }
+
+                  if(fail_flag) return;
 
                   const postedTR=JSON.parse(JSON.stringify(TR));
                   postedTR["강의과제학습"]=assignmentStudyTime; //TR 객체의 강의 과제 학습 시간 관련 state를 새로 추가하여 post: 더 나은 방법 찾아봐야

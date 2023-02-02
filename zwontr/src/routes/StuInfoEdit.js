@@ -898,7 +898,7 @@ function StuInfoEdit() {
               axios
                 .put("/api/StudentDB", stuInfo)
                 .then(function (result) {
-                  if (result.data === true) {
+                  if ("success" in result.data && result.data.success === true) {
                     window.alert("저장되었습니다.");
                     history.push("/studentList");
                   } else if (result.data === "로그인필요") {
@@ -906,7 +906,7 @@ function StuInfoEdit() {
                     return history.push("/");
                   } else {
                     console.log(result.data);
-                    // window.alert(result.data);
+                    window.alert(result.data);
                   }
                 })
                 .catch(function (err) {

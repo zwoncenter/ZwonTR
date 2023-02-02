@@ -2580,6 +2580,8 @@ function TRedit() {
                           }
                         }
                       }
+                      let fail_flag=false; // midpoint check if first request failed or not
+
                       await axios
                         .put("/api/StudentDB", newstuDB)
                         .then(function (result) {
@@ -2587,14 +2589,21 @@ function TRedit() {
                             window.alert("로그인이 필요합니다.");
                             return history.push("/");
                           }
-                          if (result.data !== true) {
+                          if ("success" in result.data && result.data.success === true) {
                             console.log(result.data);
                             // window.alert(result.data);
                           }
+                          else{
+                            fail_flag=true;
+                            console.log(result.data);
+                            window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요, 0");
+                          }
                         })
                         .catch(function (err) {
-                          window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
+                          window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요, 1");
                         });
+
+                      if(fail_flag) return;
 
                       const postedTR=JSON.parse(JSON.stringify(TR));
                       postedTR["강의과제학습"]=assignmentStudyTime; //TR 객체의 강의 과제 학습 시간 관련 state를 state로부터 업데이트하여 post: 더 나은 방법 찾아봐야
@@ -2610,7 +2619,7 @@ function TRedit() {
                             return history.push("/");
                           } else {
                             console.log(result.data);
-                            // window.alert(result.data);
+                            window.alert("수정 실패");
                           }
                         })
                         .catch(function (err) {
