@@ -878,10 +878,10 @@ function TRwrite() {
   };
 
   //강의 과제 관련 코드
-  const [thisWeekAssignments, setThisWeekAssignments] = useState([]);
+  const [todayAssignments, setTodayAssignments] = useState([]);
 
-  function processThisWeekAssignmentData(thisWeekAssignmentData){ //post request로 받아온 데이터 전처리
-    const ret=JSON.parse(JSON.stringify(thisWeekAssignmentData));
+  function processTodayAssignmentData(todayAssignmentData){ //post request로 받아온 데이터 전처리
+    const ret=JSON.parse(JSON.stringify(todayAssignmentData));
     ret.forEach((e,idx)=>{
       e["textbookName"]=e["textbookName"].length>0?e["textbookName"][0]:"";
       e["AOSTextbookID"]=e["AOSTextbookID"].length>0?e["AOSTextbookID"][0]:"";
@@ -925,10 +925,10 @@ function TRwrite() {
   function checkTextBookOfAssignment(textbookName){
     return textbookName in textbookOfAssignment;
   }
-  function getTextbookOfAssignmentFromThisWeekAssignments(thisWeekAssignmentData){
+  function getTextbookOfAssignmentFromTodayAssignments(todayAssignmentData){
     const ret={};
-    for(let i=0; i<thisWeekAssignmentData.length; i++){
-      const assignment=thisWeekAssignmentData[i];
+    for(let i=0; i<todayAssignmentData.length; i++){
+      const assignment=todayAssignmentData[i];
       if(assignment["textbookName"] === "") continue;
       ret[assignment["textbookName"]]=true;
     }
@@ -1018,8 +1018,8 @@ function TRwrite() {
   const [highlightedLectureAssignments,setHighlightedLectureAssignments]= useState({});
   const [highlightedTextbookAssignments,setHighlightedTextbookAssignments]= useState({});
   function checkStudyTimeOfFinishedLectureAssignment(){ // 완료된 과제에 학습시간이 입력되었는지 확인
-    for(let i=0; i<thisWeekAssignments.length; i++) {
-      const assignment= thisWeekAssignments[i];
+    for(let i=0; i<todayAssignments.length; i++) {
+      const assignment= todayAssignments[i];
       const AOSID=assignment["AOSID"];
       if(!(AOSID in AOSIDToSavedGoalStateMapping)) continue;
       if(AOSIDToSavedGoalStateMapping[AOSID]["finishedState"]===true){
@@ -1053,8 +1053,8 @@ function TRwrite() {
     return true;
   }
   function isLectureAssignmentChecked(){ // 강의 과제 완료여부 확인
-    for(let i=0; i<thisWeekAssignments.length; i++) {
-      const assignment= thisWeekAssignments[i];
+    for(let i=0; i<todayAssignments.length; i++) {
+      const assignment= todayAssignments[i];
       if(!(assignment["AOSID"] in AOSIDToSavedGoalStateMapping)) {
         const newHighlightedLectureAssignments= JSON.parse(JSON.stringify(highlightedLectureAssignments));
         newHighlightedLectureAssignments[assignment["AOSID"]]=true;
@@ -1181,7 +1181,7 @@ function TRwrite() {
 
     // 오늘 마감인 해당 학생의 강의 과제를 가져온다 (post 방식 사용)
     const requestArgument = { studentID: paramID, today_date: TR.날짜 };
-    let thisWeekAssignmentData = await axios
+    let todayAssignmentData = await axios
       .post(`/api/StudentTodayAssignment/`, requestArgument)
       .then((result) => {
         if (result.data === "로그인필요") {
@@ -1194,16 +1194,16 @@ function TRwrite() {
       .catch((err) => {
         console.log(err);
       });
-    thisWeekAssignmentData = processThisWeekAssignmentData(thisWeekAssignmentData);
-    setThisWeekAssignments(thisWeekAssignmentData);
-    // console.log("check: ", thisWeekAssignmentData);
+    todayAssignmentData = processTodayAssignmentData(todayAssignmentData);
+    setTodayAssignments(todayAssignmentData);
+    // console.log("check: ", todayAssignmentData);
 
     //자체 진도 교재 중 강의에서 사용중인 교재를 걸러내기 위한 state
-    setTextbookOfAssignment(getTextbookOfAssignmentFromThisWeekAssignments(thisWeekAssignmentData));
+    setTextbookOfAssignment(getTextbookOfAssignmentFromTodayAssignments(todayAssignmentData));
 
     //강의 과제 학습 시간도 TR.실제학습시간에 반영하기 위한 state
     const newAssignmentStudyTime= {};
-    thisWeekAssignmentData.map((assignment,idx)=>{
+    todayAssignmentData.map((assignment,idx)=>{
       newAssignmentStudyTime[assignment["AOSID"]]=getAssignmentStudyTimeElementFromAssignmentData(assignment);
     });
     setAssignmentStudyTime(newAssignmentStudyTime);
@@ -1756,7 +1756,7 @@ function TRwrite() {
                       </tr>
                     </thead>
                     <tbody>
-                      {thisWeekAssignments.map((a, i)=> {
+                      {todayAssignments.map((a, i)=> {
                         let tableRowClassName="";
                         const goalState=AOSIDToSavedGoalStateMapping[a["AOSID"]];
                         if(a["AOSID"] in highlightedLectureAssignments){

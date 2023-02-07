@@ -790,9 +790,9 @@ function TRedit() {
   };
 
   //강의 과제 관련 코드
-  const [thisWeekAssignments, setThisWeekAssignments] = useState([]);
-  function processThisWeekAssignmentData(thisWeekAssignmentData){ //post request로 받아온 데이터 전처리
-    const ret=JSON.parse(JSON.stringify(thisWeekAssignmentData));
+  const [todayAssignments, setTodayAssignments] = useState([]);
+  function processTodayAssignmentData(todayAssignmentData){ //post request로 받아온 데이터 전처리
+    const ret=JSON.parse(JSON.stringify(todayAssignmentData));
     ret.forEach((e,idx)=>{
       e["textbookName"]=e["textbookName"].length>0?e["textbookName"][0]:"";
       e["AOSTextbookID"]=e["AOSTextbookID"].length>0?e["AOSTextbookID"][0]:"";
@@ -837,10 +837,10 @@ function TRedit() {
   function checkTextBookOfAssignment(textbookName){
     return textbookName in textbookOfAssignment;
   }
-  function getTextbookOfAssignmentFromThisWeekAssignments(thisWeekAssignmentData){
+  function getTextbookOfAssignmentFromTodayAssignments(todayAssignmentData){
     const ret={};
-    for(let i=0; i<thisWeekAssignmentData.length; i++){
-      const assignment=thisWeekAssignmentData[i];
+    for(let i=0; i<todayAssignmentData.length; i++){
+      const assignment=todayAssignmentData[i];
       if(assignment["textbookName"] === "") continue;
       ret[assignment["textbookName"]]=true;
     }
@@ -930,8 +930,8 @@ function TRedit() {
   const [highlightedLectureAssignments,setHighlightedLectureAssignments]= useState({});
   const [highlightedTextbookAssignments,setHighlightedTextbookAssignments]= useState({});
   function checkStudyTimeOfFinishedLectureAssignment(){ // 완료된 강의 과제에 학습시간이 입력되었는지 확인
-    for(let i=0; i<thisWeekAssignments.length; i++) {
-      const assignment= thisWeekAssignments[i];
+    for(let i=0; i<todayAssignments.length; i++) {
+      const assignment= todayAssignments[i];
       const AOSID=assignment["AOSID"];
       if(!(AOSID in AOSIDToSavedGoalStateMapping)) continue;
       if(AOSIDToSavedGoalStateMapping[AOSID]["finishedState"]===true){
@@ -964,8 +964,8 @@ function TRedit() {
     return true;
   }
   function isLectureAssignmentChecked(){ // 강의 과제 완료여부 확인
-    for(let i=0; i<thisWeekAssignments.length; i++) {
-      const assignment= thisWeekAssignments[i];
+    for(let i=0; i<todayAssignments.length; i++) {
+      const assignment= todayAssignments[i];
       if(!(assignment["AOSID"] in AOSIDToSavedGoalStateMapping)) {
         const newHighlightedLectureAssignments= JSON.parse(JSON.stringify(highlightedLectureAssignments));
         newHighlightedLectureAssignments[assignment["AOSID"]]=true;
@@ -1078,7 +1078,7 @@ function TRedit() {
   useEffect(async () => {
     // 오늘 마감인 해당 학생의 강의 과제를 가져온다 (post 방식 사용)
     const requestArgument = { studentID: paramID, today_date: paramDate };
-    let thisWeekAssignmentData = await axios
+    let todayAssignmentData = await axios
       .post(`/api/StudentTodayAssignment/`, requestArgument)
       .then((result) => {
         if (result.data === "로그인필요") {
@@ -1091,14 +1091,14 @@ function TRedit() {
       .catch((err) => {
         console.log(err);
       });
-    thisWeekAssignmentData = processThisWeekAssignmentData(thisWeekAssignmentData);
-    // console.log("twad:"+JSON.stringify(thisWeekAssignmentData));
-    setThisWeekAssignments(thisWeekAssignmentData);
-    // console.log("created description:"+getDescriptionStringFromAssignment(thisWeekAssignmentData[0]));
-    // console.log("check: ", thisWeekAssignmentData);
+    todayAssignmentData = processTodayAssignmentData(todayAssignmentData);
+    // console.log("twad:"+JSON.stringify(todayAssignmentData));
+    setTodayAssignments(todayAssignmentData);
+    // console.log("created description:"+getDescriptionStringFromAssignment(todayAssignmentData[0]));
+    // console.log("check: ", todayAssignmentData);
 
     //자체 진도 교재 중 강의에서 사용중인 교재를 걸러내기 위한 state
-    setTextbookOfAssignment(getTextbookOfAssignmentFromThisWeekAssignments(thisWeekAssignmentData));
+    setTextbookOfAssignment(getTextbookOfAssignmentFromTodayAssignments(todayAssignmentData));
 
     const newstuDB = await axios
       .get(`/api/StudentDB/${paramID}`)
@@ -1190,7 +1190,7 @@ function TRedit() {
   useEffect(()=>{ //TREdit에서는 TRWrite과 다르게 이전에 작성되어있는 TR.강의과제학습 을 받아쓰기 위해 사용한 useEffect
     //강의 과제 학습 시간도 TR.실제학습시간에 반영하기 위한 state
     const newAssignmentStudyTime= "강의과제학습" in TR? JSON.parse(JSON.stringify(TR.강의과제학습)) : {};
-    thisWeekAssignments.map((assignment,idx)=>{
+    todayAssignments.map((assignment,idx)=>{
       if(assignment["AOSID"] in newAssignmentStudyTime) return;
       newAssignmentStudyTime[assignment["AOSID"]]= getAssignmentStudyTimeElementFromAssignmentData(assignment);
     });
@@ -1739,7 +1739,7 @@ function TRedit() {
                       </tr>
                     </thead>
                     <tbody>
-                      {thisWeekAssignments.map(function (a, i) {
+                      {todayAssignments.map(function (a, i) {
                         let tableRowClassName="";
                         const goalState=AOSIDToSavedGoalStateMapping[a["AOSID"]];
                         if(a["AOSID"] in highlightedLectureAssignments){
