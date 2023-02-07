@@ -846,6 +846,9 @@ function TRedit() {
     }
     return ret;
   }
+  function checkLectureAssignmentExists(){
+    return todayAssignments.length>0;
+  }
   const [assignmentStudyTime,setAssignmentStudyTime]= useState({}); // 강의 과제의 학습 시간을 담는 dictionary
   function getAssignmentStudyTimeElementFromAssignmentData(assignmentData){
     return {
@@ -1585,7 +1588,7 @@ function TRedit() {
                 </Button>
               </div>
 
-              {/*<div className="col-2 p-0">
+              <div className="col-2 p-0 borderline">
                 <Form.Check
                   className="TRWriteCheck"
                   type="checkbox"
@@ -1597,8 +1600,6 @@ function TRedit() {
                     setTR(newTR);
                   }}
                 />
-              </div>*/}
-              <div className="col-2 p-0">
                 <Form.Check
                     className="schoolAttendingCheck"
                     type="checkbox"
@@ -1725,157 +1726,172 @@ function TRedit() {
                 </div>
 
                 <div className="trCard">
-                  <Table striped hover size="sm" className="mt-3">
-                  <thead>
-                      <tr>
-                        <th width="7%">과목</th>
-                        <th width="7%">강사</th>
-                        <th width="18%">강의명</th>
-                        <th width="23%">교재</th>
-                        <th width="15%">과제범위</th>
-                        <th width="10%">세부사항</th>
-                        <th width="10%">학습시간</th>
-                        <th width="10%">완료여부<br/>/사유작성</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {todayAssignments.map(function (a, i) {
-                        let tableRowClassName="";
-                        const goalState=AOSIDToSavedGoalStateMapping[a["AOSID"]];
-                        if(a["AOSID"] in highlightedLectureAssignments){
-                          tableRowClassName="AssignmentHighlighted";
-                        }
-                        else{
-                          if(goalState){
-                            if(goalState["finishedState"]===true) tableRowClassName="AssignmentChecked";
-                            else tableRowClassName="AssignmentNotFinished";
-                          }
-                          else tableRowClassName="";
-                        }
-                        return (
-                          <tr key={i} className={tableRowClassName}>
-                            <td>
-                              <p>{a["lectureSubject"]}</p>
-                            </td>
-                            <td>
-                              <p>{a["manager"]}</p>
-                            </td>
-                            <td>
-                              <p>{a["lectureName"]}</p>
-                            </td>
-                            <td>
-                              <p>{a["textbookName"]}</p>
-                            </td>
-                            <td>
-                              <p className="fs-13px">
-                                {a["pageRangeArray"].map((page, idx) => {
-                                  if (page[0]!=""){
-                                    return(<p>{page[0]} 부터 {page[1]} 까지</p>);
-                                  }
-                                })}
-                              </p>
-                            </td>
-                            <td>
-                              {a["description"] != "" ? (
-                                <OverlayTrigger
-                                  trigger="click"
-                                  placement="right"
-                                  overlay={
-                                    <Popover id="popover-basic">
-                                      <Popover.Body>{a["description"]}</Popover.Body>
-                                    </Popover>
-                                  }
-                                >
-                                  <Button>
-                                    <BsFillChatSquareFill></BsFillChatSquareFill>
-                                  </Button>
-                                </OverlayTrigger>
-                              ) : (
-                                "-"
-                              )}
-                            </td>
-                            <td>
-                              <TimePicker
-                                className="timepicker"
-                                locale="sv-sv"
-                                value={a["AOSID"] in assignmentStudyTime?assignmentStudyTime[a["AOSID"]]["학습시간"]:""}
-                                openClockOnFocus={false}
-                                clearIcon={null}
-                                clockIcon={null}
-                                onChange={(value) => {
-                                  console.log("timepicker value: "+value);
-                                  if(!value) value="0:00";
-                                  const newAST=JSON.parse(JSON.stringify(assignmentStudyTime));
-                                  if(!(a["AOSID"] in newAST)) newAST[a["AOSID"]]=getAssignmentStudyTimeElementFromAssignmentData(a);
-                                  newAST[a["AOSID"]]["학습시간"]=value;
-                                  // console.log("newAST: "+JSON.stringify(newAST));
-                                  setAssignmentStudyTime(newAST);
-
-                                  //전체 학습시간 업데이트
-                                  const newTR = JSON.parse(JSON.stringify(TR));
-                                  let 실제학습시간 = 0;
-                                  let 실제학습분 = 0;
-                                  const astKeys= Object.keys(newAST);
-                                  for(let i=0; i<astKeys.length; i++){
-                                    const studyTime=newAST[astKeys[i]];
-                                    console.log("studytime: "+JSON.stringify(studyTime));
-                                    실제학습시간 += parseInt(studyTime["학습시간"].split(":")[0]);
-                                    실제학습분 += parseInt(studyTime["학습시간"].split(":")[1]);
-                                  }
-                                  console.log("breakpoint");
-                                  newTR.학습.map(function (b, j) {
-                                    if (b.학습시간) {
-                                      console.log("b: "+JSON.stringify(b));
-                                      실제학습시간 += parseInt(b.학습시간.split(":")[0]);
-                                      실제학습분 += parseInt(b.학습시간.split(":")[1]);
-                                    }
-                                  });
-                                  console.log("hour:"+실제학습시간);
-                                  console.log("minute:"+실제학습분);
-                                  newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
-                                  newTR["강의과제학습"]=newAST; // this line is necessary!: only needed in TREdit file
-                                  setTR(newTR);
-                                }}
-                              ></TimePicker>
-                            </td>
-                            <td>
-                              {/* {<Form.Check
-                                className="AssignmentCheck"
-                                type="checkbox"
-                                checked={a['finished']}
-                                onChange={(e) => {
-                                  // api 변경
-                                }}
-                              />} */}
-                              <button
-                                className="btn btn-success btn-opaque"
-                                onClick={async ()=>{
-                                  if(!window.confirm(`선택한 강의 과제를 완료 처리 하시겠습니까?`)) return;
-                                  const assignmentData=a;
-                                  const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,true,"");
-                                  //db & page state update
-                                  await updateGoalState(dailyGoalCheckLogData,goalAttributes.Assignment,a["AOSID"], true);
-                                }}
-                              >
-                                <FaCheck></FaCheck>
-                              </button>
-                              <button
-                                className="btn btn-danger btn-opaque"
-                                onClick={async ()=>{
-                                  const assignmentData=a;
-                                  const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,false,"");
-                                  openExcuseModal(dailyGoalCheckLogData);
-                                }}
-                              >
-                                <FaTimes></FaTimes>
-                              </button>
-                            </td>
+                  <h4><strong>수업 과제</strong></h4>
+                  {
+                    checkLectureAssignmentExists()?
+                    (
+                      <Table striped hover size="sm" className="mt-3">
+                        <thead>
+                          <tr>
+                            <th width="7%">과목</th>
+                            <th width="7%">강사</th>
+                            <th width="18%">강의명</th>
+                            <th width="23%">교재</th>
+                            <th width="15%">과제범위</th>
+                            <th width="10%">세부사항</th>
+                            <th width="10%">학습시간</th>
+                            <th width="10%">완료여부<br/>/사유작성</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                    </Table>
-                    <Table striped hover size="sm" className="mt-3">
+                        </thead>
+                        <tbody>
+                          {todayAssignments.map(function (a, i) {
+                            let tableRowClassName="";
+                            const goalState=AOSIDToSavedGoalStateMapping[a["AOSID"]];
+                            if(a["AOSID"] in highlightedLectureAssignments){
+                              tableRowClassName="AssignmentHighlighted";
+                            }
+                            else{
+                              if(goalState){
+                                if(goalState["finishedState"]===true) tableRowClassName="AssignmentChecked";
+                                else tableRowClassName="AssignmentNotFinished";
+                              }
+                              else tableRowClassName="";
+                            }
+                            return (
+                              <tr key={i} className={tableRowClassName}>
+                                <td>
+                                  <p>{a["lectureSubject"]}</p>
+                                </td>
+                                <td>
+                                  <p>{a["manager"]}</p>
+                                </td>
+                                <td>
+                                  <p>{a["lectureName"]}</p>
+                                </td>
+                                <td>
+                                  <p>{a["textbookName"]}</p>
+                                </td>
+                                <td>
+                                  <p className="fs-13px">
+                                    {a["pageRangeArray"].map((page, idx) => {
+                                      if (page[0]!=""){
+                                        return(<p>{page[0]} 부터 {page[1]} 까지</p>);
+                                      }
+                                    })}
+                                  </p>
+                                </td>
+                                <td>
+                                  {a["description"] != "" ? (
+                                    <OverlayTrigger
+                                      trigger="click"
+                                      placement="right"
+                                      overlay={
+                                        <Popover id="popover-basic">
+                                          <Popover.Body>{a["description"]}</Popover.Body>
+                                        </Popover>
+                                      }
+                                    >
+                                      <Button>
+                                        <BsFillChatSquareFill></BsFillChatSquareFill>
+                                      </Button>
+                                    </OverlayTrigger>
+                                  ) : (
+                                    "-"
+                                  )}
+                                </td>
+                                <td>
+                                  <TimePicker
+                                    className="timepicker"
+                                    locale="sv-sv"
+                                    value={a["AOSID"] in assignmentStudyTime?assignmentStudyTime[a["AOSID"]]["학습시간"]:""}
+                                    openClockOnFocus={false}
+                                    clearIcon={null}
+                                    clockIcon={null}
+                                    onChange={(value) => {
+                                      console.log("timepicker value: "+value);
+                                      if(!value) value="0:00";
+                                      const newAST=JSON.parse(JSON.stringify(assignmentStudyTime));
+                                      if(!(a["AOSID"] in newAST)) newAST[a["AOSID"]]=getAssignmentStudyTimeElementFromAssignmentData(a);
+                                      newAST[a["AOSID"]]["학습시간"]=value;
+                                      // console.log("newAST: "+JSON.stringify(newAST));
+                                      setAssignmentStudyTime(newAST);
+
+                                      //전체 학습시간 업데이트
+                                      const newTR = JSON.parse(JSON.stringify(TR));
+                                      let 실제학습시간 = 0;
+                                      let 실제학습분 = 0;
+                                      const astKeys= Object.keys(newAST);
+                                      for(let i=0; i<astKeys.length; i++){
+                                        const studyTime=newAST[astKeys[i]];
+                                        console.log("studytime: "+JSON.stringify(studyTime));
+                                        실제학습시간 += parseInt(studyTime["학습시간"].split(":")[0]);
+                                        실제학습분 += parseInt(studyTime["학습시간"].split(":")[1]);
+                                      }
+                                      console.log("breakpoint");
+                                      newTR.학습.map(function (b, j) {
+                                        if (b.학습시간) {
+                                          console.log("b: "+JSON.stringify(b));
+                                          실제학습시간 += parseInt(b.학습시간.split(":")[0]);
+                                          실제학습분 += parseInt(b.학습시간.split(":")[1]);
+                                        }
+                                      });
+                                      console.log("hour:"+실제학습시간);
+                                      console.log("minute:"+실제학습분);
+                                      newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
+                                      newTR["강의과제학습"]=newAST; // this line is necessary!: only needed in TREdit file
+                                      setTR(newTR);
+                                    }}
+                                  ></TimePicker>
+                                </td>
+                                <td>
+                                  {/* {<Form.Check
+                                    className="AssignmentCheck"
+                                    type="checkbox"
+                                    checked={a['finished']}
+                                    onChange={(e) => {
+                                      // api 변경
+                                    }}
+                                  />} */}
+                                  <button
+                                    className="btn btn-success btn-opaque"
+                                    onClick={async ()=>{
+                                      if(!window.confirm(`선택한 강의 과제를 완료 처리 하시겠습니까?`)) return;
+                                      const assignmentData=a;
+                                      const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,true,"");
+                                      //db & page state update
+                                      await updateGoalState(dailyGoalCheckLogData,goalAttributes.Assignment,a["AOSID"], true);
+                                    }}
+                                  >
+                                    <FaCheck></FaCheck>
+                                  </button>
+                                  <button
+                                    className="btn btn-danger btn-opaque"
+                                    onClick={async ()=>{
+                                      const assignmentData=a;
+                                      const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,false,"");
+                                      openExcuseModal(dailyGoalCheckLogData);
+                                    }}
+                                  >
+                                    <FaTimes></FaTimes>
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </Table>
+                    ) :
+                    (
+                      <p>
+                        <strong>오늘 마감인 수업 과제가 없습니다</strong>
+                      </p>
+                    )
+                  }
+                </div>
+
+                <div className="trCard">
+                  <h4><strong>수업 및 일반교재</strong></h4>
+                  <Table striped hover size="sm" className="mt-3">
                     <thead>
                       <tr>
                         <th width="5%"></th>
@@ -2319,7 +2335,7 @@ function TRedit() {
                 <div className="trCard">
                   {checkThisWeekGoalCheckLogTableNeeded() ? (
                     <>
-                    <h4>이번 주 학습 요약</h4>
+                    <h4><strong>이번 주 학습 요약</strong></h4>
                     <Table striped hover size="sm" className="mt-3">
                       <thead>
                         <th width="30%">교재명/강의명</th>

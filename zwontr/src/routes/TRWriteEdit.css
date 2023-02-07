@@ -174,8 +174,12 @@ textarea {
 
 .TRWriteCheck {
   text-align: left;
-  margin-top: 13px;
-  margin-left: 10px;
+  margin-top: 5%;
+  display: block;
+}
+
+.schoolAttendingCheck {
+  text-align: left;
   display: block;
 }
 
