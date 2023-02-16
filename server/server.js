@@ -155,23 +155,34 @@ function getValidDateString(dateString){
 }
 
 // collection 중 StudentDB의 모든 Document find 및 전송
-app.get("/api/studentList", loginCheck, function (req, res) {
-  db.collection("StudentDB")
-      .find()
-      .toArray(function (err, result) {
-        if (err) {
-          return console.log("api/studentList - find Error : ", err);
-        }
-        console.log("api/studentList - find result length   :", result.length);
-        res.json(result);
-      });
+app.get("/api/studentList", loginCheck, async function (req, res) {
+  // db.collection("StudentDB")
+  //     .find()
+  //     .toArray(function (err, result) {
+  //       if (err) {
+  //         return console.log("api/studentList - find Error : ", err);
+  //       }
+  //       console.log("api/studentList - find result length   :", result.length);
+  //       res.json(result);
+  //     });
+  let ret=null;
+  try{
+    const student_list= await db.collection("StudentDB").find({"$or":[{"deleted":{"$exists":false}},{"deleted":false}]}).toArray();
+    ret=student_list;
+  }
+  catch(error){
+    ret=`error while getting student list`;
+  }
+  finally{
+    return res.json(ret);
+  }
 });
 
 // StudentDB의 모든 Document 중 graduated: false인 document만 찾는 코드
 app.get("/api/ActiveStudentList", loginCheck, async (req,res)=>{
   const ret_val={"success":false, "ret":null};
   try{
-    const acitve_student_list= await db.collection("StudentDB").find({"graduated":false}).toArray();
+    const acitve_student_list= await db.collection("StudentDB").find({"graduated":false,"$or":[{"deleted":{"$exists":false}},{"deleted":false}]}).toArray();
     ret_val["success"]=true;
     ret_val["ret"]=acitve_student_list;
   }
@@ -451,21 +462,33 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
 
 // StudentDB에 삭제 요청
-app.delete("/api/StudentDB/:ID", loginCheck, function (req, res) {
+app.delete("/api/StudentDB/:ID", loginCheck, async function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const paramID = req.params.ID;
-  db.collection("StudentDB").deleteOne({ ID: paramID }, (err, result) => {
-    if (err) {
-      return res.send("/api/StudentDB/:ID - deleteOne error : ", err);
-    }
-    if (result !== null) {
-      return res.send(true);
-    } else {
-      return res.send("deleteOne의 결과가 null입니다. 개발/데이터 팀에 문의해주세요.");
-    }
-  });
+  // db.collection("StudentDB").deleteOne({ ID: paramID }, (err, result) => {
+  //   if (err) {
+  //     return res.send("/api/StudentDB/:ID - deleteOne error : ", err);
+  //   }
+  //   if (result !== null) {
+  //     return res.send(true);
+  //   } else {
+  //     return res.send("deleteOne의 결과가 null입니다. 개발/데이터 팀에 문의해주세요.");
+  //   }
+  // });
+  let ret=null;
+  try{
+    const update_result= await db.collection("StudentDB").updateOne({ID: paramID},{$set:{deleted:true}});
+    if(update_result.acknowledged!==true) return res.send('error while updating student info 0');
+    ret=true;
+  }
+  catch(error){
+    ret=`error whlie updating student info 1`
+  }
+  finally{
+    return res.send(ret);
+  }
 });
 
 //학생의 상태를 졸업으로 처리(activation flag: false)하는 코드
@@ -1263,15 +1286,25 @@ app.get("/api/SavedDailyGoalCheckLogData/:studentLegacyID/:date", loginCheck, as
 });
 
 // Lecture 관련 코드
-app.get("/api/Lecture", loginCheck, (req, res) => {
-  db.collection("Lecture")
-      .find()
-      .toArray((err, result) => {
-        if (err) {
-          return res.send(`/api/Lecture - find Error ${err}`);
-        }
-        return res.json(result);
-      });
+app.get("/api/Lecture", loginCheck, async (req, res) => {
+  // db.collection("Lecture")
+  //     .find()
+  //     .toArray((err, result) => {
+  //       if (err) {
+  //         return res.send(`/api/Lecture - find Error ${err}`);
+  //       }
+  //       return res.json(result);
+  //     });
+  let ret=null;
+  try{
+    ret= await db.collection("Lecture").find({"$or":[{"finished":{"$exists":false}},{"finished":false}]}).toArray();
+  }
+  catch(error){
+    ret= `error while getting not finished lecture list`
+  }
+  finally{
+    return res.json(ret);
+  }
 });
 
 app.post("/api/Lecture", loginCheck, async (req, res) => {
@@ -1361,6 +1394,25 @@ app.delete("/api/Lecture/:lectureid", loginCheck, (req, res) => {
     }
     return res.send(true);
   });
+});
+
+app.post("/api/finishLecture",loginCheck, async (req,res)=>{
+  const ret={"success":false,"ret":null};
+  let legacy_lecture_id=req.body.lectureID;
+  try{
+    const update_result= await db.collection("Lecture").updateOne({lectureID:legacy_lecture_id},{$set:{finished:true, finished_date:getCurrentKoreaDateYYYYMMDD()}});
+    if(update_result.acknowledged!==true){
+      ret["ret"]=`강의 완료 처리 중 에러가 발생했습니다 0`;
+      return;
+    }
+    ret["success"]=true;
+  }
+  catch(error){
+    ret["ret"]=`강의 완료 처리 중 에러가 발생했습니다 1`;
+  }
+  finally{
+    return res.json(ret);
+  }
 });
 
 //강의에서 사용중인 교재 관련 코드
@@ -1820,6 +1872,14 @@ app.get("/api/StudentOfLecture/:lectureID", loginCheck, (req, res) => {
           },
         },
         { $unwind: "$studentDB_aggregate" },
+        {
+          $match:{
+            "$or":[
+              {"studentDB_aggregate.deleted":{"$exists":false}},
+              {"studentDB_aggregate.deleted":false}
+            ]
+          }
+        },
         {
           $addFields: {
             _sid: "$studentDB_aggregate._id",
