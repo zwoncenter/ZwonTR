@@ -424,14 +424,15 @@ function Lecture() {
 
   // 강의 듣는 학생 과제 관련 코드
   const [lectureAssignments,setLectureAssignments] = useState([]);
-  function processAssignmentData(assignmentData, studentOfLectureList){
+  function processAssignmentOfStudentData(assignmentOfStudentData, studentOfLectureList){
     const ret={};
     studentOfLectureList.forEach(element=>{
       ret[element["studentName"]]={ongoing:[],finished:[],studentID:element["studentID"]};
     })
-    assignmentData.forEach(element=>{
+    assignmentOfStudentData.forEach(element=>{
       const studentName=element["studentName"];
       if(!(studentName in ret)) return; //강의 듣는 학생이 삭제된 경우 처리
+      if(element["hiddenOnLecturePage"]===true) return; // 강의페이지에서 숨김처리 된 과제인 경우 건너 뜀
       if(element["textbookName"].length>0){
         element["textbookName"]=element["textbookName"][0];
       }
@@ -549,13 +550,21 @@ function Lecture() {
       return window.alert(err);
     });
 
-    //console.log("data:"+JSON.stringify(processAssignmentData(lectureAssignmentData)));
-    lectureAssignmentData = processAssignmentData(lectureAssignmentData, newStudentOfLectureList);
+    //console.log("data:"+JSON.stringify(processAssignmentOfStudentData(lectureAssignmentData)));
+    lectureAssignmentData = processAssignmentOfStudentData(lectureAssignmentData, newStudentOfLectureList);
     // console.log("lAD:"+JSON.stringify(lectureAssignmentData));
     setLectureAssignments(lectureAssignmentData);
   }, []);
 
   const [assignments, setAssignments] = useState([]);
+  function processAssignmentData(assignmentData){
+    const ret=[];
+    assignmentData.forEach((e,idx)=>{
+      if(e["hiddenOnLecturePage"]===true) return;
+      ret.push(e);
+    });
+    return ret;
+  }
   //assignments state의 pageRangeArray가 비었는지 확인하는 함수
   function checkPageRangeArrayEmpty(pageRangeArray){
     return !!pageRangeArray[0][0];
@@ -576,13 +585,15 @@ function Lecture() {
       .catch((err) => {
         return window.alert(err);
       });
-    existingAssignments.map((e)=>{
-      const assignment={...e};
-      // if(assignment["pageRangeArray"].length==0) assignment["pageRangeArray"].push(["",""]);
-      return assignment;
-    })
-    setAssignments(existingAssignments);
+    // existingAssignments.map((e)=>{
+    //   const assignment={...e};
+    //   // if(assignment["pageRangeArray"].length==0) assignment["pageRangeArray"].push(["",""]);
+    //   return assignment;
+    // })
+
+    setAssignments(processAssignmentData(existingAssignments));
     // console.log("assignments: ", existingAssignments);
+    // console.log("assignments: "+JSON.stringify(existingAssignments));
   }, [lecture]);
 
   const [textbook, settextbook] = useState([]);

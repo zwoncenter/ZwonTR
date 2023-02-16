@@ -38,7 +38,7 @@ app.use(cors());
 var db, db_client;
 
 // TODO : 배포 전에 반드시 실제 서비스(DB_URL)로 바꿀 것!!
-MongoClient.connect(process.env.DB_URL, function (err, client) {
+MongoClient.connect(process.env.TEST_DB_URL, function (err, client) {
   if (err) {
     return console.log(err);
   }
@@ -1523,6 +1523,7 @@ app.get("/api/Assignment/:lectureid", loginCheck, (req, res) => {
             description: 1,
             duedate: 1,
             startdate: 1,
+            hiddenOnLecturePage: {$ifNull: ["$Assignment_aggregate.hiddenOnLecturePage",false]} // flag: lecture 페이지에서 과제 보여줄지 여부
           },
         },
       ])
@@ -1648,8 +1649,9 @@ app.delete("/api/Assignment/:AssignID",loginCheck,async (req,res)=>{
   let ret_val=null;
   try{
     session.startTransaction();
-    await db.collection('Assignment').deleteOne({_id: assignID},{session});
-    await db.collection('AssignmentOfStudent').deleteMany({assignmentID:assignID},{session});
+    // await db.collection('Assignment').deleteOne({_id: assignID},{session});
+    // await db.collection('AssignmentOfStudent').deleteMany({assignmentID:assignID},{session});
+    await db.collection('Assignment').updateOne({_id:assignID},{ $set: {"hiddenOnLecturePage":true} },{session});
     // throw new Error(`error on purpose!`);
     await session.commitTransaction();
     ret_val=true;
@@ -1757,6 +1759,7 @@ app.get("/api/LectureAssignment/:lectureid",loginCheck, async (req,res)=>{
               finished_date: 1,
               studentLegacyID: 1,
               studentName: 1,
+              hiddenOnLecturePage: {$ifNull: ["$Assignment_aggregate.hiddenOnLecturePage",false]} // flag: lecture 페이지에서 과제 보여줄지 여부
             },
           },
         ]).toArray();
