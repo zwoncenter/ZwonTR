@@ -1,13 +1,18 @@
 import { Button, Card, ListGroup, Modal, Table, InputGroup, Form } from "react-bootstrap";
+import Container from 'react-bootstrap/Container';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
+import { Input, Typeahead } from 'react-bootstrap-typeahead';
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import "./Lecture.css";
+import 'react-bootstrap-typeahead/css/Typeahead.css';
 import { FaPencilAlt, FaTimes } from "react-icons/fa";
 
 function LectureList() {
   let history = useHistory();
-
+  
   // 날짜 관련 코드
   const now = new Date(); // 현재 시간
   const utcNow = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
@@ -48,6 +53,7 @@ function LectureList() {
       .post(`/api/Lecture`, lecture)
       .then((result) => {
         if (result.data === true) {
+          window.alert("강의가 성공적으로 생성되었습니다");
           window.location.replace("/Lecture");
         } else if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다.");
@@ -61,6 +67,29 @@ function LectureList() {
       });
   };
 
+  //강의 추가 시 교재 선택 관련 코드
+  const [textBookNeedFlag,setTextBookNeedFlag]= useState(false);
+  const [textBookList,setTextBookList]=useState([]);
+  // const [selectedBookList,setSelectedBookList]=useState([]);
+
+  useEffect(async ()=>{
+    if(!textBookNeedFlag) return;
+    const textBookListDocument= await axios
+    .get(`/api/Textbook`)
+    .then((result) => {
+      if (result.data === "로그인필요") {
+        window.alert("로그인이 필요합니다");
+        return history.push("/");
+      }
+      return result.data;
+    })
+    .catch((err) => {
+      return err;
+    });
+    const newTextBookList= textBookListDocument["textbookList"];
+    setTextBookList(newTextBookList);
+  },[textBookNeedFlag]);
+
   const [lecture, setlecture] = useState({
     lectureID: "",
     lectureName: "",
@@ -70,6 +99,7 @@ function LectureList() {
     lastrevise: today,
     students: {},
     studentList: [],
+    textbookIDArray: [],
     assignments: {},
     assignKey: 0,
   });
@@ -78,7 +108,7 @@ function LectureList() {
   const [reviseModal, setreviseModal] = useState(false);
   const [existlecture, setexistlecture] = useState({});
 
-  const reviseModalOpen = (lecture) => {
+  const reviseModalOpen = async (lecture) => {
     setexistlecture(lecture);
     setreviseModal(true);
   };
@@ -89,8 +119,26 @@ function LectureList() {
   };
 
   const reviseLecture = async () => {
-    if (!window.confirm("강의를 수정하시겠습니까?")) return;
+    if (existlecture["lectureName"] === "") {
+      window.alert("강의명이 입력되지 않았습니다.");
+      return;
+    }
 
+    if (existlecture["subject"] === "") {
+      window.alert("과목이 선택되지 않았습니다.");
+      return;
+    }
+
+    if (existlecture["manager"] === "") {
+      window.alert("담당 매니저가 선택되지 않았습니다.");
+      return;
+    }
+    if (existlecture["startday"] === "") {
+      window.alert("강의시작일이 입력되지 않았습니다.");
+      return;
+    }
+
+    if (!window.confirm("강의를 수정하시겠습니까?")) return;
     axios
       .put("/api/Lecture", existlecture)
       .then((result) => {
@@ -109,6 +157,93 @@ function LectureList() {
         return window.alert("수정에 실패했습니다", err);
       });
   };
+
+  // 강의에 사용되는 교재 수정 관련 코드
+  const [lectureTextbookModal,setLectureTextbookModal] = useState(false);
+  const [existlectureTextbookList,setExistlectureTextbookList] = useState([]); // textbooks of exist lecture
+  const [addedLectureTextbookList,setAddedLectureTextbookList] = useState([]); // textbooks that will be newly registered
+  const [textbookRevisedLectureID,setTextbookRevisedLectureID] = useState("");
+  const [textbookRevisedLegacyLectureID,setTextbookRevisedLegacyLectureID] = useState("");
+  const lectureTextbookModalOpen = async (lecture) => {
+    setTextbookRevisedLectureID(lecture["_id"]);
+    setTextbookRevisedLegacyLectureID(lecture["lectureID"]);
+    console.log("trllid:"+lecture["lectureID"]);
+    setLectureTextbookModal(true);
+    //here we get textbooks of specific lecture to be revised
+    const newExistlectureTextbookList = await axios
+      .get(`/api/TextbookOfLecture/${lecture["lectureID"]}`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        }
+        return result["data"];
+      })
+      .catch((err) => {
+        return err;
+      });
+    setExistlectureTextbookList(newExistlectureTextbookList);
+  };
+  const lectureTextbookModalClose = () => {
+    setTextbookRevisedLectureID("");
+    setLectureTextbookModal(false);
+    setExistlectureTextbookList([]);
+    setAddedLectureTextbookList([]);
+  };
+
+  const addTextbooksToLecture = async () => {
+    if (textbookRevisedLectureID === "") {
+      window.alert("잘못된 접근입니다.");
+      return;
+    }
+
+    if (addedLectureTextbookList.length <= 0) {
+      window.alert("추가할 교재가 선택되지 않았습니다.");
+      return;
+    }
+
+    if (!window.confirm("강의에 교재를 추가하시겠습니까?")) return;
+    axios
+      .post("/api/TextbookOfLecture", {
+        lectureID:textbookRevisedLectureID,
+        textbookList:addedLectureTextbookList.map((e)=>e["_id"])
+      })
+      .then((result) => {
+        if (result.data === true) {
+          window.alert("교재가 성공적으로 추가되었습니다");
+          return window.location.reload();
+        } else if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        } else {
+          console.log(result.data);
+          window.alert(result.data);
+        }
+      })
+      .catch((err) => {
+        return window.alert("교재 추가에 실패했습니다", err);
+      });
+  };
+
+  const deleteTextbookOfLecture= (textbookID)=>{
+    axios
+      .delete(`/api/TextbookOfLecture/${textbookRevisedLegacyLectureID}/${textbookID}`)
+      .then((result) => {
+        if (result.data === true) {
+          window.alert("교재가 성공적으로 삭제되었습니다");
+          return window.location.reload();
+        } else {
+          window.alert(result.data);
+        }
+      })
+      .catch((err) => {
+        window.alert(`삭제에 실패했습니다. ${err}`);
+      });
+  };
+
+  // useEffect(()=>{
+  //   console.log("altl:"+JSON.stringify(addedLectureTextbookList));
+  // },[addedLectureTextbookList])
 
   // 강의 삭제 관련 코드
   const deleteLecture = async (studentList, lecture) => {
@@ -181,7 +316,7 @@ function LectureList() {
     const newmanagerList = await axios
       .get("/api/managerList")
       .then((result) => {
-        console.log(result["data"]);
+        //console.log(result["data"]);
         return result["data"];
       })
       .catch((err) => {
@@ -205,6 +340,28 @@ function LectureList() {
     return element.manager
   });
 
+  // 강의-학생 relation 불러오기
+  const [studentOfLecture, setstudentOfLecture] = useState([]);
+  useEffect(async () => {
+    const newstudentOfLecture = await axios
+      .get("/api/StudentOfLecture")
+      .then((result) => {
+        return result["data"];
+      })
+      .catch((err) => {
+        return window.alert(err);
+      });
+      setstudentOfLecture(newstudentOfLecture);
+  }, []);
+
+  // 강의ID 별로 학생 ID를 groupby
+  const attendingStudentList= {};
+  studentOfLecture.map((element,idx)=>{
+    attendingStudentList[element["lectureID"]]=attendingStudentList[element["lectureID"]] || 0;
+    attendingStudentList[element["lectureID"]]+=1;
+    return false;
+  });
+
   return (
     <div className="background text-center">
       <h1 className="mt-3 fw-bold">강의 관리</h1>
@@ -226,7 +383,7 @@ function LectureList() {
                   e.target.value = e.target.value.substring(0, e.target.value.length - 1);
                   return;
                 }
-                const newlecture = JSON.parse(JSON.stringify(lecture));
+                const newlecture = {...lecture};
                 newlecture["lectureName"] = e.target.value;
                 if (newlecture["lectureName"] !== "" && newlecture["manager"] !== "" && newlecture["startday"] !== "") {
                   newlecture["lectureID"] =
@@ -246,7 +403,7 @@ function LectureList() {
             <InputGroup.Text>과목</InputGroup.Text>
             <Form.Select
               onChange={(e) => {
-                const newlecture = JSON.parse(JSON.stringify(lecture));
+                const newlecture = {...lecture};
                 newlecture["subject"] = e.target.value;
                 setlecture(newlecture);
               }}
@@ -262,10 +419,30 @@ function LectureList() {
             </Form.Select>
           </InputGroup>
           <InputGroup className="mb-3">
+            <InputGroup.Text>교재</InputGroup.Text>
+            <Typeahead
+              id="select_lecture_textbook"
+              multiple
+              onChange={(selected)=>{
+                //console.log(selected);
+                const newlecture= {...lecture};
+                //setSelectedBookList(selected);
+                //console.log('sbl: '+JSON.stringify(selectedBookList));
+                newlecture["textbookIDArray"]=selected.map((element,idx)=>{
+                  return element["_id"];
+                });
+                console.log("new lecture: "+JSON.stringify(newlecture));
+                setlecture(newlecture);
+              }}
+              options={textBookList}
+              labelKey="교재"
+            />
+          </InputGroup>
+          <InputGroup className="mb-3">
             <InputGroup.Text>매니저(강사)</InputGroup.Text>
             <Form.Select
               onChange={(e) => {
-                const newlecture = JSON.parse(JSON.stringify(lecture));
+                const newlecture = {...lecture};
                 newlecture["manager"] = e.target.value;
                 if (newlecture["lectureName"] !== "" && newlecture["manager"] !== "" && newlecture["startday"] !== "") {
                   newlecture["lectureID"] =
@@ -297,7 +474,7 @@ function LectureList() {
               type="date"
               value={lecture["startday"]}
               onChange={(e) => {
-                const newlecture = JSON.parse(JSON.stringify(lecture));
+                const newlecture = {...lecture};
                 newlecture["startday"] = e.target.value;
                 if (newlecture["lectureName"] !== "" && newlecture["manager"] !== "" && newlecture["startday"] !== "") {
                   newlecture["lectureID"] =
@@ -318,7 +495,8 @@ function LectureList() {
           className="btn-edit"
             variant="secondary"
             onClick={() => {
-              createNewLecture();
+              // console.log("sbl on button click: "+JSON.stringify(selectedBookList));
+              if(window.confirm(`새 강의를 생성하시겠습니까?`)) createNewLecture();
             }}
           >
             강의 생성
@@ -343,7 +521,7 @@ function LectureList() {
                   e.target.value = e.target.value.substring(0, e.target.value.length - 1);
                   return;
                 }
-                const newlecture = JSON.parse(JSON.stringify(existlecture));
+                const newlecture = {...existlecture};
                 newlecture["lectureName"] = e.target.value;
                 setexistlecture(newlecture);
               }}
@@ -354,7 +532,7 @@ function LectureList() {
             <Form.Select
               value={existlecture["subject"]}
               onChange={(e) => {
-                const newlecture = JSON.parse(JSON.stringify(existlecture));
+                const newlecture = {...existlecture};
                 newlecture["subject"] = e.target.value;
                 setexistlecture(newlecture);
               }}
@@ -369,12 +547,42 @@ function LectureList() {
               })}
             </Form.Select>
           </InputGroup>
+          {/* {<InputGroup className="mb-3">
+            <InputGroup.Text>교재</InputGroup.Text>
+            <Typeahead
+              id="select_lecture_textbook"
+              multiple
+              onChange={(selected)=>{
+                //console.log(selected);
+                const newExistlecture= {...existlecture};
+                //setSelectedBookList(selected);
+                //console.log('sbl: '+JSON.stringify(selectedBookList));
+                // newExistlecture["textbookIDArray"]=selected.map((element,idx)=>{
+                //   return element["_id"];
+                // });
+                console.log("new lecture: "+JSON.stringify(newExistlecture));
+                setexistlecture(newExistlecture);
+              }}
+              options={textBookList}
+              // selected={textBookList.filter((textbook,idx)=>{
+              //   if(!("textbookIDArray" in existlecture))
+              //     return false;
+              //   if(existlecture["textbookIDArray"].includes(textbook["_id"]))
+              //     return true;
+              // })}
+              selected={textBookList.filter((textbook,idx)=>{
+                if(existlectureTextbookList.map((e)=>e["textbookID"]).includes(textbook["textbookID"]))
+                  return true;
+              })}
+              labelKey="교재"
+            />
+          </InputGroup>} */}
           <InputGroup className="mb-3">
             <InputGroup.Text>매니저(강사)</InputGroup.Text>
             <Form.Select
               value={existlecture["manager"]}
               onChange={(e) => {
-                const newlecture = JSON.parse(JSON.stringify(existlecture));
+                const newlecture = {...existlecture};
                 newlecture["manager"] = e.target.value;
                 setexistlecture(newlecture);
               }}
@@ -396,7 +604,7 @@ function LectureList() {
               type="date"
               value={existlecture["startday"]}
               onChange={(e) => {
-                const newlecture = JSON.parse(JSON.stringify(existlecture));
+                const newlecture = {...existlecture};
                 newlecture["startday"] = e.target.value;
                 setexistlecture(newlecture);
               }}
@@ -414,12 +622,76 @@ function LectureList() {
         </Modal.Body>
       </Modal>
 
+      {/* 강의에 사용되는 교재 Modal */}
+      <Modal show={lectureTextbookModal} onHide={lectureTextbookModalClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>교재 수정</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          <InputGroup className="mb-3">
+            <InputGroup.Text>교재 추가</InputGroup.Text>
+            <Typeahead
+              id="select_lecture_textbook"
+              multiple
+              onChange={(selected)=>{
+                console.log("altl: "+JSON.stringify([...selected]));
+                setAddedLectureTextbookList([...selected]);
+              }}
+              options={textBookList}
+              selected={textBookList.filter((textbook,idx)=>{
+                return addedLectureTextbookList.map((e)=>e["_id"]).includes(textbook["_id"]);
+              })}
+              labelKey="교재"
+            />
+          </InputGroup>
+          <Button
+            className="mb-3 btn-edit"
+            variant="secondary"
+            onClick={() => {
+              // reviseLecture();
+              console.log("new books: "+JSON.stringify(addedLectureTextbookList));
+              addTextbooksToLecture();
+            }}
+          >
+            추가
+          </Button>
+
+          <InputGroup className="mb-2">
+            <InputGroup.Text>등록된 교재</InputGroup.Text>
+            
+          </InputGroup>
+          <Container>
+          {existlectureTextbookList.map((textbook,idx)=>{
+            return(
+              <Row key={idx}>
+                <Col>
+                  {textbook["textbookName"]}
+                </Col>
+                <Col xs={3}>
+                  <Button
+                    className="textbookDeleteBtn btn-del"
+                    variant="danger"
+                    onClick={()=>{
+                      if(window.confirm(`${textbook["textbookName"]}을(를) 강의에서 삭제하시겠습니까?`))
+                        deleteTextbookOfLecture(textbook["textbookID"]);
+                    }}>
+                    삭제
+                  </Button>
+                </Col>
+              </Row>
+            );
+          })}
+          </Container>
+        </Modal.Body>
+      </Modal>
+
       <div className="row m-auto lectureListBox">
         <div className="d-flex flex-row-reverse">
           <Button
             className="lectureSortingBtn"
             variant="secondary"
             onClick={() => {
+              
               const newlectureList = [...lectureList];
               newlectureList.sort(function (a, b) {
                 return (+(a.manager > b.manager) - 0.5) * (+!managerOn - 0.5);
@@ -452,7 +724,9 @@ function LectureList() {
         variant="secondary"
         className="btn-add w-100 mb-2"
         onClick={() => {
-          console.log(groupedlectureList);
+          //console.log(groupedlectureList);
+          //this can be problematic
+          setTextBookNeedFlag(true);
           modalOpen();
         }}
       >
@@ -473,7 +747,7 @@ function LectureList() {
           {
           Object.keys(groupedlectureList).map((element, idx)=>{
             return(
-              <tr>
+              <tr key={idx}>
                 <td>
                   <p><strong>{groupedlectureList[element][0]["manager"]}</strong></p>
                 </td>
@@ -482,12 +756,12 @@ function LectureList() {
                   return(
               <Card
                 className="mt-2 m-2 lecture-card"
-                key={idx}
+                key={i}
                 onClick={() => {
                   history.push(`/Lecture/${lecture["lectureID"]}`);
                 }}
               >
-                <Card.Header><p><strong>{lecture["lectureName"]} ({lecture["studentList"].length}명)</strong></p></Card.Header>
+                <Card.Header><p><strong>{lecture["lectureName"]} ({attendingStudentList[lecture['_id']]?attendingStudentList[lecture['_id']]:0}명)</strong></p></Card.Header>
                 <Card.Body>
                   <div className="text-start lectureCardContent">
                     <Card.Text className="lectureSubject">{lecture["subject"]}</Card.Text>
@@ -503,7 +777,18 @@ function LectureList() {
                     <strong>수정</strong>
                   </Button>
                   <Button
-                    className="lectureEditingBtn btn-cancel m-auto"
+                    className="lectureEditingBtn btn-edit me-1"
+                    variant="secondary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      lectureTextbookModalOpen(lecture);
+                      setTextBookNeedFlag(true);
+                    }}
+                  >
+                    <strong>교재</strong>
+                  </Button>
+                  <Button
+                    className="lectureEditingBtn btn-cancel me-1"
                     variant="secondary"
                     onClick={(e) => {
                       e.stopPropagation();

@@ -124,6 +124,8 @@ function StuInfoEdit() {
       "독서",
       "외국어",
     ],
+    graduated:false, //센터 졸업 여부 플래그
+    graduated_date:"", //센터 졸업일
   };
   const [stuInfo, setstuInfo] = useState(writeform);
   function phoneNumber(value) {
@@ -226,6 +228,7 @@ function StuInfoEdit() {
   const [name, setname] = useState("");
   const [birth, setbirth] = useState("");
   const param = useParams();
+  const paramID= param["ID"];
   useEffect(async () => {
     const tmp = await axios
       .get("/api/managerList")
@@ -895,7 +898,7 @@ function StuInfoEdit() {
               axios
                 .put("/api/StudentDB", stuInfo)
                 .then(function (result) {
-                  if (result.data === true) {
+                  if ("success" in result.data && result.data.success === true) {
                     window.alert("저장되었습니다.");
                     history.push("/studentList");
                   } else if (result.data === "로그인필요") {
@@ -915,6 +918,36 @@ function StuInfoEdit() {
         }}
       >
         <strong>학생정보 저장</strong>
+      </Button>
+      <Button
+        variant="secondary"
+        className="btn-Infocommit btn-cancel"
+        onClick={async () => {
+          if(!window.confirm(`${stuInfo["이름"]}학생을 졸업 처리 하시겠습니까?\n졸업 처리 이후에는 메인 화면에 학생이 표시되지 않습니다.`))
+            return;
+          const studentInfo={"studentLegacyID":paramID};
+          await axios
+            .post(`/api/DoGraduate/`,studentInfo)
+            .then((result)=>{
+              if(result.data === "로그인필요"){
+                window.alert("로그인이 필요합니다.");
+                return history.push("/");
+              }
+              else if(result.data["ret"] && result.data["success"]){
+                window.alert("성공적으로 졸업 처리 되었습니다");
+                return history.push("/studentList");
+              }
+              else{
+                window.alert(`졸업처리 중 오류가 발생했습니다`);
+                window.alert(`ret val: ${result.data["ret"]}`);
+              }
+            })
+            .catch((err)=>{
+              window.alert(`졸업처리 중 오류가 발생했습니다.\n${err}`);
+            });
+        }}
+      >
+        <strong>센터 졸업 처리</strong>
       </Button>
       <Button
         variant="secondary"

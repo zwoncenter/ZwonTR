@@ -128,3 +128,30 @@
   border: 0;
   float: left;
 }
+
+.assignmentEditBtn {
+  border-radius: 20px;
+  border: 0;
+}
+
+.assignmentDeleteBtn {
+  border-radius: 4px;
+  background-color: red;
+  color: white;
+  height: 20px;
+  width: 20px;
+  border: 0;
+  font-size: 15px;
+  padding: 0px;
+}
+.assignmentDeleteBtn p {
+  margin: 0;
+  padding: 0;
+}
+
+.textbookDeleteBtn {
+  border: 0px;
+  width: 80%;
+  height: 80%;
+  font-size: 70%;
+}

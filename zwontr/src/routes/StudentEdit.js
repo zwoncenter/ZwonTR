@@ -1291,12 +1291,19 @@ function StudentEdit() {
                     if (result.data === "로그인필요") {
                       window.alert("로그인이 필요합니다.");
                       return history.push("/");
-                    } 
-                    if (result.data === true) {
+                    }
+                    console.log(result);
+                    if (result.data.success === true) {
                       window.alert("수정되었습니다");
                       return history.push("/studentList");
                     }
-                    return window.alert(result.data);
+                    else{
+                      // return window.alert(result.data);
+                      // console.log("result.data.success: "+JSON.stringify(result.data.success));
+                      // console.log("result.data.ret_val: "+JSON.stringify(result.data.ret_val));
+                      return window.alert("저장중 에러가 발생했습니다");
+
+                    }
                   })
                   .catch(function (err) {
                     window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");

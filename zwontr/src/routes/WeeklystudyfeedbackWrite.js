@@ -2,6 +2,7 @@ import "./Weeklystudyfeedback.css";
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col, Input, OverlayTrigger, Popover } from "react-bootstrap";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
+import { BsFillChatSquareFill } from "react-icons/bs";
 import axios from "axios";
 
 function WeeklystudyfeedbackWrite() {
@@ -29,6 +30,8 @@ function WeeklystudyfeedbackWrite() {
   const [entireData, setentireData] = useState([]);
   const [selectedDate, setselectedDate] = useState("");
 
+  const [mounted,setMounted]= useState(false);
+
   function getThisWeek(inputDate) {
     var inputDate = new Date(inputDate);
     inputDate.setHours(0, 0, 0, 0);
@@ -52,27 +55,82 @@ function WeeklystudyfeedbackWrite() {
         day = '0' + day;
 
     return [year, month, day].join('-');
-}
-
-function getPageName() {
-  var mm = (thisweek[0].getMonth() + 1).toString();
-  var dd = thisweek[0].getDate().toString();
-  if (dd < 10) {
-    dd = "0" + dd;
   }
-  if (mm < 10) {
-    mm = "0" + mm;
-  }
-  const starting = thisweek[0].getFullYear().toString() + "-" + mm + "-" + dd;
-  const ending = thisweek[1].toISOString().split("T")[0];
-  return [starting, ending];
-}
 
-useEffect(async () => {
-  if (isInitialMount.current === false) {
+  function getPageName() {
+    var mm = (thisweek[0].getMonth() + 1).toString();
+    var dd = thisweek[0].getDate().toString();
+    if (dd < 10) {
+      dd = "0" + dd;
+    }
+    if (mm < 10) {
+      mm = "0" + mm;
+    }
+    const starting = thisweek[0].getFullYear().toString() + "-" + mm + "-" + dd;
+    const ending = thisweek[1].toISOString().split("T")[0];
+    return [starting, ending];
+  }
+
+  useEffect(async () => {
+    // if (isInitialMount.current === false) {
+    //   setthisweek(getThisWeek(param["feedbackDate"]));
+    // }
+    
     setthisweek(getThisWeek(param["feedbackDate"]));
+  }, [param["feedbackDate"]]);
+
+  //이번주에 있는 강의과제 관련 코드
+  const [thisWeekAssignments,setThisWeekAssignments]= useState([]); // key: 강의 과제 이름(교재 있는 경우 교재명, 교재 없는 경우 강의명), value: {0~5(dayindex):[](list of lecture assignments of the day)}
+  // dayindex 0~4:monday~friday, 5:sunday
+  // const dayIndexArray=[0,1,2,3,4,5,6]; //0:monday, 6:sunday: legacy
+  const dayArray=['월','화','수','목','금','일'];
+  function processThisWeekAssignmentData(thisWeekAssignmentData){
+    const data_copy=JSON.parse(JSON.stringify(thisWeekAssignmentData));
+    const ret={};
+    const assignmentInfoTemplate={}
+    for(let i=0; i<6; i++) assignmentInfoTemplate[i]=[];
+    data_copy.forEach((element)=>{
+      element["textbookName"]=element["textbookName"].length>0?element["textbookName"][0]:"";
+      element["assignmentKey"]=element["textbookName"]?element["textbookName"]:element["lectureName"];
+      element["dayIndex"]=((new Date(element["duedate"])).getDay()+6)%7; //0:monday, 6:sunday
+      if(element["dayIndex"]==6) element["dayIndex"]=5;
+      
+      const assignmentKey= element["assignmentKey"];
+      if(!(assignmentKey in ret)) ret[assignmentKey]=JSON.parse(JSON.stringify(assignmentInfoTemplate));
+      const assignmentInfo= ret[assignmentKey];
+      assignmentInfo[element["dayIndex"]].push(element);
+    })
+    return ret;
   }
-}, [param]);
+  function checkAssignmentNeedModal(assignment){
+    return assignment["description"]||assignment["pageRangeArray"].length>1;
+  }
+  function checkAssignmentListNeedModal(assignmentList){
+    return assignmentList.length>1 || checkAssignmentNeedModal(assignmentList[0]);
+  }
+  function checkTextbookUsedInLectureAssignment(textbookName){
+    const assignmentKeyList= Object.keys(thisWeekAssignments);
+    for(let i=0; i<assignmentKeyList.length; i++){
+      const assignmentKey= assignmentKeyList[i];
+      if(assignmentKey === textbookName) return true;
+    }
+    return false;
+  }
+
+  //과제 상세를 보여주는 modal 관련 코드
+  const [assignmentDescriptionModal,setAssignmentDescriptionModal]= useState(false);
+  // const [displayedAssignment,setDisplayedAssignment]= useState(null);
+  const [displayedAssignmentList,setDisplayedAssignmentList] = useState([]);
+  const assignmentDescriptionModalOpen= (targetAssignmentList)=>{
+    setAssignmentDescriptionModal(true);
+    // setDisplayedAssignment(targetAssignment);
+    setDisplayedAssignmentList(targetAssignmentList);
+  };
+  const assignmentDescriptionModalClose= ()=>{
+    setAssignmentDescriptionModal(false);
+    // setDisplayedAssignment(null);
+    setDisplayedAssignmentList([]);
+  };
 
   useEffect(async () => {
     const existstuInfo = await axios
@@ -103,7 +161,30 @@ useEffect(async () => {
       });
     setentireData(studentTRlist);
 
-    isInitialMount.current = false;
+    // 이번주 해당 학생의 강의 과제를 가져온다(argument 많아서 post 방식 사용)
+    const requestArgument={studentID:param["ID"],
+    lastSundayDate:formatDate(thisweek[0]),
+    thisSundayDate:formatDate(thisweek[1])};
+ 
+    let thisWeekAssignmentData = await axios
+    .post(`/api/ThisWeekAssignment/`,requestArgument)
+    .then((result) => {
+      if (result.data === "로그인필요") {
+        window.alert("로그인이 필요합니다.");
+        return window.push("/");
+      }
+      else if (result["data"] !== null) {
+        return result["data"];
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+    thisWeekAssignmentData= processThisWeekAssignmentData(thisWeekAssignmentData);
+    setThisWeekAssignments(thisWeekAssignmentData);
+
+    // isInitialMount.current = false;
+    setMounted(true);
   }, [thisweek]);
 
   useEffect(async () => {
@@ -146,6 +227,74 @@ useEffect(async () => {
       <h2>
         <strong>{param["ID"].split("_")[0]} 주간학습목표 스케줄링</strong>
       </h2>
+
+      <Modal show={assignmentDescriptionModal} onHide={assignmentDescriptionModalClose} scrollable={true}>
+        <Modal.Header closeButton>
+          <Modal.Title>과제 상세</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+        {
+            displayedAssignmentList.map((displayedAssignment,idx)=>{
+              return (
+                <div className="square border-bottom border-3 mb-3">
+                  <div className="row mb-2">
+                    <div className="col-3">강의명</div>
+                    {/* {<div className="col-9">{displayedAssignment?displayedAssignment["lectureName"]:null}</div>} */}
+                    <div className="col-9">{displayedAssignment["lectureName"]}</div>
+                  </div>
+                  <div className="row mb-2">
+                  </div>
+                  
+                  <div className="row mb-2">
+                    <div className="col-3">과제 기한</div>
+                    {/* {<div className="col-9">{displayedAssignment?displayedAssignment["duedate"]:null}</div>} */}
+                    <div className="col-9">{displayedAssignment["duedate"]}</div>
+                  </div>
+
+                  <div className="row mb-2">
+                    <div className="col-3">세부 내용</div>
+                    {/* {<div className="col-9">{displayedAssignment?displayedAssignment["description"]:null}</div>} */}
+                    <div className="col-9">{displayedAssignment["description"]}</div>
+                  </div>
+
+                  {displayedAssignment["textbookName"]?
+                  (<div className="row mb-2">
+                    <div className="col-3">사용 교재</div>
+                    <div className="col-9">{displayedAssignment["textbookName"]}</div>
+                  </div>)
+                  :
+                  null}
+
+                  {displayedAssignment["pageRangeArray"][0][0]?
+                  (<>
+                    {displayedAssignment["pageRangeArray"].map((range,idx)=>{
+                      if(idx>0){
+                        return (<div className="row mb-2">
+                          <div className="col-3">-</div>
+                          <div className="col-9">{displayedAssignment["pageRangeArray"][idx][0]} ~ {displayedAssignment["pageRangeArray"][idx][1]}</div>
+                          </div>
+                        );
+                      }
+                      else{
+                        return (
+                          <div className="row mb-2" key={idx}>
+                            <div className="col-3">과제 범위</div>
+                            <div className="col-9" key={idx}>{displayedAssignment["pageRangeArray"][idx][0]} ~ {displayedAssignment["pageRangeArray"][idx][1]}</div>
+                          </div>
+                        );
+                      }
+                    })}
+                    
+                  </>)
+                  :
+                  null}
+                </div>
+              )
+            })
+          }
+        </Modal.Body>
+      </Modal>
+
       <Button
         className="btn-commit btn-save"
         onClick={() => {
@@ -233,7 +382,7 @@ useEffect(async () => {
           </div>
         </div>
       </Button>
-      {isInitialMount.current === false ? (
+      {mounted === true ? (
         <div className="Weeklystudyfeedback-container">
         <Table striped hover size="sm" className="Weeklystudyfeedback-table">
           <thead>
@@ -266,6 +415,8 @@ useEffect(async () => {
           </thead>
           <tbody>
             {textbookList.map(function (book, index) {
+              const textbookName=book["교재"];
+              if(checkTextbookUsedInLectureAssignment(textbookName)) return null; // do not display a textbook if it is used in lecture
               return (
                 <tr key={index}>
                   <td>
@@ -488,6 +639,87 @@ useEffect(async () => {
                 </tr>
               );
             })}
+            {
+              Object.keys(thisWeekAssignments).map((assignmentKey,aidx)=>{
+                return (
+                  <tr key={aidx}>
+                    <td>
+                      <p m-0="true">
+                        <strong>
+                          {assignmentKey}
+                        </strong>
+                      </p>
+                    </td>
+                    {
+                      dayArray.map((dayString,day_idx)=>{
+                        const assignments_list= thisWeekAssignments[assignmentKey][day_idx]
+                        const assignment=assignments_list[0];
+                        // if(assignments_list.length===0) return null;
+                        return (
+                        <td key={day_idx}>
+                          <div className="studyPercentageBox">
+                              {
+                                assignments_list.length>0?
+                                  (
+                                    <p><strong>
+                                      {
+                                        checkAssignmentListNeedModal(assignments_list)?
+                                        (<Button
+                                        className=""
+                                        variant="primary"
+                                        onClick={() => {
+                                          // assignmentDescriptionModalOpen(assignment,assignments_list);
+                                          assignmentDescriptionModalOpen(assignments_list);
+                                        }}
+                                        >
+                                          <BsFillChatSquareFill></BsFillChatSquareFill>
+                                        </Button>)
+                                        :`${assignment["pageRangeArray"][0][0]} ~ ${assignment["pageRangeArray"][0][1]}`
+                                      }
+                                    </strong></p>
+                                  )
+                                  :null
+                              }
+                            </div>
+                        </td>
+                        );
+                      })
+                    }
+                    {
+                      // dayIndexArray.map((dayIndex,diidx)=>{
+                      //   return(
+                      //     <td key={diidx}>
+                      //       <div className="studyPercentageBox">
+                      //         {
+                      //           assignment["dayIndex"]==dayIndex?
+                      //             (
+                      //               <p><strong>
+                      //                 {
+                      //                   checkAssignmentNeedModal(assignment)?
+                      //                   (<Button
+                      //                   className=""
+                      //                   variant="primary"
+                      //                   onClick={() => {
+                      //                     assignmentDescriptionModalOpen(assignment);
+                      //                   }}
+                      //                   >
+                      //                     <BsFillChatSquareFill></BsFillChatSquareFill>
+                      //                   </Button>)
+                      //                   :`${assignment["pageRangeArray"][0][0]} ~ ${assignment["pageRangeArray"][0][1]}`
+                      //                 }
+                      //               </strong></p>
+                      //             )
+                      //             :null
+                      //         }
+                      //       </div>
+                      //     </td>
+                      //   );
+                      // })
+                    }
+                  </tr>
+                );
+              })
+            }
           </tbody>
         </Table>
         </div>

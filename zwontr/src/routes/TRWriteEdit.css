@@ -125,6 +125,16 @@ textarea {
   color: white;
 }
 
+.btn-opaque {
+  height: 25px;
+  width: 25px;
+  font-size: 20px;
+  padding: 0px;
+  color: rgba(0, 0, 0, 0.24);
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
 .program-add {
   background-color: #4B4453;
   border: 0px;
@@ -164,7 +174,67 @@ textarea {
 
 .TRWriteCheck {
   text-align: left;
-  margin-top: 13px;
-  margin-left: 10px;
+  margin-top: 5%;
   display: block;
+}
+
+.schoolAttendingCheck {
+  text-align: left;
+  display: block;
+}
+
+.AssignmentCheck {
+  margin: 0;
+}
+
+.AssignmentChecked {
+  background-color: rgb(186, 242, 186);
+}
+
+.AssignmentNotFinished {
+  background-color: rgb(242, 145, 121);
+}
+
+.AssignmentHighlighted {
+  background-color: rgb(255, 255, 0);
+}
+
+.ModalTextarea {
+  height: 200px;
+  width: 90%;
+  resize: none;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+td.GoalFinished {
+  background-color: rgb(0, 150, 0);
+}
+
+td.GoalFinished_1_of_5 {
+  background-color: rgba(0, 150, 0, 0.2);
+}
+
+td.GoalFinished_2_of_5 {
+  background-color: rgba(0, 150, 0, 0.4);
+}
+
+td.GoalFinished_3_of_5 {
+  background-color: rgba(0, 150, 0, 0.6);
+}
+
+td.GoalFinished_4_of_5 {
+  background-color: rgba(0, 150, 0, 0.8);
+}
+
+td.GoalFinished_5_of_5 {
+  background-color: rgb(0, 150, 0);
+}
+
+td.GoalNotFinished {
+  background-color: rgb(150, 0, 0);
+}
+
+td.onHoverHighlighted:HOVER {
+  background-image: linear-gradient(rgba(255, 255, 0, 0.4), rgba(255, 255, 0, 0.4));
 }

@@ -1,10 +1,11 @@
 import { Form, Button, ListGroup, Modal, Accordion, InputGroup, FormControl } from "react-bootstrap";
+import { Typeahead } from "react-bootstrap-typeahead";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import TimePicker from "react-time-picker";
 import "./Lecture.css";
-import { FaPencilAlt, FaTimes, FaCheck, FaUndo } from "react-icons/fa";
+import { FaPencilAlt, FaTimes, FaCheck, FaUndo, FaSearch } from "react-icons/fa";
 // import Accordion from 'react-bootstrap/Accordion';
 import { useAccordionButton } from "react-bootstrap/AccordionButton";
 import Card from "react-bootstrap/Card";
@@ -85,56 +86,79 @@ function Lecture() {
       return;
     }
     if (window.confirm(`${newname}을 수강생으로 등록하시겠습니까?`)) {
-      if (lecture["studentList"].includes(newname)) {
-        window.alert(`${newname} 학생은 이미 수강생으로 등록되어 있습니다.`);
-        setnewname("");
+      if (!("_id" in lecture)) {
+        window.alert("다시 시도해주세요");
         return;
       }
-      // lecture 수정
-      const newlecture = JSON.parse(JSON.stringify(lecture));
-      newlecture["studentList"].push(newname);
-      newlecture["students"][newname] = {
-        진행중과제: [],
-        완료된과제: [],
-      };
-      setlecture(newlecture);
-      updatelecture(newlecture);
-
-      // stuDB 수정
-      const stuDB = await axios
-        .get(`/api/StudentDB/${newname}`)
-        .then((result) => {
-          if (result.data === "로그인필요") {
-            window.alert("로그인이 필요합니다.");
-            return history.push("/");
-          }
-          return result["data"];
-        })
-        .catch((err) => {
-          return err;
-        });
-      // 수강중강의라는 key가 stuDB에 없는 경우, 추가해준다.
-      if (!("수강중강의" in stuDB)) {
-        stuDB["수강중강의"] = [];
+      if (!stuDBList.map((e, i) => e["ID"]).includes(newname)) {
+        window.alert("등록되지 않은 학생입니다");
+        return;
       }
-      await stuDB["수강중강의"].push(newlecture["lectureID"]);
       axios
-        .put("/api/StudentDB", stuDB)
-        .then(function (result) {
+        .post(`/api/StudentOfLecture`, { lectureID: lecture["_id"], studentID: stuDBList.filter((e, idx) => e["ID"] === newname)[0]["_id"] })
+        .then((result) => {
           if (result.data === true) {
             return window.location.reload();
           } else if (result.data === "로그인필요") {
             window.alert("로그인이 필요합니다.");
             return history.push("/");
           } else {
-            console.log(result.data);
             window.alert(result.data);
           }
         })
-        .catch(function (err) {
-          window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요", err);
+        .catch((err) => {
+          window.alert(err);
         });
-      setnewname("");
+      // if (lecture["studentList"].includes(newname)) {
+      //   window.alert(`${newname} 학생은 이미 수강생으로 등록되어 있습니다.`);
+      //   setnewname("");
+      //   return;
+      // }
+      // // lecture 수정
+      // const newlecture = JSON.parse(JSON.stringify(lecture));
+      // newlecture["studentList"].push(newname);
+      // newlecture["students"][newname] = {
+      //   진행중과제: [],
+      //   완료된과제: [],
+      // };
+      // setlecture(newlecture);
+      // updatelecture(newlecture);
+
+      // // stuDB 수정
+      // const stuDB = await axios
+      //   .get(`/api/StudentDB/${newname}`)
+      //   .then((result) => {
+      //     if (result.data === "로그인필요") {
+      //       window.alert("로그인이 필요합니다.");
+      //       return history.push("/");
+      //     }
+      //     return result["data"];
+      //   })
+      //   .catch((err) => {
+      //     return err;
+      //   });
+      // // 수강중강의라는 key가 stuDB에 없는 경우, 추가해준다.
+      // if (!("수강중강의" in stuDB)) {
+      //   stuDB["수강중강의"] = [];
+      // }
+      // await stuDB["수강중강의"].push(newlecture["lectureID"]);
+      // axios
+      //   .put("/api/StudentDB", stuDB)
+      //   .then(function (result) {
+      //     if (result.data === true) {
+      //       return window.location.reload();
+      //     } else if (result.data === "로그인필요") {
+      //       window.alert("로그인이 필요합니다.");
+      //       return history.push("/");
+      //     } else {
+      //       console.log(result.data);
+      //       window.alert(result.data);
+      //     }
+      //   })
+      //   .catch(function (err) {
+      //     window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요", err);
+      //   });
+      // setnewname("");
     }
   };
 
@@ -144,53 +168,72 @@ function Lecture() {
       window.alert("입력된 값이 ID 형식이 아닙니다. (이름_생년월일)");
       return;
     }
-    if (!window.confirm(`${deletename}을 수강생에서 삭제하시겠습니까? \n해당 학생의 진행중과제/완료된과제가 전부 삭제됩니다.`)) {
+    if (!window.confirm(`${deletename}을 수강생에서 삭제하시겠습니까? \n해당 학생의 진행중과제/완료된과제가 전부 영구히 삭제됩니다.`)) {
       return;
     }
-    if (!lecture["studentList"].includes(deletename)) {
+    // if (!lecture["studentList"].includes(deletename)) {
+    //   window.alert(`${deletename}이 수강생으로 등록되어 있지 않습니다.`);
+    //   return;
+    // }
+    if (!studentOfLectureList.map((e, idx) => e["studentID"]).includes(deletename)) {
       window.alert(`${deletename}이 수강생으로 등록되어 있지 않습니다.`);
       return;
     }
-    const newlecture = JSON.parse(JSON.stringify(lecture));
-    // studentList와 students에서 모두 삭제.
-    newlecture["studentList"].splice(newlecture["studentList"].indexOf(deletename), 1);
-    delete newlecture["students"][newname];
-    setlecture(newlecture);
-    updatelecture(newlecture);
 
-    const stuDB = await axios
-      .get(`/api/StudentDB/${newname}`)
-      .then((result) => {
-        if (result.data === "로그인필요") {
-          window.alert("로그인이 필요합니다.");
-          return history.push("/");
-        }
-        return result["data"];
-      })
-      .catch((err) => {
-        return err;
-      });
-    // 학생DB에 수강중강의가 있고, 수강중강의에 해당 lectureID가 존재하는지부터 확인 후 제거
-    if ("수강중강의" in stuDB && stuDB["수강중강의"].includes(newlecture["lectureID"])) {
-      await stuDB["수강중강의"].splice(stuDB["수강중강의"].indexOf(newlecture["lectureID"]), 1);
-    }
     axios
-      .put("/api/StudentDB", stuDB)
-      .then(function (result) {
+      .delete(`/api/StudentOfLecture/${paramID}/${deletename}`)
+      .then((result) => {
         if (result.data === true) {
-          window.alert("삭제되었습니다.");
+          window.alert("삭제되었습니다");
           return window.location.reload();
-        } else if (result.data === "로그인필요") {
-          window.alert("로그인이 필요합니다.");
-          return history.push("/");
         } else {
-          console.log(result.data);
           window.alert(result.data);
         }
       })
-      .catch(function (err) {
-        window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
+      .catch((err) => {
+        window.alert(`삭제에 실패했습니다. ${err}`);
       });
+
+    // const newlecture = JSON.parse(JSON.stringify(lecture));
+    // // studentList와 students에서 모두 삭제.
+    // newlecture["studentList"].splice(newlecture["studentList"].indexOf(deletename), 1);
+    // delete newlecture["students"][newname];
+    // setlecture(newlecture);
+    // updatelecture(newlecture);
+
+    // const stuDB = await axios
+    //   .get(`/api/StudentDB/${newname}`)
+    //   .then((result) => {
+    //     if (result.data === "로그인필요") {
+    //       window.alert("로그인이 필요합니다.");
+    //       return history.push("/");
+    //     }
+    //     return result["data"];
+    //   })
+    //   .catch((err) => {
+    //     return err;
+    //   });
+    // // 학생DB에 수강중강의가 있고, 수강중강의에 해당 lectureID가 존재하는지부터 확인 후 제거
+    // if ("수강중강의" in stuDB && stuDB["수강중강의"].includes(newlecture["lectureID"])) {
+    //   await stuDB["수강중강의"].splice(stuDB["수강중강의"].indexOf(newlecture["lectureID"]), 1);
+    // }
+    // axios
+    //   .put("/api/StudentDB", stuDB)
+    //   .then(function (result) {
+    //     if (result.data === true) {
+    //       window.alert("삭제되었습니다.");
+    //       return window.location.reload();
+    //     } else if (result.data === "로그인필요") {
+    //       window.alert("로그인이 필요합니다.");
+    //       return history.push("/");
+    //     } else {
+    //       console.log(result.data);
+    //       window.alert(result.data);
+    //     }
+    //   })
+    //   .catch(function (err) {
+    //     window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
+    //   });
   };
 
   // 과제 추가 관련 코드
@@ -199,9 +242,22 @@ function Lecture() {
   const [assignmodal, setassignmodal] = useState(false);
   const [assignstudents, setassignstudents] = useState([]);
   const [checkall, setcheckall] = useState(true);
+  const [newassignment, setnewassignment] = useState({
+    lectureID: null,
+    description: "",
+    duedate: "",
+    pageRangeArray:[["",""]],
+    startdate: today,
+    textbookID: "", // set this field's default value as empty string: related to "ObjectId" object constructor 
+    studentList: []
+  });
+
+  const [studentOfLectureList, setStudentOfLectureList] = useState([]); //강의 수강중인 학생 명단 관련 코드: DB 수정 작업
+
   const assignmodalOpen = () => {
     setassignmodal(true);
-    setassignstudents(Array.from({ length: lecture["studentList"].length }, () => true));
+    //setassignstudents(Array.from({ length: lecture["studentList"].length }, () => true));
+    setassignstudents(Array.from({ length: studentOfLectureList.length }, () => true));
     setcheckall(true);
   };
   const assignmodalClose = () => {
@@ -209,51 +265,78 @@ function Lecture() {
     setnewassign("");
   };
 
-  const assignAdd = () => {
+  function assignAdd(){
+    let state = true;
     // 학생을 선택하지 않은 경우
     if (!assignstudents.includes(true)) {
       window.alert("과제를 부여할 최소 1명 이상의 학생을 선택해야 합니다.");
-      return;
+      // state = false;
+      return false;
     }
-    if (!newassign) {
-      window.alert("과제 내용을 작성해야 합니다.");
-      return;
+    if(newassignment["textbookID"].length===0 && newassignment["description"].length>0 && newassignment["pageRangeArray"][0][0].length>0){
+      window.alert("교재가 선택되지 않았는데 페이지 범위가 설정되어있습니다");
+      return false;
     }
-    if (!newassigndate) {
+    if (newassignment["duedate"]=="") {
       window.alert("과제 마감일을 선택해야 합니다.");
-      return;
+      // state = false;
+      return false;
     }
-    if (!window.confirm("선택한 학생들에게 과제를 부여하시겠습니까?")) {
-      return;
-    }
-
-    const newlecture = JSON.parse(JSON.stringify(lecture));
-    newlecture["assignments"][newlecture["assignKey"]] = {
-      과제내용: newassign,
-      과제기한: newassigndate,
-    };
-    for (let i = 0; i < newlecture["studentList"].length; i++) {
-      if (assignstudents[i]) {
-        const tmpstudent = newlecture["studentList"][i];
-        newlecture["students"][tmpstudent]["진행중과제"].push(newlecture["assignKey"]);
-        newlecture["students"][tmpstudent]["진행중과제"].sort((a, b) => {
-          return +(newlecture["assignments"][a]["과제기한"] > newlecture["assignments"][b]["과제기한"]) - 0.5;
-        });
+    for(let i=0; i<newassignment["pageRangeArray"].length; i++){
+      const pageRange=newassignment["pageRangeArray"][i];
+      if (i==0){
+        if (newassignment["textbookID"]==null&&(! pageRange.includes(""))){
+          window.alert("과제 범위의 교재가 선택되지 않았습니다.");
+          // state = false;
+          return false;
+        }
+        if((pageRange[0]==""&&pageRange[1]!="")||(pageRange[0]!=""&&pageRange[1]=="")){
+          window.alert("빈 과제범위가 존재합니다. 범위를 작성해주세요.");
+          // state = false;
+          return false;
+        }
+      }
+      else {
+        if(pageRange[0]==""||pageRange[1]==""){
+          window.alert("빈 과제범위가 존재합니다. 범위를 작성하거나 삭제해주세요.");
+          // state = false;
+          return false;
+        }
+      }
+      if (pageRange[0]!="" && pageRange[1]!="" && (!/^[0-9]+$/.test(pageRange[0])||!/^[0-9]+$/.test(pageRange[1]))) {
+        window.alert("과제 범위는 숫자만 입력 가능합니다.");
+        // state = false;
+        return false;
+      }
+      if (newassignment["description"]=="" && pageRange[0]=="" && pageRange[1]=="") {
+        window.alert("과제 범위 또는 세부내용 중 최소 하나는 작성되어 있어야 합니다.");
+        // state = false;
+        return false;
       }
     }
-    newlecture["assignKey"] = newlecture["assignKey"] + 1;
-    setlecture(newlecture);
-    updatelecture(newlecture);
-    setnewassign("");
-    setnewassigndate("");
+
+    // return state;
+    return true;
   };
 
+  useEffect(()=>{
+    var studentGotAssign = studentOfLectureList.filter((stu_id, idx)=>{
+      return assignstudents[idx]===true
+    }).map((element, index)=>{
+      return element["_sid"]
+    });
+    let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+    newselectedAssign["studentList"] = studentGotAssign;
+    setnewassignment(newselectedAssign);
+  },[assignstudents])
+
   // 과제 수정 관련 코드
-  const [selectedAssign, setselectedAssign] = useState(-1);
+  const [selectedAssign, setselectedAssign] = useState({});
   const [updateassign, setupdateassign] = useState("");
   const [updateassigndate, setupdateassigndate] = useState("");
   const [assignupdatemodal, setassignupdatemodal] = useState(false);
-  const assignupdatemodalOpen = () => {
+  const assignupdatemodalOpen = (assignment) => {
+    setselectedAssign(assignment);
     setassignupdatemodal(true);
   };
   const assignupdatemodalClose = () => {
@@ -263,14 +346,35 @@ function Lecture() {
     setupdateassigndate("");
   };
 
-  const assignupdate = () => {
-    if (!window.confirm(`기존 과제(${lecture["assignments"][selectedAssign]["과제내용"]})를 변경하시겠습니까?`)) return;
-    const newlecture = JSON.parse(JSON.stringify(lecture));
-    newlecture["assignments"][selectedAssign]["과제내용"] = updateassign;
-    newlecture["assignments"][selectedAssign]["과제기한"] = updateassigndate;
-    setlecture(newlecture);
-    updatelecture(newlecture);
-    assignupdatemodalClose();
+  function assignupdate(){
+    let state = true;
+    selectedAssign["pageRangeArray"].map((Range, idx)=>{
+      if (idx==0){
+        if (selectedAssign["textbookID"]==""&&(! Range.includes(""))){
+          window.alert("과제 범위의 교재가 선택되지 않았습니다.");
+          state = false;
+        }
+        if((Range[0]==""&&Range[1]!="")||(Range[0]!=""&&Range[1]=="")){
+          window.alert("빈 과제범위가 존재합니다. 범위를 작성해주세요.");
+          state = false;
+        }
+      }
+      else {
+        if(Range[0]==""||Range[1]==""){
+          window.alert("빈 과제범위가 존재합니다. 범위를 작성하거나 삭제해주세요.");
+          state = false;
+        }
+      }
+      if (Range[0]!="" && Range[1]!="" && (!/^[0-9]+$/.test(Range[0])||!/^[0-9]+$/.test(Range[1]))) {
+        window.alert("과제 범위는 숫자만 입력 가능합니다.");
+        state = false;
+      }
+      if (selectedAssign["description"]=="" && Range[0]=="" && Range[1]=="") {
+        window.alert("과제 범위 또는 세부내용 중 최소 하나는 작성되어 있어야 합니다.");
+        state = false;
+      }
+    })
+    return state;
   };
 
   useEffect(() => {
@@ -281,29 +385,28 @@ function Lecture() {
   }, [selectedAssign]);
 
   // 과제 삭제 관련 코드
-  const assignDelete = (assignID) => {
+  const assignDelete = async (assignID) => {
+    console.log(assignID);
     if (!window.confirm("선택한 과제를 삭제하시겠습니까?")) {
       return;
     }
-    const tmplist = [];
-    const newlecture = JSON.parse(JSON.stringify(lecture));
-    delete newlecture["assignments"][assignID];
-    for (const student in newlecture["students"]) {
-      // 진행중과제에 있는 경우에는, indexOf로 찾아서 삭제
-      if (newlecture["students"][student]["진행중과제"].includes(parseInt(assignID))) {
-        newlecture["students"][student]["진행중과제"].splice(newlecture["students"][student]["진행중과제"].indexOf(parseInt(assignID)), 1);
-      } // 완료된과제에 있는 경우에는, indexOf로 찾을 수 없으므로, 반복문을 통해서 찾아낸 후 삭제
-      else {
-        for (let i = 0; i < newlecture["students"][student]["완료된과제"].length; i++) {
-          if (newlecture["students"][student]["완료된과제"][i][0] === parseInt(assignID)) {
-            newlecture["students"][student]["완료된과제"].splice(i, 1);
-            break;
-          }
+    // if (!studentOfLectureList.map((e, idx) => e["studentID"]).includes(deletename)) {
+    //   window.alert(`${deletename}이 수강생으로 등록되어 있지 않습니다.`);
+    //   return;
+    // }
+    axios
+      .delete(`/api/Assignment/${assignID["assignmentID"]}`)
+      .then((result) => {
+        if (result.data === true) {
+          window.alert("삭제되었습니다");
+          return window.location.reload();
+        } else {
+          window.alert(result.data);
         }
-      }
-    }
-    setlecture(newlecture);
-    updatelecture(newlecture);
+      })
+      .catch((err) => {
+        window.alert(`삭제에 실패했습니다. ${err}`);
+      });
   };
 
   // 강의 state
@@ -318,6 +421,54 @@ function Lecture() {
     assignments: {},
     assignKey: 0,
   });
+
+  // 강의 듣는 학생 과제 관련 코드
+  const [lectureAssignments,setLectureAssignments] = useState([]);
+  function processAssignmentOfStudentData(assignmentOfStudentData, studentOfLectureList){
+    const ret={};
+    studentOfLectureList.forEach(element=>{
+      ret[element["studentName"]]={ongoing:[],finished:[],studentID:element["studentID"]};
+    })
+    assignmentOfStudentData.forEach(element=>{
+      const studentName=element["studentName"];
+      if(!(studentName in ret)) return; //강의 듣는 학생이 삭제된 경우 처리
+      if(element["hiddenOnLecturePage"]===true) return; // 강의페이지에서 숨김처리 된 과제인 경우 건너 뜀
+      if(element["textbookName"].length>0){
+        element["textbookName"]=element["textbookName"][0];
+      }
+      if(element["finished"]){
+        ret[studentName]["finished"].push(element);
+      }
+      else{
+        ret[studentName]["ongoing"].push(element);
+      }
+    });
+    for(var studentName in ret){
+      ret[studentName]["ongoing"].sort((a,b)=>a["duedate"]<b["duedate"]?-1:1);
+      ret[studentName]["finished"].sort((a,b)=>a["duedate"]<b["duedate"]?-1:1);
+    }
+    return ret;
+  }
+
+  async function updateAssignmentOfStudentState(assignmentInfo){
+    axios
+    .post(`/api/AssignmentOfStudent/`, assignmentInfo)
+    .then(function (result) {
+      if (result.data === true) {
+        window.alert("반영되었습니다");
+        // window.location.reload();
+        // history.push("/studentList");
+      } else if (result.data === "로그인필요") {
+        window.alert("로그인이 필요합니다.");
+        return history.push("/");
+      } else {
+        console.log(result.data);
+        window.alert(result.data);
+        return false;
+      }
+    })
+    return true;
+  }
 
   useEffect(async () => {
     const newmanagerList = await axios
@@ -361,7 +512,118 @@ function Lecture() {
         return window.alert(err);
       });
     setlecture(newlecture);
+    let tmpassignment = JSON.parse(JSON.stringify(newassignment));
+    tmpassignment["lectureID"] = newlecture["_id"];
+    // console.log("tmpassignment: "+JSON.stringify(tmpassignment));
+    // setnewassignment(tmpassignment);
+
+    //강의 수강중인 학생 명단을 StudentOfLecture를 통해 가져옴
+    const newStudentOfLectureList = await axios
+      .get(`/api/StudentOfLecture/${paramID}`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return window.push("/");
+        }
+        return result["data"];
+      })
+      .catch((err) => {
+        return window.alert(err);
+      });
+    // console.log("sol:"+JSON.stringify(newStudentOfLectureList));
+    setStudentOfLectureList(newStudentOfLectureList);
+    // let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+    tmpassignment["studentList"] = new Array(newStudentOfLectureList.length).fill(true);
+    setnewassignment(tmpassignment);
+
+    //강의 과제 목록 가져오기
+    let lectureAssignmentData= await axios
+    .get(`/api/LectureAssignment/${paramID}`)
+    .then((result) => {
+      if (result.data === "로그인필요") {
+        window.alert("로그인이 필요합니다.");
+        return window.push("/");
+      }
+      return result["data"];
+    })
+    .catch((err) => {
+      return window.alert(err);
+    });
+
+    //console.log("data:"+JSON.stringify(processAssignmentOfStudentData(lectureAssignmentData)));
+    lectureAssignmentData = processAssignmentOfStudentData(lectureAssignmentData, newStudentOfLectureList);
+    // console.log("lAD:"+JSON.stringify(lectureAssignmentData));
+    setLectureAssignments(lectureAssignmentData);
   }, []);
+
+  const [assignments, setAssignments] = useState([]);
+  function processAssignmentData(assignmentData){
+    const ret=[];
+    assignmentData.forEach((e,idx)=>{
+      if(e["hiddenOnLecturePage"]===true) return;
+      ret.push(e);
+    });
+    return ret;
+  }
+  //assignments state의 pageRangeArray가 비었는지 확인하는 함수
+  function checkPageRangeArrayEmpty(pageRangeArray){
+    return !!pageRangeArray[0][0];
+  }
+  //현재 강의의 assignment 가져오기
+  useEffect(async () => {
+    if (!("_id" in lecture)) return;
+    // let tmp = lecture["_id"].toString();
+    const existingAssignments = await axios
+      .get(`/api/Assignment/${paramID}`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return window.push("/");
+        }
+        return result["data"];
+      })
+      .catch((err) => {
+        return window.alert(err);
+      });
+    // existingAssignments.map((e)=>{
+    //   const assignment={...e};
+    //   // if(assignment["pageRangeArray"].length==0) assignment["pageRangeArray"].push(["",""]);
+    //   return assignment;
+    // })
+
+    setAssignments(processAssignmentData(existingAssignments));
+    // console.log("assignments: ", existingAssignments);
+    // console.log("assignments: "+JSON.stringify(existingAssignments));
+  }, [lecture]);
+
+  const [textbook, settextbook] = useState([]);
+  //assignments state에 들어있는 textbookID로 textbook array에 있는 textbookName을 가져오는 함수
+  function getTextbookNameFromID(textbookID){
+    const ret=textbook.filter((element,idx)=>{
+      return element["textbookID"] === textbookID;
+    })[0];
+    return ret?ret["textbookName"]:null;
+  }
+  // const [selectedTextbook, setselectedTextbook] = useState(null);
+  //매칭되는 textbook의 _id, 이름을 가져오기
+  useEffect(async () => {
+    if (!("_id" in lecture)) return;
+    // let tmp = lecture["_id"].toString();
+    const usingTextbook = await axios
+      .get(`/api/TextbookOfLecture/${paramID}`)
+      .then((result) => {
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return window.push("/");
+        }
+        return result["data"];
+      })
+      .catch((err) => {
+        return window.alert(err);
+      });
+    settextbook(usingTextbook);
+    // console.log(usingTextbook);
+  }, [lecture]);
 
   useEffect(() => {
     setfilteredstuDBList(
@@ -432,15 +694,107 @@ function Lecture() {
         </Modal.Header>
         <Modal.Body className="text-center">
           <div className="row mb-2">
-            <div className="col-3">과제 내용</div>
+            <div className="col-3">사용 교재</div>
+            <div className="col-9">
+              <Form.Select
+                type="text"
+                value={newassignment["textbookID"]}
+                onChange={(e) => {
+                  let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+                  newselectedAssign["textbookID"] = e.target.value;
+                  setnewassignment(newselectedAssign);
+                  // console.log(newselectedAssign);
+                }}
+              >
+                <option value="">선택</option>
+                {textbook.map((value, index) => (
+                  <option value={value["textbookID"]}>{value["textbookName"]}</option>
+                ))}
+              </Form.Select>
+            </div>
+          </div>
+          <div className="row mb-2">
+            {newassignment["pageRangeArray"]? (
+              newassignment["pageRangeArray"].map((assign, idx) => {
+                return (
+                  <div className="row mb-2">
+                    <div className="col-3">과제 범위{idx + 1}</div>
+                    <div className="col-2">
+                      <input
+                        className="w-100"
+                        type="text"
+                        value={assign[0]}
+                        onChange={(e) => {
+                          let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+                          newselectedAssign["pageRangeArray"][idx][0] = e.target.value;
+                          setnewassignment(newselectedAssign);
+                          // console.log(JSON.stringify(newselectedAssign));
+                        }}
+                      />
+                    </div>
+                    <div className="col-1">
+                      <p>~</p>
+                    </div>
+                    <div className="col-2">
+                      <input
+                        className="w-100"
+                        type="text"
+                        value={assign[1]}
+                        onChange={(e) => {
+                          let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+                          newselectedAssign["pageRangeArray"][idx][1] = e.target.value;
+                          setnewassignment(newselectedAssign);
+                          // console.log(JSON.stringify(newselectedAssign));
+                        }}
+                      />
+                    </div>
+                    {idx!=0 ? 
+                    <div className="col-1">
+                    <Button
+                      className="assignmentDeleteBtn"
+                      variant="secondary"
+                      onClick={() => {
+                        let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+                        newselectedAssign["pageRangeArray"].splice(idx,1);
+                        setnewassignment(newselectedAssign);
+                        console.log(newassignment);
+                      }}
+                    >
+                      <p>x</p>
+                    </Button>
+                  </div>
+                  :null
+                    }
+                  </div>
+                );
+              })
+            ) : null}
+            <div className="col-3">
+              <Button
+                className="btn-edit assignmentEditBtn"
+                variant="secondary"
+                onClick={() => {
+                  let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+                  newselectedAssign["pageRangeArray"] = [...newselectedAssign["pageRangeArray"], ["",""]];
+                  setnewassignment(newselectedAssign);
+                }}
+              >
+                범위 추가
+              </Button>
+            </div>
+          </div>
+          <div className="row mb-2">
+            <div className="col-3">세부 내용</div>
             <div className="col-9">
               <input
                 className="w-100"
                 type="text"
-                value={newassign}
-                placeholder="과제 내용을 입력"
+                value={newassignment["description"]}
+                placeholder="기타 세부사항 (필수작성X)"
                 onChange={(e) => {
-                  setnewassign(e.target.value);
+                  let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+                  newselectedAssign["description"] = e.target.value;
+                  setnewassignment(newselectedAssign);
                 }}
               />
             </div>
@@ -451,10 +805,12 @@ function Lecture() {
             <div className="col-9">
               <input
                 type="date"
-                value={newassigndate}
+                value={newassignment["duedate"]}
                 className="w-100"
                 onChange={(e) => {
-                  setnewassigndate(e.target.value);
+                  let newselectedAssign = JSON.parse(JSON.stringify(newassignment));
+                  newselectedAssign["duedate"] = e.target.value;
+                  setnewassignment(newselectedAssign);
                 }}
               />
             </div>
@@ -467,23 +823,24 @@ function Lecture() {
               checked={checkall}
               onChange={() => {
                 if (checkall === false) {
-                  setassignstudents(Array.from({ length: lecture["studentList"].length }, () => true));
+                  setassignstudents(Array.from({ length: studentOfLectureList.length }, () => true));
                   setcheckall(true);
                 } else {
-                  setassignstudents(Array.from({ length: lecture["studentList"].length }, () => false));
+                  setassignstudents(Array.from({ length: studentOfLectureList.length }, () => false));
                   setcheckall(false);
                 }
               }}
+              
             />
           </div>
 
           <div className="row">
-            {lecture["studentList"].map((name, idx) => {
+            {studentOfLectureList.map((student, idx) => {
               return (
                 <div className="col-3" key={idx}>
                   <Form.Check
                     type="checkbox"
-                    label={name}
+                    label={student["studentName"]}
                     checked={assignstudents[idx]}
                     onChange={() => {
                       const newls = [...assignstudents];
@@ -501,7 +858,34 @@ function Lecture() {
             })}
           </div>
 
-          <Button className="btn-secondary program-add" onClick={assignAdd} type="button">
+          <Button className="btn-secondary program-add"
+          onClick={() => {
+            console.log(newassignment);
+            console.log(assignstudents);
+            if(assignAdd()){
+              if (window.confirm("해당 학생들에게 과제를 부여하시겠습니까?")) {
+                axios
+                .post("/api/Assignment", newassignment)
+                .then(function (result) {
+                  if (result.data === true) {
+                    window.alert("저장되었습니다.");
+                    window.location.reload();
+                  } else if (result.data === "로그인필요") {
+                    window.alert("로그인이 필요합니다.");
+                    return history.push("/");
+                  } else {
+                    console.log(result.data);
+                    window.alert(result.data);
+                  }
+                })
+                .catch(function (err) {
+                  console.log("저장 실패 : ", err);
+                  window.alert(err);
+                });
+            }
+            }
+          }}
+          type="button">
             <strong>+</strong>
           </Button>
         </Modal.Body>
@@ -513,15 +897,114 @@ function Lecture() {
         </Modal.Header>
         <Modal.Body className="text-center">
           <div className="row mb-2">
-            <div className="col-3">과제 내용</div>
+            <div className="col-3">사용 교재</div>
+            <div className="col-9">
+              <Form.Select
+                type="text"
+                value={
+                  textbook.length >= 1 && selectedAssign["textbookID"]
+                    ? textbook.filter((book) => {
+                        return book["textbookID"] === selectedAssign["textbookID"];
+                      })[0]["textbookID"]
+                    : ""
+                }
+                onChange={(e) => {
+                  let newselectedAssign = JSON.parse(JSON.stringify(selectedAssign));
+                  newselectedAssign["textbookID"] = e.target.value;
+                  setselectedAssign(newselectedAssign);
+                  // console.log(newselectedAssign);
+                }}
+              >
+                <option value="">선택</option>
+                {textbook.map((value, index) => (
+                  <option value={value["textbookID"]}>{value["textbookName"]}</option>
+                ))}
+              </Form.Select>
+            </div>
+          </div>
+          <div className="row mb-2">
+            {selectedAssign["pageRangeArray"]? (
+              selectedAssign["pageRangeArray"].map((assign, idx) => {
+                return (
+                  <div className="row mb-2">
+                    <div className="col-3">과제 범위{idx + 1}</div>
+                    <div className="col-2">
+                      <input
+                        className="w-100"
+                        type="text"
+                        value={assign[0]}
+                        onChange={(e) => {
+                          let newselectedAssign = JSON.parse(JSON.stringify(selectedAssign));
+                          newselectedAssign["pageRangeArray"][idx][0] = e.target.value;
+                          setselectedAssign(newselectedAssign);
+                          // console.log(selectedAssign);
+                        }}
+                      />
+                    </div>
+                    <div className="col-1">
+                      <p>~</p>
+                    </div>
+                    <div className="col-2">
+                      <input
+                        className="w-100"
+                        type="text"
+                        value={assign[1]}
+                        onChange={(e) => {
+                          let newselectedAssign = JSON.parse(JSON.stringify(selectedAssign));
+                          newselectedAssign["pageRangeArray"][idx][1] = e.target.value;
+                          setselectedAssign(newselectedAssign);
+                          // console.log(selectedAssign);
+                        }}
+                      />
+                    </div>
+                    {idx!=0 ? 
+                    <div className="col-1">
+                    <Button
+                      className="assignmentDeleteBtn"
+                      variant="secondary"
+                      onClick={() => {
+                        let newselectedAssign = JSON.parse(JSON.stringify(selectedAssign));
+                        newselectedAssign["pageRangeArray"].splice(idx,1);
+                        setselectedAssign(newselectedAssign);
+                        console.log(selectedAssign);
+                      }}
+                    >
+                      <p>x</p>
+                    </Button>
+                  </div>
+                  :null
+                    }
+                  </div>
+                );
+              })
+            ) : null}
+            <div className="col-3">
+              <Button
+                className="btn-edit assignmentEditBtn"
+                variant="secondary"
+                onClick={() => {
+                  let newselectedAssign = JSON.parse(JSON.stringify(selectedAssign));
+                  newselectedAssign["pageRangeArray"] = [...newselectedAssign["pageRangeArray"], ["",""]];
+                  setselectedAssign(newselectedAssign);
+                }}
+              >
+                범위 추가
+              </Button>
+            </div>
+          </div>
+          <div className="row mb-2">
+            <div className="col-3">세부 내용</div>
             <div className="col-9">
               <input
                 className="w-100"
                 type="text"
-                value={updateassign}
-                placeholder="과제 내용을 입력"
+                value={selectedAssign["description"]}
+                placeholder="기타 세부사항 (필수작성X)"
                 onChange={(e) => {
-                  setupdateassign(e.target.value);
+                  let newselectedAssign = JSON.parse(JSON.stringify(selectedAssign));
+                  newselectedAssign["description"] = e.target.value;
+                  setselectedAssign(newselectedAssign);
+                  // console.log(selectedAssign);
                 }}
               />
             </div>
@@ -532,16 +1015,47 @@ function Lecture() {
             <div className="col-9">
               <input
                 type="date"
-                value={updateassigndate}
+                value={selectedAssign["duedate"]}
                 className="w-100"
                 onChange={(e) => {
-                  setupdateassigndate(e.target.value);
+                  let newselectedAssign = JSON.parse(JSON.stringify(selectedAssign));
+                  newselectedAssign["duedate"] = e.target.value;
+                  setselectedAssign(newselectedAssign);
                 }}
               />
             </div>
           </div>
 
-          <Button className="btn-secondary program-add" onClick={assignupdate} type="button">
+          <Button
+            className="btn-secondary program-add"
+            onClick={() => {
+              console.log(selectedAssign);
+              if(assignupdate()){
+                if (window.confirm("과제정보를 수정하시겠습니까?")) {
+                  axios
+                  .put("/api/Assignment", selectedAssign)
+                  .then(function (result) {
+                    if (result.data === true) {
+                      window.alert("저장되었습니다.");
+                      window.location.reload();
+                      // history.push("/studentList");
+                    } else if (result.data === "로그인필요") {
+                      window.alert("로그인이 필요합니다.");
+                      return history.push("/");
+                    } else {
+                      console.log(result.data);
+                      window.alert(result.data);
+                    }
+                  })
+                  .catch(function (err) {
+                    console.log("저장 실패 : ", err);
+                    window.alert(err);
+                  });
+              }
+              }
+            }}
+            type="button"
+          >
             <strong>
               <FaPencilAlt></FaPencilAlt>
             </strong>
@@ -551,18 +1065,40 @@ function Lecture() {
 
       <div className="row">
         <Button
-            variant="dark"
-            className="btn-edit w-90 m-3"
-            onClick={() => {
-              namemodalOpen();
-            }}
-          >
-            + 학생 추가 +
-          </Button>
-          {/* 학생리스트 */}
+          variant="dark"
+          className="btn-edit w-90 m-3"
+          onClick={() => {
+            namemodalOpen();
+          }}
+        >
+          + 학생 추가 +
+        </Button>
+        {/* {<Button
+          variant="dark"
+          className="btn-edit w-90 m-3"
+          onClick={async () => {
+            //namemodalOpen();
+            const data=await axios
+            .get(`/api/LectureAssignment/${paramID}`)
+            .then((result) => {
+              if (result.data === "로그인필요") {
+                window.alert("로그인이 필요합니다.");
+                return window.push("/");
+              }
+              return result["data"];
+            })
+            .catch((err) => {
+              return window.alert(err);
+            });
+            console.log("data:"+JSON.stringify(data));
+          }}
+        >
+          server api test
+        </Button>} */}
+        {/* 학생리스트 */}
         <div className="col-md-8">
           <div className="assignmentContainer">
-            <h5 className="btn-add">과제 O</h5>
+            {/* {<h5 className="btn-add">과제 O</h5>
             <div className="assignmentSubContainer">
               {lecture["studentList"]
                 .filter((student) => lecture["students"][student]["진행중과제"].length !== 0)
@@ -573,14 +1109,14 @@ function Lecture() {
                       <Accordion defaultActiveKey="0">
                         <Card>
                           <Card.Header className="assignmentToggleBtn">
-                            <CustomToggle eventKey="0">진행중인 과제 ({lecture["students"][student]['진행중과제'].length})</CustomToggle>
+                            <CustomToggle eventKey="0">진행중인 과제 ({lecture["students"][student]["진행중과제"].length})</CustomToggle>
                           </Card.Header>
                           <Accordion.Collapse eventKey="0">
                             <Card.Body>
-                            {lecture["students"][student]["진행중과제"].map((assign, idx) => {
-                              return (
-                                <div key={idx} className="attendingStudent-card assignment-card w-100">
-                                  <p
+                              {lecture["students"][student]["진행중과제"].map((assign, idx) => {
+                                return (
+                                  <div key={idx} className="attendingStudent-card assignment-card w-100">
+                                    <p
                                       className={
                                         today < lecture["assignments"][assign]["과제기한"]
                                           ? "after"
@@ -591,10 +1127,8 @@ function Lecture() {
                                     >
                                       <strong>{lecture["assignments"][assign]["과제기한"]} 까지</strong>
                                     </p>
-                                  <p>
-                                    {lecture["assignments"][assign]["과제내용"]}
-                                  </p>
-                                  <Button
+                                    <p>{lecture["assignments"][assign]["과제내용"]}</p>
+                                    <Button
                                       className="lectureEditingBtn btn-edit w-100"
                                       onClick={() => {
                                         if (!window.confirm("과제를 완료 처리하시겠습니까?")) {
@@ -609,9 +1143,9 @@ function Lecture() {
                                     >
                                       완료처리
                                     </Button>
-                                </div>
-                              );
-                            })}
+                                  </div>
+                                );
+                              })}
                             </Card.Body>
                           </Accordion.Collapse>
                         </Card>
@@ -621,18 +1155,17 @@ function Lecture() {
                           </Card.Header>
                           <Accordion.Collapse eventKey="1">
                             <Card.Body>
-                              
-                            {lecture["students"][student]["완료된과제"].map((assign, idx) => {
-                              return (
-                                <div key={idx} className="attendingStudent-card assignment-card w-100">
-                                  <p className={assign[1] <= lecture["assignments"][assign[0]]["과제기한"] ? "after" : "before"}>
+                              {lecture["students"][student]["완료된과제"].map((assign, idx) => {
+                                return (
+                                  <div key={idx} className="attendingStudent-card assignment-card w-100">
+                                    <p className={assign[1] <= lecture["assignments"][assign[0]]["과제기한"] ? "after" : "before"}>
                                       <strong>{lecture["assignments"][assign[0]]["과제기한"]} 까지</strong>
                                     </p>{" "}
-                                  <p> 
-                                  <strong>{assign[1]} 완료</strong>
-                                  </p>
-                                  <p>{lecture["assignments"][assign[0]]["과제내용"]}</p>
-                                  <Button
+                                    <p>
+                                      <strong>{assign[1]} 완료</strong>
+                                    </p>
+                                    <p>{lecture["assignments"][assign[0]]["과제내용"]}</p>
+                                    <Button
                                       className="lectureEditingBtn btn-cancel w-100"
                                       onClick={() => {
                                         if (!window.confirm("과제를 완료해제 처리하시겠습니까? \n기록된 완료날짜가 삭제됩니다.")) {
@@ -650,10 +1183,9 @@ function Lecture() {
                                     >
                                       완료해제처리
                                     </Button>
-                                </div>
-                              );
-                            })}
-
+                                  </div>
+                                );
+                              })}
                             </Card.Body>
                           </Accordion.Collapse>
                         </Card>
@@ -672,8 +1204,8 @@ function Lecture() {
                     </div>
                   );
                 })}
-            </div>
-            <h4 className="btn-add">과제 X</h4>
+            </div>} */}
+            {/* {<h4 className="btn-add">과제 X</h4>
             <div className="assignmentSubContainer">
               {lecture["studentList"]
                 .filter((student) => lecture["students"][student]["진행중과제"].length === 0)
@@ -688,17 +1220,17 @@ function Lecture() {
                           </Card.Header>
                           <Accordion.Collapse eventKey="0">
                             <Card.Body>
-                            {lecture["students"][student]["완료된과제"].map((assign, idx) => {
-                              return (
-                                <div key={idx} className="attendingStudent-card assignment-card w-100">
-                                  <p className={assign[1] <= lecture["assignments"][assign[0]]["과제기한"] ? "after" : "before"}>
+                              {lecture["students"][student]["완료된과제"].map((assign, idx) => {
+                                return (
+                                  <div key={idx} className="attendingStudent-card assignment-card w-100">
+                                    <p className={assign[1] <= lecture["assignments"][assign[0]]["과제기한"] ? "after" : "before"}>
                                       <strong>{lecture["assignments"][assign[0]]["과제기한"]} 까지</strong>
                                     </p>{" "}
-                                  <p>
-                                    <strong>{assign[1]} 완료</strong>
-                                  </p>
-                                  <p>{lecture["assignments"][assign[0]]["과제내용"]}</p>
-                                  <Button
+                                    <p>
+                                      <strong>{assign[1]} 완료</strong>
+                                    </p>
+                                    <p>{lecture["assignments"][assign[0]]["과제내용"]}</p>
+                                    <Button
                                       className="lectureEditingBtn btn-cancel w-100"
                                       onClick={() => {
                                         if (!window.confirm("과제를 완료해제 처리하시겠습니까? \n기록된 완료날짜가 삭제됩니다.")) {
@@ -716,17 +1248,261 @@ function Lecture() {
                                     >
                                       완료해제처리
                                     </Button>
-                                </div>
-                              );
-                            })}
+                                  </div>
+                                );
+                              })}
                             </Card.Body>
                           </Accordion.Collapse>
                         </Card>
                       </Accordion>
-                      <div className="text-end m-1" >
+                      <div className="text-end m-1">
                         <Button
                           onClick={() => {
                             studentDelete(student);
+                          }}
+                          variant="secondary"
+                          className="lectureEditingBtn btn-cancel m-auto rightbelow"
+                        >
+                          삭제
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>} */}
+
+            {/* {<h4 className="btn-add">수강생 불러오기 test</h4>
+            <div className="assignmentSubContainer">
+            {studentOfLectureList
+                .map((student, idx) => {
+                  // console.log(student);
+                  return student["studentID"];
+                })
+                .map((student, index) => {
+                  return (
+                    <div className="attendingStudent-card" key={index}>
+                      <p className="fs-5">{student.split("_")[0]}</p>
+                      <Accordion>
+                        <Card></Card>
+                      </Accordion>
+                      <div className="text-end m-1">
+                        <Button
+                          onClick={() => {
+                            studentDelete(student);
+                          }}
+                          variant="secondary"
+                          className="lectureEditingBtn btn-cancel m-auto rightbelow"
+                        >
+                          삭제
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>} */}
+
+            <h4 className="btn-add">과제 O</h4>
+            <div className="assignmentSubContainer">
+            {Object.keys(lectureAssignments).map((studentName,index)=>{
+
+              if(lectureAssignments[studentName]["ongoing"].length==0) return null;
+              return(
+                <div className="attendingStudent-card" key={index}>
+                  <p className="fs-5">{studentName}</p>
+                  <Accordion defaultActiveKey="0">
+                    <Card>
+                      <Card.Header className="assignmentToggleBtn">
+                        <CustomToggle eventKey="0">진행중인 과제 ({lectureAssignments[studentName]["ongoing"].length})</CustomToggle>
+                      </Card.Header>
+                      <Accordion.Collapse eventKey="0">
+                        <Card.Body>
+                          {lectureAssignments[studentName]["ongoing"].map((assignment,aidx)=>{
+                            return (
+                              <div key={aidx} className="attendingStudent-card assignment-card w-100">
+                                <p
+                                  className={
+                                    today < assignment["duedate"]
+                                      ? "after"
+                                      : today == assignment["duedate"]
+                                      ? "now"
+                                      : "before"
+                                  }
+                                >
+                                  <strong>{assignment["duedate"]} 까지</strong>
+                                </p>
+                                {assignment["textbookName"]?<p>{assignment["textbookName"]}</p>:null}
+                                {assignment["textbookName"]&&assignment["pageRangeArray"].length>0?
+                                assignment["pageRangeArray"].map((range,ridx)=>{
+                                  return(
+                                    <p key={ridx}>{range[0]} ~ {range[1]}</p>
+                                  );
+                                })
+                                :null}
+                                <p>{assignment["description"]}</p>
+                                <Button
+                                  className="lectureEditingBtn btn-edit w-100"
+                                  onClick={() => {
+                                    if (!window.confirm("과제를 완료 처리하시겠습니까?")) {
+                                      return;
+                                    }
+                                    const assignmentInfo={assignmentOfStudentID:assignment["AssignmentOfStudentID"],finished:true,finished_date:today}
+                                    if(!updateAssignmentOfStudentState(assignmentInfo)){
+                                      window.location.reload();
+                                    }
+                                    const newLectureAssignments = JSON.parse(JSON.stringify(lectureAssignments));
+                                    const newAssignmentData = {...assignment};
+                                    newAssignmentData["finished"]=true;
+                                    newAssignmentData["finished_date"]=today;
+                                    newLectureAssignments[studentName]["ongoing"].splice(aidx,1);
+                                    newLectureAssignments[studentName]["finished"].push(newAssignmentData);
+                                    newLectureAssignments[studentName]["finished"].sort((a,b)=>a["duedate"]<b["duedate"]?-1:1);
+                                    setLectureAssignments(newLectureAssignments);
+                                  }}
+                                >
+                                  완료처리
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </Card.Body>
+                      </Accordion.Collapse>
+                    </Card>
+                    <Card>
+                      <Card.Header className="assignmentToggleBtn">
+                        <CustomToggle eventKey="1">완료된 과제 ({lectureAssignments[studentName]["finished"].length})</CustomToggle>
+                      </Card.Header>
+                      <Accordion.Collapse eventKey="1">
+                        <Card.Body>
+                          {lectureAssignments[studentName]["finished"].map((assignment, aidx) => {
+                            return (
+                              <div key={aidx} className="attendingStudent-card assignment-card w-100">
+                                <p className={assignment["finished_date"] <= assignment["duedate"] ? "after" : "before"}>
+                                  <strong>{assignment["duedate"]} 까지</strong>
+                                </p>{" "}
+                                <p>
+                                  <strong>{assignment["finished_date"]} 완료</strong>
+                                </p>
+                                {assignment["textbookName"]?<p>{assignment["textbookName"]}</p>:null}
+                                {assignment["textbookName"]&&assignment["pageRangeArray"].length>0?
+                                assignment["pageRangeArray"].map((range,ridx)=>{
+                                  return(
+                                    <p key={ridx}>{range[0]} ~ {range[1]}</p>
+                                  );
+                                })
+                                :null}
+                                <p>{assignment["description"]}</p>
+                                <Button
+                                  className="lectureEditingBtn btn-cancel w-100"
+                                  onClick={() => {
+                                    if (!window.confirm("과제를 완료해제 처리하시겠습니까? \n기록된 완료날짜가 삭제됩니다.")) {
+                                      return;
+                                    }
+                                    const assignmentInfo={assignmentOfStudentID:assignment["AssignmentOfStudentID"],finished:false,finished_date:""}
+                                    if(!updateAssignmentOfStudentState(assignmentInfo)){
+                                      window.location.reload();
+                                    }
+                                    const newLectureAssignments = JSON.parse(JSON.stringify(lectureAssignments));
+                                    const newAssignmentData = {...assignment};
+                                    newAssignmentData["finished"]=false;
+                                    newAssignmentData["finished_date"]="";
+                                    newLectureAssignments[studentName]["finished"].splice(aidx,1);
+                                    newLectureAssignments[studentName]["ongoing"].push(newAssignmentData);
+                                    newLectureAssignments[studentName]["ongoing"].sort((a,b)=>a["duedate"]<b["duedate"]?-1:1);
+                                    setLectureAssignments(newLectureAssignments);
+                                  }}
+                                >
+                                  완료해제처리
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </Card.Body>
+                      </Accordion.Collapse>
+                    </Card>
+                  </Accordion>
+                  <div className="text-end rightbelow">
+                    <Button
+                      onClick={() => {
+                        studentDelete(lectureAssignments[studentName]["studentID"]);
+                      }}
+                      variant="danger"
+                      className="lectureEditingBtn btn-cancel m-auto"
+                    >
+                      삭제
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+            </div>
+
+            <h4 className="btn-add">과제 X</h4>
+            <div className="assignmentSubContainer">
+              {Object.keys(lectureAssignments)
+                .map((studentName, index) => {
+                  if(lectureAssignments[studentName]["ongoing"].length>0) return null;
+                  return (
+                    <div className="attendingStudent-card" key={index}>
+                      <p className="fs-5">{studentName}</p>
+                      <Accordion>
+                        <Card>
+                          <Card.Header className="assignmentToggleBtn">
+                            <CustomToggle eventKey="0">완료된 과제 ({lectureAssignments[studentName]["finished"].length})</CustomToggle>
+                          </Card.Header>
+                          <Accordion.Collapse eventKey="0">
+                            <Card.Body>
+                              {lectureAssignments[studentName]["finished"].map((assignment, aidx) => {
+                                return (
+                                  <div key={aidx} className="attendingStudent-card assignment-card w-100">
+                                    <p className={assignment["finished_date"] <= assignment["duedate"] ? "after" : "before"}>
+                                      <strong>{assignment["duedate"]} 까지</strong>
+                                    </p>{" "}
+                                    <p>
+                                      <strong>{assignment["finished_date"]} 완료</strong>
+                                    </p>
+                                    {assignment["textbookName"]?<p>{assignment["textbookName"]}</p>:null}
+                                    {assignment["textbookName"]&&assignment["pageRangeArray"].length>0?
+                                    assignment["pageRangeArray"].map((range,ridx)=>{
+                                      return(
+                                        <p key={ridx}>{range[0]} ~ {range[1]}</p>
+                                      );
+                                    })
+                                    :null}
+                                    <p>{assignment["description"]}</p>
+                                    <Button
+                                      className="lectureEditingBtn btn-cancel w-100"
+                                      onClick={() => {
+                                        if (!window.confirm("과제를 완료해제 처리하시겠습니까? \n기록된 완료날짜가 삭제됩니다.")) {
+                                          return;
+                                        }
+
+                                        const assignmentInfo={assignmentOfStudentID:assignment["AssignmentOfStudentID"],finished:false,finished_date:""}
+                                        if(!updateAssignmentOfStudentState(assignmentInfo)){
+                                          window.location.reload();
+                                        }
+                                        const newLectureAssignments = JSON.parse(JSON.stringify(lectureAssignments));
+                                        const newAssignmentData = {...assignment};
+                                        newAssignmentData["finished"]=false;
+                                        newAssignmentData["finished_date"]="";
+                                        newLectureAssignments[studentName]["finished"].splice(aidx,1);
+                                        newLectureAssignments[studentName]["ongoing"].push(newAssignmentData);
+                                        newLectureAssignments[studentName]["ongoing"].sort((a,b)=>a["duedate"]<b["duedate"]?-1:1);
+                                        setLectureAssignments(newLectureAssignments);
+                                      }}
+                                    >
+                                      완료해제처리
+                                    </Button>
+                                  </div>
+                                );
+                              })}
+                            </Card.Body>
+                          </Accordion.Collapse>
+                        </Card>
+                      </Accordion>
+                      <div className="text-end m-1">
+                        <Button
+                          onClick={() => {
+                            studentDelete(lectureAssignments[studentName]["studentID"]);
                           }}
                           variant="secondary"
                           className="lectureEditingBtn btn-cancel m-auto rightbelow"
@@ -753,22 +1529,36 @@ function Lecture() {
             >
               <strong>+ 과제 추가 +</strong>
             </Button>
-            {Object.keys(lecture["assignments"])
-              .reverse()
+            {assignments
+              .sort(function (a, b) {
+                return +(new Date(a.duedate) < new Date(b.duedate)) - 0.5;
+              })
               .map((assignID, index) => {
                 return (
                   <ListGroup.Item key={index}>
                     <p>
-                      <strong>{lecture["assignments"][assignID]["과제내용"]}</strong>
+                      <strong>{getTextbookNameFromID(assignID["textbookID"])}</strong>
                     </p>
-                    <p>{lecture["assignments"][assignID]["과제기한"]} 까지</p>
+                    {checkPageRangeArrayEmpty(assignID["pageRangeArray"])?assignID["pageRangeArray"].map((range,ridx)=>{
+                      return (<p key={ridx}>{range[0]} ~ {range[1]}</p>);
+                    }):null}
+                    <p>
+                      {assignID["description"]}
+                    </p>
+                    <p>{assignID["duedate"]} 까지</p>
                     <div>
                       <Button
                         className="lectureEditingBtn btn-edit me-1"
                         variant="secondary"
                         onClick={() => {
-                          setselectedAssign(assignID);
-                          assignupdatemodalOpen();
+                          // console.log(assignments);
+                          // setselectedAssign(assignID);
+                          // if (selectedAssign&&selectedAssign['pageRangeArray'].length==0){
+                          //  let selectedAssign = {...selectedAssign};
+                          //  selectedAssign['pageRangeArray'] = [[]];
+                          //  setselectedAssign(selectedAssign);
+                          // }
+                          assignupdatemodalOpen(assignID);
                         }}
                       >
                         <strong>수정</strong>
