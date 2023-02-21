@@ -397,8 +397,8 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
       /** 가장 최근에 WeeklyStudentfeedback 콜렉션에 저장된 날짜 **/
       // let feedbackDate = feedbackWeekArr.at(-1)["피드백일"];
           // 날짜 범위 수정에 따른 for문으로 새롭게 추가 로직 필요
-      let feedbackDate = feedbackWeekArr[1]["피드백일"];
-      console.log(feedbackDate)
+      // let feedbackDate = feedbackWeekArr[1]["피드백일"]; // 결과 array가 2보다 작을경우 문제가 됨
+      // console.log(feedbackDate)
 
       /** ----------- 교재수정에 따른 WeeklyStudyfeedback 수정 ---------------- **/
       // /****/ 주석은 푸쉬할때 사라지나?
