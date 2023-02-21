@@ -38,7 +38,7 @@ app.use(cors());
 var db, db_client;
 
 // TODO : 배포 전에 반드시 실제 서비스(DB_URL)로 바꿀 것!!
-MongoClient.connect(process.env.DB_URL, function (err, client) {
+MongoClient.connect(process.env.TEST_DB_URL, function (err, client) {
   if (err) {
     return console.log(err);
   }
@@ -303,6 +303,19 @@ function filterTextBook(exist,newOne){
 
 }
 
+function checkDuplication(data){
+  let newArray = data.map((e)=>{
+    return e["교재"];
+  })
+
+  console.log(newArray.length);
+
+  let newSet = new Set(newArray);
+
+  console.log(newSet)
+
+}
+
 /** ------------------------------------------- **/
 
 
@@ -367,30 +380,33 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
     /** 추가하고 삭제해야할 책 정보 **/
     const updateTextbookInfo = filterTextBook(existingTextbook, newTextbook);
+    checkDuplication(newTextbook);
 
     /** WeeklyStudentfeedback 콜렉션에 저장된 모든 날짜들 **/
         // 피드백 : limit(1)을 통해 모든 리스트를 가져오는 것이 아니라 1개만 가져옴으로써 연산량 줄임
     let feedbackWeekArr = await db.collection("WeeklyStudyfeedback")
-            .find({"학생ID": newstuDB["ID"],"피드백일":todayFeedback})
-            .project({"피드백일": 1}, {_id: 0})
-            .sort({"피드백일": -1})
-            .limit(1)
+            .find({"학생ID": newstuDB["ID"],"피드백일":{$gte: todayFeedback}})
+            .project({"피드백일": 1,_id: 0})
             .toArray();
-
+    console.log(todayFeedback);
+    console.log(feedbackWeekArr)
 
     /** Validation : 신규 학생이 WeeklyStudyfeedback 콜렉션에 정보가 없을 때 건너뛰기 **/
     if (feedbackWeekArr.length !== 0) {
 
       /** 가장 최근에 WeeklyStudentfeedback 콜렉션에 저장된 날짜 **/
       // let feedbackDate = feedbackWeekArr.at(-1)["피드백일"];
-      let feedbackDate = feedbackWeekArr[0]["피드백일"];
+          // 날짜 범위 수정에 따른 for문으로 새롭게 추가 로직 필요
+      let feedbackDate = feedbackWeekArr[1]["피드백일"];
+      console.log(feedbackDate)
 
       /** ----------- 교재수정에 따른 WeeklyStudyfeedback 수정 ---------------- **/
       // /****/ 주석은 푸쉬할때 사라지나?
+
             /** ------ 교재 추가 업데이트 진행 ------ **/
             if(updateTextbookInfo.insertTextbook.length !== 0){
 
-              await db.collection("WeeklyStudyfeedback").updateOne({"학생ID": newstuDB["ID"],"피드백일" : feedbackDate},
+              await db.collection("WeeklyStudyfeedback").updateMany({"학생ID": newstuDB["ID"],"피드백일" : {$gte: todayFeedback}},
                   {$push: {"thisweekGoal.교재캡쳐" : {$each : updateTextbookInfo.insertTextbook}}});
 
               let dict = {};
@@ -406,14 +422,14 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
               }
 
-              await db.collection("WeeklyStudyfeedback").updateOne({"학생ID":newstuDB["ID"],"피드백일": feedbackDate},
+              await db.collection("WeeklyStudyfeedback").updateMany({"학생ID":newstuDB["ID"],"피드백일": {$gte: todayFeedback}},
                   {$set:dict});
             }
 
             /** ------ 교재 삭제 업데이트 진행 ------ **/
             if(updateTextbookInfo.deleteTextbook.length !== 0){
 
-              await db.collection("WeeklyStudyfeedback").updateOne({"학생ID": newstuDB["ID"],"피드백일" : feedbackDate},
+              await db.collection("WeeklyStudyfeedback").updateMany({"학생ID": newstuDB["ID"],"피드백일" : {$gte: todayFeedback}},
                   {$pullAll: {"thisweekGoal.교재캡쳐": updateTextbookInfo.deleteTextbook}
                   });
 
@@ -430,9 +446,8 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
               }
 
-              await db.collection("WeeklyStudyfeedback").updateOne({"학생ID":newstuDB["ID"],"피드백일": feedbackDate},
+              await db.collection("WeeklyStudyfeedback").updateMany({"학생ID":newstuDB["ID"],"피드백일": {$gte: todayFeedback}},
                   {$unset:dict});
-
             }
 
           }
