@@ -399,6 +399,7 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
           // 날짜 범위 수정에 따른 for문으로 새롭게 추가 로직 필요
       // let feedbackDate = feedbackWeekArr[1]["피드백일"]; // 결과 array가 2보다 작을경우 문제가 됨
       // console.log(feedbackDate)
+      const feedbackDate="foobar";
 
       /** ----------- 교재수정에 따른 WeeklyStudyfeedback 수정 ---------------- **/
       // /****/ 주석은 푸쉬할때 사라지나?
