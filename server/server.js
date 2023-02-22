@@ -305,6 +305,7 @@ function filterTextBook(exist,newOne){
 
 function checkDuplication(data){
 
+
   let temp = data.map((e)=>{
     return e["교재"];
   })
@@ -391,6 +392,7 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
     /** 추가하고 삭제해야할 책 정보 **/
     const updateTextbookInfo = filterTextBook(existingTextbook, newTextbook);
+    checkDuplication(newTextbook);
 
 
     /** WeeklyStudentfeedback 콜렉션에 저장된 모든 날짜들 **/
@@ -399,6 +401,7 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
             .find({"학생ID": newstuDB["ID"],"피드백일":{$gte: todayFeedback}})
             .project({"피드백일": 1,_id: 0})
             .toArray();
+
 
     /** Validation : 신규 학생이 WeeklyStudyfeedback 콜렉션에 정보가 없을 때 건너뛰기 **/
     if (feedbackWeekArr.length !== 0) {

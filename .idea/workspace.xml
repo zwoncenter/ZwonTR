@@ -6,11 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="b68b7d9e-ced1-47c4-a1d2-9c607a555e1e" name="Changes" comment="">
       <changelist_data name="taeho-han" email="oheat87@gmail.com" date="1676528121000" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/server/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/server.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/zwontr/src/routes/LectureList.js" beforeDir="false" afterPath="$PROJECT_DIR$/zwontr/src/routes/LectureList.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/zwontr/src/routes/TRedit.js" beforeDir="false" afterPath="$PROJECT_DIR$/zwontr/src/routes/TRedit.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/zwontr/src/routes/TRwrite.js" beforeDir="false" afterPath="$PROJECT_DIR$/zwontr/src/routes/TRwrite.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,7 +56,7 @@
       <updated>1676601169983</updated>
       <workItem from="1676601171324" duration="510000" />
       <workItem from="1676601745469" duration="17897000" />
-      <workItem from="1677029234511" duration="6813000" />
+      <workItem from="1677029234511" duration="7066000" />
     </task>
     <servers />
   </component>
