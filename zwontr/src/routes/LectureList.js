@@ -263,7 +263,7 @@ function LectureList() {
         });
       // 학생DB에 수강중강의가 있는지, 수강중강의에 해당 lectureID가 존재하는지부터 확인해야하긴 함.
 
-      await stuDB["수강중강의"].splice(stuDB["수강중강의"].indexOf(lecture["lectureID"]), 1);
+      await stuDB["수강중강의"].splice(stuDB["수강중강의"].indexOf(lecture["lectureID"]), 1); // "수강중강의" of StudentDB document deprecated
       console.log(stuDB["수강중강의"]);
       axios
         .put("/api/StudentDB", stuDB)
@@ -295,6 +295,24 @@ function LectureList() {
       });
   };
 
+  // 강의 완료처리 관련 코드
+  const finishLecture = async (lecture)=>{
+    if (!window.confirm(`${lecture["lectureName"]} 강의를 완료처리하시겠습니까? \n(강의가 DB에서 삭제되지 않습니다)`)) return;
+    axios
+      .post(`/api/finishLecture`,{lectureID:lecture["lectureID"]})
+      .then((result)=>{
+        const data=result["data"];
+        if(data["success"]!==true){
+          window.alert(`강의를 완료처리하지 못했습니다\n다시 시도해주세요 0`);
+          return;
+        }
+        window.alert(`강의가 완료처리 되었습니다`);
+        window.location.reload();
+      })
+      .catch((err)=>{
+        window.alert(`강의를 완료처리하지 못했습니다\n다시 시도해주세요 1`);
+      })
+  }
 
   function groupBy(list, fn){
     const groups = {};
@@ -792,10 +810,11 @@ function LectureList() {
                     variant="secondary"
                     onClick={(e) => {
                       e.stopPropagation();
-                      deleteLecture(lecture["studentList"], lecture);
+                      // deleteLecture(lecture["studentList"], lecture);
+                      finishLecture(lecture);
                     }}
                   >
-                    <strong>삭제</strong>
+                    <strong>완료</strong>
                   </Button>
                     </div>
                   </div>

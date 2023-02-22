@@ -954,6 +954,9 @@ function TRedit() {
       if(!(textbookName in textbookIDMapping)) continue;
       const textbookID= textbookIDMapping[textbookName];
       if(!(textbookID in textbookIDToSavedGoalStateMapping)) continue;
+      // 만약 daily goal check log가 tr귀가검사 전에 생기고
+      // 그 다음에 같은 교재로 강의과제가 생기는 경우(자동으로 숨겨지게 돼있으므로) 학습시간 검사 안함
+      if(checkTextBookOfAssignment(textbookName)) continue; 
       if(textbookIDToSavedGoalStateMapping[textbookID]["finishedState"]===true){
         const textbookStudyTime= TR.학습[i].학습시간;
         if(textbookStudyTime==="0:00" || textbookStudyTime==="00:00") {
