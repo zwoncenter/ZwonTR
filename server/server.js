@@ -2311,7 +2311,7 @@ app.post("/api/StudentTodayAssignment/", loginCheck, async (req,res)=>{
               manager: 1,
               AOSID: 1,
               AOSTextbookID: 1,
-              hiddenOnTRPage: {$ifNull: ["$hiddenOnLecturePage",false]} // flag: lecture 페이지에서 과제 보여줄지 여부
+              hiddenOnTRPage: {$ifNull: ["$hiddenOnLecturePage",false]} // flag: TR 페이지에서 과제 보여줄지 여부
             },
           },
         ]).toArray();
