@@ -2310,7 +2310,8 @@ app.post("/api/StudentTodayAssignment/", loginCheck, async (req,res)=>{
               finished_date: 1,
               manager: 1,
               AOSID: 1,
-              AOSTextbookID: 1
+              AOSTextbookID: 1,
+              hiddenOnTRPage: {$ifNull: ["$hiddenOnLecturePage",false]} // flag: lecture 페이지에서 과제 보여줄지 여부
             },
           },
         ]).toArray();

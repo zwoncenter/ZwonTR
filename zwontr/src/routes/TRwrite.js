@@ -881,10 +881,12 @@ function TRwrite() {
   const [todayAssignments, setTodayAssignments] = useState([]);
 
   function processTodayAssignmentData(todayAssignmentData){ //post request로 받아온 데이터 전처리
-    const ret=JSON.parse(JSON.stringify(todayAssignmentData));
-    ret.forEach((e,idx)=>{
+    const raw_data_copy=JSON.parse(JSON.stringify(todayAssignmentData));
+    const ret=[];
+    raw_data_copy.forEach((e,idx)=>{
       e["textbookName"]=e["textbookName"].length>0?e["textbookName"][0]:"";
       e["AOSTextbookID"]=e["AOSTextbookID"].length>0?e["AOSTextbookID"][0]:"";
+      if(!e["hiddenOnTRPage"]) ret.push(e);
     });
     return ret;
   }
