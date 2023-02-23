@@ -126,7 +126,7 @@ function App() {
             <strong>마감 회의</strong>
           </h5>
         </Button>
-        <Button
+        {/* <Button
           className="menu-map-btn btn-secondary"
           onClick={() => {
             history.push("/Todolist");
@@ -135,7 +135,7 @@ function App() {
           <h5>
             <strong>TO-DO list</strong>
           </h5>
-        </Button>
+        </Button> */}
         <Button
           className="menu-map-btn btn-secondary"
           onClick={() => {

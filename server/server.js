@@ -304,15 +304,27 @@ function filterTextBook(exist,newOne){
 }
 
 function checkDuplication(data){
-  let newArray = data.map((e)=>{
+
+
+  let temp = data.map((e)=>{
     return e["교재"];
   })
+  let newSet = new Set(temp);
 
-  console.log(newArray.length);
+  let result = []
 
-  let newSet = new Set(newArray);
+  // forEach x includes = O(n^2)
+  // forEach x has = O(n)
+  data.forEach((ele,index)=>{
+    if(newSet.has(ele["교재"])){
+      result.push(ele);
+      newSet.delete(ele["교재"]);
 
-  console.log(newSet)
+    }
+  })
+
+  return result;
+
 
 }
 
@@ -382,14 +394,14 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
     const updateTextbookInfo = filterTextBook(existingTextbook, newTextbook);
     checkDuplication(newTextbook);
 
+
     /** WeeklyStudentfeedback 콜렉션에 저장된 모든 날짜들 **/
         // 피드백 : limit(1)을 통해 모든 리스트를 가져오는 것이 아니라 1개만 가져옴으로써 연산량 줄임
     let feedbackWeekArr = await db.collection("WeeklyStudyfeedback")
             .find({"학생ID": newstuDB["ID"],"피드백일":{$gte: todayFeedback}})
             .project({"피드백일": 1,_id: 0})
             .toArray();
-    console.log(todayFeedback);
-    console.log(feedbackWeekArr)
+
 
     /** Validation : 신규 학생이 WeeklyStudyfeedback 콜렉션에 정보가 없을 때 건너뛰기 **/
     if (feedbackWeekArr.length !== 0) {
@@ -455,6 +467,8 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
       /** -------------------------------------------- **/
 
       delete newstuDB._id; //MongoDB에서 Object_id 중복을 막기 위해 id 삭제
+
+      newstuDB["진행중교재"] = checkDuplication(newTextbook); // 중복 제거한 진행 중인 교재 리스트로 교체
 
       await db.collection("StudentDB").updateOne({ ID: findID }, { $set: newstuDB });
 

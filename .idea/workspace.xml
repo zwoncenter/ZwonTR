@@ -4,8 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="44048983-f0d5-473b-9126-0ccce737664c" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="b68b7d9e-ced1-47c4-a1d2-9c607a555e1e" name="Changes" comment="">
+      <changelist_data name="taeho-han" email="oheat87@gmail.com" date="1676528121000" />
       <change beforePath="$PROJECT_DIR$/server/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/server.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -15,11 +15,12 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RESET_MODE" value="HARD" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
-  <component name="ProjectId" id="2Kr8Zr1K5pXgBVW52xGY4bXnJIH" />
+  <component name="ProjectId" id="2LqafRL9MjRpGYk1IatFp9HFhyK" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -29,28 +30,33 @@
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/jknad/WebstormProjects/Web-Front&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/chojoonki/WebstormProjects/ZwonTR&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;C:\\Program Files\\JetBrains\\WebStorm 2022.3.1\\plugins\\javascript-impl\\jsLanguageServicesImpl\\external&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;configurable.group.tools&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/server" />
+      <recent name="$PROJECT_DIR$" />
+    </key>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="44048983-f0d5-473b-9126-0ccce737664c" name="Changes" comment="" />
-      <created>1674687982718</created>
+      <changelist id="b68b7d9e-ced1-47c4-a1d2-9c607a555e1e" name="Changes" comment="" />
+      <created>1676601169983</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1674687982718</updated>
-      <workItem from="1674687985368" duration="13714000" />
-      <workItem from="1674721404604" duration="2718000" />
-      <workItem from="1675120000408" duration="13382000" />
-      <workItem from="1675210219835" duration="2583000" />
+      <updated>1676601169983</updated>
+      <workItem from="1676601171324" duration="510000" />
+      <workItem from="1676601745469" duration="17897000" />
+      <workItem from="1677029234511" duration="7292000" />
     </task>
     <servers />
   </component>
@@ -62,7 +68,19 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State />
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="dev" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
           </value>
         </entry>
       </map>
