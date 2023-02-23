@@ -1100,7 +1100,7 @@ function TRedit() {
           console.log(err);
         });
     todayAssignmentData = processTodayAssignmentData(todayAssignmentData);
-    console.log("twad:"+JSON.stringify(todayAssignmentData));
+    // console.log("twad:"+JSON.stringify(todayAssignmentData));
     setTodayAssignments(todayAssignmentData);
     // console.log("created description:"+getDescriptionStringFromAssignment(todayAssignmentData[0]));
     // console.log("check: ", todayAssignmentData);
