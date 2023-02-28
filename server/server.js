@@ -1145,7 +1145,10 @@ app.put("/api/Textbook", loginCheck, function (req, res) {
   }
   //const newTextbook = req.body;
   //const findID = ObjectId("62b815e210c04d831adf2f5b");
-  const edittedTextbook = req.body;
+  let edittedTextbook = req.body;
+
+  edittedTextbook["updatedAt"] = moment().format('YYYY-MM-DD HH:mm:SS')
+
   let findID;
   try {
     findID = new ObjectId(edittedTextbook["_id"]);
