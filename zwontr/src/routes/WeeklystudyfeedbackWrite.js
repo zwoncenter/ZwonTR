@@ -85,7 +85,7 @@ function WeeklystudyfeedbackWrite() {
   // const dayIndexArray=[0,1,2,3,4,5,6]; //0:monday, 6:sunday: legacy
   const dayArray=['월','화','수','목','금','일'];
   function processThisWeekAssignmentData(thisWeekAssignmentData){
-    const data_copy=JSON.parse(JSON.stringify(thisWeekAssignmentData));
+    const data_copy=JSON.parse(JSON.stringify(thisWeekAssignmentData)).filter((e,idx)=>!e["hiddenOnWSFPage"]); // 삭제처리 flag 있는 과제는 보여주지 않음
     const ret={};
     const assignmentInfoTemplate={}
     for(let i=0; i<6; i++) assignmentInfoTemplate[i]=[];

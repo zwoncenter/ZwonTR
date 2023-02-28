@@ -2242,6 +2242,7 @@ app.post("/api/ThisWeekAssignment/", loginCheck, async (req,res)=>{
               startdate:1,
               finished: 1,
               finished_date: 1,
+              hiddenOnWSFPage: {$ifNull: ["$hiddenOnLecturePage",false]} // flag: 주간학습스케줄링 페이지에서 과제 보여줄지 여부
             },
           },
         ]).toArray();
