@@ -38,7 +38,7 @@ app.use(cors());
 var db, db_client;
 
 // TODO : 배포 전에 반드시 실제 서비스(DB_URL)로 바꿀 것!!
-MongoClient.connect(process.env.TEST_DB_URL, function (err, client) {
+MongoClient.connect(process.env.DB_URL, function (err, client) {
   if (err) {
     return console.log(err);
   }
@@ -402,7 +402,7 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
     /** 추가하고 삭제해야할 책 정보 **/
     const updateTextbookInfo = filterTextBook(existingTextbook, newTextbook);
-    console.log(updateTextbookInfo)
+    // console.log(updateTextbookInfo)
     // checkDuplication(newTextbook);
 
 
