@@ -2570,7 +2570,7 @@ function TRwrite() {
                      for (let i = 0; i < stuDB["진행중교재"].length; i++) {
                        for (let j = 0; j < TR["학습"].length; j++) {
                          if (stuDB["진행중교재"][i]["과목"] == TR["학습"][j]["과목"] && stuDB["진행중교재"][i]["교재"] == TR["학습"][j]["교재"]) {
-                          newstuDB["진행중교재"][i]["최근진도"] = Math.max(newstuDB["진행중교재"][i]["최근진도"], TR["학습"][j]["최근진도"]);
+                          newstuDB["진행중교재"][i]["최근진도"] = TR["학습"][j]["최근진도"];
                           newstuDB["진행중교재"][i]["최근진도율"] = newstuDB["진행중교재"][i]["총교재량"]
                               ? Math.round((newstuDB["진행중교재"][i]["최근진도"] / parseInt(newstuDB["진행중교재"][i]["총교재량"].match(/\d+/))) * 100)
                               : 0;

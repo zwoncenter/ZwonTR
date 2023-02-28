@@ -191,6 +191,7 @@ function StudentEdit() {
       });
     setmanagerList(tmp);
 
+
     newstuDB["진행중교재"].map((교재, index) => {
       교재["최근진도율"] = 교재["총교재량"] ? Math.round((교재["최근진도"] / parseInt(교재["총교재량"].match(/\d+/))) * 100) : 0;
     });
