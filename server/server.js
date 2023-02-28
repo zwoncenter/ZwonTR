@@ -38,7 +38,7 @@ app.use(cors());
 var db, db_client;
 
 // TODO : 배포 전에 반드시 실제 서비스(DB_URL)로 바꿀 것!!
-MongoClient.connect(process.env.DB_URL, function (err, client) {
+MongoClient.connect(process.env.TEST_DB_URL, function (err, client) {
   if (err) {
     return console.log(err);
   }
@@ -278,8 +278,13 @@ function filterTextBook(exist,newOne){
   );
 
   /** 삭제해야할 책 제목을 통해 기존 교재목록 정보 추출 **/
-  let deleteArray = exist.filter((ele,idx)=>{
-    return deleteSet.has(ele["교재"]);
+  let deleteArray = []
+
+  exist.forEach((ele,idx)=>{
+    if(deleteSet.has(ele["교재"])){
+      deleteArray.push(ele);
+      deleteSet.delete(ele["교재"]);
+    }
   })
 
 
@@ -290,8 +295,13 @@ function filterTextBook(exist,newOne){
       [...newTextbookSet].filter(x => !existTextbookSet.has(x))
   )
   /** 추가해야할 책 제목을 통해 기존 교재목록인 newOne에서 인덱스를 찾아 정보 추출 **/
-  let insertArray = newOne.filter((ele,idx)=>{
-    return insertSet.has(ele["교재"]);
+  let insertArray = []
+  newOne.forEach((ele,idx)=>{
+    if(insertSet.has(ele["교재"])){
+      insertArray.push(ele);
+      insertSet.delete(ele["교재"]);
+
+    }
   });
 
 
@@ -392,7 +402,8 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
     /** 추가하고 삭제해야할 책 정보 **/
     const updateTextbookInfo = filterTextBook(existingTextbook, newTextbook);
-    checkDuplication(newTextbook);
+    console.log(updateTextbookInfo)
+    // checkDuplication(newTextbook);
 
 
     /** WeeklyStudentfeedback 콜렉션에 저장된 모든 날짜들 **/
