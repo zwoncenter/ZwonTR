@@ -19,7 +19,7 @@ function TextbookManage() {
 
   // TextbookManage 관련 코드
   const [textbookList, settextbookList] = useState([]);
-  const [lastRevise, setlastRevise] = useState("");
+  // const [lastRevise, setlastRevise] = useState("");
   const [subjectOn, setsubjectOn] = useState(false);
   const [ganadaOn, setganadaOn] = useState(false);
 
@@ -194,22 +194,37 @@ function TextbookManage() {
   }
 
   useEffect(async () => {
-    const existDocument = await axios
+    // const existDocument = await axios
+    //   .get(`/api/Textbook`)
+    //   .then((result) => {
+    //     if (result.data === "로그인필요") {
+    //       window.alert("로그인이 필요합니다");
+    //       return history.push("/");
+    //     }
+
+    //     return result.data;
+    //   })
+    //   .catch((err) => {
+    //     return err;
+    //   });
+    const textbookList= await axios
       .get(`/api/Textbook`)
       .then((result) => {
+        const data=result.data;
         if (result.data === "로그인필요") {
-          window.alert("로그인이 필요합니다");
-          return history.push("/");
+          window.alert("로그인이 필요합니다.");
+          return window.push("/");
         }
-
-        return result.data;
+        else if(data["success"]===true) return data.ret;
+        else if("ret" in data) throw new Error(data.ret);
+        throw new Error("교재 데이터를 불러오는 중 오류가 발생했습니다:client");
       })
       .catch((err) => {
         return err;
       });
-
-    setlastRevise(existDocument["날짜"]);
-    settextbookList(existDocument["textbookList"]);
+    // setlastRevise(existDocument["날짜"]);
+    // settextbookList(existDocument["textbookList"]);
+    settextbookList(textbookList);
   }, []);
 
   return (
@@ -337,7 +352,7 @@ function TextbookManage() {
       <h2 className="fw-bold text-center">
         <strong> 교재 관리 페이지</strong>
       </h2>
-      <p>최근 수정일 : {lastRevise}</p>
+      {/* <p>최근 수정일 : {lastRevise}</p> */}
 
 
 

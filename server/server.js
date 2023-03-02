@@ -1133,15 +1133,19 @@ app.get("/api/Textbook", loginCheck, async function (req, res) {
   //     }
   //     res.send(result[0]);
   //   });
-  let resp={날짜:"",textbookList:null};
+  // let resp={날짜:"",textbookList:null};
+  const ret={"success":false,"ret":null};
   try{
     const all_textbook_list=await db.collection("TextBook").find().toArray();
-    resp["textbookList"]=all_textbook_list;
+    // resp["textbookList"]=all_textbook_list;
+    ret["success"]=true; ret["ret"]=all_textbook_list;
   }catch (e) {
-    resp=`교재 데이터 불러오는 중 오류가 발생했습니다`;
+    // resp=`교재 데이터를 불러오는 중 오류가 발생했습니다`;
+    ret["ret"]=`교재 데이터를 불러오는 중 오류가 발생했습니다`;
   }
   finally{
-    return res.send(resp);
+    // return res.send(resp);
+    return res.json(ret);
   }
   // db.collection("TextBook")
   //     .find()
