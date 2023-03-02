@@ -168,11 +168,14 @@ function StudentEdit() {
     const newstuDB = await axios
       .get(`/api/StudentDB/${param["ID"]}`)
       .then((result) => {
+        const data=result.data;
         if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다.");
           return history.push("/");
         }
-        return result["data"];
+        else if(data.success===true) return data.ret;
+        else throw new Error(data.ret);
+        // return result["data"];
       })
       .catch((err) => {
         return err;

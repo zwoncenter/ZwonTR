@@ -38,7 +38,7 @@ app.use(cors());
 var db, db_client;
 
 // TODO : 배포 전에 반드시 실제 서비스(DB_URL)로 바꿀 것!!
-MongoClient.connect(process.env.DB_URL, function (err, client) {
+MongoClient.connect(process.env.TEST_DB_URL, function (err, client) {
   if (err) {
     return console.log(err);
   }
@@ -217,45 +217,85 @@ app.get("/api/managerList", loginCheck, async (req, res) => {
 });
 
 // StudentDB에 새로운 stuDB 추가 요청
-app.post("/api/StudentDB", loginCheck, function (req, res) {
+app.post("/api/StudentDB", loginCheck, async function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const newDB = req.body;
-  db.collection("StudentDB").findOne({ ID: newDB.ID }, function (err, result) {
-    if (err) {
-      console.log("/api/StudentDB findOne Error : ", err);
-      return res.send("/api/StudentDB findOne Error : ", err);
+  
+  // db.collection("StudentDB").findOne({ ID: newDB.ID }, function (err, result) {
+  //   if (err) {
+  //     console.log("/api/StudentDB findOne Error : ", err);
+  //     return res.send("/api/StudentDB findOne Error : ", err);
+  //   }
+  //   if (result !== null) {
+  //     return res.send("중복되는 ID(이름, 생년월일)의 학생DB가 존재합니다");
+  //   }
+  //   db.collection("StudentDB").insertOne(newDB, (err2, result2) => {
+  //     if (err2) {
+  //       return res.send("신규 학생DB 저장 실패", err2);
+  //     }
+  //     db.collection("StudentDB_Log").insertOne(newDB, (err3, result) => {
+  //       if (err3) {
+  //         return res.send("신규학생 로그데이터 저장 실패", err3);
+  //       }
+  //     });
+  //     return res.send(true);
+  //   });
+  // });
+  const ret={"success":false,"ret":null};
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
     }
-    if (result !== null) {
-      return res.send("중복되는 ID(이름, 생년월일)의 학생DB가 존재합니다");
-    }
-    db.collection("StudentDB").insertOne(newDB, (err2, result2) => {
-      if (err2) {
-        return res.send("신규 학생DB 저장 실패", err2);
-      }
-      db.collection("StudentDB_Log").insertOne(newDB, (err3, result) => {
-        if (err3) {
-          return res.send("신규학생 로그데이터 저장 실패", err3);
-        }
-      });
-      return res.send(true);
-    });
   });
+  try{
+    session.startTransaction();
+    await db.collection("StudentDB").insertOne(newDB);
+    await db.collection("StudentDB_Log").insertOne(newDB);
+    ret["success"]=true;
+    session.commitTransaction();
+  }
+  catch(e){
+    await session.abortTransaction();
+    ret["ret"]="학생 데이터 등록 중 오류가 발생했습니다";
+  }
+  finally{
+    session.endSession();
+    return res.json(ret);
+  }
 });
 
 // StudentDB에서 해당 ID의 document 조회
-app.get("/api/StudentDB/:ID", loginCheck, function (req, res) {
-  const paramID = decodeURIComponent(req.params.ID);
-  db.collection("StudentDB").findOne({ ID: paramID }, function (err, result) {
-    if (err) {
-      return res.send("/api/studentDB/:ID - findOne Error : ", err);
-    }
-    if (result === null) {
-      return res.send("동일한 ID의 학생DB가 존재하지 않습니다. 개발 / 데이터 팀에 문의해주세요");
-    }
-    return res.json(result);
-  });
+app.get("/api/StudentDB/:ID", loginCheck, async function (req, res) {
+  const student_legacy_id = decodeURIComponent(req.params.ID);
+  // db.collection("StudentDB").findOne({ ID: paramID }, function (err, result) {
+  //   if (err) {
+  //     return res.send("/api/studentDB/:ID - findOne Error : ", err);
+  //   }
+  //   if (result === null) {
+  //     return res.send("동일한 ID의 학생DB가 존재하지 않습니다. 개발 / 데이터 팀에 문의해주세요");
+  //   }
+  //   return res.json(result);
+  // });
+  const ret={"success":false,"ret":null};
+  try{
+    const student_doc= await db.collection("StudentDB").findOne({ID:student_legacy_id});
+    if(!student_doc) throw new Error("no such student");
+    ret["success"]=true; ret["ret"]=student_doc;
+  }
+  catch(e){
+    ret["ret"]=`학생 정보를 조회하는 중 오류가 발생했습니다: ${e}`;
+  }
+  finally{
+    return res.json(ret);
+  }
 });
 
 // StudentDB에 수정 요청

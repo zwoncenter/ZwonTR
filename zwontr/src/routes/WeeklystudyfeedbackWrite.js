@@ -136,11 +136,14 @@ function WeeklystudyfeedbackWrite() {
     const existstuInfo = await axios
       .get(`/api/StudentDB/${param["ID"]}`)
       .then((result) => {
+        const data=result.data;
         if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다.");
           return history.push("/");
         }
-        return result["data"]["진행중교재"];
+        else if(data.success===true) return data.ret["진행중교재"];
+        else throw new Error(data.ret);
+        // return result["data"]["진행중교재"];
       })
       .catch((err) => {
         return err;

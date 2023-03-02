@@ -793,16 +793,21 @@ function StuInfoAdd() {
               axios
                 .post("/api/StudentDB", stuInfo)
                 .then(function (result) {
-                  if (result.data === true) {
-                    window.alert("저장되었습니다.");
-                    return history.push("/studentList");
-                  } else if (result.data === "로그인필요") {
-                    window.alert("로그인이 필요합니다.");
-                    return history.push("/");
-                  } else {
-                    console.log(result.data);
-                    window.alert(result.data);
-                  }
+                  const data=result.data;
+                    // if (result.data === true) {
+                    //   window.alert("저장되었습니다");
+                    //   return history.push("/studentList");
+                    // }
+                    if (result.data === "로그인필요") {
+                      window.alert("로그인이 필요합니다.");
+                      return history.push("/");
+                    }
+                    else if(data.success===true){
+                      window.alert("저장되었습니다");
+                      return history.push("/studentList");
+                    }
+                    else throw new Error(data.ret);
+                    // return window.alert(result.data)
                 })
                 .catch(function (err) {
                   console.log(err);
