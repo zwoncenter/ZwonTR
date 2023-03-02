@@ -38,7 +38,7 @@ app.use(cors());
 var db, db_client;
 
 // TODO : 배포 전에 반드시 실제 서비스(DB_URL)로 바꿀 것!!
-MongoClient.connect(process.env.TEST_DB_URL, function (err, client) {
+MongoClient.connect(process.env.DB_URL, function (err, client) {
   if (err) {
     return console.log(err);
   }
@@ -194,15 +194,26 @@ app.get("/api/ActiveStudentList", loginCheck, async (req,res)=>{
   }
 });
 
-app.get("/api/managerList", loginCheck, (req, res) => {
-  db.collection("Manager")
-      .find()
-      .toArray((err, result) => {
-        if (err) {
-          return console.log("api/managerList - find Error : ", err);
-        }
-        res.send(result[0]["매니저"]);
-      });
+app.get("/api/managerList", loginCheck, async (req, res) => {
+  // db.collection("Manager")
+  //     .find()
+  //     .toArray((err, result) => {
+  //       if (err) {
+  //         return console.log("api/managerList - find Error : ", err);
+  //       }
+  //       res.send(result[0]["매니저"]);
+  //     });
+  const ret={"success":false,"ret":null};
+  try{
+    const ret_data= await db.collection("Manager").find().toArray();
+    ret["success"]=true; ret["ret"]=ret_data[0]["매니저"];
+  }
+  catch(e){
+    ret["ret"]="매니저 목록 데이터를 불러오는 중 오류가 발생했습니다";
+  }
+  finally{
+    return res.json(ret);
+  }
 });
 
 // StudentDB에 새로운 stuDB 추가 요청

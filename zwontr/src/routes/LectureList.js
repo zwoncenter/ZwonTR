@@ -353,7 +353,10 @@ function LectureList() {
       .get("/api/managerList")
       .then((result) => {
         //console.log(result["data"]);
-        return result["data"];
+        const data=result.data;
+        if(data.success===true) return data.ret;
+        else throw new Error(data.ret);
+        // return result["data"];
       })
       .catch((err) => {
         return err; 

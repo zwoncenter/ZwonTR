@@ -474,7 +474,10 @@ function Lecture() {
     const newmanagerList = await axios
       .get("/api/managerList")
       .then((result) => {
-        return result["data"];
+        const data=result.data;
+        if(data.success===true) return data.ret;
+        else throw new Error(data.ret);
+        // return result["data"];
       })
       .catch((err) => {
         return err;
