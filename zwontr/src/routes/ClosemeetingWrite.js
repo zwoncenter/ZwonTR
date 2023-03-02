@@ -6,6 +6,12 @@ import axios from "axios";
 import TimePicker from "react-time-picker";
 import menuarrow from "../next.png";
 
+
+// this file is deprecated! not to use! 
+// this file is deprecated! not to use!
+// this file is deprecated! not to use!
+
+
 function ClosemeetingWrite() {
   let history = useHistory();
   let paramDate = useParams()["date"];
@@ -16,6 +22,9 @@ function ClosemeetingWrite() {
   const [todayTRlist, settodayTRlist] = useState([]);
   const [closeFeedback, setcloseFeedback] = useState({});
   const [selectedDate, setselectedDate] = useState("");
+
+  // 일일결산 피드백 작성 매니저 관련 코드
+  const [managerList, setmanagerList] = useState([]);
 
   useEffect(async () => {
     const newtodayTRlist = await axios
@@ -39,6 +48,22 @@ function ClosemeetingWrite() {
     });
     settodayTRlist(newtodayTRlist);
   }, [paramDate]);
+
+  useEffect(async ()=>{
+    const newmanagerList = await axios
+        .get("/api/managerList")
+        .then((result) => {
+          const data=result.data;
+          if(data.success===true) return data.ret;
+          else throw new Error(data.ret);
+          // return result["data"];
+        })
+        .catch((err) => {
+          return err;
+        });
+    // console.log("manager list:"+JSON.stringify(managerList));
+    setmanagerList(newmanagerList);
+  },[]);
 
   return (
     <div>
@@ -200,6 +225,25 @@ function ClosemeetingWrite() {
                     ) : null}
                   </td>
                   <td>
+                    {/* <Form.Select
+                        size="sm"
+                        className="feedback-sub"
+                        value={TR.중간매니저}
+                        onChange={(e) => {
+                          change_depth_one("중간매니저", e.target.value);
+                        }}
+                    >
+                      <option value="선택">선택</option>
+                      {managerList
+                          ? managerList.map((manager, index) => {
+                            return (
+                                <option value={manager} key={index}>
+                                  {manager}
+                                </option>
+                            );
+                          })
+                          : null}
+                    </Form.Select> */}
                     <textarea
                       className="textArea"
                       rows="3"

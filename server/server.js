@@ -1033,7 +1033,7 @@ app.post("/api/DailyGoalCheckLogByDateRange", loginCheck, async (req,res)=>{
   }
 });
 
-app.post("/api/Closemeeting/:date", loginCheck, function (req, res) {
+app.post("/api/Closemeeting/:date", loginCheck, function (req, res) { // deprecated: 동시성 처리 불가 이슈
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -1053,6 +1053,41 @@ app.post("/api/Closemeeting/:date", loginCheck, function (req, res) {
       return res.send(true);
     });
   });
+});
+
+function getUpdatePathFromNewCloseMeetingFeedback(feedbackData){
+  const ret={}
+  const path_base="closeFeedback."
+  Object.keys(feedbackData).forEach((feedback_hash,idx)=>{
+    ret[path_base+feedback_hash]=feedbackData[feedback_hash];
+  });
+  return ret;
+}
+
+app.post("/api/SaveClosemeetingFeedback", loginCheck, async function (req, res) {
+  if (req["user"]["ID"] === "guest") {
+    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
+  }
+  const closemeeting_feedback_data = req.body;
+  const ret={"success":false,"ret":null};
+  try{
+    const date_string=closemeeting_feedback_data["dateString"];
+    //date string validity check
+    if(getValidDateString(date_string)===null) throw new Error("입력된 날짜가 올바르지 않습니다");
+    const new_feedback_data=closemeeting_feedback_data["updatedFeedback"];
+    await db.collection("Closemeeting").updateOne(
+      {날짜:date_string},
+      {$set:getUpdatePathFromNewCloseMeetingFeedback(new_feedback_data)},
+      {"upsert":true}
+      );
+    ret["success"]=true; ret["ret"]=student_doc;
+  }
+  catch(e){
+    ret["ret"]=`마감회의 피드백 저장 중 오류가 발생했습니다: ${e}`;
+  }
+  finally{
+    return res.json(ret);
+  }
 });
 
 app.get("/api/Closemeeting/:date", loginCheck, function (req, res) {

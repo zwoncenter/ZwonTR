@@ -108,18 +108,19 @@ function App() {
         <Button
           className="menu-map-btn btn-secondary"
           onClick={() => {
-            axios
-              .get(`/api/Closemeeting/${today}`)
-              .then((result) => {
-                if (result["data"] === null) {
-                  history.push(`/Closemeeting/Write/${today}`);
-                } else {
-                  history.push(`/Closemeeting/Edit/${today}`);
-                }
-              })
-              .catch((err) => {
-                console.log(err);
-              });
+            // axios
+            //   .get(`/api/Closemeeting/${today}`)
+            //   .then((result) => {
+            //     if (result["data"] === null) {
+            //       history.push(`/Closemeeting/Write/${today}`);
+            //     } else {
+            //       history.push(`/Closemeeting/Edit/${today}`);
+            //     }
+            //   })
+            //   .catch((err) => {
+            //     console.log(err);
+            //   });
+            history.push(`/Closemeeting/${today}`)
           }}
         >
           <h5>
@@ -203,11 +204,14 @@ function App() {
         <Route exact path="/Chart/:ID">
           <StudyChart />
         </Route>
-        <Route exact path="/Closemeeting/Write/:date">
+        {/* <Route exact path="/Closemeeting/Write/:date">
           <ClosemeetingWrite />
-        </Route>
+        </Route> */}
 
-        <Route exact path="/Closemeeting/Edit/:date">
+        {/* <Route exact path="/Closemeeting/Edit/:date">
+          <ClosemeetingEdit />
+        </Route> */}
+        <Route exact path="/Closemeeting/:date">
           <ClosemeetingEdit />
         </Route>
         <Route exact path="/Middlemeeting/Write/:date">
