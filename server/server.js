@@ -38,7 +38,7 @@ app.use(cors());
 var db, db_client;
 
 // TODO : 배포 전에 반드시 실제 서비스(DB_URL)로 바꿀 것!!
-MongoClient.connect(process.env.DB_URL, function (err, client) {
+MongoClient.connect(process.env.TEST_DB_URL, function (err, client) {
   if (err) {
     return console.log(err);
   }
@@ -366,8 +366,8 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
 
-  let ret_val;
-  let success;
+  const ret_val={"success":false,"ret" :null};
+  // let success;
 
   let dayIndex = ['월','화','수','목','금','일'];
 
@@ -384,12 +384,14 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
     session.startTransaction();
     // findOne에는 toArray() 쓰면 안됨
     let studentDB_result = await db.collection(`StudentDB`).findOne({ID: findID});
+    if(!studentDB_result) throw new Error("등록되지 않은 학생입니다");
 
     /** 업데이트되기 전 학생교재 **/
     existingTextbook = studentDB_result["진행중교재"];
 
     /** 새롭게 수정 요청된 학생 교재 리스트 **/
     const newTextbook = newstuDB["진행중교재"];
+    if(!("진행중교재" in newstuDB) || !(Array.isArray(newstuDB["진행중교재"]))) throw new Error("유효하지 않은 요청입니다");
 
     /** 오늘이 속한 주의 마지막 일요일 날짜를 가져오기
      * => 이번주에 주간학습스케줄링이 기록되어 있느냐.
@@ -408,95 +410,99 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
     /** WeeklyStudentfeedback 콜렉션에 저장된 모든 날짜들 **/
         // 피드백 : limit(1)을 통해 모든 리스트를 가져오는 것이 아니라 1개만 가져옴으로써 연산량 줄임
-    let feedbackWeekArr = await db.collection("WeeklyStudyfeedback")
-            .find({"학생ID": newstuDB["ID"],"피드백일":{$gte: todayFeedback}})
-            .project({"피드백일": 1,_id: 0})
-            .toArray();
+    // let feedbackWeekArr = await db.collection("WeeklyStudyfeedback")
+    //         .find({"학생ID": newstuDB["ID"],"피드백일":{$gte: todayFeedback}})
+    //         .project({"피드백일": 1,_id: 0})
+    //         .toArray();
 
 
     /** Validation : 신규 학생이 WeeklyStudyfeedback 콜렉션에 정보가 없을 때 건너뛰기 **/
-    if (feedbackWeekArr.length !== 0) {
+    // if (feedbackWeekArr.length !== 0) {
 
       /** 가장 최근에 WeeklyStudentfeedback 콜렉션에 저장된 날짜 **/
       // let feedbackDate = feedbackWeekArr.at(-1)["피드백일"];
           // 날짜 범위 수정에 따른 for문으로 새롭게 추가 로직 필요
       // let feedbackDate = feedbackWeekArr[1]["피드백일"]; // 결과 array가 2보다 작을경우 문제가 됨
       // console.log(feedbackDate)
-      const feedbackDate="foobar";
+    const feedbackDate="foobar";
 
       /** ----------- 교재수정에 따른 WeeklyStudyfeedback 수정 ---------------- **/
       // /****/ 주석은 푸쉬할때 사라지나?
 
-            /** ------ 교재 추가 업데이트 진행 ------ **/
-            if(updateTextbookInfo.insertTextbook.length !== 0){
+    /** ------ 교재 추가 업데이트 진행 ------ **/
+    if(updateTextbookInfo.insertTextbook.length !== 0){
 
-              await db.collection("WeeklyStudyfeedback").updateMany({"학생ID": newstuDB["ID"],"피드백일" : {$gte: todayFeedback}},
-                  {$push: {"thisweekGoal.교재캡쳐" : {$each : updateTextbookInfo.insertTextbook}}});
+      await db.collection("WeeklyStudyfeedback").updateMany({"학생ID": newstuDB["ID"],"피드백일" : {$gte: todayFeedback}},
+          {$push: {"thisweekGoal.교재캡쳐" : {$each : updateTextbookInfo.insertTextbook}}});
 
-              let dict = {};
-              for(let i in updateTextbookInfo.insertTextbook){
+      let dict = {};
+      for(let i in updateTextbookInfo.insertTextbook){
 
-                let deadline_string = `thisweekGoal.마감일.${updateTextbookInfo.insertTextbook[i]["교재"]}`
-                dict[deadline_string] = feedbackDate;
+        let deadline_string = `thisweekGoal.마감일.${updateTextbookInfo.insertTextbook[i]["교재"]}`
+        dict[deadline_string] = feedbackDate;
 
-                for(let j in dayIndex){
-                  let string_tmp=`thisweekGoal.${dayIndex[j]}.${updateTextbookInfo.insertTextbook[i]["교재"]}`;
-                  dict[string_tmp] ="";
-                }
+        for(let j in dayIndex){
+          let string_tmp=`thisweekGoal.${dayIndex[j]}.${updateTextbookInfo.insertTextbook[i]["교재"]}`;
+          dict[string_tmp] ="";
+        }
 
-              }
+      }
 
-              await db.collection("WeeklyStudyfeedback").updateMany({"학생ID":newstuDB["ID"],"피드백일": {$gte: todayFeedback}},
-                  {$set:dict});
-            }
+      await db.collection("WeeklyStudyfeedback").updateMany({"학생ID":newstuDB["ID"],"피드백일": {$gte: todayFeedback}},
+          {$set:dict});
+    }
 
-            /** ------ 교재 삭제 업데이트 진행 ------ **/
-            if(updateTextbookInfo.deleteTextbook.length !== 0){
+    /** ------ 교재 삭제 업데이트 진행 ------ **/
+    if(updateTextbookInfo.deleteTextbook.length !== 0){
 
-              await db.collection("WeeklyStudyfeedback").updateMany({"학생ID": newstuDB["ID"],"피드백일" : {$gte: todayFeedback}},
-                  {$pullAll: {"thisweekGoal.교재캡쳐": updateTextbookInfo.deleteTextbook}
-                  });
+      await db.collection("WeeklyStudyfeedback").updateMany({"학생ID": newstuDB["ID"],"피드백일" : {$gte: todayFeedback}},
+          {$pullAll: {"thisweekGoal.교재캡쳐": updateTextbookInfo.deleteTextbook}
+          });
 
-              let dict = {};
-              for(let i in updateTextbookInfo.deleteTextbook){
+      let dict = {};
+      for(let i in updateTextbookInfo.deleteTextbook){
 
-                let deadline_string = `thisweekGoal.마감일.${updateTextbookInfo.deleteTextbook[i]["교재"]}`
-                dict[deadline_string] ="";
+        let deadline_string = `thisweekGoal.마감일.${updateTextbookInfo.deleteTextbook[i]["교재"]}`
+        dict[deadline_string] ="";
 
-                for(let j in dayIndex){
-                  let string_tmp=`thisweekGoal.${dayIndex[j]}.${updateTextbookInfo.deleteTextbook[i]["교재"]}`;
-                  dict[string_tmp] ="";
-                }
+        for(let j in dayIndex){
+          let string_tmp=`thisweekGoal.${dayIndex[j]}.${updateTextbookInfo.deleteTextbook[i]["교재"]}`;
+          dict[string_tmp] ="";
+        }
 
-              }
+      }
 
-              await db.collection("WeeklyStudyfeedback").updateMany({"학생ID":newstuDB["ID"],"피드백일": {$gte: todayFeedback}},
-                  {$unset:dict});
-            }
+      await db.collection("WeeklyStudyfeedback").updateMany({"학생ID":newstuDB["ID"],"피드백일": {$gte: todayFeedback}},
+          {$unset:dict});
+    }
 
-          }
-      /** -------------------------------------------- **/
+          // }
+    /** -------------------------------------------- **/
 
-      delete newstuDB._id; //MongoDB에서 Object_id 중복을 막기 위해 id 삭제
+    delete newstuDB._id; //MongoDB에서 Object_id 중복을 막기 위해 id 삭제
 
-      newstuDB["진행중교재"] = checkDuplication(newTextbook); // 중복 제거한 진행 중인 교재 리스트로 교체
+    newstuDB["진행중교재"] = checkDuplication(newTextbook); // 중복 제거한 진행 중인 교재 리스트로 교체
 
-      await db.collection("StudentDB").updateOne({ ID: findID }, { $set: newstuDB });
+    await db.collection("StudentDB").updateOne({ ID: findID }, { $set: newstuDB });
 
-      await db.collection("StudentDB_Log").insertOne(newstuDB);
+    await db.collection("StudentDB_Log").insertOne(newstuDB);
 
-      session.commitTransaction();
-      session.endSession();
+    session.commitTransaction();
+    session.endSession();
 
-      return res.json({"success": true, "ret_val":""});
+    ret_val["success"]=true;
 
   }
   catch (err){
     session.abortTransaction();
-    ret_val=`error ${err}`;
-    success=false;
-    console.error(err);
-    return res.json({"success":success,"ret_val" : ret_val});
+    // ret_val=`error ${err}`;
+    // success=false;
+    // console.error(err);
+    // return res.json();
+    ret_val["ret"]="학생 정보 수정 중 오류가 발생했습니다";
+  }
+  finally{
+    return res.json(ret_val);
   }
 
 });

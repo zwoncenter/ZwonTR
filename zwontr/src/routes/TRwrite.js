@@ -2584,7 +2584,7 @@ function TRwrite() {
                             window.alert("로그인이 필요합니다.");
                             return history.push("/");
                           }
-                          if ("success" in result.data && result.data.success === true) {
+                          if (result.data.success === true) {
                             console.log(result.data);
                             // window.alert(result.data);
                           } else {

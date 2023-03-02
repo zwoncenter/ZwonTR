@@ -264,7 +264,7 @@ function LectureList() {
   // },[addedLectureTextbookList])
 
   // 강의 삭제 관련 코드
-  const deleteLecture = async (studentList, lecture) => {
+  const deleteLecture = async (studentList, lecture) => { // deprecated
     if (!window.confirm(`${lecture["lectureName"]} 강의를 삭제하시겠습니까?`)) return;
     for (let student of studentList) {
       const stuDB = await axios
