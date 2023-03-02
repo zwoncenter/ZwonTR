@@ -1124,7 +1124,7 @@ app.put("/api/Todolist", loginCheck, function (req, res) {
   });
 });
 
-app.get("/api/Textbook", loginCheck, function (req, res) {
+app.get("/api/Textbook", loginCheck, async function (req, res) {
   // db.collection("Textbook")
   //   .find()
   //   .toArray((err, result) => {
@@ -1133,21 +1133,25 @@ app.get("/api/Textbook", loginCheck, function (req, res) {
   //     }
   //     res.send(result[0]);
   //   });
-
+  let resp={날짜:"",textbookList:null};
   try{
-
+    const all_textbook_list=await db.collection("TextBook").find().toArray();
+    resp["textbookList"]=all_textbook_list;
   }catch (e) {
-
+    resp=`교재 데이터 불러오는 중 오류가 발생했습니다`;
   }
-  db.collection("TextBook")
-      .find()
-      .toArray((err, result) => {
-        if (err) {
-          return console.log("api/Textbook - find Error : ", err);
-        }
-        const resp = { 날짜: "", textbookList: result };
-        res.send(resp);
-      });
+  finally{
+    return res.send(resp);
+  }
+  // db.collection("TextBook")
+  //     .find()
+  //     .toArray((err, result) => {
+  //       if (err) {
+  //         return console.log("api/Textbook - find Error : ", err);
+  //       }
+  //       const resp = { 날짜: "", textbookList: result };
+  //       res.send(resp);
+  //     });
 });
 
 app.put("/api/Textbook", loginCheck, function (req, res) {
@@ -1460,8 +1464,53 @@ app.post("/api/finishLecture",loginCheck, async (req,res)=>{
 });
 
 //강의에서 사용중인 교재 관련 코드
-app.get("/api/TextbookOfLecture/:lectureid", loginCheck, (req, res) => {
+app.get("/api/TextbookOfLecture/:lectureid", loginCheck, async (req, res) => {
   const paramID = decodeURIComponent(req.params.lectureid);
+  const ret={"success":false,"ret":null};
+  try{
+    const ret_data= await db.collection("Lecture")
+    .aggregate([
+      { $match: { lectureID: paramID } },
+      {
+        $lookup: {
+          from: "TextbookOfLecture",
+          localField: "_id",
+          foreignField: "lectureID",
+          as: "TextbookOfLecture_aggregate",
+        },
+      },
+      { $unwind: "$TextbookOfLecture_aggregate" },
+      {
+        $lookup: {
+          from: "TextBook",
+          localField: "TextbookOfLecture_aggregate.textbookID",
+          foreignField: "_id",
+          as: "TextBook_aggregate",
+        },
+      },
+      { $unwind: "$TextBook_aggregate" },
+      {
+        $addFields: {
+          textbookID: "$TextBook_aggregate._id",
+          textbookName: "$TextBook_aggregate.교재",
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          textbookID: 1,
+          textbookName: 1,
+        },
+      },
+    ]).toArray();
+    ret["success"]=true; ret["ret"]= ret_data;
+  }
+  catch(e){
+    ret["ret"]="강의에서 사용중인 교재를 불러오는 중에 오류가 발생했습니다";
+  }
+  finally{
+    return res.json(ret);
+  }
   //aggregate(join) query
   db.collection("Lecture")
       .aggregate([

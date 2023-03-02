@@ -612,11 +612,14 @@ function Lecture() {
     const usingTextbook = await axios
       .get(`/api/TextbookOfLecture/${paramID}`)
       .then((result) => {
+        const data=result.data;
         if (result.data === "로그인필요") {
           window.alert("로그인이 필요합니다.");
           return window.push("/");
         }
-        return result["data"];
+        else if(data["success"]===true) return data.ret;
+        else if("ret" in data) throw new Error(data.ret);
+        throw new Error("강의에서 사용중인 교재를 불러오는 중 오류가 발생했습니다:client");
       })
       .catch((err) => {
         return window.alert(err);
