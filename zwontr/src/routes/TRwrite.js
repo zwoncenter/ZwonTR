@@ -772,7 +772,10 @@ function TRwrite() {
     const newmanagerList = await axios
       .get("/api/managerList")
       .then((result) => {
-        return result["data"];
+        const data=result.data;
+          if(data.success===true) return data.ret;
+          else throw new Error(data.ret);
+          // return result["data"];
       })
       .catch((err) => {
         return err;
@@ -2609,15 +2612,23 @@ function TRwrite() {
                   axios
                       .post("/api/TR", postedTR)
                       .then(function (result) {
-                        if (result.data === true) {
-                          window.alert("저장되었습니다.");
-                          history.push("/studentList");
-                        } else if (result.data === "로그인필요") {
+                        const data=result.data;
+                        // if (result.data === true) {
+                        //   window.alert("저장되었습니다.");
+                        //   history.push("/studentList");
+                        // } else
+                        if (result.data === "로그인필요") {
                           window.alert("로그인이 필요합니다.");
                           return history.push("/");
-                        } else {
-                          console.log(result.data);
-                          window.alert(result.data);
+                        }
+                        else if(data.success===true){
+                          window.alert("저장되었습니다.");
+                          history.push("/studentList");
+                        }
+                        else {
+                          // console.log(result.data);
+                          // window.alert(result.data);
+                          window.alert(data.ret);
                         }
                       })
                       .catch(function (err) {

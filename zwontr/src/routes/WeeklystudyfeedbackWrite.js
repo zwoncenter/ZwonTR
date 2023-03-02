@@ -153,11 +153,19 @@ function WeeklystudyfeedbackWrite() {
     const studentTRlist = await axios
       .get(`/api/TR/${param["ID"]}`)
       .then(async function (result) {
-        await result.data.sort(function (a, b) {
-          return +(new Date(a.날짜) > new Date(b.날짜)) - 0.5;
-        });
-        // console.log(result.data);
-        return result.data;
+        // await result.data.sort(function (a, b) {
+        //   return +(new Date(a.날짜) > new Date(b.날짜)) - 0.5;
+        // });
+        const data=result.data;
+        if(data.success===true){
+          const tr_list=data.ret;
+          tr_list.sort(function (a, b) {
+            return +(new Date(a.날짜) > new Date(b.날짜)) - 0.5;
+          });
+          return tr_list;
+        }
+        else throw new Error(data.ret);
+        // return result.data;
       })
       .catch(function (err) {
         console.log("/api/TR/:name fail : ", err);

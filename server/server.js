@@ -38,7 +38,7 @@ app.use(cors());
 var db, db_client;
 
 // TODO : 배포 전에 반드시 실제 서비스(DB_URL)로 바꿀 것!!
-MongoClient.connect(process.env.DB_URL, function (err, client) {
+MongoClient.connect(process.env.TEST_DB_URL, function (err, client) {
   if (err) {
     return console.log(err);
   }
@@ -612,39 +612,74 @@ app.post("/api/DoGraduate/", loginCheck, async (req,res)=>{
 });
 
 // collection 중 TR의 해당 날짜의 Document find 및 전송
-app.get("/api/TRlist/:date", loginCheck, function (req, res) {
+app.get("/api/TRlist/:date", loginCheck, async function (req, res) {
   const paramDate = req.params.date;
-  db.collection("TR")
-      .find({ 날짜: paramDate })
-      .toArray(function (err, result) {
-        if (err) {
-          return res.send("api/TRlist/:date - find Error : ", err);
-        }
-        return res.json(result);
-      });
+  // db.collection("TR")
+  //     .find({ 날짜: paramDate })
+  //     .toArray(function (err, result) {
+  //       if (err) {
+  //         return res.send("api/TRlist/:date - find Error : ", err);
+  //       }
+  //       return res.json(result);
+  //     });
+
+  const ret={"success":false,"ret":null};
+  try{
+    const ret_data= await db.collection("TR").find({날짜: paramDate}).toArray();
+    ret["success"]=true; ret["ret"]=ret_data;
+  }
+  catch(e){
+    ret["ret"]="TR 목록 데이터를 가져오는 중 오류가 발생했습니다";
+  }
+  finally{
+    return res.json(ret);
+  }
 });
 
-app.get("/api/TR/:ID", loginCheck, function (req, res) {
-  const paramID = decodeURIComponent(req.params.ID);
-  db.collection("TR")
-      .find({ ID: paramID })
-      .toArray(function (err, result) {
-        if (err) {
-          return res.send("/api/TR/:ID - find Error : ", err);
-        }
-        return res.json(result);
-      });
+app.get("/api/TR/:ID", loginCheck, async function (req, res) {
+  const student_legacy_id = decodeURIComponent(req.params.ID);
+  // db.collection("TR")
+  //     .find({ ID: paramID })
+  //     .toArray(function (err, result) {
+  //       if (err) {
+  //         return res.send("/api/TR/:ID - find Error : ", err);
+  //       }
+  //       return res.json(result);
+  //     });
+  const ret={"success":false,"ret":null};
+  try{
+    const ret_data= await db.collection("TR").find({ID:student_legacy_id}).toArray();
+    ret["success"]=true; ret["ret"]=ret_data;
+  }
+  catch(e){
+    ret["ret"]="학생의 TR 목록 데이터를 가져오는 중 오류가 발생했습니다";
+  }
+  finally{
+    return res.json(ret);
+  }
 });
 
-app.get("/api/TR/:ID/:date", loginCheck, function (req, res) {
-  const paramID = decodeURIComponent(req.params.ID);
-  const paramDate = decodeURIComponent(req.params.date);
-  db.collection("TR").findOne({ ID: paramID, 날짜: paramDate }, function (err, result) {
-    if (err) {
-      return res.send("/api/TR/:ID/:date - findOne Error : ", err);
-    }
-    return res.json(result);
-  });
+app.get("/api/TR/:ID/:date", loginCheck, async function (req, res) {
+  const student_legacy_id = decodeURIComponent(req.params.ID);
+  const date_string = decodeURIComponent(req.params.date);
+  // db.collection("TR").findOne({ ID: paramID, 날짜: paramDate }, function (err, result) {
+  //   if (err) {
+  //     return res.send("/api/TR/:ID/:date - findOne Error : ", err);
+  //   }
+  //   return res.json(result);
+  // });
+  const ret={"success":false,"ret":null};
+  try{
+    const tr_doc= await db.collection("TR").findOne({ID:student_legacy_id, 날짜:date_string});
+    if(!tr_doc) throw new Error("조건에 맞는 TR이 존재하지 않습니다");
+    ret["success"]=true; ret["ret"]=tr_doc;
+  }
+  catch(e){
+    ret["ret"]=`해당 날짜의 학생 TR 데이터를 가져오는 중 오류가 발생했습니다: ${e}`;
+  }
+  finally{
+    return res.json(ret);
+  }
 });
 
 //특정 날짜 범위 내에 있는 TR들을 가져오는 URI
@@ -666,28 +701,44 @@ app.post("/api/TRByDateRange/", loginCheck, async function(req,res){
 });
 
 
-app.post("/api/TR", loginCheck, function (req, res) {
+app.post("/api/TR", loginCheck, async function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const newTR = req.body;
-  db.collection("TR").findOne({ ID: newTR.ID, 날짜: newTR.날짜 }, function (err, result) {
-    if (err) {
-      return res.send(`/api/TR - findOne Error : `, err);
-    }
-    if (result !== null) {
-      return res.send("findOne result is not null. 중복되는 날짜의 일간하루가 존재합니다.");
-    }
-    db.collection("TR").insertOne(newTR, function (err2, result2) {
-      if (err2) {
-        return res.send("/api/TR - insertOne Error : ", err2);
-      }
-      return res.send(true);
-    });
-  });
+  // db.collection("TR").findOne({ ID: newTR.ID, 날짜: newTR.날짜 }, function (err, result) {
+  //   if (err) {
+  //     return res.send(`/api/TR - findOne Error : `, err);
+  //   }
+  //   if (result !== null) {
+  //     return res.send("findOne result is not null. 중복되는 날짜의 일간하루가 존재합니다.");
+  //   }
+  //   db.collection("TR").insertOne(newTR, function (err2, result2) {
+  //     if (err2) {
+  //       return res.send("/api/TR - insertOne Error : ", err2);
+  //     }
+  //     return res.send(true);
+  //   });
+  // });
+
+  const ret={"success":false,"ret":null};
+  const student_legacy_id=newTR.ID;
+  const date_string=newTR.날짜;
+  try{
+    const tr_doc= await db.collection("TR").findOne({ID:student_legacy_id, 날짜:date_string});
+    if(tr_doc) throw new Error("해당 날짜에 작성된 TR이 이미 존재합니다");
+    await db.collection("TR").insertOne(newTR);
+    ret["success"]=true;
+  }
+  catch(e){
+    ret["ret"]=`해당 날짜의 학생 TR 데이터를 저장하는 중 오류가 발생했습니다: ${e}`;
+  }
+  finally{
+    return res.json(ret);
+  }
 });
 
-app.put("/api/TR", loginCheck, function (req, res) {
+app.put("/api/TR", loginCheck, async function (req, res) {
   console.log('req["user"]', req["user"]);
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
@@ -701,32 +752,49 @@ app.put("/api/TR", loginCheck, function (req, res) {
   }
 
   delete newTR._id;
-  db.collection("TR").findOne({ 이름: newTR.이름, 날짜: newTR.날짜 }, function (err, result) {
-    if (err) {
-      return res.send(`/api/TR - findOne Error : `, err);
-    }
-    if (result !== null && !result._id.equals(findID)) {
-      return res.send("중복되는 날짜의 일간하루가 존재합니다.");
-    }
-    db.collection(`TR`).findOne({ _id: findID }, function (err2, result2) {
-      if (err2) {
-        return console.log(`/api/TR - findOne Error : `, err2);
-      }
-      if (result2 === null) {
-        return res.send("일치하는 _id의 일간하루를 찾지 못했습니다. 개발 / 데이터팀에 문의해주세요");
-      }
-      db.collection("TR").updateOne({ _id: findID }, { $set: newTR }, function (err3, result3) {
-        if (err3) {
-          return res.send("/api/TR - updateOne Error : ", err3);
-        }
-        return res.send(true);
-      });
-    });
-  });
+  // db.collection("TR").findOne({ 이름: newTR.이름, 날짜: newTR.날짜 }, function (err, result) {
+  //   if (err) {
+  //     return res.send(`/api/TR - findOne Error : `, err);
+  //   }
+  //   if (result !== null && !result._id.equals(findID)) {
+  //     return res.send("중복되는 날짜의 일간하루가 존재합니다.");
+  //   }
+  //   db.collection(`TR`).findOne({ _id: findID }, function (err2, result2) {
+  //     if (err2) {
+  //       return console.log(`/api/TR - findOne Error : `, err2);
+  //     }
+  //     if (result2 === null) {
+  //       return res.send("일치하는 _id의 일간하루를 찾지 못했습니다. 개발 / 데이터팀에 문의해주세요");
+  //     }
+  //     db.collection("TR").updateOne({ _id: findID }, { $set: newTR }, function (err3, result3) {
+  //       if (err3) {
+  //         return res.send("/api/TR - updateOne Error : ", err3);
+  //       }
+  //       return res.send(true);
+  //     });
+  //   });
+  // });
+
+  const ret={"success":false,"ret":null};
+  const student_legacy_id=newTR.ID;
+  const date_string=newTR.날짜;
+  try{
+    const tr_doc= await db.collection("TR").findOne({ID:student_legacy_id, 날짜:date_string});
+    if(!tr_doc) throw new Error("해당 날짜에 저장된 TR이 없습니다");
+    if(tr_doc && !tr_doc._id.equals(findID)) throw new Error("해당 날짜에 작성된 다른 TR이 이미 존재합니다");
+    await db.collection("TR").updateOne({_id:findID},{ $set: newTR });
+    ret["success"]=true;
+  }
+  catch(e){
+    ret["ret"]=`해당 날짜의 학생 TR 데이터를 저장하는 중 오류가 발생했습니다: ${e}`;
+  }
+  finally{
+    return res.json(ret);
+  }
 });
 
 
-app.delete("/api/TR/:id", loginCheck, function (req, res) {
+app.delete("/api/TR/:id", loginCheck, async function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -737,15 +805,28 @@ app.delete("/api/TR/:id", loginCheck, function (req, res) {
     return res.send(`invalid access`);
   }
 
-  db.collection("TR").deleteOne({ _id: trID }, (err, result) => {
-    if (err) {
-      return res.send("/api/TR/:id - deleteOne error : ", err);
-    }
-    if (result.deletedCount === 1) {
-      return res.send(true);
-    }
-    return res.send(false);
-  });
+  // db.collection("TR").deleteOne({ _id: trID }, (err, result) => {
+  //   if (err) {
+  //     return res.send("/api/TR/:id - deleteOne error : ", err);
+  //   }
+  //   if (result.deletedCount === 1) {
+  //     return res.send(true);
+  //   }
+  //   return res.send(false);
+  // });
+
+  const ret={"success":false,"ret":null};
+  try{
+    const delete_result= await db.collection("TR").deleteOne({_id:trID});
+    if(delete_result.deletedCount == 0) throw new Error("작성된 TR이 없습니다");
+    ret["success"]=true;
+  }
+  catch(e){
+    ret["ret"]=`해당 날짜의 학생 TR 데이터 삭제하는 중 오류가 발생했습니다: ${e}`;
+  }
+  finally{
+    return res.json(ret);
+  }
 });
 
 app.post("/api/DailyGoalCheckLog", loginCheck, async (req,res)=>{

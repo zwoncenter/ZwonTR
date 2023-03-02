@@ -1141,7 +1141,10 @@ function TRedit() {
     const newTR = await axios
         .get(`/api/TR/${paramID}/${paramDate}`)
         .then((result) => {
-          return result["data"];
+          const data=result.data;
+          if(data.success===true) return data.ret;
+          else throw new Error(data.ret);
+          // return result["data"];
         })
         .catch((err) => {
           return err;
@@ -2565,10 +2568,17 @@ function TRedit() {
                         axios
                             .get(`/api/TR/${paramID}/${selectedDate}`)
                             .then((result) => {
-                              if (result["data"] === null) {
-                                window.alert("해당 날짜의 TR이 존재하지 않습니다.");
-                              } else {
+                              // if (result["data"] === null) {
+                              //   window.alert("해당 날짜의 TR이 존재하지 않습니다.");
+                              // } else {
+                              //   history.push(`/TR/${paramID}/edit/${selectedDate}`);
+                              // }
+                              const data=result.data;
+                              if(data.success===true){
                                 history.push(`/TR/${paramID}/edit/${selectedDate}`);
+                              }
+                              else{
+                                window.alert("해당 날짜의 TR이 존재하지 않습니다.");
                               }
                             })
                             .catch((err) => {
@@ -2652,15 +2662,23 @@ function TRedit() {
                             await axios
                                 .put("/api/TR", postedTR)
                                 .then(function (result) {
-                                  if (result.data === true) {
-                                    window.alert("저장되었습니다");
-                                    history.push("/studentList");
-                                  } else if (result.data === "로그인필요") {
+                                  const data=result.data;
+                                  // if (result.data === true) {
+                                  //   window.alert("저장되었습니다");
+                                  //   history.push("/studentList");
+                                  // } else
+                                  if (result.data === "로그인필요") {
                                     window.alert("로그인이 필요합니다.");
                                     return history.push("/");
-                                  } else {
-                                    console.log(result.data);
-                                    window.alert("수정 실패");
+                                  }
+                                  else if(data.success===true){
+                                    window.alert("저장되었습니다");
+                                    history.push("/studentList");
+                                  }
+                                  else {
+                                    // console.log(result.data);
+                                    // window.alert("수정 실패");
+                                    window.alert(data.ret);
                                   }
                                 })
                                 .catch(function (err) {
@@ -2684,15 +2702,23 @@ function TRedit() {
                         axios
                             .delete(`/api/TR/${TR._id}`)
                             .then(function (result) {
-                              if (result.data === true) {
-                                window.alert("수정되었습니다.");
-                                return history.push("/studentList");
-                              } else if (result.data === "로그인필요") {
+                              const data=result.data;
+                              // if (result.data === true) {
+                              //   window.alert("수정되었습니다.");
+                              //   return history.push("/studentList");
+                              // } else
+                              if (result.data === "로그인필요") {
                                 window.alert("로그인이 필요합니다.");
                                 return history.push("/");
-                              } else {
-                                console.log(result.data);
-                                window.alert(result.data);
+                              }
+                              else if(data.success===true){
+                                window.alert("삭제되었습니다.");
+                                return history.push("/studentList");
+                              }
+                              else {
+                                // console.log(result.data);
+                                // window.alert(result.data);
+                                window.alert(data.ret);
                               }
                             })
                             .catch(function (err) {

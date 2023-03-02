@@ -103,10 +103,23 @@ function StuListpage() {
     axios
       .get(`/api/TR/${db["ID"]}`)
       .then(async function (result) {
-        await result.data.sort(function (a, b) {
-          return +(new Date(a.날짜) < new Date(b.날짜)) - 0.5;
-        });
-        setstudentTRlist(result.data);
+        // await result.data.sort(function (a, b) {
+        //   return +(new Date(a.날짜) < new Date(b.날짜)) - 0.5;
+        // });
+        // setstudentTRlist(result.data);
+        const data=result.data;
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        }
+        else if(data.success===true){
+          const tr_list=data.ret;
+          tr_list.sort(function (a, b) {
+            return +(new Date(a.날짜) < new Date(b.날짜)) - 0.5;
+          });
+          setstudentTRlist(tr_list);
+        }
+        else throw new Error(data.ret);
       })
       .catch(function (err) {
         console.log("/api/TR/:name fail : ", err);
@@ -186,7 +199,14 @@ function StuListpage() {
     const newtodayTRlist = await axios
       .get(`/api/TRlist/${today}`)
       .then((result) => {
-        return result.data;
+        const data=result.data;
+        if (result.data === "로그인필요") {
+          window.alert("로그인이 필요합니다");
+          return history.push("/");
+        }
+        else if(data.success===true) return data.ret;
+        else throw new Error(data.ret);
+        // return result.data;
       })
       .catch((err) => {
         return err;
