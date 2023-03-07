@@ -1106,6 +1106,17 @@ function TRedit() {
     }
     return ret;
   }
+  const [validTextbookNames,setValidTextbookNames]=useState([]);
+  function getValidTextbookNameListForTextbookStudyTable(){
+    const textbook_name_set=new Set();
+    stuDB.진행중교재.forEach((book,idx)=>{
+      textbook_name_set.add(book["교재"]);
+    });
+    TR.학습.forEach((element,idx)=>{
+      textbook_name_set.add(element["교재"]);
+    })
+    return [...textbook_name_set];
+  }
 
   useEffect(async () => {
     // 오늘 마감인 해당 학생의 강의 과제를 가져온다 (post 방식 사용)
@@ -1363,6 +1374,12 @@ function TRedit() {
       setCuberatio(Math.round((cnt / TR["큐브책"].length) * 1000) / 10);
     }
   }, [TR.큐브책]);
+
+  useEffect(()=>{
+    if("진행중교재" in stuDB && "학습" in TR){
+      setValidTextbookNames(getValidTextbookNameListForTextbookStudyTable());
+    }
+  },[stuDB.진행중교재,TR.학습]);
 
   //귀가 피드백 textarea placeholder string
   const gohome_feedback_placeholder="학생과 대화하며 자신의 하루를 돌아보고\n"+
@@ -2028,13 +2045,22 @@ function TRedit() {
                                       }}
                                   >
                                     <option value="선택">선택</option>
-                                    {stuDB.진행중교재.map(function (book, index) {
+                                    {/* {stuDB.진행중교재.map(function (book, index) {
                                       return (
                                           <option value={book.교재} key={index}>
                                             {book.교재}
                                           </option>
                                       );
-                                    })}
+                                    })} */}
+                                    {
+                                      validTextbookNames.map((textbook_name,idx)=>{
+                                        return (
+                                          <option value={textbook_name} key={idx}>
+                                            {textbook_name}
+                                          </option>
+                                        );
+                                        })
+                                    }
                                     <option value="모의고사">모의고사</option>
                                     <option value="테스트">테스트</option>
                                     <option value="기타">기타</option>

@@ -288,6 +288,7 @@ function TextbookManage() {
                 setTextbookInfo(newtextbookInfo);
               }}
               defaultValue={textbookInfo["교재"]}
+              disabled={!newTextbookMode}
             />
           </InputGroup>
           <InputGroup className="mb-3">
