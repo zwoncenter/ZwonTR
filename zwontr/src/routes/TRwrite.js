@@ -730,8 +730,8 @@ function TRwrite() {
   const isInitialMount = useRef(true);
 
   useEffect(async () => {
-    console.log(typeof TR)
-    console.log(TR)
+    // console.log(typeof TR)
+    // console.log(TR)
     const newstuDB = await axios
       .get(`/api/StudentDB/${paramID}`)
       .then((result) => {
@@ -1091,7 +1091,7 @@ function TRwrite() {
         return false; // goal state 자체가 없으면 완료/사유작성 안된 것
       }
     }
-    console.log("textbook assignment done");
+    // console.log("textbook assignment done");
     return true;
   }
 
@@ -1177,6 +1177,30 @@ function TRwrite() {
   };
   function getPercentage(dividend,divisor){
     return (Math.round(dividend/divisor*1000))/10;
+  }
+
+  //수업 및 일반교재 학습 기입 관련 코드
+  function getTextbookVolumeFromTextbookName(textbookName){
+    let ret=""
+    for(let i=0; i<stuDB.진행중교재.length; i++){
+      const book=stuDB.진행중교재[i];
+      if(book["교재"]===textbookName){
+        ret=book["총교재량"];
+        break;
+      }
+    }
+    return ret;
+  }
+  function getRecentPageFromTextbookName(textbookName){
+    let ret=0;
+    for(let i=0; i<stuDB.진행중교재.length; i++){
+      const book=stuDB.진행중교재[i];
+      if(book["교재"]===textbookName){
+        ret=book["최근진도"];
+        break;
+      }
+    }
+    return ret;
   }
 
   useEffect(async()=>{
@@ -1581,7 +1605,7 @@ function TRwrite() {
                   variant="secondary"
                   className="btn-commit btn-attend"
                   onClick={() => {
-                    console.log(TR);
+                    // console.log(TR);
                     change_depth_one("결석여부", false);
                   }}
                 >
@@ -1593,7 +1617,7 @@ function TRwrite() {
                   variant="secondary"
                   className="btn-commit btn-comeyet"
                   onClick={() => {
-                    console.log(TR);
+                    // console.log(TR);
                     change_depth_one("결석여부", "등원예정");
                   }}
                 >
@@ -1606,7 +1630,7 @@ function TRwrite() {
                   className="btn-commit btn-absent"
                   onClick={() => {
                     if (window.confirm("미등원으로 전환하시겠습니까?")) {
-                      console.log(TR);
+                      // console.log(TR);
                       change_depth_one("결석여부", true);
                     }
                   }}
@@ -1998,7 +2022,15 @@ function TRwrite() {
                                 size="sm"
                                 value={a.교재}
                                 onChange={(e) => {
-                                  change_depth_three("학습", i, "교재", e.target.value);
+                                  const textbook_name=e.target.value;
+                                  const textbook_volume=getTextbookVolumeFromTextbookName(textbook_name);
+                                  const textbook_recent_page=getRecentPageFromTextbookName(textbook_name);
+                                  const newTR=JSON.parse(JSON.stringify(TR));
+                                  newTR.학습[i].교재=textbook_name;
+                                  newTR.학습[i].총교재량=textbook_volume;
+                                  newTR.학습[i].최근진도=textbook_recent_page;
+                                  setTR(newTR);
+                                  // change_depth_three("학습", i, "교재", textbook_name);
                                 }}
                               >
                                 <option value="선택">선택</option>
@@ -2591,11 +2623,11 @@ function TRwrite() {
                             return history.push("/");
                           }
                           if (result.data.success === true) {
-                            console.log(result.data);
+                            // console.log(result.data);
                             // window.alert(result.data);
                           } else {
                             fail_flag = true;
-                            console.log(result.data);
+                            // console.log(result.data);
                             window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요, 0");
                           }
                         })

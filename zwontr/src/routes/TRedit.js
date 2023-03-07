@@ -1083,6 +1083,30 @@ function TRedit() {
     return (Math.round(dividend/divisor*1000))/10;
   }
 
+  //수업 및 일반교재 학습 기입 관련 코드
+  function getTextbookVolumeFromTextbookName(textbookName){
+    let ret=""
+    for(let i=0; i<stuDB.진행중교재.length; i++){
+      const book=stuDB.진행중교재[i];
+      if(book["교재"]===textbookName){
+        ret=book["총교재량"];
+        break;
+      }
+    }
+    return ret;
+  }
+  function getRecentPageFromTextbookName(textbookName){
+    let ret=0;
+    for(let i=0; i<stuDB.진행중교재.length; i++){
+      const book=stuDB.진행중교재[i];
+      if(book["교재"]===textbookName){
+        ret=book["최근진도"];
+        break;
+      }
+    }
+    return ret;
+  }
+
   useEffect(async () => {
     // 오늘 마감인 해당 학생의 강의 과제를 가져온다 (post 방식 사용)
     const requestArgument = { studentID: paramID, today_date: paramDate };
@@ -1567,7 +1591,7 @@ function TRedit() {
                       className="btn-commit btn-attend"
                       onClick={() => {
                         change_depth_one("결석여부", false);
-                        console.log(TR);
+                        // console.log(TR);
                       }}
                   >
                     <strong>등원</strong>
@@ -1580,7 +1604,7 @@ function TRedit() {
                       className="btn-commit btn-comeyet"
                       onClick={() => {
                         change_depth_one("결석여부", "등원예정");
-                        console.log(TR);
+                        // console.log(TR);
                       }}
                   >
                     <strong>등원예정</strong>
@@ -1594,7 +1618,7 @@ function TRedit() {
                       onClick={() => {
                         if (window.confirm("미등원으로 전환하시겠습니까?")) {
                           change_depth_one("결석여부", true);
-                          console.log(TR);
+                          // console.log(TR);
                         }
                       }}
                   >
@@ -1822,7 +1846,7 @@ function TRedit() {
                                                 clearIcon={null}
                                                 clockIcon={null}
                                                 onChange={(value) => {
-                                                  console.log("timepicker value: "+value);
+                                                  // console.log("timepicker value: "+value);
                                                   if(!value) value="0:00";
                                                   const newAST=JSON.parse(JSON.stringify(assignmentStudyTime));
                                                   if(!(a["AOSID"] in newAST)) newAST[a["AOSID"]]=getAssignmentStudyTimeElementFromAssignmentData(a);
@@ -1837,20 +1861,20 @@ function TRedit() {
                                                   const astKeys= Object.keys(newAST);
                                                   for(let i=0; i<astKeys.length; i++){
                                                     const studyTime=newAST[astKeys[i]];
-                                                    console.log("studytime: "+JSON.stringify(studyTime));
+                                                    // console.log("studytime: "+JSON.stringify(studyTime));
                                                     실제학습시간 += parseInt(studyTime["학습시간"].split(":")[0]);
                                                     실제학습분 += parseInt(studyTime["학습시간"].split(":")[1]);
                                                   }
-                                                  console.log("breakpoint");
+                                                  // console.log("breakpoint");
                                                   newTR.학습.map(function (b, j) {
                                                     if (b.학습시간) {
-                                                      console.log("b: "+JSON.stringify(b));
+                                                      // console.log("b: "+JSON.stringify(b));
                                                       실제학습시간 += parseInt(b.학습시간.split(":")[0]);
                                                       실제학습분 += parseInt(b.학습시간.split(":")[1]);
                                                     }
                                                   });
-                                                  console.log("hour:"+실제학습시간);
-                                                  console.log("minute:"+실제학습분);
+                                                  // console.log("hour:"+실제학습시간);
+                                                  // console.log("minute:"+실제학습분);
                                                   newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
                                                   newTR["강의과제학습"]=newAST; // this line is necessary!: only needed in TREdit file
                                                   setTR(newTR);
@@ -1992,7 +2016,15 @@ function TRedit() {
                                       size="sm"
                                       value={a.교재}
                                       onChange={(e) => {
-                                        change_depth_three("학습", i, "교재", e.target.value);
+                                        const textbook_name=e.target.value;
+                                        const textbook_volume=getTextbookVolumeFromTextbookName(textbook_name);
+                                        const textbook_recent_page=getRecentPageFromTextbookName(textbook_name);
+                                        const newTR=JSON.parse(JSON.stringify(TR));
+                                        newTR.학습[i].교재=textbook_name;
+                                        newTR.학습[i].총교재량=textbook_volume;
+                                        newTR.학습[i].최근진도=textbook_recent_page;
+                                        setTR(newTR);
+                                        // change_depth_three("학습", i, "교재", textbook_name);
                                       }}
                                   >
                                     <option value="선택">선택</option>
@@ -2642,11 +2674,11 @@ function TRedit() {
                                     return history.push("/");
                                   }
                                   if (result.data.success === true) {
-                                    console.log(result.data);
+                                    // console.log(result.data);
                                     // window.alert(result.data);
                                   } else {
                                     fail_flag = true;
-                                    console.log(result.data);
+                                    // console.log(result.data);
                                     window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요, 0");
                                   }
                                 })

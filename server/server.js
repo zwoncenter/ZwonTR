@@ -394,7 +394,7 @@ function checkDuplication(data){
 
 // StudentDB에 수정 요청
 app.put("/api/StudentDB", loginCheck, async (req, res) => {
-  console.log(req["user"], req["user"]["ID"] === "guest");
+  // console.log(req["user"], req["user"]["ID"] === "guest");
   /** 서버로직 처리 중 err 발생시 전체 구문 rollback을 위한 트랜잭션 처리 선언
    session.startSession() = 트랜잭션 처리 시작
    session.commitTransaction() = 트랜잭션 반영
@@ -739,7 +739,7 @@ app.post("/api/TR", loginCheck, async function (req, res) {
 });
 
 app.put("/api/TR", loginCheck, async function (req, res) {
-  console.log('req["user"]', req["user"]);
+  // console.log('req["user"]', req["user"]);
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -1948,7 +1948,7 @@ app.post("/api/Assignment", loginCheck, async (req, res) => {
 
 app.delete("/api/Assignment/:AssignID",loginCheck,async (req,res)=>{
   const assignment=decodeURIComponent(req.params.AssignID);
-  console.log("assignment id:"+JSON.stringify(assignment));
+  // console.log("assignment id:"+JSON.stringify(assignment));
   let assignID;
   try{
     assignID=new ObjectId(assignment);
@@ -2490,7 +2490,7 @@ app.post("/api/StudentTodayAssignment/", loginCheck, async (req,res)=>{
   }
   const student_legacy_id=request_arguments["studentID"];
   const today_date=request_arguments["today_date"];
-  console.log(today_date);
+  // console.log(today_date);
   let ret_val;
   try{
     const target_student_doc= await db.collection("StudentDB").findOne({"ID":student_legacy_id});
@@ -2588,7 +2588,7 @@ app.post("/api/stickynote", loginCheck, function (req, res) {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
   const newStickynote = req.body;
-  console.log(req.body);
+  // console.log(req.body);
   db.collection("stickynote").findOne({ note: newStickynote["note"] }, function (err, result) {
     // if (err) {
     //   return res.send(`/api/stickynote - findOne Error : `, err);
@@ -2635,7 +2635,7 @@ app.delete("/api/stickynote/:id", loginCheck, (req, res) => {
   } catch (err) {
     return res.send(`invalid access`);
   }
-  console.log(findID);
+  // console.log(findID);
   db.collection("stickynote").deleteOne({ _id: findID }, (err, result) => {
     if (err) {
       return res.send(`/api/stickynote - deleteOne Error : ${err}`);
