@@ -22,7 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const session = require("express-session");
-app.use(session({ secret: "비밀코드", resave: true, saveUninitialized: false }));
+app.use(session({ secret: process.env.SESSION_SECRET, resave: true, saveUninitialized: false})); // cookie.secure attribute set to "true" to exploit https encoding
 app.use(passport.initialize());
 app.use(passport.session());
 
