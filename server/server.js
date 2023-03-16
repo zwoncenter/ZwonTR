@@ -49,8 +49,13 @@ app.use(cors());
 //var db, db_session;
 var db, db_client;
 
+let db_url;
+if(process.env.NODE_ENV==="production") db_url=process.env.DB_URL;
+else if(process.env.NODE_ENV==="development") db_url=process.env.TEST_DB_URL;
+else db_url=process.env.DB_URL;
+
 // TODO : 배포 전에 반드시 실제 서비스(DB_URL)로 바꿀 것!!
-MongoClient.connect(process.env.DB_URL, function (err, client) {
+MongoClient.connect(db_url, function (err, client) {
   if (err) {
     return console.log(err);
   }
