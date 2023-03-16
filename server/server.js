@@ -2,6 +2,7 @@ const express = require("express");
 const path = require("path");
 const app = express();
 const crypto = require("crypto");
+const authentificator = require("./authentificator.js");
 
 const MongoClient = require("mongodb").MongoClient;
 
@@ -101,12 +102,15 @@ passport.use(
         },
         function (inputID, inputPW, done) {
           console.log(inputID, "login trial");
-          db.collection("account").findOne({ ID: inputID }, function (err, result) {
+          // db.collection("account").findOne({ ID: inputID }, function (err, result) {
+          db.collection("account").findOne({ username: inputID }, function (err, result) {
             if (err) return done(err);
             // done 문법 (서버에러, 성공시 사용자 DB, 에러메세지)
             if (!result) return done(null, false, { message: "존재하지 않는 아이디 입니다." });
             // buf 참조해서 암호화 및 비교진행
-            if (inputPW == result.PW) {
+            const hashed_pw=authentificator.getHashedSync(inputPW,result.salt);
+            // if (inputPW == result.PW) {
+            if (hashed_pw === result.password) {
               console.log("로그인 성공, ", result);
               return done(null, result);
             } else {
@@ -121,14 +125,18 @@ passport.use(
 
 // id를 이용해서 세션을 저장시키는 코드(로그인 성공 시)
 passport.serializeUser(function (user, done) {
-  done(null, user.ID);
+  // done(null, user.ID);
+  done(null,user.username); // 이 구문이 뭘 어떻게 저장하는지 알아볼것
 });
 
 // 이 세션 데이터를 가진 사람을 DB에서 찾는 코드.
 // 하단 코드의 '아이디'는 윗 코드의 user.ID이다.
 passport.deserializeUser(function (아이디, done) {
   // DB에서 user.id로 유저를 찾은 뒤에, 유저 정보를 {}안에 넣음\
-  db.collection("account").findOne({ ID: 아이디 }, function (err, result) {
+  // db.collection("account").findOne({ ID: 아이디 }, function (err, result) {
+  //   done(null, result);
+  // });
+  db.collection("account").findOne({ username:아이디 }, function (err, result) {
     done(null, result);
   });
 });
