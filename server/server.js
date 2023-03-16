@@ -15,6 +15,18 @@ moment.tz.setDefault("Asia/Seoul");
 // .env
 require("dotenv").config();
 
+//https redirection
+if(process.env.NODE_ENV=="production"){
+  app.use((req,res,next)=>{
+    if(req.header('x-forwarded-proto') && req.header('x-forwarded-proto') === 'http'){
+      return res.redirect("https://"+req.headers.host+req.url);
+    }
+    else{
+      next();
+    }
+  });
+}
+
 // express에 내장된 body-parser 사용
 app.use(express.urlencoded({ extended: true }));
 
