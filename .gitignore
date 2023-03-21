@@ -134,3 +134,6 @@ dist
 .idea/
 
 .idea/workspace.xml
+
+#authentificator
+server/authentificator.js
