@@ -110,7 +110,8 @@ passport.use(
             // buf 참조해서 암호화 및 비교진행
             const hashed_pw=authentificator.getHashedSync(inputPW,result.salt);
             // if (inputPW == result.PW) {
-            if (hashed_pw === result.password) {
+            // if (hashed_pw === result.password) {
+            if(crypto.timingSafeEqual(Buffer.alloc(authentificator.BufferLen,hashed_pw),Buffer.alloc(authentificator.BufferLen,result.password))){
               console.log("로그인 성공, ", result);
               return done(null, result);
             } else {
