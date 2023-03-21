@@ -62,6 +62,7 @@ const session_option={
     dbName:process.env.SESSION_DB_NAME,
     collectionName:process.env.SESSION_COLLECTION_NAME,
     touchAfter:process.env.SESSION_TOUCH_AFTER,
+    stringify:false, // to query sessions with same username
   }),
   // store:MongoStore.create({clientPromise:MongoClient,dbName:process.env.SESSION_COLLECTION_NAME}),
   cookie:{maxAge:parseInt(process.env.SESSION_MAX_AGE)},
@@ -123,6 +124,8 @@ app.post("/api/logout", function(req,res,next){
   });
 });
 
+const max_session_concurrent= parseInt(process.env.MAX_SESSION_CONCURRENT);
+
 // ID와 PW를 검사해주는 코드.
 passport.use(
     new LocalStrategy(
@@ -144,8 +147,15 @@ passport.use(
             // if (inputPW == result.PW) {
             // if (hashed_pw === result.password) {
             if(crypto.timingSafeEqual(Buffer.alloc(authentificator.BufferLen,hashed_pw),Buffer.alloc(authentificator.BufferLen,result.password))){
-              console.log("로그인 성공, ", result);
-              return done(null, result);
+              db.collection(process.env.SESSION_COLLECTION_NAME).count({"session.passport.user.username":inputID}, function(err,count_result){
+                if(err) return done(err);
+                else if(count_result>max_session_concurrent){
+                  return done(null,false,{message: "접속할 수 있는 최대 연결 수를 넘어섰습니다"});
+                }
+                console.log("로그인 성공, ", result);
+                console.log(`${inputID} current session num: ${count_result}`);
+                return done(null, result);
+              });
             } else {
               return done(null, false, {
                 message: "비밀번호가 일치하지 않습니다.",
