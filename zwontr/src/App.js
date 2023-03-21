@@ -71,6 +71,26 @@ function App() {
       {window.location.pathname !== "/" ? 
       <div className="menu">
       <div className="menu-map">
+        <div className="userInfoBox">
+          <Button
+            className="logoutButton btn-secondary"
+            onClick={async ()=>{
+              if(window.confirm('로그아웃 하시겠습니까?')){
+                await axios
+                  .post("/api/logout",{})
+                  .then((result)=>{
+                    return history.push("/");
+                  })
+                  .catch((err)=>{
+                    window.alert("로그아웃에 실패했습니다\n다시 시도해주세요");
+                    console.log(`logout fail: ${err}`);
+                  });
+              }
+            }}
+          >
+            로그아웃
+          </Button>
+        </div>
         <Button
           className="menu-map-btn btn-secondary"
           onClick={() => {

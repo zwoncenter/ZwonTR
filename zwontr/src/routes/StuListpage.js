@@ -302,6 +302,7 @@ function StuListpage() {
     // }
     // console.log("log"+JSON.stringify(new Date())+" get sticky notes with keys");
     // return ret;
+    if(!Array.isArray(stickynoteValue)) return [];
     return stickynoteValue.map((element, index) => {
       let [xcoord,ycoord]= getValidCoord(element["x"],element["y"]);
       return <StickyNote key={keys[index]} id={element["_id"]} x_pos={xcoord} y_pos={ycoord}
