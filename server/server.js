@@ -3,7 +3,6 @@ const path = require("path");
 const app = express();
 const crypto = require("crypto");
 const authentificator = require("./authentificator.js");
-
 const MongoClient = require("mongodb").MongoClient;
 
 // ObjectId type casting을 위한 import
