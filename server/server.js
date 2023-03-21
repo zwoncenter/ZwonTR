@@ -17,6 +17,21 @@ moment.tz.setDefault("Asia/Seoul");
 // .env
 require("dotenv").config();
 
+//db라는 변수에 zwon 데이터베이스 연결, env파일 참조
+//var db, db_session;
+var db, db_client;
+
+let db_url;
+if(process.env.NODE_ENV==="production") {
+  db_url=process.env.DB_URL;
+}
+else if(process.env.NODE_ENV==="development") {
+  db_url=process.env.TEST_DB_URL;
+}
+else {
+  db_url=process.env.DB_URL;
+}
+
 //https redirection
 if(process.env.NODE_ENV=="production"){
   app.use((req,res,next)=>{
@@ -36,7 +51,26 @@ app.use(express.urlencoded({ extended: true }));
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const session = require("express-session");
-app.use(session({ secret: process.env.SESSION_SECRET, resave: true, saveUninitialized: false})); // cookie.secure attribute set to "true" to exploit https encoding
+const MongoStore= require("connect-mongo");
+const session_option={
+  secret: process.env.SESSION_SECRET,
+  // resave: true, // this is unnecessary when using mongnodb as session store
+  resave: false,
+  saveUninitialized: false,
+  store:MongoStore.create({
+    // mongoUrl:db_session_url,
+    mongoUrl:db_url,
+    dbName:process.env.SESSION_DB_NAME,
+    collectionName:process.env.SESSION_COLLECTION_NAME,
+    touchAfter:process.env.SESSION_TOUCH_AFTER,
+  }),
+  // store:MongoStore.create({clientPromise:MongoClient,dbName:process.env.SESSION_COLLECTION_NAME}),
+  cookie:{maxAge:parseInt(process.env.SESSION_MAX_AGE)},
+};
+// if(process.env.NODE_ENV==="production"){
+//   session_option.cookie["secure"]=true;
+// }
+app.use(session(session_option)); // cookie.secure attribute set to "true" to exploit https encoding
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -46,15 +80,6 @@ var cors = require("cors");
 const { send } = require("process");
 const { finished } = require("stream");
 app.use(cors());
-
-//db라는 변수에 zwon 데이터베이스 연결, env파일 참조
-//var db, db_session;
-var db, db_client;
-
-let db_url;
-if(process.env.NODE_ENV==="production") db_url=process.env.DB_URL;
-else if(process.env.NODE_ENV==="development") db_url=process.env.TEST_DB_URL;
-else db_url=process.env.DB_URL;
 
 // TODO : 배포 전에 반드시 실제 서비스(DB_URL)로 바꿀 것!!
 MongoClient.connect(db_url, function (err, client) {
@@ -94,6 +119,7 @@ app.post("/api/login", function (req, res, next) {
 app.post("/api/logout", function(req,res,next){
   req.logout(function(err){
     if(err) return next(err);
+    req.session.destroy();
     res.redirect("/");
   });
 });
@@ -134,18 +160,24 @@ passport.use(
 // id를 이용해서 세션을 저장시키는 코드(로그인 성공 시)
 passport.serializeUser(function (user, done) {
   // done(null, user.ID);
-  done(null,user.username); // 이 구문이 뭘 어떻게 저장하는지 알아볼것
+  process.nextTick(()=>{
+    done(null,{username:user.username}); // passport.user에 user 정보 저장
+  });
 });
 
 // 이 세션 데이터를 가진 사람을 DB에서 찾는 코드.
 // 하단 코드의 '아이디'는 윗 코드의 user.ID이다.
-passport.deserializeUser(function (아이디, done) {
+passport.deserializeUser(function (user, done) {
   // DB에서 user.id로 유저를 찾은 뒤에, 유저 정보를 {}안에 넣음\
   // db.collection("account").findOne({ ID: 아이디 }, function (err, result) {
   //   done(null, result);
   // });
-  db.collection("account").findOne({ username:아이디 }, function (err, result) {
-    done(null, result);
+  process.nextTick(()=>{
+    // db.collection("account").findOne({ username:user.username }, function (err, result) {
+    //   console.log("deserialize happened!");
+    //   done(null, result);
+    // });
+    done(null,user);
   });
 });
 
