@@ -137,3 +137,6 @@ dist
 
 #authentificator
 server/authentificator.js
+
+#role configuration
+role_env.js
