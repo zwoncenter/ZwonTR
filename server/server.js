@@ -61,7 +61,7 @@ const session_option={
     mongoUrl:db_url,
     dbName:process.env.SESSION_DB_NAME,
     collectionName:process.env.SESSION_COLLECTION_NAME,
-    touchAfter:process.env.SESSION_TOUCH_AFTER,
+    // touchAfter:process.env.SESSION_TOUCH_AFTER, // this works weird... first touchAfter period is ignored...
     stringify:false, // to query sessions with same username
   }),
   // store:MongoStore.create({clientPromise:MongoClient,dbName:process.env.SESSION_COLLECTION_NAME}),
@@ -138,7 +138,8 @@ passport.use(
         function (inputID, inputPW, done) {
           console.log(inputID, "login trial");
           // db.collection("account").findOne({ ID: inputID }, function (err, result) {
-          db.collection("account").findOne({ username: inputID }, function (err, result) {
+          db.collection("account").findOne({ username: inputID }, function (err, result) { // 이 줄만 바꾸면 username,pw 저장된 collection 바꿀 수 있음
+          // db.collection("User").findOne({ username: inputID }, function (err, result) {
             if (err) return done(err);
             // done 문법 (서버에러, 성공시 사용자 DB, 에러메세지)
             if (!result) return done(null, false, { message: "존재하지 않는 아이디 입니다." });
@@ -170,7 +171,7 @@ passport.use(
 passport.serializeUser(function (user, done) {
   // done(null, user.ID);
   process.nextTick(()=>{
-    done(null,{username:user.username}); // passport.user에 user 정보 저장
+    done(null,{username:user.username,nickname:user.nickname}); // passport.user에 user 정보 저장
   });
 });
 
@@ -196,6 +197,18 @@ function loginCheck(req, res, next) {
     next();
   } else {
     res.send("로그인필요");
+  }
+}
+
+function andRole(...roles){
+  return roles;
+}
+
+function permissionCheck(...permissions){
+  return (req,res,next)=>{
+    let allowed=false;
+    
+    allowed?next():res.status(403).send("접근 권한이 없습니다").end();
   }
 }
 
@@ -228,6 +241,25 @@ function getValidDateString(dateString){
   if(isNaN(new Date(date))) return null;
   return date;
 }
+
+// user info data: username, nickname
+app.get("/api/getMyInfo", async function (req, res) {
+  const ret_val={"success":false, "ret":null};
+  try{
+    ret_val["success"]=true;
+    ret_val["ret"]={loginStatus:'session' in req && 'passport' in req.session, username:"", nickname:""};
+    if(ret_val["ret"].loginStatus===true){
+      ret_val["ret"].username=req.session.passport.user.username;
+      ret_val["ret"].nickname=req.session.passport.user.nickname;
+    }
+  }
+  catch(error){
+    ret_val["ret"]=`error while getting my info`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
 
 // collection 중 StudentDB의 모든 Document find 및 전송
 app.get("/api/studentList", loginCheck, async function (req, res) {

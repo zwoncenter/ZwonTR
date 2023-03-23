@@ -56,3 +56,7 @@ p {
 .menuArrow img {
   width: 100%;
 }
+
+.userNameBox {
+  margin-bottom: 20px;
+}

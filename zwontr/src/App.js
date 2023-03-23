@@ -47,6 +47,31 @@ function App() {
 
   const { pathname } = useLocation();
 
+  //login state 관련 코드
+  const myInfoTemplate={
+    loginStatus:false,
+    username:"",
+    nickname:"",
+  }
+  const [myInfo,setMyInfo]= useState({...myInfoTemplate});
+  const [nickname,setNickname]= useState("");
+
+  useEffect(async()=>{
+    // if(window.location.pathname === "/") return;
+    const myInfoData= await axios
+      .get("/api/getMyInfo")
+      .then((result)=>{
+        const data=result.data;
+        if(!data || !data.success) return {...myInfoTemplate};
+        return data.ret;
+      })
+      .catch((err)=>{
+        return {...myInfoTemplate};
+      });
+    setMyInfo(myInfoData);
+  },[window.location.pathname]);
+
+
 
   // function getThisMon() {
   //   var paramDate = new Date();
@@ -72,6 +97,12 @@ function App() {
       <div className="menu">
       <div className="menu-map">
         <div className="userInfoBox">
+          {myInfo.loginStatus?
+          <div className="userNameBox">
+            <h5>{myInfo.nickname}</h5> 님 환영합니다!
+            <br/>
+          </div>
+          :null}
           <Button
             className="logoutButton btn-secondary"
             onClick={async ()=>{
