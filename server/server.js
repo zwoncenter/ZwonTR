@@ -170,8 +170,45 @@ passport.use(
 // id를 이용해서 세션을 저장시키는 코드(로그인 성공 시)
 passport.serializeUser(function (user, done) {
   // done(null, user.ID);
-  process.nextTick(()=>{
-    done(null,{username:user.username,nickname:user.nickname}); // passport.user에 user 정보 저장
+  process.nextTick(async ()=>{
+    let roles=[];
+    try{
+      const role_of_user=await db.collection("RoleOfUser").aggregate([
+        {
+          $match:{
+            user_id:user._id,
+          },
+        },
+        {
+          $lookup: {
+            from: "Role",
+            localField: "role_id",
+            foreignField: "_id",
+            as: "Role_aggregate",
+          },
+        },
+        { 
+          $unwind: {
+            path:"$Role_aggregate",
+            preserveNullAndEmptyArrays:true,
+          }
+        },
+        {
+          $project: {
+            role_index: "$Role_aggregate.role_index",
+            role_name: "$Role_aggregate.role_name",
+          },
+        }
+      ]).toArray();
+      roles=role_of_user.map((r,ridx)=>r["role_index"]);
+    }
+    catch(error){
+      console.log(`error while get user role info: ${error}`);
+    }
+    finally{
+      if(roles.length===0) roles.push(1000);
+    }
+    done(null,{username:user.username,nickname:user.nickname,roles:roles}); // passport.user에 user 정보 저장
   });
 });
 
