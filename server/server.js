@@ -138,8 +138,8 @@ passport.use(
         function (inputID, inputPW, done) {
           console.log(inputID, "login trial");
           // db.collection("account").findOne({ ID: inputID }, function (err, result) {
-          db.collection("account").findOne({ username: inputID }, function (err, result) { // 이 줄만 바꾸면 username,pw 저장된 collection 바꿀 수 있음
-          // db.collection("User").findOne({ username: inputID }, function (err, result) {
+          // db.collection("account").findOne({ username: inputID }, function (err, result) { // 이 줄만 바꾸면 username,pw 저장된 collection 바꿀 수 있음
+          db.collection("User").findOne({ username: inputID }, function (err, result) {
             if (err) return done(err);
             // done 문법 (서버에러, 성공시 사용자 DB, 에러메세지)
             if (!result) return done(null, false, { message: "존재하지 않는 아이디 입니다." });
