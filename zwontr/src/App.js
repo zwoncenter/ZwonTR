@@ -11,6 +11,7 @@ import TRwrite from "./routes/TRwrite";
 import TRedit from "./routes/TRedit";
 import StudentEdit from "./routes/StudentEdit";
 import FirstPage from "./routes/FirstPage";
+import SignUpPage from "./routes/SignUpPage";
 import StuInfoAdd from "./routes/StuInfoAdd";
 import StuInfoEdit from "./routes/StuInfoEdit";
 import StudyChart from "./routes/StudyChart";
@@ -93,7 +94,7 @@ function App() {
 
   return (
     <div className="App">
-      {window.location.pathname !== "/" ? 
+      {window.location.pathname !== "/" && window.location.pathname !== "/SignUp" ? 
       <div className="menu">
       <div className="menu-map">
         <div className="userInfoBox">
@@ -229,6 +230,9 @@ function App() {
       <Switch>
         <Route exact path="/">
           <FirstPage />
+        </Route>
+        <Route exact path="/SignUp">
+          <SignUpPage />
         </Route>
         <Route exact path="/studentList">
           <StuListpage />

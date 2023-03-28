@@ -1,0 +1,125 @@
+.main-background {
+  width: 100vw;
+  height: 100vh;
+  background: url("../../public/layered-waves-haikei.png");
+  padding: 1px;
+  background-size: 100% 100%;
+
+  h1 {
+    color: white;
+    margin-top: 350px;
+    font-size: 5rem;
+    text-shadow: 4px 4px 4px gray;
+    font-weight: bold;
+  }
+}
+
+.box {
+  transition: transform 1s;
+  transform: translateY(0px);
+}
+
+.box-active {
+  transform: translateY(-200px);
+}
+
+.headerBox {
+  // border-color: red;
+  // border-style: solid;
+  h1 {
+    margin-top: 50px;
+  }
+}
+
+.progressBarBox{
+  margin-bottom: 20px;
+}
+
+.registerInfoBox{
+  width: 80%;
+  max-width: 1000px;
+  padding: 30px;
+  margin: auto;
+  margin-top: 50px;
+  display: block;
+  background-color: white;
+  border-radius: 10px;
+  transition-delay: 0.5s;
+  transition: opacity 0.5s;
+  transition-duration: 0.5s;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  // border-color: red;
+  // border-style: solid;
+}
+
+.registerInfoBoxFooter{
+  margin-top: 45px;
+}
+
+.userTypeButton{
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+.userTypeText{
+  font-size: 30px;
+}
+
+.userTypeIcon{
+  font-size:200px;
+}
+
+.promptText{
+  margin-top: 20px;
+  font-size:25px;
+}
+
+.nextButton{
+  margin-left:5px;
+}
+
+.termTextBox{
+  width:80%;
+  resize: none;
+}
+
+.form-horizontal .control-label{
+  text-align: left;
+}
+
+@media only screen and (max-width: 1000px) {
+  .userTypeText{
+    font-size: 20px;
+  }
+  
+  .userTypeIcon{
+    font-size:150px;
+  }
+}
+
+@media only screen and (max-width: 850px) {
+  .userTypeText{
+    font-size: 15px;
+  }
+  
+  .userTypeIcon{
+    font-size:100px;
+  }
+}
+
+.versionInfo {
+  width: 100%;
+  height: 25px;
+  text-align: right;
+  position: absolute;
+  right: 10px;
+  bottom: 20px;
+  font-size: 21px;
+  p {
+    margin: 0;
+  }
+}
+
+.signUpButton {
+  margin-top: 50px;
+}
