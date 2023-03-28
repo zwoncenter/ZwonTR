@@ -328,6 +328,9 @@ function App() {
         <Route exact path="/SignUp">
           <SignUpPage />
         </Route>
+        <Route exact path="/SignUp">
+          <SignUpPage />
+        </Route>
         <Route exact path="/studentList">
           <StuListpage />
         </Route>
