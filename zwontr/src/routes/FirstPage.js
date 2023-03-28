@@ -12,7 +12,7 @@ function FirstPage() {
     <div className="main-background text-center">
       <div className={loginModal === true ? "box box-active" : "box"}>
         <h1>
-          <strong>Zwon Center Manager</strong>
+          <strong>Zwon Center</strong>
         </h1>
         {loginModal === true ? <Loginpage /> : null}
       </div>

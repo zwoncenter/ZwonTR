@@ -140,3 +140,6 @@ server/authentificator.js
 
 #role configuration
 role_env.js
+
+#service terms
+/zwontr/public/terms

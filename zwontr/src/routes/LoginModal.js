@@ -84,6 +84,17 @@ function Loginpage() {
         >
           로그인
         </Button>
+        <br/>
+        <Button
+          variant="dark"
+          type="button"
+          className="signUpButton"
+          onClick={() => {
+            history.push("/SignUp");
+          }}
+        >
+          회원가입
+        </Button>
       </Form>
     </div>
   );
