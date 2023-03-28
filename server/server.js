@@ -3,6 +3,8 @@ const path = require("path");
 const app = express();
 const crypto = require("crypto");
 const authentificator = require("./authentificator.js");
+const roles = require("../role_env.js");
+console.log(`roles: ${JSON.stringify(roles)}`);
 const MongoClient = require("mongodb").MongoClient;
 
 // ObjectId type casting을 위한 import
@@ -116,7 +118,7 @@ app.post("/api/login", function (req, res, next) {
   })(req, res, next);
 });
 
-app.post("/api/logout", function(req,res,next){
+app.post("/api/logout", loginCheck, function(req,res,next){
   req.logout(function(err){
     if(err) return next(err);
     req.session.destroy();
@@ -237,6 +239,19 @@ function loginCheck(req, res, next) {
   }
 }
 
+function isLogined(req){
+  return 'session' in req && 'passport' in req.session;
+}
+
+function getUserRolesFromSession(req){
+  if(!isLogined(req)) return [];
+  return req.session.passport.user.roles;
+}
+
+function Role(roleName){
+  return roles.roleNameToIndex[roleName];
+}
+
 function andRole(...roles){
   return roles;
 }
@@ -244,7 +259,14 @@ function andRole(...roles){
 function permissionCheck(...permissions){
   return (req,res,next)=>{
     let allowed=false;
-    
+    if(isLogined(req)){
+      const role_set=new Set(getUserRolesFromSession(req));
+      for(let i=0; i<permissions.length; i++){
+        if(role_set.has(permissions[i])){
+          allowed=true; break;
+        }
+      }
+    }
     allowed?next():res.status(403).send("접근 권한이 없습니다").end();
   }
 }
@@ -284,7 +306,7 @@ app.get("/api/getMyInfo", async function (req, res) {
   const ret_val={"success":false, "ret":null};
   try{
     ret_val["success"]=true;
-    ret_val["ret"]={loginStatus:'session' in req && 'passport' in req.session, username:"", nickname:""};
+    ret_val["ret"]={loginStatus:isLogined(req), username:"", nickname:""};
     if(ret_val["ret"].loginStatus===true){
       ret_val["ret"].username=req.session.passport.user.username;
       ret_val["ret"].nickname=req.session.passport.user.nickname;
@@ -299,7 +321,7 @@ app.get("/api/getMyInfo", async function (req, res) {
 });
 
 // collection 중 StudentDB의 모든 Document find 및 전송
-app.get("/api/studentList", loginCheck, async function (req, res) {
+app.get("/api/studentList", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   // db.collection("StudentDB")
   //     .find()
   //     .toArray(function (err, result) {
@@ -323,7 +345,7 @@ app.get("/api/studentList", loginCheck, async function (req, res) {
 });
 
 // StudentDB의 모든 Document 중 graduated: false인 document만 찾는 코드
-app.get("/api/ActiveStudentList", loginCheck, async (req,res)=>{
+app.get("/api/ActiveStudentList", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   const ret_val={"success":false, "ret":null};
   try{
     const acitve_student_list= await db.collection("StudentDB").find({"graduated":false,"$or":[{"deleted":{"$exists":false}},{"deleted":false}]}).toArray();
@@ -338,7 +360,7 @@ app.get("/api/ActiveStudentList", loginCheck, async (req,res)=>{
   }
 });
 
-app.get("/api/managerList", loginCheck, async (req, res) => {
+app.get("/api/managerList", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   // db.collection("Manager")
   //     .find()
   //     .toArray((err, result) => {
@@ -361,7 +383,7 @@ app.get("/api/managerList", loginCheck, async (req, res) => {
 });
 
 // StudentDB에 새로운 stuDB 추가 요청
-app.post("/api/StudentDB", loginCheck, async function (req, res) {
+app.post("/api/StudentDB", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -417,7 +439,7 @@ app.post("/api/StudentDB", loginCheck, async function (req, res) {
 });
 
 // StudentDB에서 해당 ID의 document 조회
-app.get("/api/StudentDB/:ID", loginCheck, async function (req, res) {
+app.get("/api/StudentDB/:ID", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   const student_legacy_id = decodeURIComponent(req.params.ID);
   // db.collection("StudentDB").findOne({ ID: paramID }, function (err, result) {
   //   if (err) {
@@ -537,7 +559,7 @@ function checkDuplication(data){
 
 
 // StudentDB에 수정 요청
-app.put("/api/StudentDB", loginCheck, async (req, res) => {
+app.put("/api/StudentDB", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   // console.log(req["user"], req["user"]["ID"] === "guest");
   /** 서버로직 처리 중 err 발생시 전체 구문 rollback을 위한 트랜잭션 처리 선언
    session.startSession() = 트랜잭션 처리 시작
@@ -707,7 +729,7 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
 
 // StudentDB에 삭제 요청
-app.delete("/api/StudentDB/:ID", loginCheck, async function (req, res) {
+app.delete("/api/StudentDB/:ID", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -737,7 +759,7 @@ app.delete("/api/StudentDB/:ID", loginCheck, async function (req, res) {
 });
 
 //학생의 상태를 졸업으로 처리(activation flag: false)하는 코드
-app.post("/api/DoGraduate/", loginCheck, async (req,res)=>{
+app.post("/api/DoGraduate/", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   const ret_val={"success":false,"ret":null};
   try{
     if (req["user"]["ID"] === "guest") {
@@ -759,7 +781,7 @@ app.post("/api/DoGraduate/", loginCheck, async (req,res)=>{
 });
 
 // collection 중 TR의 해당 날짜의 Document find 및 전송
-app.get("/api/TRlist/:date", loginCheck, async function (req, res) {
+app.get("/api/TRlist/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   const paramDate = req.params.date;
   // db.collection("TR")
   //     .find({ 날짜: paramDate })
@@ -783,7 +805,7 @@ app.get("/api/TRlist/:date", loginCheck, async function (req, res) {
   }
 });
 
-app.get("/api/TR/:ID", loginCheck, async function (req, res) {
+app.get("/api/TR/:ID", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   const student_legacy_id = decodeURIComponent(req.params.ID);
   // db.collection("TR")
   //     .find({ ID: paramID })
@@ -806,7 +828,7 @@ app.get("/api/TR/:ID", loginCheck, async function (req, res) {
   }
 });
 
-app.get("/api/TR/:ID/:date", loginCheck, async function (req, res) {
+app.get("/api/TR/:ID/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   const student_legacy_id = decodeURIComponent(req.params.ID);
   const date_string = decodeURIComponent(req.params.date);
   // db.collection("TR").findOne({ ID: paramID, 날짜: paramDate }, function (err, result) {
@@ -830,7 +852,7 @@ app.get("/api/TR/:ID/:date", loginCheck, async function (req, res) {
 });
 
 //특정 날짜 범위 내에 있는 TR들을 가져오는 URI
-app.post("/api/TRByDateRange/", loginCheck, async function(req,res){
+app.post("/api/TRByDateRange/", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function(req,res){
   const ret_val={"success":false, "ret":null};
   try{
     const student_legacy_id= req.body["studentLegacyID"];
@@ -848,7 +870,7 @@ app.post("/api/TRByDateRange/", loginCheck, async function(req,res){
 });
 
 
-app.post("/api/TR", loginCheck, async function (req, res) {
+app.post("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -885,7 +907,7 @@ app.post("/api/TR", loginCheck, async function (req, res) {
   }
 });
 
-app.put("/api/TR", loginCheck, async function (req, res) {
+app.put("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   // console.log('req["user"]', req["user"]);
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
@@ -941,7 +963,7 @@ app.put("/api/TR", loginCheck, async function (req, res) {
 });
 
 
-app.delete("/api/TR/:id", loginCheck, async function (req, res) {
+app.delete("/api/TR/:id", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -976,7 +998,7 @@ app.delete("/api/TR/:id", loginCheck, async function (req, res) {
   }
 });
 
-app.post("/api/DailyGoalCheckLog", loginCheck, async (req,res)=>{
+app.post("/api/DailyGoalCheckLog", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -1037,7 +1059,7 @@ app.post("/api/DailyGoalCheckLog", loginCheck, async (req,res)=>{
   }
 })
 
-app.post("/api/DailyGoalCheckLogByDateRange", loginCheck, async (req,res)=>{
+app.post("/api/DailyGoalCheckLogByDateRange", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   const ret={"success":false,"ret":null};
   try{
     //check date validity
@@ -1180,7 +1202,7 @@ app.post("/api/DailyGoalCheckLogByDateRange", loginCheck, async (req,res)=>{
   }
 });
 
-app.post("/api/Closemeeting/:date", loginCheck, function (req, res) { // deprecated: 동시성 처리 불가 이슈
+app.post("/api/Closemeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) { // deprecated: 동시성 처리 불가 이슈
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -1211,7 +1233,7 @@ function getUpdatePathFromNewCloseMeetingFeedback(feedbackData){
   return ret;
 }
 
-app.post("/api/SaveClosemeetingFeedback", loginCheck, async function (req, res) {
+app.post("/api/SaveClosemeetingFeedback", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -1237,7 +1259,7 @@ app.post("/api/SaveClosemeetingFeedback", loginCheck, async function (req, res) 
   }
 });
 
-app.get("/api/Closemeeting/:date", loginCheck, function (req, res) {
+app.get("/api/Closemeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
   const paramDate = decodeURIComponent(req.params.date);
   db.collection("Closemeeting").findOne({ 날짜: paramDate }, function (err, result) {
     if (err) {
@@ -1247,7 +1269,7 @@ app.get("/api/Closemeeting/:date", loginCheck, function (req, res) {
   });
 });
 
-app.put("/api/Closemeeting/:date", loginCheck, function (req, res) {
+app.put("/api/Closemeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -1285,7 +1307,7 @@ app.put("/api/Closemeeting/:date", loginCheck, function (req, res) {
   });
 });
 
-app.delete("/api/Closemeeting/:id", loginCheck, function (req, res) {
+app.delete("/api/Closemeeting/:id", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -1311,7 +1333,7 @@ app.delete("/api/Closemeeting/:id", loginCheck, function (req, res) {
 
 // Middle Meeting
 
-app.post("/api/Middlemeeting/:date", loginCheck, function (req, res) {
+app.post("/api/Middlemeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -1337,7 +1359,7 @@ app.post("/api/Middlemeeting/:date", loginCheck, function (req, res) {
   });
 });
 
-app.get("/api/Middlemeeting/:date", loginCheck, function (req, res) {
+app.get("/api/Middlemeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
   const paramDate = decodeURIComponent(req.params.date);
   console.log(`${paramDate} 날짜 중간회의 조회 시도`);
   db.collection("Middlemeeting").findOne({ 날짜: paramDate }, function (err, result) {
@@ -1348,7 +1370,7 @@ app.get("/api/Middlemeeting/:date", loginCheck, function (req, res) {
   });
 });
 
-app.put("/api/Middlemeeting/:date", loginCheck, function (req, res) {
+app.put("/api/Middlemeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -1388,7 +1410,7 @@ app.put("/api/Middlemeeting/:date", loginCheck, function (req, res) {
   });
 });
 
-app.delete("/api/Middlemeeting/:id", loginCheck, function (req, res) {
+app.delete("/api/Middlemeeting/:id", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -1412,7 +1434,7 @@ app.delete("/api/Middlemeeting/:id", loginCheck, function (req, res) {
   });
 });
 
-app.get("/api/Todolist", loginCheck, function (req, res) {
+app.get("/api/Todolist", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
   db.collection("Todolist")
       .find()
       .toArray((err, result) => {
@@ -1423,7 +1445,7 @@ app.get("/api/Todolist", loginCheck, function (req, res) {
       });
 });
 
-app.put("/api/Todolist", loginCheck, function (req, res) {
+app.put("/api/Todolist", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -1444,7 +1466,7 @@ app.put("/api/Todolist", loginCheck, function (req, res) {
   });
 });
 
-app.get("/api/Textbook", loginCheck, async function (req, res) {
+app.get("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   // db.collection("Textbook")
   //   .find()
   //   .toArray((err, result) => {
@@ -1478,7 +1500,7 @@ app.get("/api/Textbook", loginCheck, async function (req, res) {
   //     });
 });
 
-app.put("/api/Textbook", loginCheck, function (req, res) {
+app.put("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -1519,7 +1541,7 @@ app.put("/api/Textbook", loginCheck, function (req, res) {
   });
 });
 
-app.post("/api/Textbook", loginCheck, (req, res) => {
+app.post("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -1540,7 +1562,7 @@ app.post("/api/Textbook", loginCheck, (req, res) => {
   });
 });
 
-app.delete("/api/Textbook/:_id", loginCheck, async (req, res) => {
+app.delete("/api/Textbook/:_id", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -1586,7 +1608,7 @@ app.delete("/api/Textbook/:_id", loginCheck, async (req, res) => {
 });
 
 //student legacy id로 해당 학생의 모든 진행중 교재의 id를 찾아주는 코드
-app.get(`/api/TextbookInProgressOfStudent/:studentLegacyID`, loginCheck, async(req,res)=>{
+app.get(`/api/TextbookInProgressOfStudent/:studentLegacyID`, loginCheck, permissionCheck(Role("manager"),Role("admin")), async(req,res)=>{
   const ret={"success":false,"ret":null};
   try{
     const studentLegacyID = decodeURIComponent(req.params.studentLegacyID);
@@ -1611,7 +1633,7 @@ app.get(`/api/TextbookInProgressOfStudent/:studentLegacyID`, loginCheck, async(r
 });
 
 //post 방식으로 한번에 여러 교재 이름 받아서 교재의 id들을 찾아주는 코드
-app.post("/api/getTextbookIDsByTextbookName", loginCheck, async (req,res)=>{
+app.post("/api/getTextbookIDsByTextbookName", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   const nameData= req.body;
   let ret_val;
   let success;
@@ -1630,7 +1652,7 @@ app.post("/api/getTextbookIDsByTextbookName", loginCheck, async (req,res)=>{
 });
 
 //학생의 legacy id와 날짜를 받아서 해당 날짜의 daily goal check log들을 찾아주는 코드
-app.get("/api/SavedDailyGoalCheckLogData/:studentLegacyID/:date", loginCheck, async (req,res)=>{
+app.get("/api/SavedDailyGoalCheckLogData/:studentLegacyID/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   const ret={"success":false,"ret":null};
   try{
     //date validity check
@@ -1658,7 +1680,7 @@ app.get("/api/SavedDailyGoalCheckLogData/:studentLegacyID/:date", loginCheck, as
 });
 
 // Lecture 관련 코드
-app.get("/api/Lecture", loginCheck, async (req, res) => {
+app.get("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   // db.collection("Lecture")
   //     .find()
   //     .toArray((err, result) => {
@@ -1679,7 +1701,7 @@ app.get("/api/Lecture", loginCheck, async (req, res) => {
   }
 });
 
-app.post("/api/Lecture", loginCheck, async (req, res) => {
+app.post("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -1724,7 +1746,7 @@ app.post("/api/Lecture", loginCheck, async (req, res) => {
   }
 });
 
-app.get("/api/Lecture/:lectureid", loginCheck, (req, res) => {
+app.get("/api/Lecture/:lectureid", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   const paramID = decodeURIComponent(req.params.lectureid);
   db.collection("Lecture").findOne({ lectureID: paramID }, (err, result) => {
     if (err) {
@@ -1734,7 +1756,7 @@ app.get("/api/Lecture/:lectureid", loginCheck, (req, res) => {
   });
 });
 
-app.put("/api/Lecture", loginCheck, (req, res) => {
+app.put("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -1755,7 +1777,7 @@ app.put("/api/Lecture", loginCheck, (req, res) => {
   });
 });
 
-app.delete("/api/Lecture/:lectureid", loginCheck, (req, res) => {
+app.delete("/api/Lecture/:lectureid", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -1768,7 +1790,7 @@ app.delete("/api/Lecture/:lectureid", loginCheck, (req, res) => {
   });
 });
 
-app.post("/api/finishLecture",loginCheck, async (req,res)=>{
+app.post("/api/finishLecture",loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   const ret={"success":false,"ret":null};
   let legacy_lecture_id=req.body.lectureID;
   try{
@@ -1788,7 +1810,7 @@ app.post("/api/finishLecture",loginCheck, async (req,res)=>{
 });
 
 //강의에서 사용중인 교재 관련 코드
-app.get("/api/TextbookOfLecture/:lectureid", loginCheck, async (req, res) => {
+app.get("/api/TextbookOfLecture/:lectureid", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   const paramID = decodeURIComponent(req.params.lectureid);
   const ret={"success":false,"ret":null};
   try{
@@ -1879,7 +1901,7 @@ app.get("/api/TextbookOfLecture/:lectureid", loginCheck, async (req, res) => {
       });
 });
 
-app.post("/api/TextbookOfLecture", loginCheck, (req, res) => {
+app.post("/api/TextbookOfLecture", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   let lectureID, newTextbookList;
   try {
     lectureID = new ObjectId(req.body.lectureID);
@@ -1919,7 +1941,7 @@ app.post("/api/TextbookOfLecture", loginCheck, (req, res) => {
       });
 });
 
-app.delete("/api/TextbookOfLecture/:lectureID/:textbookID", loginCheck, async (req, res) => {
+app.delete("/api/TextbookOfLecture/:lectureID/:textbookID", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   const legacyLectureID = decodeURIComponent(req.params.lectureID);
   let lectureID, textbookID;
   try {
@@ -1947,7 +1969,7 @@ app.delete("/api/TextbookOfLecture/:lectureID/:textbookID", loginCheck, async (r
 });
 
 // 강의로 수강생 검색매칭 relation
-app.get("/api/StudentOfLecture", loginCheck, (req, res) => {
+app.get("/api/StudentOfLecture", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   db.collection("StudentOfLecture")
       .find()
       .toArray((err, result) => {
@@ -1959,7 +1981,7 @@ app.get("/api/StudentOfLecture", loginCheck, (req, res) => {
 });
 
 // 강의에 따른 과제 검색매칭 relation
-app.get("/api/Assignment/:lectureid", loginCheck, (req, res) => {
+app.get("/api/Assignment/:lectureid", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   const paramID = decodeURIComponent(req.params.lectureid);
   db.collection("Lecture")
       .aggregate([
@@ -2004,7 +2026,7 @@ app.get("/api/Assignment/:lectureid", loginCheck, (req, res) => {
       });
 });
 
-app.put("/api/Assignment", loginCheck, (req, res) => {
+app.put("/api/Assignment", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -2032,7 +2054,7 @@ app.put("/api/Assignment", loginCheck, (req, res) => {
   });
 });
 
-app.post("/api/Assignment", loginCheck, async (req, res) => {
+app.post("/api/Assignment", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -2093,7 +2115,7 @@ app.post("/api/Assignment", loginCheck, async (req, res) => {
 });
 
 
-app.delete("/api/Assignment/:AssignID",loginCheck,async (req,res)=>{
+app.delete("/api/Assignment/:AssignID", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   const assignment=decodeURIComponent(req.params.AssignID);
   // console.log("assignment id:"+JSON.stringify(assignment));
   let assignID;
@@ -2141,7 +2163,7 @@ app.delete("/api/Assignment/:AssignID",loginCheck,async (req,res)=>{
 
 
 // 강의에 등록된 과제 검색
-app.get("/api/LectureAssignment/:lectureid",loginCheck, async (req,res)=>{
+app.get("/api/LectureAssignment/:lectureid",loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   const paramID = decodeURIComponent(req.params.lectureid);
   let ret_val;
   try{
@@ -2242,7 +2264,7 @@ app.get("/api/LectureAssignment/:lectureid",loginCheck, async (req,res)=>{
 });
 
 //특정 학생의 과제에 대한 완료 여부 업데이트
-app.post(`/api/AssignmentOfStudent/`, loginCheck, async (req,res)=>{
+app.post(`/api/AssignmentOfStudent/`, loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   let assignmentOfStudentID;
   try {
     assignmentOfStudentID = new ObjectId(req.body["assignmentOfStudentID"]);
@@ -2264,7 +2286,7 @@ app.post(`/api/AssignmentOfStudent/`, loginCheck, async (req,res)=>{
 });
 
 //개별 강의 페이지에서 lecture ID를 받아 aggregate(join)를 통해 강의 수강중인 학생 반환
-app.get("/api/StudentOfLecture/:lectureID", loginCheck, (req, res) => {
+app.get("/api/StudentOfLecture/:lectureID", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   const paramID = decodeURIComponent(req.params.lectureID);
 
   //aggregate(join) query
@@ -2321,7 +2343,7 @@ app.get("/api/StudentOfLecture/:lectureID", loginCheck, (req, res) => {
       });
 });
 
-app.post("/api/StudentOfLecture", loginCheck, (req, res) => {
+app.post("/api/StudentOfLecture", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -2370,7 +2392,7 @@ app.post("/api/StudentOfLecture", loginCheck, (req, res) => {
   });
 });
 
-app.delete("/api/StudentOfLecture/:lectureID/:studentID",loginCheck,async (req,res)=>{
+app.delete("/api/StudentOfLecture/:lectureID/:studentID", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   const lectureID=decodeURIComponent(req.params.lectureID);
   const studentID=decodeURIComponent(req.params.studentID);
   const session=db_client.startSession({
@@ -2408,7 +2430,7 @@ app.delete("/api/StudentOfLecture/:lectureID/:studentID",loginCheck,async (req,r
 });
 
 // studentName
-app.get("/api/TRnow", loginCheck, (req, res) => {
+app.get("/api/TRnow", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   db.collection("StudentDB")
       .find()
       .toArray(function (err, result) {
@@ -2428,7 +2450,7 @@ app.get("/api/TRnow", loginCheck, (req, res) => {
 });
 
 // Weeklymeeting 관련 코드
-app.post("/api/Weeklymeeting/:date", loginCheck, (req, res) => {
+app.post("/api/Weeklymeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -2450,7 +2472,7 @@ app.post("/api/Weeklymeeting/:date", loginCheck, (req, res) => {
   });
 });
 
-app.get("/api/Weeklymeeting/:date", loginCheck, (req, res) => {
+app.get("/api/Weeklymeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   const paramDate = decodeURIComponent(req.params.date);
   db.collection("Weeklymeeting").findOne({ 회의일: paramDate }, (err, result) => {
     if (err) {
@@ -2460,7 +2482,7 @@ app.get("/api/Weeklymeeting/:date", loginCheck, (req, res) => {
   });
 });
 
-app.put("/api/Weeklymeeting/:date", loginCheck, (req, res) => {
+app.put("/api/Weeklymeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -2475,7 +2497,7 @@ app.put("/api/Weeklymeeting/:date", loginCheck, (req, res) => {
   });
 });
 
-app.delete("/api/Weeklymeeting/:date", loginCheck, (req, res) => {
+app.delete("/api/Weeklymeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -2489,7 +2511,7 @@ app.delete("/api/Weeklymeeting/:date", loginCheck, (req, res) => {
 });
 
 // Weeklystudyfeedback 관련 코드
-app.post("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, (req, res) => {
+app.post("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -2512,7 +2534,7 @@ app.post("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, (req, res) =>
   });
 });
 
-app.get("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, (req, res) => {
+app.get("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   const paramDate = decodeURIComponent(req.params.feedbackDate);
   const ID = decodeURIComponent(req.params.ID);
   db.collection("WeeklyStudyfeedback").findOne({ 학생ID: ID, 피드백일: paramDate }, (err, result) => {
@@ -2523,7 +2545,7 @@ app.get("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, (req, res) => 
   });
 });
 
-app.put("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, (req, res) => {
+app.put("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -2539,7 +2561,7 @@ app.put("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, (req, res) => 
   });
 });
 
-app.delete("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, (req, res) => {
+app.delete("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -2555,7 +2577,7 @@ app.delete("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, (req, res) 
 
 // weeklyStudyFeedback 페이지에 표시되는 이번주 강의 과제를 찾아주는 코드
 
-app.post("/api/ThisWeekAssignment/", loginCheck, async (req,res)=>{
+app.post("/api/ThisWeekAssignment/", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   const request_arguments=req.body;
   if(!("studentID" in request_arguments) || !("lastSundayDate" in request_arguments) || !("thisSundayDate" in request_arguments)){
     return res.json([]);
@@ -2630,7 +2652,7 @@ app.post("/api/ThisWeekAssignment/", loginCheck, async (req,res)=>{
 
 // TR 페이지에 표시되는, 해당 학생의 오늘(해당 날짜) 마감인 강의 과제를 찾아주는 코드
 
-app.post("/api/StudentTodayAssignment/", loginCheck, async (req,res)=>{
+app.post("/api/StudentTodayAssignment/", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   const request_arguments=req.body;
   if(!("studentID" in request_arguments) || !("today_date" in request_arguments)){
     return res.json([]);
@@ -2718,7 +2740,7 @@ app.post("/api/StudentTodayAssignment/", loginCheck, async (req,res)=>{
 
 // stickynote 관련 코드
 
-app.get("/api/stickynote", loginCheck, (req, res) => {
+app.get("/api/stickynote", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   db.collection("stickynote")
       .find()
       .toArray(function (err, result) {
@@ -2730,7 +2752,7 @@ app.get("/api/stickynote", loginCheck, (req, res) => {
       });
 });
 
-app.post("/api/stickynote", loginCheck, function (req, res) {
+app.post("/api/stickynote", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -2752,7 +2774,7 @@ app.post("/api/stickynote", loginCheck, function (req, res) {
   });
 });
 
-app.put("/api/stickynote/:id", loginCheck, (req, res) => {
+app.put("/api/stickynote/:id", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
@@ -2772,7 +2794,7 @@ app.put("/api/stickynote/:id", loginCheck, (req, res) => {
   });
 });
 
-app.delete("/api/stickynote/:id", loginCheck, (req, res) => {
+app.delete("/api/stickynote/:id", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
   if (req["user"]["ID"] === "guest") {
     return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
   }
