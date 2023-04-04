@@ -174,7 +174,7 @@ passport.use(
 passport.serializeUser(function (user, done) {
   // done(null, user.ID);
   process.nextTick(async ()=>{
-    let roles=[];
+    let roles_arr=[];
     try{
       const role_of_user=await db.collection("RoleOfUser").aggregate([
         {
@@ -203,16 +203,16 @@ passport.serializeUser(function (user, done) {
             role_name: "$Role_aggregate.role_name",
           },
         }
-      ]).toArray();
-      roles=role_of_user.map((r,ridx)=>r["role_index"]);
+      ]).sort({role_index:1}).toArray();
+      roles_arr=role_of_user.map((r,ridx)=>r["role_index"]);
     }
     catch(error){
       console.log(`error while get user role info: ${error}`);
     }
     finally{
-      if(roles.length===0) roles.push(1000);
+      if(roles_arr.length===0) roles.push(1000);
     }
-    done(null,{username:user.username,nickname:user.nickname,roles:roles}); // passport.user에 user 정보 저장
+    done(null,{username:user.username,nickname:user.nickname,roles:roles_arr,user_mode: roles.indexToRoleName[roles_arr[0]]}); // passport.user에 user 정보 저장
   });
 });
 
@@ -311,10 +311,11 @@ function getCurrentDate(){
 app.get("/api/getMyInfo", async function (req, res) {
   const ret_val={"success":false, "ret":null};
   try{
-    ret_val["ret"]={loginStatus:isLogined(req), username:"", nickname:""};
+    ret_val["ret"]={loginStatus:isLogined(req), username:"", nickname:"", user_mode:""};
     if(ret_val["ret"].loginStatus===true){
       ret_val["ret"].username=req.session.passport.user.username;
       ret_val["ret"].nickname=req.session.passport.user.nickname;
+      ret_val["ret"].user_mode=req.session.passport.user.user_mode;
     }
     ret_val["success"]=true;
   }
