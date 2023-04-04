@@ -28,6 +28,7 @@ import Lecture from "./routes/Lecture";
 import LectureList from "./routes/LectureList";
 import WeeklystudyfeedbackWrite from "./routes/WeeklystudyfeedbackWrite";
 import WeeklystudyfeedbackEdit from "./routes/WeeklystudyfeedbackEdit";
+import ManageUser from "./routes/ManageUser";
 
 function App() {
   let history = useHistory();
@@ -53,9 +54,9 @@ function App() {
     loginStatus:false,
     username:"",
     nickname:"",
+    user_mode:"",
   }
   const [myInfo,setMyInfo]= useState({...myInfoTemplate});
-  const [nickname,setNickname]= useState("");
 
   useEffect(async()=>{
     // if(window.location.pathname === "/") return;
@@ -90,6 +91,10 @@ function App() {
     tmpDate = new Date(tmpDate.setDate(diff));
     var output = tmpDate.toISOString().split("T")[0];
     return output;
+  }
+
+  function checkAdminMode(){
+    return myInfo.user_mode==="admin";
   }
 
   return (
@@ -219,6 +224,17 @@ function App() {
             <strong>강의관리</strong>
           </h5>
         </Button>
+        {checkAdminMode()?
+          <Button
+            className="menu-map-btn btn-secondary"
+            onClick={() => {
+              history.push("/ManageUser");
+            }}
+          >
+            <h5>
+              <strong>사용자 관리</strong>
+            </h5>
+          </Button>:null}
       </div>
       <div className="menuArrow">
         <img src={menuarrow} alt="menuarrow" />
@@ -302,7 +318,9 @@ function App() {
         <Route exact path="/WeeklystudyfeedbackEdit/:ID/:feedbackDate">
           <WeeklystudyfeedbackEdit />
           </Route>
-
+        <Route exact path="/ManageUser">
+          <ManageUser/>
+        </Route>
       </Switch>
     </div>
   );
