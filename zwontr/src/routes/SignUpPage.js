@@ -591,6 +591,8 @@ function SignUpPage() {
   function getCurrentPage(){
     if(pageNum==0) return UserTypePage();
     else if(pageNum==1) return termsPage();
+    else if(pageNum==2) return userInfoPage1();
+    else if(pageNum==3) return userInfoPage2();
     else return null;
   }
 
