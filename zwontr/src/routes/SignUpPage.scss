@@ -1,6 +1,7 @@
 .main-background {
   width: 100vw;
   height: 100vh;
+  overflow-y: auto;
   background: url("../../public/layered-waves-haikei.png");
   padding: 1px;
   background-size: 100% 100%;
@@ -38,6 +39,8 @@
 .registerInfoBox{
   width: 80%;
   max-width: 1000px;
+  max-height: 630px;
+  overflow-y: auto;
   padding: 30px;
   margin: auto;
   margin-top: 50px;
@@ -121,6 +124,11 @@
   height:40px;
 }
 
+.userInfoInputBox-half{
+  width:50%;
+  height:40px;
+}
+
 .userInfoInputBox-40{
   width:40%;
   height:40px;
@@ -137,6 +145,11 @@
 
 .userInfoInputLabel{
   padding: 0px;
+}
+
+.button-fit-content{
+  width:fit-content;
+  height: 40px;
 }
 
 @media only screen and (max-width: 1000px) {

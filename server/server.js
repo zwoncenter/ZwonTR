@@ -3,8 +3,8 @@ const path = require("path");
 const app = express();
 const crypto = require("crypto");
 const authentificator = require("./authentificator.js");
+const validator = require("./validator.js");
 const roles = require("../role_env.js");
-console.log(`roles: ${JSON.stringify(roles)}`);
 const MongoClient = require("mongodb").MongoClient;
 
 // ObjectId type casting을 위한 import
@@ -179,6 +179,7 @@ passport.serializeUser(function (user, done) {
         {
           $match:{
             user_id:user._id,
+            activated:true,
           },
         },
         {
@@ -301,21 +302,125 @@ function getValidDateString(dateString){
   return date;
 }
 
+function getCurrentDate(){
+  return new Date(moment().toJSON());
+}
+
 // user info data: username, nickname
 app.get("/api/getMyInfo", async function (req, res) {
   const ret_val={"success":false, "ret":null};
   try{
-    ret_val["success"]=true;
     ret_val["ret"]={loginStatus:isLogined(req), username:"", nickname:""};
     if(ret_val["ret"].loginStatus===true){
       ret_val["ret"].username=req.session.passport.user.username;
       ret_val["ret"].nickname=req.session.passport.user.nickname;
     }
+    ret_val["success"]=true;
   }
   catch(error){
     ret_val["ret"]=`error while getting my info`;
   }
   finally{
+    return res.json(ret_val);
+  }
+});
+
+app.post("/api/checkUsernameAvailable", async function(req,res){
+  const ret_val={"success":true, "ret":null};
+  try{
+    ret_val["ret"]={available:false};
+    const target_username=req.body["username"];
+    if(!validator.isUsernameValid(target_username)) return;
+    const user_doc=await db.collection("User").findOne({username:target_username});
+    ret_val["success"]=true;
+    if(user_doc) return;
+    else ret_val["ret"]["available"]=true;
+  }
+  catch(error){
+    ret_val["success"]=false;
+    ret_val["ret"]=`error while check if username available`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
+function getUserObjectWithRegisterInfo(register_info,salt,password_hashed){
+  return {
+    username:register_info.username,
+    salt:salt,
+    password:password_hashed,
+    email:register_info.email,
+    nickname:register_info.nickname,
+    create_date:new Date(moment().toJSON()),
+    modify_date:null,
+    term_agreed_date:new Date(register_info.termAgreedDate),
+    approved_date:null,
+    approved_by:null,
+    sns_type:null,
+    sns_id:null,
+    sns_connect_date:null,
+    activated:false,
+    address:register_info.address,
+    birth_date:new Date(register_info.birthDate),
+    phone_number:register_info.phoneNumber,
+    gender:register_info.gender,
+    school_attending_status:register_info.schoolAttendingStatus,
+  }
+}
+
+app.post("/api/registerUser", async function(req,res){
+  const ret_val={"success":true, "ret":null};
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
+  try{
+    session.startTransaction();
+    ret_val["ret"]={"registered":false,"excuse":""};
+    let fields_valid=false;
+    const register_info=req.body;
+    if(!roles.RoleNameValidCheckSafe(register_info.userType)) ret_val["ret"]["excuse"]="올바른 사용자 유형이 아닙니다";
+    else if(!validator.isDateStringValid(register_info.termAgreedDate)) ret_val["ret"]["excuse"]="약관 동의 날짜가 유효하지 않습니다";
+    else if(!validator.isUsernameValid(register_info.username)) ret_val["ret"]["excuse"]="올바른 아이디가 아닙니다";
+    else if(!validator.isPasswordValid(register_info.password)) ret_val["ret"]["excuse"]="올바른 비밀번호가 아닙니다";
+    else if(!validator.isNicknameValid(register_info.nickname)) ret_val["ret"]["excuse"]="올바른 이름이 아닙니다";
+    else if(!validator.isBirthDateValid(register_info.birthDate)) ret_val["ret"]["excuse"]="올바른 생년월일이 아닙니다";
+    else if(!validator.isGenderValid(register_info.gender)) ret_val["ret"]["excuse"]="올바른 성별이 아닙니다";
+    else if(!validator.isPhoneNumberValid(register_info.phoneNumber)) ret_val["ret"]["excuse"]="올바른 휴대전화 번호가 아닙니다";
+    else if(!validator.isAddressValid(register_info.address)) ret_val["ret"]["excuse"]="올바른 주소가 아닙니다";
+    else if(validator.MajorInfoNeeded(register_info.userType, register_info.schoolAttendingStatus.school) && !validator.isMajorValid(register_info.schoolAttendingStatus.major)) ret_val["ret"]["excuse"]="올바른 학과명이 아닙니다";
+    else fields_valid=true;
+
+    if(!fields_valid) return;
+    const [salt,password_hashed]=authentificator.makeHashedSync(register_info.password);
+    const user_info=getUserObjectWithRegisterInfo(register_info,salt,password_hashed);
+    const user_id= new ObjectId();
+    user_info["_id"]=user_id;
+    await db.collection("User").insertOne(user_info);
+
+    const role_doc=await db.collection("Role").findOne({role_index:roles.roleNameToIndex[register_info.userType]});
+    const role_id= role_doc._id;
+
+    await db.collection("RoleOfUser").insertOne({user_id:user_id,role_id:role_id,modify_date:getCurrentDate(),activated:false});
+
+    ret_val["ret"]["registered"]=true;
+    session.commitTransaction();
+  }
+  catch(error){
+    await session.abortTransaction();
+    ret_val["success"]=false;
+    ret_val["ret"]=`이미 사용중인 아이디입니다`;
+  }
+  finally{
+    session.endSession();
     return res.json(ret_val);
   }
 });
