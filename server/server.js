@@ -145,6 +145,7 @@ passport.use(
             if (err) return done(err);
             // done 문법 (서버에러, 성공시 사용자 DB, 에러메세지)
             if (!result) return done(null, false, { message: "존재하지 않는 아이디 입니다." });
+            else if(!result.approved) return done(null,false,{message:"아직 사용이 승인되지 않은 아이디입니다.\n관리자에게 문의해주세요."})
             // buf 참조해서 암호화 및 비교진행
             const hashed_pw=authentificator.getHashedSync(inputPW,result.salt);
             // if (inputPW == result.PW) {
@@ -355,12 +356,12 @@ function getUserObjectWithRegisterInfo(register_info,salt,password_hashed){
     create_date:new Date(moment().toJSON()),
     modify_date:null,
     term_agreed_date:new Date(register_info.termAgreedDate),
+    approved:false,
     approved_date:null,
     approved_by:null,
     sns_type:null,
     sns_id:null,
     sns_connect_date:null,
-    activated:false,
     address:register_info.address,
     birth_date:new Date(register_info.birthDate),
     phone_number:register_info.phoneNumber,
