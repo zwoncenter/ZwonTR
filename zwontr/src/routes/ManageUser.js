@@ -1,5 +1,5 @@
-import "./SignUpPage.scss";
-import { Form, Button, ProgressBar, Accordion, FormCheck, FormControl, Row} from "react-bootstrap";
+import "./ManageUser.scss";
+import { Form, Button, ProgressBar, Accordion, FormCheck, FormControl, Row, Table} from "react-bootstrap";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -7,6 +7,7 @@ import Loginpage from "./LoginModal";
 import { TbBulb, TbBuilding } from "react-icons/tb";
 import { RiParentLine } from "react-icons/ri";
 import { MdNavigateBefore, MdNavigateNext } from "react-icons/md";
+import {FaCheck, FaSistrix, FaTrash} from "react-icons/fa"
 import privateInfoTerm from "../terms/privateInfoAgree";
 import identifyingInfoTerm from "../terms/identifyingInfoAgree";
 import sensitiveInfoTerm from "../terms/sensitiveInfoAgree";
@@ -15,35 +16,312 @@ const versionInfo = "1.6";
 
 function ManageUser() {
   let history= useHistory();
-
-  function getCurrentPage(){
-    if(pageNum==0) return null;
-    else return null;
+  const approved_status_categories=[
+    "미승인된 사용자",
+    "승인된 사용자",
+  ];
+  const approved_status_map={
+    "미승인된 사용자":false,
+    "승인된 사용자":true,
   }
-
-  function getCurrentPrompt(){
-    if(pageNum==0) return "사용자 관리";
-    else return "";
+  const user_type_categories=[
+    "전체",
+    "학생",
+    "학부모",
+    "직원",
+    "관리자",
+    "아이디로 검색",
+  ];
+  const user_prompt_to_user_type_map={
+    "전체":null,
+    "학생":"student",
+    "학부모":"parent",
+    "직원":"manager",
+    "관리자":"admin",
+    "아이디로 검색":null,
+  };
+  const user_type_to_user_type_prompt_map={
+    "student":"학생",
+    "parent":"학부모",
+    "manager":"직원",
+    "admin":"관리자"
   }
+  function isQueryUsingUsername(){
+    return userTypeCategory==="아이디로 검색";
+  }
+  const [approvedStatusCategory,setApprovedStatusCategory]= useState(approved_status_categories[0]);
+  const [userTypeCategory,setUserTypeCategory]= useState(user_type_categories[0]);
+  const [queryUsername,setQueryUsername]=useState("");
+  const dummy_data=[];
+  for(let i=0; i<30; i++){
+    dummy_data.push({
+      username:i.toString()+'a',
+      nickname:i.toString()+'b',
+      userType:'student',
+      signUpDate:'2023-04-06',
+      approved:false,
+    });
+  }
+  const [pagination,setPagination]=useState({
+    cur_page:1,
+    total_page_num:1,
+    status_data:[],
+  });
 
-  const [pageNum, setPageNum]= useState(0);
-  // const [registerProgress, setRegisterProgress] = useState(0);
-  const [userType, setUserType]= useState(null);
-  const userTypeToPrompt={'student':"학생",'parent':'학부모','manager':'직원'};
-  const [allAgreeState,setAllAgreeState]=useState(false);
-  const [agreeState,setAgreeState]=useState([false,false,false]);
+  useEffect(()=>{
+    getUserAccountApprovedStatus();
+  },[]);
+
+  function isThisPageEmpty(){
+    return pagination.status_data.length===0;
+  }
+  function isUsernameFormControlDisabled(){
+    return userTypeCategory!=="아이디로 검색";
+  }
+  function getNoDataPrompt(){
+    return (
+      <div className="NoDataPromptBox mt-5">
+        <h4><strong>검색 조건과 일치하는 사용자가 없습니다</strong></h4>
+      </div>
+    );
+  }
+  function isoDateStringToLocalDateString(date_string){
+    const d=new Date(date_string);
+    return [d.toLocaleDateString(),d.toLocaleTimeString()].join(' ');
+  }
+  async function changeUserAccountApprovedStatus(user_info,status_value,pagination_idx){
+    const query={
+      username:user_info.username,
+      userType:user_info.userType,
+      value:status_value,
+    };
+    const change_success=await axios
+      .post("/api/changeUserAccountApprovedStatus",query)
+      .then((res)=>{
+        const data=res.data;
+        if(!data.success) throw new Error();
+        else if(data.ret.late) window.alert("이미 변경사항이 반영된 변경사항입니다");
+        window.alert("권한 변경사항이 저장되었습니다");
+        return true;
+      })
+      .catch((error)=>{
+        window.alert(`네트워크 오류로 사용자 데이터를 불러오지 못했습니다`);
+        return false
+      });
+    if(change_success){
+      const updated_status=JSON.parse(JSON.stringify(pagination));
+      updated_status.status_data[pagination_idx].approved=status_value; // this should be changed
+      setPagination(updated_status);
+    }
+  }
+  function getTableRowFromUserInfoDatum(user_info_datum,idx){
+    return(
+      <tr key={idx}>
+        <td></td>
+        <td><p>{user_info_datum.username}</p></td>
+        <td><p>{user_info_datum.nickname}</p></td>
+        <td><p>{user_type_to_user_type_prompt_map[ user_info_datum.userType]}</p></td>
+        <td><p>{isoDateStringToLocalDateString(user_info_datum.signUpDate)}</p></td>
+        <td>
+          <Button
+            variant="success"
+            className="button-fit-content"
+            disabled={user_info_datum.approved}
+            onClick={async ()=>{
+              const username=user_info_datum.username;
+              const nickname=user_info_datum.nickname;
+              const user_type_prompt=user_type_to_user_type_prompt_map[user_info_datum.userType];
+              if(!window.confirm(`${nickname}(${username}) 사용자의 [${user_type_prompt}] 권한을 활성화 하시겠습니까?`)) return;
+              await changeUserAccountApprovedStatus(user_info_datum,true,idx);
+            }}
+          >
+            <strong>승인</strong>
+          </Button>
+        </td>
+      </tr>
+    );
+  }
+  function getUserInfoSearchPageNav(){
+    function isPageNavBoxDisabled(){
+      return pagination.cur_page==1 && pagination.total_page_num==1;
+    }
+    return (
+      <div className="pageNavBox">
+        {pagination.cur_page>1?
+          <div className="pageNavBoxElement">
+            <Button
+              variant="success"
+              className="button-fixed-size"
+              onClick={()=>{
+                getUserAccountApprovedStatus(pagination.cur_page-1);
+              }}
+            >
+              <strong><MdNavigateBefore/></strong>
+            </Button>
+          </div>:null
+        }
+        <div className="pageNavBoxElement">
+          <FormControl
+            className="pageNavBoxForm"
+            value={pagination.cur_page}
+            // disabled={isPageNavBoxDisabled()}
+            disabled={true}
+            onChange={(e) => {
+              // setinputQuery(e.target.value);
+            }}
+            onKeyPress={(e) => {
+              if (e.key === "Enter") {
+                // textbookSearch();
+              }
+            }}
+          />
+        </div>
+        <div className="pageNavBoxElement">
+          <p className="TotalPageBox"> / <strong>{pagination.total_page_num}</strong></p>
+        </div>
+        {pagination.cur_page<pagination.total_page_num?
+          <div className="pageNavBoxElement">
+            <Button
+              variant="success"
+              className="button-fixed-size"
+              onClick={async ()=>{
+                getUserAccountApprovedStatus(pagination.cur_page+1);
+              }}
+            >
+              <strong><MdNavigateNext/></strong>
+            </Button>
+          </div>:null
+        }
+      </div>
+    )
+  }
+  async function getUserAccountApprovedStatus(queryPage=1){
+    const query= {
+      approvedStatus:approved_status_map[approvedStatusCategory],
+      userType:user_prompt_to_user_type_map[userTypeCategory],
+      queryAllUserType:userTypeCategory==="전체",
+      username:isQueryUsingUsername()?queryUsername:null,
+      queryPage:queryPage
+    }
+    const status_data_pagination=await axios
+      .post("/api/searchUserAccountApprovedStatus",query)
+      .then((res)=>{
+        const data=res.data;
+        if(!data.success) throw new Error();
+        return data.ret.pagination;
+      })
+      .catch((err)=>{
+        window.alert(`네트워크 오류로 사용자 데이터를 불러오지 못했습니다`);
+        return {
+          cur_page:1,
+          total_page_num:1,
+          status_data:[]
+        };
+      })
+    //here pagenation data should be extracted
+    setPagination(status_data_pagination);
+  }
   
   return (
     <div className="main-background text-center">
       <div className="headerBox">
         <h1>
-          <strong>{getCurrentPrompt()}</strong>
+          <strong>사용자 관리</strong>
         </h1>
         
       </div>
-      <div className="registerInfoBox">
-        {getCurrentPage()}
-        <div className="registerInfoBoxFooter">
+      <div className="UserInfoSearchBox">
+        {/* {getCurrentPage()} */}
+        <div className="UserInfoBoxHeader row">
+          <div className="col-sm-3 mb-2">
+            <Form.Select
+              value={approvedStatusCategory}
+              onChange={(e) => {
+                setApprovedStatusCategory(e.target.value);
+              }}
+            >
+              {
+                approved_status_categories.map((category,idx)=>{
+                  return (
+                    <option value={category} key={idx}>
+                      {category}
+                    </option>
+                  );
+                })
+              }
+            </Form.Select>
+          </div>
+          <div className="col-sm-2 mb-2">
+            <Form.Select
+              value={userTypeCategory}
+              onChange={(e) => {
+                const new_val=e.target.value;
+                setUserTypeCategory(new_val);
+                if(new_val!=="아이디로 검색") setQueryUsername("");
+              }}
+            >
+              {
+                user_type_categories.map((category,idx)=>{
+                  return (
+                    <option value={category} key={idx}>
+                      {category}
+                    </option>
+                  );
+                })
+              }
+            </Form.Select>
+          </div>
+          <div className="col-sm-5 mb-2">
+            <FormControl
+              disabled={isUsernameFormControlDisabled()}
+              placeholder={isUsernameFormControlDisabled()?"":"조회할 사용자 아이디를 입력해주세요"}
+              value={queryUsername}
+              maxLength={25}
+              onChange={(e) => {
+                setQueryUsername(e.target.value);
+              }}
+              onKeyPress={(e) => {
+                if (e.key === "Enter") {
+                  getUserAccountApprovedStatus();
+                }
+              }}
+            />
+          </div>
+          <div className="col-sm-1 mb-2">
+            <Button
+              className=""
+              onClick={async ()=>{
+                getUserAccountApprovedStatus();
+              }}
+            >
+              <strong>
+                <FaSistrix />
+              </strong>
+            </Button>
+          </div>
+        </div>
+        <div className="UserInfoBoxBody">
+          {!isThisPageEmpty()?
+            (<Table striped hover className="mt-3">
+            <thead>
+              <tr>
+                <th width="5%"></th>
+                <th width="20%">아이디</th>
+                <th width="20%">이름</th>
+                <th width="10%">사용자<br/>유형</th>
+                <th width="25%">회원가입 날짜</th>
+                <th width="20%">사용 승인</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagination.status_data.map((item,idx)=>getTableRowFromUserInfoDatum(item,idx))}
+            </tbody>
+            </Table>):
+            getNoDataPrompt()
+          }
+          </div>
+        <div className="UserInfoBoxFooter">
+          {!isThisPageEmpty()?getUserInfoSearchPageNav():null}
         </div>
       </div>
       <div className="versionInfo">

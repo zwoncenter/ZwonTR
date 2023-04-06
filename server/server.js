@@ -491,9 +491,6 @@ app.get("/api/managerList", loginCheck, permissionCheck(Role("manager"),Role("ad
 
 // StudentDB에 새로운 stuDB 추가 요청
 app.post("/api/StudentDB", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const newDB = req.body;
   
   // db.collection("StudentDB").findOne({ ID: newDB.ID }, function (err, result) {
@@ -686,9 +683,6 @@ app.put("/api/StudentDB", loginCheck, permissionCheck(Role("manager"),Role("admi
     }
   });
   /** ------------------------------------------------------------- **/
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
 
   const ret_val={"success":false,"ret" :null};
   // let success;
@@ -834,9 +828,6 @@ app.put("/api/StudentDB", loginCheck, permissionCheck(Role("manager"),Role("admi
 
 // StudentDB에 삭제 요청
 app.delete("/api/StudentDB/:ID", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const paramID = req.params.ID;
   // db.collection("StudentDB").deleteOne({ ID: paramID }, (err, result) => {
   //   if (err) {
@@ -866,10 +857,6 @@ app.delete("/api/StudentDB/:ID", loginCheck, permissionCheck(Role("manager"),Rol
 app.post("/api/DoGraduate/", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   const ret_val={"success":false,"ret":null};
   try{
-    if (req["user"]["ID"] === "guest") {
-      ret_val["ret"]="게스트 계정은 저장, 수정, 삭제가 불가능합니다.";
-      return;
-    }
     const student_legacy_id = req.body["studentLegacyID"];
     await db.collection("StudentDB").updateOne({"ID":student_legacy_id},{"$set":{"graduated":true,"graduated_date":getCurrentKoreaDateYYYYMMDD()}});
     ret_val["success"]=true;
@@ -975,9 +962,6 @@ app.post("/api/TRByDateRange/", loginCheck, permissionCheck(Role("manager"),Role
 
 
 app.post("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const newTR = req.body;
   // db.collection("TR").findOne({ ID: newTR.ID, 날짜: newTR.날짜 }, function (err, result) {
   //   if (err) {
@@ -1013,9 +997,6 @@ app.post("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), 
 
 app.put("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   // console.log('req["user"]', req["user"]);
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const newTR = req.body;
   let findID;
   try {
@@ -1068,9 +1049,6 @@ app.put("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), a
 
 
 app.delete("/api/TR/:id", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   let trID;
   try {
     trID = new ObjectId(req.params.id);
@@ -1103,9 +1081,6 @@ app.delete("/api/TR/:id", loginCheck, permissionCheck(Role("manager"),Role("admi
 });
 
 app.post("/api/DailyGoalCheckLog", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   let ret_val=true;
   try{
     //여기에 transaction으로 assignment인 경우에 state change도 해줘야됨
@@ -1307,9 +1282,6 @@ app.post("/api/DailyGoalCheckLogByDateRange", loginCheck, permissionCheck(Role("
 });
 
 app.post("/api/Closemeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) { // deprecated: 동시성 처리 불가 이슈
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const paramDate = decodeURIComponent(req.params.date);
   const newClosemeeting = req.body;
   db.collection("Closemeeting").findOne({ 날짜: paramDate }, function (err, result) {
@@ -1338,9 +1310,6 @@ function getUpdatePathFromNewCloseMeetingFeedback(feedbackData){
 }
 
 app.post("/api/SaveClosemeetingFeedback", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const closemeeting_feedback_data = req.body;
   const ret={"success":false,"ret":null};
   try{
@@ -1374,9 +1343,6 @@ app.get("/api/Closemeeting/:date", loginCheck, permissionCheck(Role("manager"),R
 });
 
 app.put("/api/Closemeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const paramDate = decodeURIComponent(req.params.date);
   const newClosemeeting = req.body;
   let findID;
@@ -1412,9 +1378,6 @@ app.put("/api/Closemeeting/:date", loginCheck, permissionCheck(Role("manager"),R
 });
 
 app.delete("/api/Closemeeting/:id", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   let ClosemeetingID;
   try {
     ClosemeetingID = new ObjectId(req.params.id);
@@ -1438,9 +1401,6 @@ app.delete("/api/Closemeeting/:id", loginCheck, permissionCheck(Role("manager"),
 // Middle Meeting
 
 app.post("/api/Middlemeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const paramDate = decodeURIComponent(req.params.date);
   const newMiddlemeeting = req.body;
   console.log("중간회의 저장 시도 : ", paramDate);
@@ -1475,9 +1435,6 @@ app.get("/api/Middlemeeting/:date", loginCheck, permissionCheck(Role("manager"),
 });
 
 app.put("/api/Middlemeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const paramDate = decodeURIComponent(req.params.date);
   const newMiddlemeeting = req.body;
   let findID;
@@ -1515,9 +1472,6 @@ app.put("/api/Middlemeeting/:date", loginCheck, permissionCheck(Role("manager"),
 });
 
 app.delete("/api/Middlemeeting/:id", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   let MiddlemeetingID;
   try {
     MiddlemeetingID = new ObjectId(req.params.id);
@@ -1550,9 +1504,6 @@ app.get("/api/Todolist", loginCheck, permissionCheck(Role("manager"),Role("admin
 });
 
 app.put("/api/Todolist", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const newTodolist = { Todolist: req.body };
   let findID;
   try {
@@ -1605,9 +1556,6 @@ app.get("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin
 });
 
 app.put("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   //const newTextbook = req.body;
   //const findID = ObjectId("62b815e210c04d831adf2f5b");
   let edittedTextbook = req.body;
@@ -1646,9 +1594,6 @@ app.put("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin
 });
 
 app.post("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const newTextbook = req.body;
   db.collection("TextBook").findOne({ 교재: newTextbook["교재"] }, (err, result) => {
     if (err) {
@@ -1667,9 +1612,6 @@ app.post("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admi
 });
 
 app.delete("/api/Textbook/:_id", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   let findID;
   try {
     findID = new ObjectId(req.params._id);
@@ -1806,9 +1748,6 @@ app.get("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin"
 });
 
 app.post("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   //이 코드 부분에서 강의 추가 시 강의에서 사용하는 교재를 TextbookOfLecture에 추가하도록 수정 필요
   //>>transaction사용: (insertone>Lecture, insertMany>TextbookOfLecture)
   const newLecture = req.body;
@@ -1861,9 +1800,6 @@ app.get("/api/Lecture/:lectureid", loginCheck, permissionCheck(Role("manager"),R
 });
 
 app.put("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const newLecture = req.body;
   let findID;
   try {
@@ -1882,9 +1818,6 @@ app.put("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin"
 });
 
 app.delete("/api/Lecture/:lectureid", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const paramID = decodeURIComponent(req.params.lectureid);
   db.collection("Lecture").deleteOne({ lectureID: paramID }, (err, result) => {
     if (err) {
@@ -2131,9 +2064,6 @@ app.get("/api/Assignment/:lectureid", loginCheck, permissionCheck(Role("manager"
 });
 
 app.put("/api/Assignment", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const newAssignment = req.body;
   let findID;
   try{
@@ -2159,9 +2089,6 @@ app.put("/api/Assignment", loginCheck, permissionCheck(Role("manager"),Role("adm
 });
 
 app.post("/api/Assignment", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   //>>transaction사용: (insertone>Assignment, insertMany>AssignmentOfStudent)
   const newAssign = req.body;
   const session=db_client.startSession({
@@ -2448,9 +2375,6 @@ app.get("/api/StudentOfLecture/:lectureID", loginCheck, permissionCheck(Role("ma
 });
 
 app.post("/api/StudentOfLecture", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   let lectureID, studentID, newStudentOfLecture;
   try {
     lectureID = new ObjectId(req.body["lectureID"]);
@@ -2555,9 +2479,6 @@ app.get("/api/TRnow", loginCheck, permissionCheck(Role("manager"),Role("admin"))
 
 // Weeklymeeting 관련 코드
 app.post("/api/Weeklymeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const newWeeklymeeting = req.body;
   const paramDate = decodeURIComponent(req.params.date);
   db.collection("Weeklymeeting").findOne({ 회의일: paramDate }, (err, result) => {
@@ -2587,9 +2508,6 @@ app.get("/api/Weeklymeeting/:date", loginCheck, permissionCheck(Role("manager"),
 });
 
 app.put("/api/Weeklymeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const newWeeklymeeting = req.body;
   const paramDate = decodeURIComponent(req.params.date);
   delete newWeeklymeeting["_id"];
@@ -2602,9 +2520,6 @@ app.put("/api/Weeklymeeting/:date", loginCheck, permissionCheck(Role("manager"),
 });
 
 app.delete("/api/Weeklymeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const paramDate = decodeURIComponent(req.params.date);
   db.collection("Weeklymeeting").deleteOne({ 회의일: paramDate }, (err, result) => {
     if (err) {
@@ -2616,9 +2531,6 @@ app.delete("/api/Weeklymeeting/:date", loginCheck, permissionCheck(Role("manager
 
 // Weeklystudyfeedback 관련 코드
 app.post("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const newWeeklystudyfeedback = req.body;
   const paramDate = decodeURIComponent(req.params.feedbackDate);
   const ID = decodeURIComponent(req.params.ID);
@@ -2650,9 +2562,6 @@ app.get("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionChec
 });
 
 app.put("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const newWeeklystudyfeedback = req.body;
   const paramDate = decodeURIComponent(req.params.feedbackDate);
   const ID = decodeURIComponent(req.params.ID);
@@ -2666,9 +2575,6 @@ app.put("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionChec
 });
 
 app.delete("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const paramDate = decodeURIComponent(req.params.feedbackDate);
   const ID = decodeURIComponent(req.params.ID);
   db.collection("WeeklyStudyfeedback").deleteOne({ 학생ID: ID, 피드백일: paramDate }, (err, result) => {
@@ -2838,9 +2744,252 @@ app.post("/api/StudentTodayAssignment/", loginCheck, permissionCheck(Role("manag
   }
 });
 
+function userTypeQueryValid(userType,queryAllUserType,username){
+  if(!userType) return queryAllUserType || ((typeof username)==="string" && username);
+  else return roles.RoleNameValidCheck(userType);
+}
 
+const items_per_page=parseInt(process.env.SHOWED_MANAGED_USER_PER_PAGE);
 
+// get status of user accounts
+app.post("/api/searchUserAccountApprovedStatus", loginCheck, permissionCheck(Role("admin")), async (req,res)=>{
+  const ret_val={"success":true,"ret":null};
+  try{
+    ret_val["ret"]={
+      pagination:{
+        cur_page:1,
+        total_page_num:1,
+        status_data:[],
+        pageInvalid:false,
+      },
+    };
+    let {
+      approvedStatus: approved_status,
+      userType:user_type_string,
+      queryAllUserType:query_all_user_type,
+      username,
+      queryPage,
+    }= req.body;
+    if(!userTypeQueryValid(user_type_string,query_all_user_type,username) || !Number.isInteger(queryPage) || queryPage<1) throw new Error(`invalid query`);
+    approved_status=!!approved_status;
+    const user_type_index=roles.roleNameToIndex[user_type_string];
+    const first_match_stage={
+      $match:{
+        approved:approved_status
+      }
+    }
+    if(username) first_match_stage["$match"]["username"]=username;
+    
+    const second_match_stage={
+      $match:{
+        "RoleOfUser_aggregate.activated":approved_status,
+      }
+    };
+    if(!query_all_user_type && !username) second_match_stage["$match"]["Role_aggregate.role_index"]=user_type_index;
 
+    const result_data= (await db.collection("User").aggregate([
+      first_match_stage,
+      {
+        $lookup: {
+          from: "RoleOfUser",
+          localField: "_id",
+          foreignField: "user_id",
+          as: "RoleOfUser_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$RoleOfUser_aggregate",
+        }
+      },
+      {
+        $lookup: {
+          from: "Role",
+          localField: "RoleOfUser_aggregate.role_id",
+          foreignField: "_id",
+          as: "Role_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$Role_aggregate",
+        }
+      },
+      second_match_stage,
+      {
+        $project: {
+          _id:0,
+          username: "$username",
+          nickname: "$nickname",
+          userType: "$Role_aggregate.role_name",
+          signUpDate: "$create_date",
+          approved: 1,
+        },
+      },
+      {
+        $facet:{
+          metadata:[{$count:"total_items_num"}],
+          data:[{$sort:{created_date:-1,modify_date:-1,approved_date:-1}},{$skip:items_per_page*(queryPage-1)},{$limit:items_per_page}]
+        }
+      }
+    ]).toArray())[0];
+    if(result_data.metadata.length===0) return; // no matching data
+    const item_count=(result_data.metadata)[0].total_items_num;
+    const total_page_num= Math.ceil(item_count/items_per_page);
+    ret_val["ret"]["pagination"]["cur_page"]=queryPage;
+    ret_val["ret"]["pagination"]["total_page_num"]=total_page_num;
+    ret_val["ret"]["pagination"]["status_data"]=result_data.data;
+    if(result_data.metadata.total_items_num>0 && result_data.data.length===0){
+      ret_val["ret"]["pagination"]["pageInvalid"]=true;
+      ret_val["ret"]["pagination"]["cur_page"]=total_page_num;
+    } 
+  }
+  catch(error){
+    ret_val["success"]=false;
+    ret_val["ret"]= `네트워크 오류로 데이터를 불러오지 못했습니다`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
+function changeApprovedStatusQueryValid(status_value,userType){
+  if(typeof status_value!=='boolean') return false;
+  else if(typeof userType!=='string' || !roles.RoleNameValidCheck(userType)) return false;
+  else return true;
+}
+
+app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role("admin")), async (req,res)=>{
+  const ret_val={"success":true,"ret":null};
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
+  try{
+    console.log('breakpoint');
+    session.startTransaction();
+    ret_val["ret"]={
+      value:null,
+      late:null,
+    };
+    let {
+      value:status_value,
+      userType:user_type_string,
+      username,
+    }= req.body;
+    if(!changeApprovedStatusQueryValid(status_value,user_type_string)) throw new Error(`invalid query`);
+    const user_type_index=roles.roleNameToIndex[user_type_string];
+
+    const result_data= await db.collection("User").aggregate([
+      {
+        $match:{
+          username:username
+        }
+      },
+      {
+        $lookup: {
+          from: "RoleOfUser",
+          localField: "_id",
+          foreignField: "user_id",
+          as: "RoleOfUser_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$RoleOfUser_aggregate",
+        }
+      },
+      {
+        $lookup: {
+          from: "Role",
+          localField: "RoleOfUser_aggregate.role_id",
+          foreignField: "_id",
+          as: "Role_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$Role_aggregate",
+        }
+      },
+      {
+        $match:{
+          "Role_aggregate.role_index":user_type_index,
+        }
+      },
+      {
+        $project: {
+          user_id:"$_id",
+          username: "$username",
+          user_approved: "$approved",
+          role_index: "$Role_aggregate.role_index",
+          role_of_user_id: "$RoleOfUser_aggregate._id",
+          role_of_user_activated: "$RoleOfUser_aggregate.activated"
+        },
+      },
+    ]).toArray();
+    if(result_data.length!==1) throw new Error('invalid request');
+    const current_status=result_data[0];
+    if(current_status.user_approved===status_value && current_status.role_of_user_activated===status_value){
+      ret_val["ret"]["value"]=status_value;
+      ret_val["ret"]["late"]=true;
+      return;
+    }
+    else if(current_status.user_approved===status_value || current_status.role_of_user_activated===status_value){
+      throw new Error(`DB inconsistency error`);
+    }
+
+    ret_val["ret"]["value"]=status_value;
+    ret_val["ret"]["late"]=false;
+
+    const approving_admin_doc= await db.collection('User').findOne({username:req.session.passport.user.username});
+    if(!approving_admin_doc) throw new Error(`invalid access from unknown`);
+    const approving_admin_id=approving_admin_doc._id;
+
+    const cur_time=getCurrentDate();
+
+    await db.collection('RoleOfUserLog').insertOne({
+      role_of_user_id:current_status.role_of_user_id,
+      role_index:current_status.role_index,
+      info_modified_date:cur_time,
+    });
+
+    await db.collection("RoleOfUser").updateOne(
+      {_id:current_status.role_of_user_id},
+      {$set:{
+        activated:status_value,
+        modify_date:cur_time,
+      }}
+    );
+
+    await db.collection("User").updateOne(
+      {_id:current_status.user_id},
+      {$set:{
+        approved:status_value,
+        approved_by:approving_admin_id,
+        approved_date:cur_time,
+      }}
+    );
+
+    session.commitTransaction();
+  }
+  catch(error){
+    await session.abortTransaction();
+    ret_val["success"]=false;
+    ret_val["ret"]= `네트워크 오류로 작업을 완료하지 못했습니다`;
+  }
+  finally{
+    session.endSession();
+    return res.json(ret_val);
+  }
+});
 
 // stickynote 관련 코드
 
@@ -2857,9 +3006,6 @@ app.get("/api/stickynote", loginCheck, permissionCheck(Role("manager"),Role("adm
 });
 
 app.post("/api/stickynote", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const newStickynote = req.body;
   // console.log(req.body);
   db.collection("stickynote").findOne({ note: newStickynote["note"] }, function (err, result) {
@@ -2879,9 +3025,6 @@ app.post("/api/stickynote", loginCheck, permissionCheck(Role("manager"),Role("ad
 });
 
 app.put("/api/stickynote/:id", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   const newstickynote = req.body;
   let findID;
   try {
@@ -2899,9 +3042,6 @@ app.put("/api/stickynote/:id", loginCheck, permissionCheck(Role("manager"),Role(
 });
 
 app.delete("/api/stickynote/:id", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
-  if (req["user"]["ID"] === "guest") {
-    return res.send("게스트 계정은 저장, 수정, 삭제가 불가능합니다.");
-  }
   let findID;
   try {
     findID = new ObjectId(req.params.id);
@@ -2921,49 +3061,3 @@ app.use("*", express.static(path.join(__dirname, "../zwontr/build")));
 app.get("*", function (req, res) {
   res.sendFile(path.join(__dirname, "../zwontr/build/index.html"));
 });
-
-// app.get("/api/StuInfo/:name", loginCheck, function (req, res) {
-//   const paramName = decodeURIComponent(req.params.name);
-//   console.log(`${paramName}의 학생 정보 조회 시도`);
-//   db.collection("StudentInfo").findOne({ 이름: paramName }, function (err, result) {
-//     if (err) {
-//       return console.log("/api/StuInfo/:name - find Error : ", err);
-//     }
-//     return res.json(result);
-//   });
-// });
-
-// app.post("/api/StuInfo/add", loginCheck, function (req, res) {
-//   const newInfo = req.body;
-//   db.collection("StudentInfo").findOne({ 이름: newInfo.이름 }, function (err, result) {
-//     if (err) {
-//       console.log(`/api/StuInfo/Add - findOne Error : `, err);
-//       return res.send(`/api/StuInfo/Add - findOne Error : `, err);
-//     }
-//     if (result !== null) {
-//       return res.send("findOne result is not null. 중복되는 이름의 학생이 존재합니다.");
-//     }
-//     db.collection("StudentInfo").insertOne(newInfo, function (err2, result2) {
-//       if (err2) {
-//         console.log("/api/StuInfo/Add - insertOne Error : ", err2);
-//         return res.send("/api/StuInfo/Add - insertOne Error : ", err2);
-//       }
-//       console.log("터미널에 표시 : 신규 학생 정보 저장 완료");
-//       return res.send(true);
-//     });
-//   });
-// });
-
-// app.put("/api/StuInfo/edit", loginCheck, function (req, res) {
-//   const newInfo = req.body;
-//   const findID = ObjectId(newInfo._id);
-//   delete newInfo._id;
-//   console.log("학생 정보 수정 시도 : ", newInfo.이름);
-//   db.collection("TR").updateOne({ _id: findID }, { $set: newInfo }, function (err, result) {
-//     if (err) {
-//       return res.send("/api/StuInfo/edit - updateOne Error : ", err);
-//     }
-//     console.log("터미널에 표시 : 학생 정보 수정 완료");
-//     return res.send(true);
-//   });
-// });

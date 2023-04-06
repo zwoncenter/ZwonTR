@@ -36,9 +36,10 @@
   margin-bottom: 20px;
 }
 
-.registerInfoBox{
+.UserInfoSearchBox{
   width: 80%;
-  max-width: 1000px;
+  height: 70%;
+  max-width: 1200px;
   max-height: 630px;
   overflow-y: auto;
   padding: 30px;
@@ -55,8 +56,16 @@
   // border-style: solid;
 }
 
-.registerInfoBoxFooter{
+.NoDataPromptBox{
+  height:80%;
+  vertical-align: middle;
+  // border: 3px solid red;
+}
+
+.UserInfoBoxFooter{
   margin-top: 45px;
+  display: flex;
+  justify-content: center;
 }
 
 .userTypeButton{
@@ -104,6 +113,16 @@
   text-align: left;
 }
 
+.UserInfoBoxHeader{
+  display: flex;
+  justify-content: center;
+}
+
+.UserInfoBoxBody{
+  height:75%;
+  overflow-y: auto;
+}
+
 .userInfoFeedbackInvalid{
   color: red;
   font-size:15px;
@@ -147,10 +166,49 @@
   padding: 0px;
 }
 
+.button-fixed-size{
+  width: 40px;
+  height: 40px;
+  margin:0 0 0 0;
+  padding:0 0 0 0;
+}
+
 .button-fit-content{
   width:fit-content;
-  height: 40px;
+  height:fit-content;
+  font-size: 12px;
 }
+
+.pageNavBoxElement{
+  display: inline-block;
+  width:fit-content;
+  height:45px;
+  margin-top:0;
+  margin-left:5px;
+  margin-right:5px;
+  vertical-align: top;
+  // border: 3px solid blue;
+}
+
+.TotalPageBox{
+  position:relative;
+  top:30%;
+  // border: 3px solid red;
+}
+
+.pageNavBoxForm{
+  width:70px;
+  height:40px;
+  text-align: center;
+}
+
+.pageNavBox{
+  width: fit-content;
+  height: fit-content;
+  // border: 3px solid red;
+}
+
+
 
 @media only screen and (max-width: 1000px) {
   .userTypeText{
