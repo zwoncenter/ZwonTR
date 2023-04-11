@@ -112,6 +112,7 @@ app.post("/api/login", function (req, res, next) {
     if (!user) return res.send(info);
 
     req.logIn(user, function (err) {
+      console.log(`login function user object: ${JSON.stringify(user)}`);
       if (err) return next(err);
       return res.json({ loginSuccess: true, user_mode:req.session.passport.user.user_mode});
     });
