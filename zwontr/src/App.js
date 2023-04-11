@@ -115,6 +115,44 @@ function App() {
     return myInfo.user_mode==="admin";
   }
 
+  const navBarMenus=[
+    ["/studentList",()=>history.push("/studentList"),"학생관리"],
+    [`/Weeklymeeting/Write/${thisMonday}`,() => {
+      axios
+        .get(`/api/Weeklymeeting/${thisMonday}`)
+        .then((result) => { 
+          // console.log(result);
+          if (result["data"] === null) {
+            history.push(`/Weeklymeeting/Write/${thisMonday}`);
+          } else {
+            history.push(`/Weeklymeeting/Edit/${thisMonday}`);
+          }
+        })
+        .catch((err) => {
+          console.log(err);
+        })},"주간 결산"],
+    [`/Closemeeting/${today}`,()=>history.push(`/Closemeeting/${today}`),"마감 회의"],
+    ["/Textbook",()=>history.push("/Textbook"),"교재관리"],
+    ["/Dashboard",() =>history.push("/Dashboard"),"대시보드"],
+    ["/Lecture",()=>history.push("/Lecture"),"강의관리"],
+    ["/ManageUser",()=> history.push("/ManageUser"),"사용자 관리"],
+  ];
+
+  function getNavBarButtonIfValid(path,onclick_callback,prompt,idx){
+    if(!checkUserPermittedToAccessPath(path,myInfo.user_mode)) return false;
+    return (
+      <Button
+        className="menu-map-btn btn-secondary"
+        onClick={onclick_callback}
+        key={idx}
+      >
+        <h5>
+          <strong>{prompt}</strong>
+        </h5>
+      </Button>
+    );
+  }
+
   return (
     myInfoLoaded?
     <div className="App">
@@ -148,7 +186,7 @@ function App() {
             로그아웃
           </Button>
         </div>
-        <Button
+        {/* <Button
           className="menu-map-btn btn-secondary"
           onClick={() => {
             history.push("/studentList");
@@ -204,16 +242,6 @@ function App() {
             <strong>마감 회의</strong>
           </h5>
         </Button>
-        {/* <Button
-          className="menu-map-btn btn-secondary"
-          onClick={() => {
-            history.push("/Todolist");
-          }}
-        >
-          <h5>
-            <strong>TO-DO list</strong>
-          </h5>
-        </Button> */}
         <Button
           className="menu-map-btn btn-secondary"
           onClick={() => {
@@ -254,7 +282,8 @@ function App() {
             <h5>
               <strong>사용자 관리</strong>
             </h5>
-          </Button>:null}
+          </Button>:null} */}
+          {navBarMenus.map((menu_data,idx)=>getNavBarButtonIfValid(menu_data[0],menu_data[1],menu_data[2],idx))}
       </div>
       <div className="menuArrow">
         <img src={menuarrow} alt="menuarrow" />
