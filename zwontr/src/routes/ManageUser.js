@@ -231,7 +231,6 @@ function ManageUser() {
         
       </div>
       <div className="UserInfoSearchBox">
-        {/* {getCurrentPage()} */}
         <div className="UserInfoBoxHeader row">
           <div className="col-sm-3 mb-2">
             <Form.Select
