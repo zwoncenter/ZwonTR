@@ -28,13 +28,22 @@ function Loginpage() {
     return request;
   }
 
+  function getDefaultPathByUserMode(user_mode){
+    if(user_mode==="admin" || user_mode==="manager") return "/studentList";
+    else return "/NotFound";
+  }
+
   async function loginClick() {
     const result = await loginRequest();
     if (result === false) {
       return window.alert("로그인에 실패했습니다. 데이터 / 개발 팀에 문의해주세요");
     }
-    if (result.user === true) {
-      return history.push("/studentList");
+    if (result.loginSuccess === true) {
+      // window.alert(`user mode: ${result.user_mode}`);
+      // return history.push("/studentList");
+      // window.location.replace(getDefaultPathByUserMode(result.user_mode));
+      window.location.href=getDefaultPathByUserMode(result.user_mode); // this makes the page reloaded for real
+      // history.push(getDefaultPathByUserMode(result.user_mode));
     } else {
       window.alert(result.message);
     }

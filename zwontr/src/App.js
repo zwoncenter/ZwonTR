@@ -1,5 +1,5 @@
-  import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
-  import { Link, Route, Switch, useLocation, Redirect } from "react-router-dom";
+import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-bootstrap";
+import { Link, Route, Switch, useLocation, Redirect, matchPath } from "react-router-dom";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -31,6 +31,8 @@ import WeeklystudyfeedbackEdit from "./routes/WeeklystudyfeedbackEdit";
 import ManageUser from "./routes/ManageUser";
 import NotFound from "./routes/NotFound";
 
+import checkUserPermittedToAccessPath from "./routes/route_reachable_user_modes";
+
 function App() {
   let history = useHistory();
   const now = new Date(); // 현재 시간
@@ -55,12 +57,26 @@ function App() {
     loginStatus:false,
     username:"",
     nickname:"",
-    user_mode:"",
+    user_mode:"guest",
   }
   const [myInfo,setMyInfo]= useState({...myInfoTemplate});
+  const [myInfoLoaded,setMyInfoLoaded]=useState(false);
 
   useEffect(async()=>{
-    // if(window.location.pathname === "/") return;
+    // console.log(`path: ${window.location.pathname}`);
+    if(myInfoLoaded){
+      // console.log(`myinfo loaded: ${JSON.stringify(myInfoLoaded)}`);
+      // console.log(`matchpath result: ${checkUserPermittedToAccessPath(window.location.pathname,myInfo.user_mode)}`);
+      // console.log(`myinfo: ${JSON.stringify(myInfo)}`);
+      if(!checkUserPermittedToAccessPath(window.location.pathname,myInfo.user_mode)){
+        history.push("/NotFound");
+      }
+    }
+  },[window.location.pathname,myInfoLoaded]);
+
+  
+
+  useEffect(async ()=>{
     const myInfoData= await axios
       .get("/api/getMyInfo")
       .then((result)=>{
@@ -72,8 +88,8 @@ function App() {
         return {...myInfoTemplate};
       });
     setMyInfo(myInfoData);
-    console.log(`my user mode: ${myInfoData.user_mode}`);
-  },[window.location.pathname]);
+    setMyInfoLoaded(true);
+  },[]);
 
 
 
@@ -100,6 +116,7 @@ function App() {
   }
 
   return (
+    myInfoLoaded?
     <div className="App">
       {window.location.pathname !== "/" && window.location.pathname !== "/SignUp" ? 
       <div className="menu">
@@ -118,6 +135,7 @@ function App() {
                 await axios
                   .post("/api/logout",{})
                   .then((result)=>{
+                    setMyInfo({...myInfoTemplate});
                     return history.push("/");
                   })
                   .catch((err)=>{
@@ -247,7 +265,7 @@ function App() {
       
       <Switch>
         <Route exact path="/">
-          <FirstPage />
+          <FirstPage/>
         </Route>
         <Route exact path="/SignUp">
           <SignUpPage />
@@ -327,11 +345,11 @@ function App() {
           <NotFound/>
         </Route>
         <Route path="*">
-          <Redirect to="/NotFound"/>
+          <NotFound/>
         </Route>
       </Switch>
     </div>
-  );
+  :null);
 }
 
 export default App;
