@@ -2,7 +2,15 @@ import { matchPath } from "react-router-dom";
 
 const path_to_permitted_user_modes_map={
     "/":["guest"],
+    "/SignUp":["guest","parent","student","manager","admin"],
     "/studentList":["manager","admin"],
+    "/studentAdd":["manager","admin"],
+    "/StudentEdit/:ID":["manager","admin"],
+    "/TR/:ID/write":["manager","admin"],
+    "/TR/:ID/edit/:date":["manager","admin"],
+    "/StuInfoAdd":["manager","admin"],
+    "/StuInfoEdit/:ID":["manager","admin"],
+    "/Chart/:ID":["admin"],
     "/Closemeeting/:date":["manager","admin"],
     "/Middlemeeting/Write/:date":["manager","admin"],
     "/Middlemeeting/Edit/:date":["manager","admin"],
