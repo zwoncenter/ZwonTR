@@ -29,6 +29,7 @@ import LectureList from "./routes/LectureList";
 import WeeklystudyfeedbackWrite from "./routes/WeeklystudyfeedbackWrite";
 import WeeklystudyfeedbackEdit from "./routes/WeeklystudyfeedbackEdit";
 import ManageUser from "./routes/ManageUser";
+import NotFound from "./routes/NotFound";
 
 function App() {
   let history = useHistory();
@@ -71,6 +72,7 @@ function App() {
         return {...myInfoTemplate};
       });
     setMyInfo(myInfoData);
+    console.log(`my user mode: ${myInfoData.user_mode}`);
   },[window.location.pathname]);
 
 
@@ -320,6 +322,12 @@ function App() {
           </Route>
         <Route exact path="/ManageUser">
           <ManageUser/>
+        </Route>
+        <Route exact path="/NotFound">
+          <NotFound/>
+        </Route>
+        <Route path="*">
+          <Redirect to="/NotFound"/>
         </Route>
       </Switch>
     </div>

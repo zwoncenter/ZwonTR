@@ -112,6 +112,7 @@ app.post("/api/login", function (req, res, next) {
     if (!user) return res.send(info);
 
     req.logIn(user, function (err) {
+      console.log(`login function user object: ${JSON.stringify(user)}`);
       if (err) return next(err);
       return res.json({ user: true });
     });
@@ -137,35 +138,57 @@ passport.use(
           session: true, // session을 저장할 것인지
           passReqToCallback: false, // id/pw 외에 다른 정보 검증 시
         },
-        function (inputID, inputPW, done) {
+        async function (inputID, inputPW, done) {
           console.log(inputID, "login trial");
           // db.collection("account").findOne({ ID: inputID }, function (err, result) {
           // db.collection("account").findOne({ username: inputID }, function (err, result) { // 이 줄만 바꾸면 username,pw 저장된 collection 바꿀 수 있음
-          db.collection("User").findOne({ username: inputID }, function (err, result) {
-            if (err) return done(err);
-            // done 문법 (서버에러, 성공시 사용자 DB, 에러메세지)
-            if (!result) return done(null, false, { message: "존재하지 않는 아이디 입니다." });
-            else if(!result.approved) return done(null,false,{message:"아직 사용이 승인되지 않은 아이디입니다.\n관리자에게 문의해주세요."})
-            // buf 참조해서 암호화 및 비교진행
-            const hashed_pw=authentificator.getHashedSync(inputPW,result.salt);
-            // if (inputPW == result.PW) {
-            // if (hashed_pw === result.password) {
-            if(crypto.timingSafeEqual(Buffer.alloc(authentificator.BufferLen,hashed_pw),Buffer.alloc(authentificator.BufferLen,result.password))){
-              db.collection(process.env.SESSION_COLLECTION_NAME).count({"session.passport.user.username":inputID}, function(err,count_result){
-                if(err) return done(err);
-                else if(count_result>max_session_concurrent){
-                  return done(null,false,{message: "접속할 수 있는 최대 연결 수를 넘어섰습니다"});
-                }
-                console.log("로그인 성공, ", result);
-                console.log(`${inputID} current session num: ${count_result}`);
-                return done(null, result);
-              });
+          // db.collection("User").findOne({ username: inputID }, function (err, result) {
+          //   if (err) return done(err);
+          //   // done 문법 (서버에러, 성공시 사용자 DB, 에러메세지)
+          //   if (!result) return done(null, false, { message: "존재하지 않는 아이디 입니다." });
+          //   else if(!result.approved) return done(null,false,{message:"아직 사용이 승인되지 않은 아이디입니다.\n관리자에게 문의해주세요."})
+          //   // buf 참조해서 암호화 및 비교진행
+          //   const hashed_pw=authentificator.getHashedSync(inputPW,result.salt);
+          //   // if (inputPW == result.PW) {
+          //   // if (hashed_pw === result.password) {
+          //   if(crypto.timingSafeEqual(Buffer.alloc(authentificator.BufferLen,hashed_pw),Buffer.alloc(authentificator.BufferLen,result.password))){
+          //     db.collection(process.env.SESSION_COLLECTION_NAME).count({"session.passport.user.username":inputID}, function(err,count_result){
+          //       if(err) return done(err);
+          //       else if(count_result>max_session_concurrent){
+          //         return done(null,false,{message: "접속할 수 있는 최대 연결 수를 넘어섰습니다"});
+          //       }
+          //       console.log("로그인 성공, ", result);
+          //       console.log(`${inputID} current session num: ${count_result}`);
+          //       return done(null, result);
+          //     });
+          //   } else {
+          //     return done(null, false, {
+          //       message: "비밀번호가 일치하지 않습니다.",
+          //     });
+          //   }
+          // });
+          try{
+            const user_doc=await db.collection("User").findOne({username: inputID});
+            if (!user_doc) return done(null, false, { message: "존재하지 않는 아이디 입니다." });
+            const hashed_pw=authentificator.getHashedSync(inputPW,user_doc.salt);
+            if(crypto.timingSafeEqual(Buffer.alloc(authentificator.BufferLen,hashed_pw),Buffer.alloc(authentificator.BufferLen,user_doc.password))){
+              if(!user_doc.approved) return done(null,false,{message:"아직 사용이 승인되지 않은 아이디입니다.\n관리자에게 문의해주세요."});
+              const session_count= await db.collection(process.env.SESSION_COLLECTION_NAME).count({"session.passport.user.username":inputID});
+              if(session_count>max_session_concurrent){
+                return done(null,false,{message: "접속할 수 있는 최대 연결 수를 넘어섰습니다"});
+              }
+              console.log("로그인 성공, ", user_doc);
+              console.log(`${inputID} current session num: ${session_count}`);
+              return done(null, user_doc);
             } else {
               return done(null, false, {
                 message: "비밀번호가 일치하지 않습니다.",
               });
             }
-          });
+          }
+          catch(error){
+            return done(error);
+          }
         }
     )
 );
