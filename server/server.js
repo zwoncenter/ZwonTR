@@ -112,9 +112,8 @@ app.post("/api/login", function (req, res, next) {
     if (!user) return res.send(info);
 
     req.logIn(user, function (err) {
-      console.log(`login function user object: ${JSON.stringify(user)}`);
       if (err) return next(err);
-      return res.json({ user: true });
+      return res.json({ loginSuccess: true, user_mode:req.session.passport.user.user_mode});
     });
   })(req, res, next);
 });
@@ -334,8 +333,8 @@ function getCurrentDate(){
 app.get("/api/getMyInfo", async function (req, res) {
   const ret_val={"success":false, "ret":null};
   try{
-    ret_val["ret"]={loginStatus:isLogined(req), username:"", nickname:"", user_mode:""};
-    if(ret_val["ret"].loginStatus===true){
+    ret_val["ret"]={loginStatus:isLogined(req), username:"", nickname:"", user_mode:"guest"};
+    if(ret_val["ret"]["loginStatus"]===true){
       ret_val["ret"].username=req.session.passport.user.username;
       ret_val["ret"].nickname=req.session.passport.user.nickname;
       ret_val["ret"].user_mode=req.session.passport.user.user_mode;
