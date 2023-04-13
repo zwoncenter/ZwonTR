@@ -510,6 +510,27 @@ function TRDraft() {
         });
   };
 
+  //StudentDB에 연결된 계정에 한한 학습 정보 가져오는 코드
+  const [myStudyInfo,setMyStudyInfo]=useState({
+    "진행중교재":[],
+  });
+
+  useEffect(async ()=>{
+    const current_studying_books=await axios
+      .get("/api/getMyCurrentStudyingBooks")
+      .then((res)=>{
+        const data=res.data;
+        console.log(`data: ${JSON.stringify(data)}`);
+        if(!data.success) return [];
+        else return data.ret;
+      })
+      .catch((err)=>{
+        return [];
+      });
+    console.log(`current studying books: ${JSON.stringify(current_studying_books)}`);
+    setMyStudyInfo({"진행중교재":current_studying_books});
+  },[])
+
   function 입력확인() {
     if (!TR.날짜) {
       window.alert("일간하루 날짜가 입력되지 않았습니다.");
