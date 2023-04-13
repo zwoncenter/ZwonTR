@@ -208,7 +208,17 @@
   // border: 3px solid red;
 }
 
+.CandidateStudentUserBox{
+  bottom: 1px solid gray;
+}
 
+.RelatedStudentInfoBox{
+  text-align: left;
+}
+
+.RelatedStudentInfoBoxTitle{
+  font-size: 25px;
+}
 
 @media only screen and (max-width: 1000px) {
   .userTypeText{
