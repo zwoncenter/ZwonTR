@@ -349,6 +349,49 @@ app.get("/api/getMyInfo", async function (req, res) {
   }
 });
 
+//student user info data: current studying books
+app.get("/api/getMyCurrentStudyingBooks", loginCheck, permissionCheck(Role("student"),Role("manager"),Role("admin")), async function (req, res) {
+  const ret_val={"success":true, "ret":null};
+  try{
+    const student_doc= await db.collection("User").aggregate(
+      [
+        {
+          $match: {
+            username:req.session.passport.user.username,
+          }
+        },
+        {
+          $lookup: {
+            from: "StudentDB",
+            localField: "_id",
+            foreignField: "user_id",
+            as: "StudentDB_aggregate",
+          },
+        },
+        { 
+          $unwind: {
+            path:"$StudentDB_aggregate",
+          }
+        },
+        {
+          $project: {
+            _id:0,
+            currentStudyingBooks: "$StudentDB_aggregate.진행중교재",
+          },
+        },
+      ]).toArray();
+    if(student_doc.length!==1) throw new Error(`invalid query`);
+    ret_val["ret"]=student_doc[0].currentStudyingBooks;
+  }
+  catch(error){
+    ret_val["success"]=false;
+    ret_val["ret"]=`error while getting my current studying books`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
 app.post("/api/checkUsernameAvailable", async function(req,res){
   const ret_val={"success":true, "ret":null};
   try{
