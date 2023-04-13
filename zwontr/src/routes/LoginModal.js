@@ -30,6 +30,7 @@ function Loginpage() {
 
   function getDefaultPathByUserMode(user_mode){
     if(user_mode==="admin" || user_mode==="manager") return "/studentList";
+    else if(user_mode==="student") return "/TRDraft";
     else return "/NotFound";
   }
 

@@ -2,6 +2,7 @@ import { matchPath } from "react-router-dom";
 
 const path_to_permitted_user_modes_map={
     "/":["guest"],
+    "/TRDraft":["parent","student","manager","admin"],
     "/SignUp":["guest","parent","student","manager","admin"],
     "/studentList":["manager","admin"],
     "/studentAdd":["manager","admin"],

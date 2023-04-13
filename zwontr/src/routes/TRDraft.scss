@@ -1,0 +1,250 @@
+@use "sass:math";
+@import url(https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/nanumsquare.css);
+
+
+
+* p,
+span,
+h2,
+h3,
+a,
+h4,
+h5,
+h6,
+label,
+select,
+th,
+td,
+button,
+textarea {
+  font-family: "NanumSquare" !important;
+  transform: rotate(0.04deg);
+}
+
+.trEdit-background {
+  min-height: 100vh;
+  padding: 20px;
+  text-align: center;
+  background-color: #F0EDFF;
+}
+
+.trCard {
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 20px;
+  border: 0px;
+  background-color: white;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  p,
+  label,
+  select,
+  td,
+  th,
+  input,
+  textarea,
+  h5,
+  button {
+    font-size: 0.9rem;
+    vertical-align: middle;
+    margin-bottom: 0px;
+  }
+  input,
+  select,
+  textArea {
+    border-radius: 10px;
+    text-align: center;
+  }
+  Table {
+    table-layout: fixed;
+    background-color: white;
+    border-radius: 5px;
+    padding: 10px;
+    td {
+      border-bottom: 0px;
+    }
+  }
+}
+
+.btn-commit {
+  margin: 10px;
+  width: 90%;
+  font-size: 20px;
+  border-radius: 20px;
+  border: 0px;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  color: white;
+}
+
+.btn-attend, .btn-edit {
+  background-color: #5500d3;
+}
+
+.btn-absent, .btn-cancel {
+  background-color: #4B4453;
+}
+
+.btn-comeyet {
+  background-color: #B1A8B9;
+}
+
+.btn-load {
+  background-color: #B1A8B9;
+  margin:0 auto;
+  width: 95%;
+  strong {
+    font-size: 20px;
+  }
+  input {
+  height: 90%;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 0.9rem;
+  vertical-align: middle;
+  margin-bottom: 0px;
+  }
+}
+
+.inputTime {
+  width: 7rem;
+  border-radius: 5px;
+  border: solid 1px gray;
+}
+
+.inputText {
+  width: 95%;
+  min-width: 2rem;
+}
+
+.textArea {
+  width: 100%;
+  border-radius: 10px;
+}
+
+.btn-add {
+  height: auto;
+  width: 95%;
+  border-radius: 20px;
+  font-size: 20px;
+  padding: 0px;
+  color: white;
+}
+
+.btn-opaque {
+  height: 25px;
+  width: 25px;
+  //border-radius: 10px;
+  font-size: 20px;
+  padding: 0px;
+  color:rgba(0, 0, 0, 0.24);
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
+.program-add {
+  background-color: #4B4453;
+  border: 0px;
+  margin: auto;
+}
+
+.checkBox {
+  width: 90%;
+  margin: auto;
+}
+
+.tmp {
+  font-size: 40px;
+}
+
+.cube-content {
+  text-align: left;
+  min-height: 40px;
+  padding-top: 10px;
+}
+
+.stayUpCheck {
+  width: 50%;
+  text-align: left;
+  margin-left: 10px;
+}
+
+.cub-delete {
+  box-sizing: border-box;
+}
+
+.feedback-sub {
+  width: 120px;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.borderline{
+  // border: 3px solid black;
+  // padding: 0 0 0 0;
+  // margin-left: 3px;
+}
+
+.TRWriteCheck {
+  text-align: left;
+  margin-top: 5%;
+  // margin-left: 5px;
+  display: block;
+  // border: 3px solid red;
+}
+
+.schoolAttendingCheck {
+  text-align: left;
+  // margin-left: 5px;
+  display: block;
+  // border: 3px solid blue;
+}
+
+.AssignmentCheck{
+  margin: 0;
+}
+
+.AssignmentChecked{
+  background-color:rgba(186,242,186, 1);
+}
+
+.AssignmentNotFinished{
+  background-color:rgba(242,145,121, 1);
+}
+
+.AssignmentHighlighted{
+  background-color:rgba(255,255,0, 1);
+}
+.ModalTextarea{
+  height:200px;
+  width: 90%;
+  resize:none;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+td.NoGoal{
+  // background-color:rgba(128, 128, 128, 1);
+}
+
+td.GoalFinished{
+  background-color:rgba(0, 150, 0, 1);
+}
+
+@for $i from 1 through 5{
+  td.GoalFinished_#{$i}_of_5{
+    background-color:rgba(0, 150, 0, $i/5);
+  }
+}
+
+td.GoalNotFinished{
+  background-color:rgba(150, 0, 0, 1);
+}
+
+td.onHoverHighlighted:HOVER{
+  // border: 3px solid rgba(255,255,0, 1);
+  // background-color:rgba(255,255,0, 0);
+  background-image: 
+    linear-gradient(
+      rgba(255,255,0,.4),
+      rgba(255,255,0,.4)
+    );
+}
