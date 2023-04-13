@@ -401,17 +401,17 @@ app.post("/api/StudentDB", loginCheck, async function (req, res) {
   });
   try{
     session.startTransaction();
-    await db.collection("StudentDB").insertOne(newDB);
-    await db.collection("StudentDB_Log").insertOne(newDB);
+    await db.collection("StudentDB").insertOne(newDB,{session});
+    await db.collection("StudentDB_Log").insertOne(newDB,{session});
     ret["success"]=true;
-    session.commitTransaction();
+    await session.commitTransaction();
   }
   catch(e){
     await session.abortTransaction();
     ret["ret"]="학생 데이터 등록 중 오류가 발생했습니다";
   }
   finally{
-    session.endSession();
+    await session.endSession();
     return res.json(ret);
   }
 });
@@ -578,7 +578,7 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
     session.startTransaction();
     // findOne에는 toArray() 쓰면 안됨
-    let studentDB_result = await db.collection(`StudentDB`).findOne({ID: findID});
+    let studentDB_result = await db.collection(`StudentDB`).findOne({ID: findID},{session});
     if(!studentDB_result) throw new Error("등록되지 않은 학생입니다");
 
     /** 업데이트되기 전 학생교재 **/
@@ -628,7 +628,8 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
     if(updateTextbookInfo.insertTextbook.length !== 0){
 
       await db.collection("WeeklyStudyfeedback").updateMany({"학생ID": newstuDB["ID"],"피드백일" : {$gte: todayFeedback}},
-          {$push: {"thisweekGoal.교재캡쳐" : {$each : updateTextbookInfo.insertTextbook}}});
+          {$push: {"thisweekGoal.교재캡쳐" : {$each : updateTextbookInfo.insertTextbook}}},
+          {session});
 
       let dict = {};
       for(let i in updateTextbookInfo.insertTextbook){
@@ -644,7 +645,8 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
       }
 
       await db.collection("WeeklyStudyfeedback").updateMany({"학생ID":newstuDB["ID"],"피드백일": {$gte: todayFeedback}},
-          {$set:dict});
+          {$set:dict},
+          {session});
     }
 
     /** ------ 교재 삭제 업데이트 진행 ------ **/
@@ -652,7 +654,8 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
       await db.collection("WeeklyStudyfeedback").updateMany({"학생ID": newstuDB["ID"],"피드백일" : {$gte: todayFeedback}},
           {$pullAll: {"thisweekGoal.교재캡쳐": updateTextbookInfo.deleteTextbook}
-          });
+          },
+          {session});
 
       let dict = {};
       for(let i in updateTextbookInfo.deleteTextbook){
@@ -668,7 +671,8 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
       }
 
       await db.collection("WeeklyStudyfeedback").updateMany({"학생ID":newstuDB["ID"],"피드백일": {$gte: todayFeedback}},
-          {$unset:dict});
+          {$unset:dict},
+          {session});
     }
 
           // }
@@ -678,25 +682,24 @@ app.put("/api/StudentDB", loginCheck, async (req, res) => {
 
     newstuDB["진행중교재"] = checkDuplication(newTextbook); // 중복 제거한 진행 중인 교재 리스트로 교체
 
-    await db.collection("StudentDB").updateOne({ ID: findID }, { $set: newstuDB });
+    await db.collection("StudentDB").updateOne({ ID: findID }, { $set: newstuDB },{session});
 
-    await db.collection("StudentDB_Log").insertOne(newstuDB);
+    await db.collection("StudentDB_Log").insertOne(newstuDB,{session});
 
-    session.commitTransaction();
-    session.endSession();
-
+    await session.commitTransaction();
     ret_val["success"]=true;
-
   }
   catch (err){
-    session.abortTransaction();
+    await session.abortTransaction();
     // ret_val=`error ${err}`;
     // success=false;
     // console.error(err);
     // return res.json();
+    ret_val["success"]=false;
     ret_val["ret"]="학생 정보 수정 중 오류가 발생했습니다";
   }
   finally{
+    await session.endSession();
     return res.json(ret_val);
   }
 
@@ -2060,8 +2063,8 @@ app.post("/api/Assignment", loginCheck, async (req, res) => {
     else {
       throw new Error("invalid textbook Id");
     }
-    const lecture_doc= await db.collection("Lecture").findOne({_id:lect_id}); // to check if there is such lecture document in mongodb
-    const textbook_doc= await db.collection("TextBook").findOne({_id:textbook_id}); // to check if there is such textbook document in mongodb
+    const lecture_doc= await db.collection("Lecture").findOne({_id:lect_id},{session}); // to check if there is such lecture document in mongodb
+    const textbook_doc= await db.collection("TextBook").findOne({_id:textbook_id},{session}); // to check if there is such textbook document in mongodb
     if(!lecture_doc){
       throw new Error("등록된 강의가 없습니다");
     }
@@ -2386,7 +2389,7 @@ app.delete("/api/StudentOfLecture/:lectureID/:studentID",loginCheck,async (req,r
     session.startTransaction();
     const target_lecture= await db.collection('Lecture').findOne({lectureID:lectureID},{session});
     const target_student= await db.collection('StudentDB').findOne({ID:studentID},{session});
-    const target_assignment_ids= await db.collection('Assignment').find({lectureID:target_lecture["_id"]}).toArray();
+    const target_assignment_ids= await db.collection('Assignment').find({lectureID:target_lecture["_id"]},{session}).toArray();
     await db.collection('StudentOfLecture').deleteOne({lectureID:target_lecture["_id"],studentID:target_student["_id"]},{session});
     await db.collection('AssignmentOfStudent').deleteMany({assignmentID:{$in:target_assignment_ids.map((e)=>e["_id"])},studentID:target_student["_id"]},{session})
     await session.commitTransaction();
