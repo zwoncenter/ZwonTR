@@ -2,6 +2,7 @@ import { Form, Button, Card, ListGroup, Table, Modal, Row, Col } from "react-boo
 import { Link, Route, Switch, useLocation, Redirect, matchPath } from "react-router-dom";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
+import { AiOutlineHome } from "react-icons/ai";
 import axios from "axios";
 import menuarrow from "./next.png";
 
@@ -30,6 +31,7 @@ import WeeklystudyfeedbackWrite from "./routes/WeeklystudyfeedbackWrite";
 import WeeklystudyfeedbackEdit from "./routes/WeeklystudyfeedbackEdit";
 import ManageUser from "./routes/ManageUser";
 import NotFound from "./routes/NotFound";
+import TRDraft from "./routes/TRDraft";
 
 import checkUserPermittedToAccessPath from "./routes/route_reachable_user_modes";
 
@@ -70,6 +72,10 @@ function App() {
       // console.log(`myinfo: ${JSON.stringify(myInfo)}`);
       if(!checkUserPermittedToAccessPath(window.location.pathname,myInfo.user_mode)){
         history.push("/NotFound");
+      }
+      else if(window.location.pathname==="/" && myInfo.user_mode!=="guest"){ // 로그인된 상태에서 사용자가 "/" path로 접근 시 기본 페이지로 이동
+        // window.location.replace(getDefaultPathByUserMode(myInfo.user_mode)); // too slow
+        history.push(getDefaultPathByUserMode(myInfo.user_mode));
       }
     }
   },[window.location.pathname,myInfoLoaded]);
@@ -151,6 +157,12 @@ function App() {
         </h5>
       </Button>
     );
+  }
+
+  function getDefaultPathByUserMode(user_mode){
+    if(user_mode==="admin" || user_mode==="manager") return "/studentList";
+    else if(user_mode==="student") return "/TRDraft";
+    else return "/";
   }
 
   return (
@@ -291,6 +303,23 @@ function App() {
     </div>
     : null
       }
+      {window.location.pathname!=="/"?
+        <div className="HomeButtonBox">
+          <Button
+            variant="secondary"
+            onClick={()=>{
+              const default_path_for_this_user_mode=getDefaultPathByUserMode(myInfo.user_mode);
+              const current_location_pathname=window.location.pathname;
+              if(current_location_pathname==default_path_for_this_user_mode) return;
+              else if(window.location.pathname==="/SignUp" && !window.confirm("홈으로 이동하면 입력된 정보가 모두 사라집니다.\n이동하시겠습니까?")) return;
+              history.push(default_path_for_this_user_mode);
+            }}
+          >
+            <AiOutlineHome/>
+          </Button>
+        </div>:null
+      }
+      
       
       <Switch>
         <Route exact path="/">
@@ -369,6 +398,9 @@ function App() {
           </Route>
         <Route exact path="/ManageUser">
           <ManageUser/>
+        </Route>
+        <Route exact path="/TRDraft">
+          <TRDraft/>
         </Route>
         <Route exact path="/NotFound">
           <NotFound/>
