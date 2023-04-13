@@ -1,5 +1,5 @@
 import "./ManageUser.scss";
-import { Form, Button, ProgressBar, Accordion, FormCheck, FormControl, Row, Table} from "react-bootstrap";
+import { Form, Button, ProgressBar, Accordion, FormCheck, FormControl, Row, Table, Modal} from "react-bootstrap";
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -89,12 +89,13 @@ function ManageUser() {
     const d=new Date(date_string);
     return [d.toLocaleDateString(),d.toLocaleTimeString()].join(' ');
   }
-  async function changeUserAccountApprovedStatus(user_info,status_value,pagination_idx){
+  async function changeUserAccountApprovedStatus(user_info,status_value,pagination_idx,relatedDocumentID=null){
     const query={
       username:user_info.username,
       userType:user_info.userType,
       value:status_value,
     };
+    if(relatedDocumentID) query["relatedDocumentID"]=relatedDocumentID;
     const change_success=await axios
       .post("/api/changeUserAccountApprovedStatus",query)
       .then((res)=>{
@@ -131,6 +132,10 @@ function ManageUser() {
               const username=user_info_datum.username;
               const nickname=user_info_datum.nickname;
               const user_type_prompt=user_type_to_user_type_prompt_map[user_info_datum.userType];
+              if(user_info_datum.userType==="student"){
+                showRelatedStudentModal(user_info_datum,idx);
+                return;
+              }
               if(!window.confirm(`${nickname}(${username}) 사용자의 [${user_type_prompt}] 권한을 활성화 하시겠습니까?`)) return;
               await changeUserAccountApprovedStatus(user_info_datum,true,idx);
             }}
@@ -222,8 +227,129 @@ function ManageUser() {
     setPagination(status_data_pagination);
   }
   
+  // 기존 학생 정보와 계정 연동 관련 코드
+  const [relatedStudentModal,setRelatedStudentModal]= useState(false);
+  const [studentInfoMap, setStudentInfoMap]= useState({});
+  const [studentInfoMapLoaded,setStudentInfoMapLoaded]= useState(false);
+  const [selectedRelatedStudentID,setSelectedRelatedStudentID]= useState({});
+  const [candidateStudentUserInfo,setCandidateStudentUserInfo]= useState({});
+  const [candidateStudentUserInfoTableIndex,setCandidateStudentUserInfoTableIndex]= useState(null);
+
+  function getStudentFingerprintFromStudentInfo(student_info_datum){
+    return [student_info_datum.이름, student_info_datum.생년월일, student_info_datum.연락처].join(" / ");
+  }
+
+  const showRelatedStudentModal= async(user_info_datum,user_table_index)=>{
+    if(!studentInfoMapLoaded){
+      window.alert("아직 학생 정보가 로드되지 않았습니다.\n같은 문제가 지속될 경우 새로고침 후 다시 시도해주세요.");
+      return;
+    }
+    console.log(`user info datum: ${JSON.stringify(user_info_datum)}`);
+    //choose one student info datum whose nickname datum is equal to selected user's nickname
+    const target_student_name= user_info_datum.nickname;
+    const student_id_list=Object.keys(studentInfoMap);
+    let recommended_student_info=studentInfoMap[student_id_list[0]];
+    for(let i=0; i<student_id_list.length; i++){
+      const student_id=student_id_list[i];
+      const student_info_datum=studentInfoMap[student_id];
+      if(student_info_datum.이름===target_student_name){
+        recommended_student_info=student_info_datum;
+        break;
+      }
+    }
+    setSelectedRelatedStudentID(recommended_student_info._id);
+    setRelatedStudentModal(true);
+    setCandidateStudentUserInfo(user_info_datum);
+    setCandidateStudentUserInfoTableIndex(user_table_index);
+  };
+  const hideRelatedStudentModal= async()=>{
+    setRelatedStudentModal(false);
+  }
+
+  useEffect(async ()=>{
+    const active_student_list=await axios
+      .get("/api/ActiveStudentList")
+      .then((res)=>{
+        const data=res.data;
+        if(!data.success) return [];
+        else return data.ret;
+      })
+      .catch((err)=>{
+        return [];
+      });
+    if(active_student_list.length>0){
+      const info_map={};
+      active_student_list.forEach((e,idx)=>{
+        info_map[e._id]=e;
+      })
+      setStudentInfoMap(info_map);
+      setSelectedRelatedStudentID(active_student_list[0]._id);
+      setStudentInfoMapLoaded(true);
+    }
+  },[]);
+  
   return (
     <div className="main-background text-center">
+      <Modal show={relatedStudentModal} onHide={hideRelatedStudentModal}>
+          <Modal.Header closeButton>
+            <Modal.Title className="RelatedStudentInfoBoxTitle">계정과 연결될 기존 학생 정보를<br/>선택해주세요</Modal.Title>
+          </Modal.Header>
+          {studentInfoMapLoaded?<Modal.Body className="text-center RelatedStudentInfoBox">
+            <div className="row mb-5 CandidateStudentUserBox border-3 border-bottom">
+              <strong>계정 정보</strong><br/>
+              <p className="mb-1">
+                아이디: {candidateStudentUserInfo.username}<br/>
+                이름: {candidateStudentUserInfo.nickname}
+              </p>
+            </div>
+            <div className="row mb-5 CandidateStudentUserBox border-3 border-bottom">
+              <Form className="mb-2">
+                <Form.Label htmlFor="RelatedStudentSelection"><strong>계정 연관 학생</strong></Form.Label>
+                <Form.Select
+                  id="RelatedStudentSelection mb-2"
+                  value={selectedRelatedStudentID}
+                  onChange={(e)=>{
+                    setSelectedRelatedStudentID(e.target.value);
+                  }}
+                >
+                  {
+                    Object.keys(studentInfoMap).map((student_id,sidx)=>{
+                      return(
+                        <option value={student_id} key={sidx}>
+                          {getStudentFingerprintFromStudentInfo(studentInfoMap[student_id])}
+                        </option>
+                      );
+                    })
+                  }
+                </Form.Select>
+              </Form>
+            </div>
+            <Button
+                className="btn-success mb-3"
+                onClick={async ()=>{
+                  const username=candidateStudentUserInfo.username;
+                  const nickname=candidateStudentUserInfo.nickname;
+                  const user_type_prompt=user_type_to_user_type_prompt_map[candidateStudentUserInfo.userType];
+                  let confirm_message=`${nickname}(${username}) 사용자의 [${user_type_prompt}] 권한을 활성화하고\n`;
+                  confirm_message+=`해당 계정을 [${getStudentFingerprintFromStudentInfo(studentInfoMap[selectedRelatedStudentID])}]\n학생 정보와 연동하시겠습니까?`
+                  if(!window.confirm(confirm_message)) return;
+                  await changeUserAccountApprovedStatus(candidateStudentUserInfo,true,candidateStudentUserInfoTableIndex,selectedRelatedStudentID);
+                  hideRelatedStudentModal();
+                }}
+                type="button">
+              <strong>정보 연동 및 계정 승인</strong>
+            </Button>
+            <br/>
+            <Button
+                className="btn-secondary"
+                onClick={async ()=>{
+                  hideRelatedStudentModal();
+                }}
+                type="button">
+              <strong>취소</strong>
+            </Button>
+          </Modal.Body>:null}
+        </Modal>
       <div className="headerBox">
         <h1>
           <strong>사용자 관리</strong>

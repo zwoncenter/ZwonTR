@@ -1725,7 +1725,7 @@ function TRDraft() {
                         </tr>
                         </thead>
                         <tbody>
-                        {["취침", "기상", "등원", "귀가"].map(function (a, i) {
+                        {["취침", "기상"].map(function (a, i) {
                           return (
                               <tr key={i}>
                                 <td>{a}</td>

@@ -2875,10 +2875,29 @@ app.post("/api/searchUserAccountApprovedStatus", loginCheck, permissionCheck(Rol
   }
 });
 
-function changeApprovedStatusQueryValid(status_value,userType){
+function changeApprovedStatusQueryTypeValid(status_value,userType,relatedDocumentID){
   if(typeof status_value!=='boolean') return false;
   else if(typeof userType!=='string' || !roles.RoleNameValidCheck(userType)) return false;
+  else if(relatedDocumentID && typeof relatedDocumentID!=='string' && !(new ObjectId(relatedDocumentID))) return false;
   else return true;
+}
+
+async function changeApprovedStatusQueryRelatedDocumentValid(userType,relatedDocumentID,session){
+  if(!relatedDocumentID) return true;
+  else if(userType==="student"){
+    const related_doc=await db.collection('StudentDB').findOne({_id:relatedDocumentID},{session});
+    return !!related_doc;
+  }
+  else return false;
+}
+
+async function setUserInfoOfRelatedDocument(userType,relatedDocumentID,user_id,rou_id,session){
+  if(userType==="student"){
+    await db.collection("StudentDB").updateOne(
+      {_id:new ObjectId(relatedDocumentID)},
+      {$set:{user_id,rou_id}},
+      {session});
+  }
 }
 
 app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role("admin")), async (req,res)=>{
@@ -2895,7 +2914,6 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
     }
   });
   try{
-    console.log('breakpoint');
     session.startTransaction();
     ret_val["ret"]={
       value:null,
@@ -2905,8 +2923,10 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
       value:status_value,
       userType:user_type_string,
       username,
+      relatedDocumentID:related_document_id,
     }= req.body;
-    if(!changeApprovedStatusQueryValid(status_value,user_type_string)) throw new Error(`invalid query`);
+    if(!changeApprovedStatusQueryTypeValid(status_value,user_type_string,related_document_id)
+      || !changeApprovedStatusQueryRelatedDocumentValid(user_type_string,related_document_id)) throw new Error(`invalid query`);
     const user_type_index=roles.roleNameToIndex[user_type_string];
 
     const result_data= await db.collection("User").aggregate([
@@ -2956,7 +2976,7 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
           role_of_user_activated: "$RoleOfUser_aggregate.activated"
         },
       },
-    ]).toArray();
+    ],{session}).toArray();
     if(result_data.length!==1) throw new Error('invalid request');
     const current_status=result_data[0];
     if(current_status.user_approved===status_value && current_status.role_of_user_activated===status_value){
@@ -2971,24 +2991,28 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
     ret_val["ret"]["value"]=status_value;
     ret_val["ret"]["late"]=false;
 
-    const approving_admin_doc= await db.collection('User').findOne({username:req.session.passport.user.username});
+    const approving_admin_doc= await db.collection('User').findOne({username:req.session.passport.user.username},{session});
     if(!approving_admin_doc) throw new Error(`invalid access from unknown`);
     const approving_admin_id=approving_admin_doc._id;
 
     const cur_time=getCurrentDate();
 
-    await db.collection('RoleOfUserLog').insertOne({
+    await db.collection('RoleOfUserLog').insertOne(
+      {
       role_of_user_id:current_status.role_of_user_id,
       role_index:current_status.role_index,
       info_modified_date:cur_time,
-    });
+      },
+      {session}
+    );
 
     await db.collection("RoleOfUser").updateOne(
       {_id:current_status.role_of_user_id},
       {$set:{
         activated:status_value,
         modify_date:cur_time,
-      }}
+      }},
+      {session}
     );
 
     await db.collection("User").updateOne(
@@ -2997,10 +3021,15 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
         approved:status_value,
         approved_by:approving_admin_id,
         approved_date:cur_time,
-      }}
+      }},
+      {session}
     );
 
-    session.commitTransaction();
+    if(related_document_id){
+      await setUserInfoOfRelatedDocument(user_type_string,related_document_id,current_status.user_id,current_status.role_of_user_id,session);
+    }
+
+    await session.commitTransaction();
   }
   catch(error){
     await session.abortTransaction();
@@ -3008,7 +3037,7 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
     ret_val["ret"]= `네트워크 오류로 작업을 완료하지 못했습니다`;
   }
   finally{
-    session.endSession();
+    await session.endSession();
     return res.json(ret_val);
   }
 });
