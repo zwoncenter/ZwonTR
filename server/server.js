@@ -232,7 +232,7 @@ passport.serializeUser(function (user, done) {
       console.log(`error while get user role info: ${error}`);
     }
     finally{
-      if(roles_arr.length===0) roles.push(1000);
+      if(roles_arr.length===0) roles_arr.push(1000);
     }
     done(null,{username:user.username,nickname:user.nickname,roles:roles_arr,user_mode: roles.indexToRoleName[roles_arr[0]]}); // passport.user에 user 정보 저장
   });
@@ -297,22 +297,23 @@ function permissionCheck(...permissions){
 
 // get current server date in yyyy-mm-dd format
 function getCurrentKoreaDateYYYYMMDD(){
-  const curr=new Date();
-  const utc =
-      curr.getTime() +
-      (curr.getTimezoneOffset() * 60 * 1000);
+  // const curr=new Date();
+  // const utc =
+  //     curr.getTime() +
+  //     (curr.getTimezoneOffset() * 60 * 1000);
 
-  const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
-  const kr_curr =
-      new Date(utc + (KR_TIME_DIFF));
-  const year_string= String(kr_curr.getFullYear());
-  let month_string= String(kr_curr.getMonth()+1);
-  if(month_string.length==1) month_string="0"+month_string;
-  let date_string= String(kr_curr.getDate());
-  if(date_string.length==1) date_string="0"+date_string;
+  // const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
+  // const kr_curr =
+  //     new Date(utc + (KR_TIME_DIFF));
+  // const year_string= String(kr_curr.getFullYear());
+  // let month_string= String(kr_curr.getMonth()+1);
+  // if(month_string.length==1) month_string="0"+month_string;
+  // let date_string= String(kr_curr.getDate());
+  // if(date_string.length==1) date_string="0"+date_string;
 
-  // return [kr_curr.getFullYear(),kr_curr.getMonth()+1,kr_curr.getDate()].join("-");
-  return [year_string,month_string,date_string].join("-");
+  // // return [kr_curr.getFullYear(),kr_curr.getMonth()+1,kr_curr.getDate()].join("-");
+  // return [year_string,month_string,date_string].join("-");
+  return moment().format('YYYY-MM-DD');
 }
 
 //
@@ -349,8 +350,51 @@ app.get("/api/getMyInfo", async function (req, res) {
   }
 });
 
+//student user life cycle and study time goals
+app.get("/api/getMyLifeCycleAndStudyTimeGoals", loginCheck, permissionCheck(Role("student")), async function (req, res) {
+  const ret_val={"success":true, "ret":null};
+  try{
+    const student_doc= await db.collection("User").aggregate(
+      [
+        {
+          $match: {
+            username:req.session.passport.user.username,
+          }
+        },
+        {
+          $lookup: {
+            from: "StudentDB",
+            localField: "_id",
+            foreignField: "user_id",
+            as: "StudentDB_aggregate",
+          },
+        },
+        { 
+          $unwind: {
+            path:"$StudentDB_aggregate",
+          }
+        },
+        {
+          $project: {
+            _id:0,
+            lifeCycleAndStudyGoals: "$StudentDB_aggregate.생활학습목표",
+          },
+        },
+      ]).toArray();
+    if(student_doc.length!==1) throw new Error(`invalid query`);
+    ret_val["ret"]=student_doc[0].lifeCycleAndStudyGoals;
+  }
+  catch(error){
+    ret_val["success"]=false;
+    ret_val["ret"]=`error while getting my current studying books`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
 //student user info data: current studying books
-app.get("/api/getMyCurrentStudyingBooks", loginCheck, permissionCheck(Role("student"),Role("manager"),Role("admin")), async function (req, res) {
+app.get("/api/getMyCurrentStudyingBooks", loginCheck, permissionCheck(Role("student")), async function (req, res) {
   const ret_val={"success":true, "ret":null};
   try{
     const student_doc= await db.collection("User").aggregate(
@@ -386,6 +430,185 @@ app.get("/api/getMyCurrentStudyingBooks", loginCheck, permissionCheck(Role("stud
   catch(error){
     ret_val["success"]=false;
     ret_val["ret"]=`error while getting my current studying books`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
+function getThisSundayDateStringYYYYMMDD(){
+  if(moment().day()===0) return moment().format('YYYY-MM-DD');
+  else return moment().day(7).format('YYYY-MM-DD');
+}
+
+//student this week study goals
+app.get("/api/getThisWeekStudyGoals", loginCheck, permissionCheck(Role("student")), async function (req, res) {
+  const ret_val={"success":true, "ret":null};
+  try{
+    // const this_sunday_string=getThisSundayDateStringYYYYMMDD();
+    const this_sunday_string='2023-02-19';
+    const this_week_goals= await db.collection("User").aggregate(
+      [
+        {
+          $match: {
+            username:req.session.passport.user.username,
+          }
+        },
+        {
+          $lookup: {
+            from: "StudentDB",
+            localField: "_id",
+            foreignField: "user_id",
+            as: "StudentDB_aggregate",
+          },
+        },
+        { 
+          $unwind: {
+            path:"$StudentDB_aggregate",
+          }
+        },
+        {
+          $lookup: {
+            from: "WeeklyStudyfeedback",
+            localField: "StudentDB_aggregate.ID",
+            foreignField: "학생ID",
+            as: "WSF_aggregate",
+          },
+        },
+        { 
+          $unwind: {
+            path:"$WSF_aggregate",
+          }
+        },
+        {
+          $match: {
+            "WSF_aggregate.피드백일": this_sunday_string,
+          }
+        },
+        {
+          $project: {
+            sundayDateString:"$WSF_aggregate.피드백일",
+            thisweekGoal:"$WSF_aggregate.thisweekGoal",
+          },
+        },
+      ]).toArray();
+    if(this_week_goals.length!==1) ret_val["ret"]=[];
+    else ret_val["ret"]=this_week_goals[0];
+  }
+  catch(error){
+    console.log(`error: ${error}`);
+    ret_val["success"]=false;
+    ret_val["ret"]=`error while getting my this week study goals`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
+//student today assignments
+app.get("/api/getMyCurrentAssignments", loginCheck, permissionCheck(Role("student")), async function (req, res) {
+  const ret_val={"success":true, "ret":null};
+  try{
+    // const today_string=getCurrentKoreaDateYYYYMMDD();
+    const today_string="2023-04-11"; // for testing
+    const current_assignments= await db.collection("User").aggregate(
+      [
+        {
+          $match: {
+            username:req.session.passport.user.username,
+          }
+        },
+        {
+          $lookup: {
+            from: "StudentDB",
+            localField: "_id",
+            foreignField: "user_id",
+            as: "StudentDB_aggregate",
+          },
+        },
+        { 
+          $unwind: {
+            path:"$StudentDB_aggregate",
+          }
+        },
+        {
+          $lookup: {
+            from: "AssignmentOfStudent",
+            localField: "StudentDB_aggregate._id",
+            foreignField: "studentID",
+            as: "AOS_aggregate",
+          },
+        },
+        { 
+          $unwind: {
+            path:"$AOS_aggregate",
+          }
+        },
+        {
+          $lookup: {
+            from: "Assignment",
+            localField: "AOS_aggregate.assignmentID",
+            foreignField: "_id",
+            as: "Assignment_aggregate",
+          },
+        },
+        { 
+          $unwind: {
+            path:"$Assignment_aggregate",
+          }
+        },
+        {
+          $match: {
+            "Assignment_aggregate.duedate":today_string,
+            "$or":[{"Assignment_aggregate.hiddenOnLecturePage":{"$exists":false}},{"Assignment_aggregate.hiddenOnLecturePage":false}]
+          }
+        },
+        {
+          $lookup: {
+            from: "Lecture",
+            localField: "Assignment_aggregate.lectureID",
+            foreignField: "_id",
+            as: "Lecture_aggregate",
+          },
+        },
+        { 
+          $unwind: {
+            path:"$Lecture_aggregate",
+          }
+        },
+        {
+          $lookup: {
+            from: "TextBook",
+            localField: "Assignment_aggregate.textbookID",
+            foreignField: "_id",
+            as: "TextBook_aggregate",
+          },
+        },
+        { 
+          $unwind: {
+            path:"$TextBook_aggregate",
+            preserveNullAndEmptyArrays:true,
+          }
+        },
+        {
+          $project: {
+            _id:0,
+            AOSID:"$AOS_aggregate._id",
+            assignmnetID: "$Assignment_aggregate._id",
+            lectureSubject: "$Lecture_aggregate.subject",
+            manager: "$Lecture_aggregate.manager",
+            lectureName: "$Lecture_aggregate.lectureName",
+            textbookName: "$TextBook_aggregate.교재",
+            pageRangeArray: "$Assignment_aggregate.pageRangeArray",
+            description: "$Assignment_aggregate.description"
+          },
+        },
+      ]).toArray();
+    ret_val["ret"]=current_assignments;
+  }
+  catch(error){
+    ret_val["success"]=false;
+    ret_val["ret"]=`error while getting my current assignments`;
   }
   finally{
     return res.json(ret_val);
@@ -532,7 +755,7 @@ app.get("/api/ActiveStudentList", loginCheck, permissionCheck(Role("manager"),Ro
   }
 });
 
-app.get("/api/managerList", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
+app.get("/api/managerList", loginCheck, permissionCheck(Role("student"),Role("manager"),Role("admin")), async (req, res) => {
   // db.collection("Manager")
   //     .find()
   //     .toArray((err, result) => {
