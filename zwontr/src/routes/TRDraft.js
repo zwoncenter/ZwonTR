@@ -529,7 +529,7 @@ function TRDraft() {
       });
     console.log(`current studying books: ${JSON.stringify(current_studying_books)}`);
     setMyStudyInfo({"진행중교재":current_studying_books});
-  },[])
+  },[]);
 
   function 입력확인() {
     if (!TR.날짜) {
