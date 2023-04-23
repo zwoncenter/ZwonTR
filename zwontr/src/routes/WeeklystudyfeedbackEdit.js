@@ -33,34 +33,42 @@ function WeeklystudyfeedbackEdit() {
 
   function getThisWeek(inputDate) {
     var inputDate = new Date(inputDate);
-    inputDate.setHours(0, 0, 0, 0);
-    var day = inputDate.getDay();
-    var diff = inputDate.getDate() - day + (day == 0 ? -6 : 1);
-    inputDate = new Date(inputDate.setDate(diff));
-    var startdate = new Date(inputDate.setDate(inputDate.getDate()));
-    var enddate = new Date(inputDate.setDate(inputDate.getDate() + 7));
+    inputDate.setUTCHours(0, 0, 0, 0);
+    var day = inputDate.getUTCDay();
+    var diff = inputDate.getUTCDate() - day + (day == 0 ? -6 : 1);
+    inputDate = new Date(inputDate.setUTCDate(diff));
+    var startdate = new Date(inputDate.setUTCDate(inputDate.getUTCDate()));
+    var enddate = new Date(inputDate.setUTCDate(inputDate.getUTCDate() + 7));
     return [startdate, enddate];
   }
 
   function getPageName() {
-    var mm = (thisweek[0].getMonth() + 1).toString();
-    var dd = thisweek[0].getDate().toString();
+    var mm = (thisweek[0].getUTCMonth() + 1).toString();
+    var dd = thisweek[0].getUTCDate().toString();
     if (dd < 10) {
       dd = "0" + dd;
     }
     if (mm < 10) {
       mm = "0" + mm;
     }
-    const starting = thisweek[0].getFullYear().toString() + "-" + mm + "-" + dd;
-    const ending = thisweek[1].toISOString().split("T")[0];
+    const starting = thisweek[0].getUTCFullYear().toString() + "-" + mm + "-" + dd;
+    // const ending = thisweek[1].toISOString().split("T")[0];
+    const ending=formatDate(thisweek[1]);
     return [starting, ending];
   }
 
   function formatDate(date) {
-    var d = new Date(date),
-        month = '' + (d.getMonth() + 1),
-        day = '' + (d.getDate()-1),
-        year = d.getFullYear();
+    // var d = new Date(date),
+    //     month = '' + (d.getUTCMonth() + 1),
+    //     day = '' + (d.getUTCDate()-1),
+    //     year = d.getUTCFullYear();
+    const one_day_in_milliseconds=24*3600*1000;
+    const d= new Date(date);
+    d.setTime(d.getTime()-one_day_in_milliseconds);
+    let month = '' + (d.getUTCMonth() + 1);
+    let day = '' + d.getUTCDate();
+    let year = d.getUTCFullYear();
+
 
     if (month.length < 2) 
         month = '0' + month;
@@ -93,7 +101,7 @@ function WeeklystudyfeedbackEdit() {
     data_copy.forEach((element)=>{
       element["textbookName"]=element["textbookName"].length>0?element["textbookName"][0]:"";
       element["assignmentKey"]=element["textbookName"]?element["textbookName"]:element["lectureName"];
-      element["dayIndex"]=((new Date(element["duedate"])).getDay()+6)%7; //0:monday, 6:sunday
+      element["dayIndex"]=((new Date(element["duedate"])).getUTCDay()+6)%7; //0:monday, 6:sunday
       if(element["dayIndex"]==6) element["dayIndex"]=5;
       
       const assignmentKey= element["assignmentKey"];
