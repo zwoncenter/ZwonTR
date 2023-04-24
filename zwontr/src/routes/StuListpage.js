@@ -74,26 +74,35 @@ function StuListpage() {
   const [thisweek, setthisweek] = useState(getThisWeek());
 
   function getThisWeek() {
-    var inputDate = new Date();
-    inputDate.setHours(0, 0, 0, 0);
-    var day = inputDate.getDay();
-    var diff = inputDate.getDate() - day + (day == 0 ? -6 : 1);
-    inputDate = new Date(inputDate.setDate(diff));
-    var startdate = new Date(inputDate.setDate(inputDate.getDate()));
-    var enddate = new Date(inputDate.setDate(inputDate.getDate() + 7));
+    var inputDate = new Date(today);
+    inputDate.setUTCHours(0, 0, 0, 0);
+    var day = inputDate.getUTCDay();
+    var diff = inputDate.getUTCDate() - day + (day == 0 ? -6 : 1);
+    inputDate = new Date(inputDate.setUTCDate(diff));
+    var startdate = new Date(inputDate.setUTCDate(inputDate.getUTCDate()));
+    var enddate = new Date(inputDate.setUTCDate(inputDate.getUTCDate() + 7));
     return [startdate, enddate];
   }
 
   function formatDate(date) {
-    var d = new Date(date),
-      month = "" + (d.getMonth() + 1),
-      day = "" + (d.getDate() - 1),
-      year = d.getFullYear();
+    // var d = new Date(date),
+    //     month = '' + (d.getUTCMonth() + 1),
+    //     day = '' + (d.getUTCDate()-1),
+    //     year = d.getUTCFullYear();
+    const one_day_in_milliseconds=24*3600*1000;
+    const d= new Date(date);
+    d.setTime(d.getTime()-one_day_in_milliseconds);
+    let month = '' + (d.getUTCMonth() + 1);
+    let day = '' + d.getUTCDate();
+    let year = d.getUTCFullYear();
 
-    if (month.length < 2) month = "0" + month;
-    if (day.length < 2) day = "0" + day;
 
-    return [year, month, day].join("-");
+    if (month.length < 2) 
+        month = '0' + month;
+    if (day.length < 2) 
+        day = '0' + day;
+
+    return [year, month, day].join('-');
   }
 
   // 학생 이름을 클릭 시, 선택된 ID를 바꾸고, 해당 ID의 TR리스트 조회
