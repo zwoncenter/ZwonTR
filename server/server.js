@@ -1970,12 +1970,12 @@ app.get(`/api/TextbookInProgressOfStudent/:studentLegacyID`, loginCheck, permiss
 });
 
 //post 방식으로 한번에 여러 교재 이름 받아서 교재의 id들을 찾아주는 코드
-app.post("/api/getTextbookIDsByTextbookName", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
+app.post("/api/getTextbookIDsByTextbookName", loginCheck, permissionCheck(Role("student"),Role("manager"),Role("admin")), async (req,res)=>{
   const nameData= req.body;
   let ret_val;
   let success;
   try{
-    const nameList=nameData["textbookNames"]?nameData["textbookNames"]:[];
+    const nameList=Array.isArray(nameData['textbookNames'])?nameData["textbookNames"]:[];
     ret_val= await db.collection("TextBook").find({"교재":{"$in":nameList}}).project({"_id":1,"교재":1}).toArray();
     success=true;
   }
