@@ -4,6 +4,7 @@ const app = express();
 const crypto = require("crypto");
 const authentificator = require("./authentificator.js");
 const validator = require("./validator.js");
+const TRDraftRequestDataValidator = require("./TRDraftDataValidator.js");
 const roles = require("../role_env.js");
 const MongoClient = require("mongodb").MongoClient;
 
@@ -197,6 +198,7 @@ passport.serializeUser(function (user, done) {
   // done(null, user.ID);
   process.nextTick(async ()=>{
     let roles_arr=[];
+    let user_mode="";
     try{
       const role_of_user=await db.collection("RoleOfUser").aggregate([
         {
@@ -229,12 +231,23 @@ passport.serializeUser(function (user, done) {
       roles_arr=role_of_user.map((r,ridx)=>r["role_index"]);
     }
     catch(error){
-      console.log(`error while get user role info: ${error}`);
+      // console.log(`error while get user role info: ${error}`);
+      throw new Error(`네트워크 오류로 로그인에 실패했습니다:0`);
     }
-    finally{
-      if(roles_arr.length===0) roles_arr.push(1000);
+    if(roles_arr.length===0) roles_arr.push(1000);
+    user_mode=roles.indexToRoleName[roles_arr[0]];
+    let student_id=null;
+    if(user_mode==="student"){
+      try{
+        const student_doc=await db.collection("StudentDB").findOne({user_id:user._id});
+        if(!student_doc) throw new Error(`no such student`);
+        student_id=student_doc._id;
+      }
+      catch(error){
+        throw new Error(`네트워크 오류로 로그인에 실패했습니다:1`); // this can be thrown if data inconsistency occurs
+      }
     }
-    done(null,{username:user.username,nickname:user.nickname,roles:roles_arr,user_mode: roles.indexToRoleName[roles_arr[0]]}); // passport.user에 user 정보 저장
+    done(null,{username:user.username,nickname:user.nickname,roles:roles_arr,user_mode: user_mode,student_id:student_id}); // passport.user에 user 정보 저장
   });
 });
 
@@ -609,6 +622,89 @@ app.get("/api/getMyCurrentAssignments", loginCheck, permissionCheck(Role("studen
   catch(error){
     ret_val["success"]=false;
     ret_val["ret"]=`error while getting my current assignments`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
+//save student request data
+app.post("/api/saveLifeDataRequest",loginCheck, permissionCheck(Role("student")), async function (req, res) {
+  const ret_val={"success":true, "ret":null};
+  try{
+    const student_id=req.session.passport.user.student_id;
+    const today_string=getCurrentKoreaDateYYYYMMDD();
+    const {bodyCondition,sentimentCondition,goToBedTime,wakeUpTime}= req.body;
+    if(!TRDraftRequestDataValidator.checkLifeDataValid(bodyCondition,sentimentCondition,goToBedTime,wakeUpTime)) throw new Error(`invalid life data`);
+
+    const prev_life_data=await db.collection("TRDraftRequest").find({date:today_string,student_id:student_id,request_type:0}).toArray();
+    let newlySaved=false;
+    if(prev_life_data.length>1) throw new Error(`daily life data count exceeds 1`);
+    else if(prev_life_data.length==1 && !TRDraftRequestDataValidator.checkRequestDataUpdatable(prev_life_data[0].request_status))
+      throw new Error(`life data request in inupdatable status`);
+    else newlySaved=true;
+
+    let request_doc={};
+    if(newlySaved){
+      request_doc=TRDraftRequestDataValidator.getNewLifeDataRequestDocument(student_id,today_string);
+    }
+    request_doc.request_specific_data["신체컨디션"]=bodyCondition;
+    request_doc.request_specific_data["정서컨디션"]=sentimentCondition;
+    request_doc.request_specific_data["실제취침"]=goToBedTime;
+    request_doc.request_specific_data["실제기상"]=wakeUpTime;
+    await db.collection("TRDraftRequest").updateOne({date:today_string,student_id:student_id,request_type:0},{$set:request_doc},{"upsert":true});
+  }
+  catch(error){
+    ret_val["success"]=false;
+    ret_val["ret"]=`error while saving life data`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
+//save student request data
+app.post("/api/saveAssignmentStudyDataRequest",loginCheck, permissionCheck(Role("student")), async function (req, res) {
+  const ret_val={"success":true, "ret":null};
+  try{
+    const student_id=req.session.passport.user.student_id;
+    const today_string=getCurrentKoreaDateYYYYMMDD();
+    let {excuse,timeAmount,AOSID,finishedState}= req.body;
+    finishedState=!!finishedState;
+    if(finishedState===true) excuse="";
+    const AOS_objectid=new ObjectId(AOSID);
+    if(!TRDraftRequestDataValidator.checkExcuseValueValid(excuse,finishedState) || !TRDraftRequestDataValidator.checkTimeStringValid(timeAmount)) throw new Error(`invalid assignment study data`);
+    
+    //check if AOS document exists
+    const AOS_doc= await db.collection("AssignmentOfStudent").findOne({_id:AOS_objectid});
+    if(!AOS_doc) throw new Error(`no such AOS doc`);
+    
+    const prev_assignment_study_data=await db.collection("TRDraftRequest").find({date:today_string,student_id:student_id,request_type:1,"request_specific_data.AOSID":AOS_objectid}).toArray();
+    let newlySaved=false;
+    if(prev_assignment_study_data.length>1) throw new Error(`same assignment study data request count exceeds 1`);
+    else if(prev_assignment_study_data.length==1 && !TRDraftRequestDataValidator.checkRequestDataUpdatable(prev_assignment_study_data[0].request_status))
+      throw new Error(`assignment study data request in inupdatable status`);
+    else newlySaved=true;
+    let request_doc={};
+    if(newlySaved){
+      request_doc=TRDraftRequestDataValidator.getNewAssignmentStudyDataRequestDocument(student_id,today_string,AOS_objectid);
+    }
+    const study_data_element={...TRDraftRequestDataValidator.request_study_data_template};
+    study_data_element["excuse"]=excuse;
+    study_data_element["time_amount"]=timeAmount;
+    study_data_element["timestamp"]=new Date(moment().toJSON());
+    await db.collection("TRDraftRequest").updateOne(
+      {date:today_string,student_id:student_id,request_type:1,"request_specific_data.AOSID":AOS_objectid},
+      {
+        $set:request_doc,
+        $push:{"study_data_list":study_data_element},
+      },
+      {"upsert":true});
+  }
+  catch(error){
+    console.log(`error: ${error}`);
+    ret_val["success"]=false;
+    ret_val["ret"]=`error while saving life data`;
   }
   finally{
     return res.json(ret_val);

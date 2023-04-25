@@ -121,6 +121,34 @@ function TRDraft() {
     "실제취침":null,
     "실제기상":null
   });
+  function intBetween(a,left,right){
+    return a>=left && a<=right;
+  }
+  function checkTimeStringValid(time_string){
+    if(typeof time_string!=="string") return false;
+    const string_splitted=time_string.split(":");
+    if(string_splitted.length!==2) return false;
+    else if(!intBetween(string_splitted[0].length,1,2) || !intBetween(string_splitted[1].length,1,2)) return false;
+    else if(Number.isNaN(parseInt(string_splitted[0])) || Number.isNaN(parseInt(string_splitted[1]))) return false;
+    else return true;
+  }
+  function checkConditionValueValid(condition_val){
+    const parsed=parseInt(condition_val);
+    if(Number.isNaN(parsed)) return false;
+    else return intBetween(parsed,1,5)
+  }
+  function checkLifeDataValid(){
+    return checkConditionValueValid(myLifeData.신체컨디션) && checkConditionValueValid(myLifeData.정서컨디션)
+      && checkTimeStringValid(myLifeData.실제취침) && checkTimeStringValid(myLifeData.실제기상);
+  }
+  function getMyLifeData(){
+    return {
+      bodyCondition: myLifeData.신체컨디션,
+      sentimentCondition: myLifeData.정서컨디션,
+      goToBedTime: myLifeData.실제취침,
+      wakeUpTime: myLifeData.실제기상,
+    }
+  }
 
   useEffect(async ()=>{
     const life_cycle_and_study_time_goals=await axios
@@ -181,7 +209,6 @@ function TRDraft() {
   const [myAssignmentInfo,setMyAssignmentInfo]= useState({
     "assignments":[]
   });
-  const [myAssignmentStudyTime,setMyAssingmentStudyTime]= useState({});
 
   function checkLectureAssignmentExists(){
     return myAssignmentInfo.assignments.length>0;
@@ -200,6 +227,22 @@ function TRDraft() {
       });
     setMyAssignmentInfo({"assignments":current_assignments});
   },[]);
+
+  const [myAssignmentStudyData,setMyAssingmentStudyData]= useState({});
+  const assignmentStudyDataTemplate={
+    "time_amount":null,
+    "excuse":"",
+  }
+  function getAssignmentStudyDataByAOSID(AOSID,assignment_finished=false){
+    if(!(AOSID in myAssignmentStudyData)) return null;
+    const ret={AOSID};
+    ret["excuse"]=myAssignmentStudyData[AOSID].excuse;
+    ret["timeAmount"]=myAssignmentStudyData[AOSID].time_amount;
+    ret["finishedState"]=assignment_finished;
+    if(assignment_finished) ret.excuse="";
+    else if(!ret.time_amount) ret.timeAmount="00:00";
+    return ret;
+  }
 
   const isInitialMount = useRef(true);
 
@@ -281,7 +324,7 @@ function TRDraft() {
     return ret;
   }
   
-  const [assignmentStudyTime,setAssignmentStudyTime]= useState({}); // 강의 과제의 학습 시간을 담는 dictionary
+  const [assignmentStudyTime,setAssignmentStudyTime]= useState({}); // 강의 과제의 학습 시간, 미완료 사유를 담는 dictionary
   function getAssignmentStudyTimeElementFromAssignmentData(assignmentData){
     return {
       과목: assignmentData["lectureSubject"],
@@ -289,6 +332,7 @@ function TRDraft() {
       총교재량: "",
       최근진도: "",
       학습시간: "00:00",
+      excuse:"",
     };
   }
 
@@ -431,12 +475,20 @@ function TRDraft() {
 
   const [currentExcuseInfo,setCurrentExcuseInfo]= useState({}); //excuse modal related data
   const [showExcuseModal,setShowExcuseModal]= useState(false); //excuse modal open/close state
-  const openExcuseModal= (newGoalExcuseData)=>{
-    setCurrentExcuseInfo(newGoalExcuseData);
+  
+  const excuse_for_template={
+    excuse_for:"assignment",
+  }
+  const [excuseFor,setExcuseFor]= useState(excuse_for_template); // which study type the excuse for (assignment/textbook)
+
+  const openExcuseModal= (excuse_for,...extra_data)=>{
+    // setCurrentExcuseInfo(newGoalExcuseData);
+    setExcuseFor({excuse_for,extra_data});
     setShowExcuseModal(true);
   };
   const closeExcusemodal= ()=>{
-    setCurrentExcuseInfo({});
+    // setCurrentExcuseInfo({});
+    setExcuseFor(excuse_for_template);
     setShowExcuseModal(false);
   }
 
@@ -530,30 +582,43 @@ function TRDraft() {
             <Form.Control
                 as="textarea"
                 placeholder="여기에 사유를 입력해주세요(15자 이상)"
+                maxLength={200}
                 className="mb-3 ModalTextarea"
                 onChange={(event)=>{
-                  const newGoalExcuseData= JSON.parse(JSON.stringify(currentExcuseInfo));
-                  newGoalExcuseData["excuse"]=event.target.value;
-                  // console.log("excuse input: "+newGoalExcuseData["excuse"]);
-                  setCurrentExcuseInfo(newGoalExcuseData);
+                  const excuse=event.target.value;
+                  if(excuseFor.excuse_for==="assignment"){
+                    const AOSID=excuseFor.extra_data[0];
+                    const newAssignmentStudyData= JSON.parse(JSON.stringify(myAssignmentStudyData));
+                    if(!(AOSID in newAssignmentStudyData)) newAssignmentStudyData[AOSID]={...assignmentStudyDataTemplate};
+                    newAssignmentStudyData[AOSID].excuse=excuse;
+                    setMyAssingmentStudyData(newAssignmentStudyData);
+                    return;
+                  }
+                  else if(excuseFor.excuse_for==="lectureAndTextbook"){
+
+                  }
+                  // const newGoalExcuseData= JSON.parse(JSON.stringify(currentExcuseInfo));
+                  // newGoalExcuseData["excuse"]=event.target.value;
+                  // // console.log("excuse input: "+newGoalExcuseData["excuse"]);
+                  // setCurrentExcuseInfo(newGoalExcuseData);
                 }}
             />
             <Button
                 className="btn-secondary"
                 onClick={async ()=>{
                   if(!window.confirm("과제 미완료 사유를 저장하시겠습니까?")) return;
-                  if(currentExcuseInfo["excuse"].length<15){
-                    window.alert("사유를 15자 이상 입력해주세요");
-                    return;
-                  }
-                  // console.log("cei: "+JSON.stringify(currentExcuseInfo));
-                  const goalAttribute= currentExcuseInfo["AOSID"]?goalAttributes.Assignment:goalAttributes.textbookProgress;
-                  const relatedID= currentExcuseInfo["AOSID"]?currentExcuseInfo["AOSID"]:currentExcuseInfo["textbookID"];
-                  updateGoalState(currentExcuseInfo,goalAttribute,relatedID,false);
+                  // if(currentExcuseInfo["excuse"].length<15){
+                  //   window.alert("사유를 15자 이상 입력해주세요");
+                  //   return;
+                  // }
+                  // // console.log("cei: "+JSON.stringify(currentExcuseInfo));
+                  // const goalAttribute= currentExcuseInfo["AOSID"]?goalAttributes.Assignment:goalAttributes.textbookProgress;
+                  // const relatedID= currentExcuseInfo["AOSID"]?currentExcuseInfo["AOSID"]:currentExcuseInfo["textbookID"];
+                  // updateGoalState(currentExcuseInfo,goalAttribute,relatedID,false);
                   closeExcusemodal();
                 }}
                 type="button">
-              <strong>입력 완료</strong>
+              <strong>확인 요청</strong>
             </Button>
           </Modal.Body>
         </Modal>
@@ -653,6 +718,23 @@ function TRDraft() {
                     })}
                     </tbody>
                   </Table>
+                  <Button
+                    variant="secondary"
+                    onClick={async ()=>{
+                      await axios
+                        .post("/api/saveLifeDataRequest",getMyLifeData())
+                        .then((res)=>{
+                          const data=res.data;
+                          if(!data.success) return window.alert(`네트워크 오류로 생활 데이터를 저장하지 못했습니다:0`);
+                          return window.alert(`성공적으로 생활 데이터를 저장했습니다`);
+                        })
+                        .catch((error)=>{
+                          return window.alert(`네트워크 오류로 생활 데이터를 저장하지 못했습니다:1`);
+                        });
+                    }}
+                  >
+                    save
+                  </Button>
                 </div>
 
                 <div className="trCard">
@@ -676,7 +758,8 @@ function TRDraft() {
                               <tbody>
                               {myAssignmentInfo.assignments.map(function (a, i) {
                                 let tableRowClassName="";
-                                const goalState=AOSIDToSavedGoalStateMapping[a["AOSID"]];
+                                const AOSID=a.AOSID;
+                                const goalState=AOSIDToSavedGoalStateMapping[AOSID];
                                 if(a["AOSID"] in highlightedLectureAssignments){
                                   tableRowClassName="AssignmentHighlighted";
                                 }
@@ -733,15 +816,16 @@ function TRDraft() {
                                         <TimePicker
                                             className="timepicker"
                                             locale="sv-sv"
-                                            value={myAssignmentStudyTime[a.AOSID]}
+                                            value={myAssignmentStudyData[a.AOSID]?myAssignmentStudyData[a.AOSID]["time_amount"]:null}
                                             openClockOnFocus={false}
                                             clearIcon={null}
                                             clockIcon={null}
                                             onChange={(value) => {
-                                              const newAssignmentStudyTime= {...myAssignmentStudyTime};
-                                              newAssignmentStudyTime[a.AOSID]=value;
-                                              console.log(`a study time: ${JSON.stringify(newAssignmentStudyTime)}`);
-                                              setMyAssingmentStudyTime(newAssignmentStudyTime);
+                                              const newAssignmentStudyData= JSON.parse(JSON.stringify(myAssignmentStudyData));
+                                              if(!(a.AOSID in newAssignmentStudyData)) newAssignmentStudyData[a.AOSID]={...assignmentStudyDataTemplate};
+                                              newAssignmentStudyData[a.AOSID].time_amount=value
+                                              // console.log(`assignment study data: ${JSON.stringify(newAssignmentStudyData)}`);
+                                              setMyAssingmentStudyData(newAssignmentStudyData);
                                             }}
                                         ></TimePicker>
                                       </td>
@@ -757,11 +841,23 @@ function TRDraft() {
                                         <button
                                             className="btn btn-success btn-opaque"
                                             onClick={async ()=>{
-                                              if(!window.confirm(`선택한 강의 과제를 완료 처리 하시겠습니까?`)) return;
-                                              const assignmentData=a;
-                                              const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,true,"");
-                                              //db & page state update
-                                              await updateGoalState(dailyGoalCheckLogData,goalAttributes.Assignment,a["AOSID"], true);
+                                              // if(!window.confirm(`선택한 강의 과제를 완료 처리 하시겠습니까?`)) return;
+                                              // const assignmentData=a;
+                                              // const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,true,"");
+                                              // //db & page state update
+                                              // await updateGoalState(dailyGoalCheckLogData,goalAttributes.Assignment,a["AOSID"], true);
+                                              const study_data= getAssignmentStudyDataByAOSID(AOSID,true);
+                                              // console.log(`study data: ${JSON.stringify(study_data)}`);
+                                              await axios
+                                                .post("/api/saveAssignmentStudyDataRequest",study_data)
+                                                .then((res)=>{
+                                                  const data=res.data;
+                                                  if(!data.success) return window.alert(`네트워크 오류로 강의 과제 학습 데이터를 저장하지 못했습니다:0`);
+                                                  return window.alert(`성공적으로 강의 과제 학습 데이터를 저장했습니다`);
+                                                })
+                                                .catch((error)=>{
+                                                  return window.alert(`네트워크 오류로 강의 과제 학습 데이터를 저장하지 못했습니다:1`);
+                                                });
                                             }}
                                         >
                                           <FaCheck></FaCheck>
@@ -769,9 +865,9 @@ function TRDraft() {
                                         <button
                                             className="btn btn-danger btn-opaque"
                                             onClick={async ()=>{
-                                              const assignmentData=a;
-                                              const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,false,"");
-                                              openExcuseModal(dailyGoalCheckLogData);
+                                              // const assignmentData=a;
+                                              // const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,false,"");
+                                              openExcuseModal("assignment",a.AOSID);
                                             }}
                                         >
                                           <FaTimes></FaTimes>
@@ -791,142 +887,56 @@ function TRDraft() {
                   }
                 </div>
 
-                <div className="trCard">
-                  <h4><strong>수업 및 일반교재</strong></h4>
-                  <Table striped hover size="sm" className="mt-3">
-                    <thead>
-                    <tr>
-                      <th width="5%"></th>
-                      <th width="10%">학습</th>
-                      <th width="15%">교재</th>
-                      <th width="10%">총교재량</th>
-                      <th width="10%">오늘목표량</th>
-                      <th width="10%">최근진도</th>
-                      <th width="10%">학습시간</th>
-                      <th width="10%">완료여부<br/>/사유작성</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {myStudyInfo.진행중교재.map((a, i)=> {
-                      const textbookName=a["교재"];
-                      const textbookID=textbookIDMapping[a["교재"]];
-                      if(checkTextBookOfAssignment(textbookName)) return null;
-                      let tableRowClassName="";
-                      if(textbookID){
-                        if(textbookID in highlightedTextbookAssignments){
-                          tableRowClassName="AssignmentHighlighted";
-                        }
-                        else{
-                          const goalState=textbookIDToSavedGoalStateMapping[textbookID];
-                          if(goalState){
-                            if(goalState["finishedState"]===true) tableRowClassName="AssignmentChecked";
-                            else tableRowClassName="AssignmentNotFinished";
-                          }
-                          else tableRowClassName="";
-                        }
+                
+                {/*일간 TR 내 주간 학습 계획*/}
+              </div>
+            </div>
+          </div>
+          <div className="col-xl-6">
+            <div className="trCard">
+              <h4><strong>수업 및 일반교재</strong></h4>
+              <Table striped hover size="sm" className="mt-3">
+                <thead>
+                <tr>
+                  <th width="5%"></th>
+                  <th width="10%">학습</th>
+                  <th width="15%">교재</th>
+                  <th width="10%">총교재량</th>
+                  <th width="10%">오늘목표량</th>
+                  <th width="10%">최근진도</th>
+                  <th width="10%">학습시간</th>
+                  <th width="10%">완료여부<br/>/사유작성</th>
+                </tr>
+                </thead>
+                <tbody>
+                {myStudyInfo.진행중교재.map((a, i)=> {
+                  const textbookName=a["교재"];
+                  const textbookID=textbookIDMapping[a["교재"]];
+                  if(checkTextBookOfAssignment(textbookName)) return null;
+                  let tableRowClassName="";
+                  if(textbookID){
+                    if(textbookID in highlightedTextbookAssignments){
+                      tableRowClassName="AssignmentHighlighted";
+                    }
+                    else{
+                      const goalState=textbookIDToSavedGoalStateMapping[textbookID];
+                      if(goalState){
+                        if(goalState["finishedState"]===true) tableRowClassName="AssignmentChecked";
+                        else tableRowClassName="AssignmentNotFinished";
                       }
-                      return (
-                          <tr key={i} className={tableRowClassName}>
-                            <td>
-                              <button
-                                  className="btn btn-opaque"
-                                  onClick={() => {
-                                    if (i > -1) {
-                                      if (window.confirm("삭제하시겠습니까?")) {
-                                        // var newTR = JSON.parse(JSON.stringify(TR));
-                                        // newTR.학습.splice(i, 1);
-                                        // let 실제학습시간 = 0;
-                                        // let 실제학습분 = 0;
-                                        // const astKeys= Object.keys(assignmentStudyTime);
-                                        // for(let i=0; i<astKeys.length; i++){
-                                        //   const studyTime=assignmentStudyTime[astKeys[i]];
-                                        //   실제학습시간 += parseInt(studyTime["학습시간"].split(":")[0]);
-                                        //   실제학습분 += parseInt(studyTime["학습시간"].split(":")[1]);
-                                        // }
-                                        // newTR.학습.map(function (b, j) {
-                                        //   if (b.학습시간) {
-                                        //     실제학습시간 += parseInt(b.학습시간.split(":")[0]);
-                                        //     실제학습분 += parseInt(b.학습시간.split(":")[1]);
-                                        //   }
-                                        // });
-                                        // newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
-                                        // setTR(newTR);
-                                      }
-                                    }
-                                  }}
-                              >
-                                <FaTrash></FaTrash>
-                              </button>
-                            </td>
-                            <td>
-                              {a.과목}
-                            </td>
-                            <td>
-                              <Form.Select
-                                  size="sm"
-                                  value={a.교재}
-                                  onChange={(e) => {
-                                    // const textbook_name=e.target.value;
-                                    // const textbook_volume=getTextbookVolumeFromTextbookName(textbook_name);
-                                    // const textbook_recent_page=getRecentPageFromTextbookName(textbook_name);
-                                    // const newTR=JSON.parse(JSON.stringify(TR));
-                                    // newTR.학습[i].교재=textbook_name;
-                                    // newTR.학습[i].총교재량=textbook_volume;
-                                    // newTR.학습[i].최근진도=textbook_recent_page;
-                                    // setTR(newTR);
-                                    // change_depth_three("학습", i, "교재", textbook_name);
-                                  }}
-                              >
-                                <option value="선택">선택</option>
-                                {/* {stuDB.진행중교재.map(function (book, index) {
-                                  return (
-                                      <option value={book.교재} key={index}>
-                                        {book.교재}
-                                      </option>
-                                  );
-                                })} */}
-                                {
-                                  validTextbookNames.map((textbook_name,idx)=>{
-                                    return (
-                                      <option value={textbook_name} key={idx}>
-                                        {textbook_name}
-                                      </option>
-                                    );
-                                    })
-                                }
-                                <option value="모의고사">모의고사</option>
-                                <option value="테스트">테스트</option>
-                                <option value="기타">기타</option>
-                              </Form.Select>
-                            </td>
-                            <td>
-                              <p className="fs-13px">{a.총교재량}</p>
-                            </td>
-                            <td>
-                              <p className="fs-13px">{getTodayGoalByTextbookName(a.교재)}</p>
-                            </td>
-                            <td>
-                              <input
-                                  type="number"
-                                  value={a.최근진도}
-                                  className="inputText"
-                                  onChange={(e) => {
-                                    // change_depth_three("학습", i, "최근진도", parseInt(e.target.value));
-                                  }}
-                              />
-                            </td>
-                            <td>
-                              <TimePicker
-                                  className="timepicker"
-                                  locale="sv-sv"
-                                  value={myTextbookStudyTime[textbookID]}
-                                  openClockOnFocus={false}
-                                  clearIcon={null}
-                                  clockIcon={null}
-                                  onChange={(value) => {
-                                    // if(!value) value="0:00";
+                      else tableRowClassName="";
+                    }
+                  }
+                  return (
+                      <tr key={i} className={tableRowClassName}>
+                        <td>
+                          <button
+                              className="btn btn-opaque"
+                              onClick={() => {
+                                if (i > -1) {
+                                  if (window.confirm("삭제하시겠습니까?")) {
                                     // var newTR = JSON.parse(JSON.stringify(TR));
-                                    // newTR.학습[i].학습시간 = value;
+                                    // newTR.학습.splice(i, 1);
                                     // let 실제학습시간 = 0;
                                     // let 실제학습분 = 0;
                                     // const astKeys= Object.keys(assignmentStudyTime);
@@ -943,217 +953,306 @@ function TRDraft() {
                                     // });
                                     // newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
                                     // setTR(newTR);
-                                    const newTextbookStudyTime={...myTextbookStudyTime};
-                                    newTextbookStudyTime[textbookID]=value;
-                                    setMyTextbookStudyTime(newTextbookStudyTime);
-                                  }}
-                              ></TimePicker>
-                            </td>
-                            <td>
-                              {checkTextbookIsValid(a["교재"])?(<>
-                                <button
-                                    className="btn btn-success btn-opaque"
-                                    onClick={async ()=>{
-                                      if(!window.confirm(`선택한 진도 교재를 완료 처리 하시겠습니까?`)) return;
-                                      const textbookName=a["교재"];
-                                      // console.log("textbookname: ",textbookName);
-                                      const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromTextbookName(textbookName,true,"");
-                                      // console.log("dgcld:"+JSON.stringify(dailyGoalCheckLogData));
-                                      //db & page state update
-                                      await updateGoalState(dailyGoalCheckLogData,goalAttributes.textbookProgress,textbookIDMapping[a["교재"]], true);
-                                    }}
-                                >
-                                  <FaCheck></FaCheck>
-                                </button>
-                                <button
-                                    className="btn btn-danger btn-opaque"
-                                    onClick={()=>{
-                                      const textbookName=a["교재"];
-                                      const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromTextbookName(textbookName,false,"");
-                                      openExcuseModal(dailyGoalCheckLogData);
-                                    }}
-                                >
-                                  <FaTimes></FaTimes>
-                                </button>
-                              </>):null}
-
-                            </td>
-
-                          </tr>
-                      );
-                    })}
-
-                    <tr>
-                      <td colSpan={5}>목표 학습 - {"TBD"} 시간</td>
-                      <td> {"TBD"} 시간</td>
-                      <td colSpan={2}>{"TBD"}시간</td>
-                    </tr>
-                    <tr>
-                      <td colSpan={8}>
-                        {" "}
-                        <button
-                            className="btn btn-add program-add"
-                            onClick={() => {
-                              // push_depth_one("학습", {
-                              //   과목: "선택",
-                              //   교재: "선택",
-                              //   총교재량: "---",
-                              //   최근진도: 0,
-                              //   학습시간: "00:00",
-                              // });
-                            }}
-                        >
-                          <strong>+</strong>
-                        </button>
-                      </td>
-                    </tr>
-                    </tbody>
-                  </Table>
-                </div>
-
-                <div className="trCard">
-                  <Table striped hover size="sm" className="mt-3">
-                    <thead>
-                    <tr>
-                      <th width="5%"></th>
-                      <th width="20%">프로그램</th>
-                      <th width="20%">매니저</th>
-                      <th width="15%">소요시간</th>
-                      <th width="35%">상세내용</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {/* {TR.프로그램.map(function (a, i) {
-                      return (
-                          <tr key={i}>
-                            <td>
-                              <button
-                                  className="btn btn-opaque"
-                                  onClick={() => {
-                                    if (i > -1) {
-                                      if (window.confirm("삭제하시겠습니까?")) {
-                                        var newTR = JSON.parse(JSON.stringify(TR));
-                                        newTR.프로그램.splice(i, 1);
-                                        let 실제시간 = 0;
-                                        let 실제분 = 0;
-                                        newTR.프로그램.map(function (c, k) {
-                                          if (c.소요시간) {
-                                            실제시간 += parseInt(c.소요시간.split(":")[0]);
-                                            실제분 += parseInt(c.소요시간.split(":")[1]);
-                                          }
-                                        });
-                                        newTR.프로그램시간 = Math.round((실제시간 + 실제분 / 60) * 10) / 10;
-                                        setTR(newTR);
-                                      }
-                                    }
-                                  }}
-                              >
-                                <strong><FaTrash></FaTrash></strong>
-                              </button>
-                            </td>
-                            <td>
-                              <Form.Select
-                                  size="sm"
-                                  value={a.프로그램분류}
-                                  onChange={(e) => {
-                                    // change_depth_three("프로그램", i, "프로그램분류", e.target.value);
-                                  }}
-                              >
-                                <option value="선택">선택</option>
-                                {stuDB.프로그램분류.map(function (p, j) {
-                                  return (
-                                      <option value={p} key={j}>
-                                        {p}
-                                      </option>
-                                  );
-                                })}
-                              </Form.Select>
-                            </td>
-                            <td>
-                              <Form.Select
-                                  size="sm"
-                                  value={a.매니저}
-                                  onChange={(e) => {
-                                    // change_depth_three("프로그램", i, "매니저", e.target.value);
-                                  }}
-                              >
-                                <option value="선택">선택</option>
-                                {managerList.map(function (b, j) {
-                                  return (
-                                      <option value={b} key={j}>
-                                        {b}
-                                      </option>
-                                  );
-                                })}
-                              </Form.Select>
-                            </td>
-                            <td>
-                              <TimePicker
-                                  className="timepicker"
-                                  locale="sv-sv"
-                                  value={a.소요시간}
-                                  openClockOnFocus={false}
-                                  clearIcon={null}
-                                  clockIcon={null}
-                                  onChange={(value) => {
-                                    // var newTR = JSON.parse(JSON.stringify(TR));
-                                    // newTR.프로그램[i].소요시간 = value;
-                                    // let 실제시간 = 0;
-                                    // let 실제분 = 0;
-                                    // newTR.프로그램.map(function (c, k) {
-                                    //   if (c.소요시간) {
-                                    //     실제시간 += parseInt(c.소요시간.split(":")[0]);
-                                    //     실제분 += parseInt(c.소요시간.split(":")[1]);
-                                    //   }
-                                    // });
-                                    // newTR.프로그램시간 = Math.round((실제시간 + 실제분 / 60) * 10) / 10;
-                                    // setTR(newTR);
-                                  }}
-                              ></TimePicker>
-                            </td>
-                            <td>
-                          <textarea
-                              className="textArea"
-                              name=""
-                              id=""
-                              rows="3"
-                              placeholder="프로그램 상세내용/특이사항 입력"
-                              value={a.상세내용}
-                              onChange={(e) => {
-                                // change_depth_three("프로그램", i, "상세내용", e.target.value);
+                                  }
+                                }
                               }}
-                          ></textarea>
-                            </td>
-                          </tr>
-                      );
-                    })} */}
+                          >
+                            <FaTrash></FaTrash>
+                          </button>
+                        </td>
+                        <td>
+                          {a.과목}
+                        </td>
+                        <td>
+                          <Form.Select
+                              size="sm"
+                              value={a.교재}
+                              onChange={(e) => {
+                                // const textbook_name=e.target.value;
+                                // const textbook_volume=getTextbookVolumeFromTextbookName(textbook_name);
+                                // const textbook_recent_page=getRecentPageFromTextbookName(textbook_name);
+                                // const newTR=JSON.parse(JSON.stringify(TR));
+                                // newTR.학습[i].교재=textbook_name;
+                                // newTR.학습[i].총교재량=textbook_volume;
+                                // newTR.학습[i].최근진도=textbook_recent_page;
+                                // setTR(newTR);
+                                // change_depth_three("학습", i, "교재", textbook_name);
+                              }}
+                          >
+                            <option value="선택">선택</option>
+                            {/* {stuDB.진행중교재.map(function (book, index) {
+                              return (
+                                  <option value={book.교재} key={index}>
+                                    {book.교재}
+                                  </option>
+                              );
+                            })} */}
+                            {
+                              validTextbookNames.map((textbook_name,idx)=>{
+                                return (
+                                  <option value={textbook_name} key={idx}>
+                                    {textbook_name}
+                                  </option>
+                                );
+                                })
+                            }
+                            <option value="모의고사">모의고사</option>
+                            <option value="테스트">테스트</option>
+                            <option value="기타">기타</option>
+                          </Form.Select>
+                        </td>
+                        <td>
+                          <p className="fs-13px">{a.총교재량}</p>
+                        </td>
+                        <td>
+                          <p className="fs-13px">{getTodayGoalByTextbookName(a.교재)}</p>
+                        </td>
+                        <td>
+                          <input
+                              type="number"
+                              value={a.최근진도}
+                              className="inputText"
+                              onChange={(e) => {
+                                // change_depth_three("학습", i, "최근진도", parseInt(e.target.value));
+                              }}
+                          />
+                        </td>
+                        <td>
+                          <TimePicker
+                              className="timepicker"
+                              locale="sv-sv"
+                              value={myTextbookStudyTime[textbookID]}
+                              openClockOnFocus={false}
+                              clearIcon={null}
+                              clockIcon={null}
+                              onChange={(value) => {
+                                // if(!value) value="0:00";
+                                // var newTR = JSON.parse(JSON.stringify(TR));
+                                // newTR.학습[i].학습시간 = value;
+                                // let 실제학습시간 = 0;
+                                // let 실제학습분 = 0;
+                                // const astKeys= Object.keys(assignmentStudyTime);
+                                // for(let i=0; i<astKeys.length; i++){
+                                //   const studyTime=assignmentStudyTime[astKeys[i]];
+                                //   실제학습시간 += parseInt(studyTime["학습시간"].split(":")[0]);
+                                //   실제학습분 += parseInt(studyTime["학습시간"].split(":")[1]);
+                                // }
+                                // newTR.학습.map(function (b, j) {
+                                //   if (b.학습시간) {
+                                //     실제학습시간 += parseInt(b.학습시간.split(":")[0]);
+                                //     실제학습분 += parseInt(b.학습시간.split(":")[1]);
+                                //   }
+                                // });
+                                // newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
+                                // setTR(newTR);
+                                const newTextbookStudyTime={...myTextbookStudyTime};
+                                newTextbookStudyTime[textbookID]=value;
+                                setMyTextbookStudyTime(newTextbookStudyTime);
+                              }}
+                          ></TimePicker>
+                        </td>
+                        <td>
+                          {checkTextbookIsValid(a["교재"])?(<>
+                            <button
+                                className="btn btn-success btn-opaque"
+                                onClick={async ()=>{
+                                  if(!window.confirm(`선택한 진도 교재를 완료 처리 하시겠습니까?`)) return;
+                                  const textbookName=a["교재"];
+                                  // console.log("textbookname: ",textbookName);
+                                  const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromTextbookName(textbookName,true,"");
+                                  // console.log("dgcld:"+JSON.stringify(dailyGoalCheckLogData));
+                                  //db & page state update
+                                  await updateGoalState(dailyGoalCheckLogData,goalAttributes.textbookProgress,textbookIDMapping[a["교재"]], true);
+                                }}
+                            >
+                              <FaCheck></FaCheck>
+                            </button>
+                            <button
+                                className="btn btn-danger btn-opaque"
+                                onClick={()=>{
+                                  const textbookName=a["교재"];
+                                  const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromTextbookName(textbookName,false,"");
+                                  openExcuseModal(dailyGoalCheckLogData);
+                                }}
+                            >
+                              <FaTimes></FaTimes>
+                            </button>
+                          </>):null}
 
-                    <tr>
-                      <td colSpan={5}>프로그램 진행 시간 : {"TBD"}시간</td>
-                    </tr>
-                    <tr>
-                      <td colSpan={5}>
-                        {" "}
-                        <button
-                            className="btn btn-add program-add"
-                            onClick={() => {
-                              // push_depth_one("프로그램", {
-                              //   프로그램분류: "선택",
-                              //   매니저: "선택",
-                              //   소요시간: "00:00",
-                              //   상세내용: "",
-                              // });
-                            }}
-                        >
-                          <strong>+</strong>
-                        </button>
-                      </td>
-                    </tr>
-                    </tbody>
-                  </Table>
-                </div>
-                {/*일간 TR 내 주간 학습 계획*/}
-              </div>
+                        </td>
+
+                      </tr>
+                  );
+                })}
+
+                <tr>
+                  <td colSpan={5}>목표 학습 - {"TBD"} 시간</td>
+                  <td> {"TBD"} 시간</td>
+                  <td colSpan={2}>{"TBD"}시간</td>
+                </tr>
+                <tr>
+                  <td colSpan={8}>
+                    {" "}
+                    <button
+                        className="btn btn-add program-add"
+                        onClick={() => {
+                          // push_depth_one("학습", {
+                          //   과목: "선택",
+                          //   교재: "선택",
+                          //   총교재량: "---",
+                          //   최근진도: 0,
+                          //   학습시간: "00:00",
+                          // });
+                        }}
+                    >
+                      <strong>+</strong>
+                    </button>
+                  </td>
+                </tr>
+                </tbody>
+              </Table>
+            </div>
+
+            <div className="trCard">
+              <Table striped hover size="sm" className="mt-3">
+                <thead>
+                <tr>
+                  <th width="5%"></th>
+                  <th width="20%">프로그램</th>
+                  <th width="20%">매니저</th>
+                  <th width="15%">소요시간</th>
+                  <th width="35%">상세내용</th>
+                </tr>
+                </thead>
+                <tbody>
+                {/* {TR.프로그램.map(function (a, i) {
+                  return (
+                      <tr key={i}>
+                        <td>
+                          <button
+                              className="btn btn-opaque"
+                              onClick={() => {
+                                if (i > -1) {
+                                  if (window.confirm("삭제하시겠습니까?")) {
+                                    var newTR = JSON.parse(JSON.stringify(TR));
+                                    newTR.프로그램.splice(i, 1);
+                                    let 실제시간 = 0;
+                                    let 실제분 = 0;
+                                    newTR.프로그램.map(function (c, k) {
+                                      if (c.소요시간) {
+                                        실제시간 += parseInt(c.소요시간.split(":")[0]);
+                                        실제분 += parseInt(c.소요시간.split(":")[1]);
+                                      }
+                                    });
+                                    newTR.프로그램시간 = Math.round((실제시간 + 실제분 / 60) * 10) / 10;
+                                    setTR(newTR);
+                                  }
+                                }
+                              }}
+                          >
+                            <strong><FaTrash></FaTrash></strong>
+                          </button>
+                        </td>
+                        <td>
+                          <Form.Select
+                              size="sm"
+                              value={a.프로그램분류}
+                              onChange={(e) => {
+                                // change_depth_three("프로그램", i, "프로그램분류", e.target.value);
+                              }}
+                          >
+                            <option value="선택">선택</option>
+                            {stuDB.프로그램분류.map(function (p, j) {
+                              return (
+                                  <option value={p} key={j}>
+                                    {p}
+                                  </option>
+                              );
+                            })}
+                          </Form.Select>
+                        </td>
+                        <td>
+                          <Form.Select
+                              size="sm"
+                              value={a.매니저}
+                              onChange={(e) => {
+                                // change_depth_three("프로그램", i, "매니저", e.target.value);
+                              }}
+                          >
+                            <option value="선택">선택</option>
+                            {managerList.map(function (b, j) {
+                              return (
+                                  <option value={b} key={j}>
+                                    {b}
+                                  </option>
+                              );
+                            })}
+                          </Form.Select>
+                        </td>
+                        <td>
+                          <TimePicker
+                              className="timepicker"
+                              locale="sv-sv"
+                              value={a.소요시간}
+                              openClockOnFocus={false}
+                              clearIcon={null}
+                              clockIcon={null}
+                              onChange={(value) => {
+                                // var newTR = JSON.parse(JSON.stringify(TR));
+                                // newTR.프로그램[i].소요시간 = value;
+                                // let 실제시간 = 0;
+                                // let 실제분 = 0;
+                                // newTR.프로그램.map(function (c, k) {
+                                //   if (c.소요시간) {
+                                //     실제시간 += parseInt(c.소요시간.split(":")[0]);
+                                //     실제분 += parseInt(c.소요시간.split(":")[1]);
+                                //   }
+                                // });
+                                // newTR.프로그램시간 = Math.round((실제시간 + 실제분 / 60) * 10) / 10;
+                                // setTR(newTR);
+                              }}
+                          ></TimePicker>
+                        </td>
+                        <td>
+                      <textarea
+                          className="textArea"
+                          name=""
+                          id=""
+                          rows="3"
+                          placeholder="프로그램 상세내용/특이사항 입력"
+                          value={a.상세내용}
+                          onChange={(e) => {
+                            // change_depth_three("프로그램", i, "상세내용", e.target.value);
+                          }}
+                      ></textarea>
+                        </td>
+                      </tr>
+                  );
+                })} */}
+
+                <tr>
+                  <td colSpan={5}>프로그램 진행 시간 : {"TBD"}시간</td>
+                </tr>
+                <tr>
+                  <td colSpan={5}>
+                    {" "}
+                    <button
+                        className="btn btn-add program-add"
+                        onClick={() => {
+                          // push_depth_one("프로그램", {
+                          //   프로그램분류: "선택",
+                          //   매니저: "선택",
+                          //   소요시간: "00:00",
+                          //   상세내용: "",
+                          // });
+                        }}
+                    >
+                      <strong>+</strong>
+                    </button>
+                  </td>
+                </tr>
+                </tbody>
+              </Table>
             </div>
           </div>
         </div>
