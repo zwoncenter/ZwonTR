@@ -81,6 +81,7 @@ function TRDraft() {
   const [myStudyInfo,setMyStudyInfo]=useState({
     "진행중교재":[],
   });
+  const [myTextbookStudyTime,setMyTextbookStudyTime]= useState({});
 
   useEffect(async ()=>{
     const current_studying_books=await axios
@@ -485,7 +486,27 @@ function TRDraft() {
         });
     setmanagerList(newmanagerList);
     isInitialMount.current = false;
-  }, [paramDate]);
+  }, []);
+
+  useEffect(async ()=>{
+    if(validTextbookNames.length===0) return;
+    const textbook_id_list= await axios
+      .post("/api/getTextbookIDsByTextbookName",{textbookNames:validTextbookNames})
+      .then((res)=>{
+        const data=res.data;
+        if(!data.success) throw new Error('internal database connection error');
+        return data.ret;
+      })
+      .catch((err)=>{
+        window.alert(`데이터를 불러오는 중 오류가 발생했습니다.\n페이지를 새로고침 합니다.`);
+        window.location.reload();
+      });
+    const textbook_name_to_id_map={};
+    textbook_id_list.forEach((e,idx)=>{
+      textbook_name_to_id_map[e.교재]=e._id;
+    });
+    setTextbookIDMapping(textbook_name_to_id_map);
+  },[validTextbookNames]);
 
   useEffect(()=>{
     if(myStudyInfo.진행중교재.length>0){
@@ -898,7 +919,7 @@ function TRDraft() {
                               <TimePicker
                                   className="timepicker"
                                   locale="sv-sv"
-                                  value={a.학습시간}
+                                  value={myTextbookStudyTime[textbookID]}
                                   openClockOnFocus={false}
                                   clearIcon={null}
                                   clockIcon={null}
@@ -922,6 +943,9 @@ function TRDraft() {
                                     // });
                                     // newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
                                     // setTR(newTR);
+                                    const newTextbookStudyTime={...myTextbookStudyTime};
+                                    newTextbookStudyTime[textbookID]=value;
+                                    setMyTextbookStudyTime(newTextbookStudyTime);
                                   }}
                               ></TimePicker>
                             </td>
