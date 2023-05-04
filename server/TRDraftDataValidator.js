@@ -23,6 +23,7 @@ const request_review_msg_template={
     review_from:null,
     timestamp:null,
 };
+const daily_LAT_request_max_count=50;
 function intBetween(a,left,right){
     return a>=left && a<=right;
 }
@@ -55,7 +56,7 @@ function getNewLifeDataRequestDocument(student_id,today_string){
     return request_doc;
 }
 function checkExcuseValueValid(excuse_val,finishedState){
-    return (typeof excuse_val === "string") && ((finishedState===true && excuse_val.length===0) || (finishedState===false && finishedSintBetween(excuse_val.length,15,200)));
+    return (typeof excuse_val === "string") && ((finishedState===true && excuse_val.length===0) || (finishedState===false && intBetween(excuse_val.length,15,200)));
 }
 function checkRequestDataUpdatable(request_status){
     return request_status===0 || request_status===2;
@@ -71,10 +72,23 @@ function getNewAssignmentStudyDataRequestDocument(student_id,today_string,AOSID)
     delete request_doc["study_data_list"];
     return request_doc;
 }
+function getNewTextbookStudyDataRequestDocument(student_id,today_string,textbookID,elementID){
+    const request_doc={...request_document_template};
+    request_doc["student_id"]=student_id;
+    request_doc["date"]=today_string;
+    request_doc["request_status"]=0;
+    request_doc["request_type"]=request_type_name_to_index["LectureAndTextbookStudyData"];
+    request_doc["request_specific_data"]={textbookID,elementID,deleted:false,duplicatable:textbookID?false:true};
+    request_doc["review_msg_list"]=[];
+    delete request_doc["study_data_list"];
+    return request_doc;
+}
 module.exports={
     request_document_template,
     request_study_data_template,
     request_review_msg_template,
+    request_type_name_to_index,
+    daily_LAT_request_max_count,
     intBetween,
     checkTimeStringValid,
     checkConditionValueValid,
@@ -82,5 +96,6 @@ module.exports={
     getNewLifeDataRequestDocument,
     checkExcuseValueValid,
     getNewAssignmentStudyDataRequestDocument,
+    getNewTextbookStudyDataRequestDocument,
     checkRequestDataUpdatable,
 }

@@ -4,6 +4,7 @@ import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min
 import { useState, useEffect, useRef } from "react";
 import {FaCheck, FaSistrix, FaTrash, FaTimes} from "react-icons/fa"
 import axios from "axios";
+import ObjectId from "bson-objectid";
 import TimePicker from "react-time-picker";
 // import { FaPencilAlt, FaTrash, FaCheck, FaUndo } from "react-icons/fa";
 // import { CgMailForward } from "react-icons/cg";
@@ -17,6 +18,8 @@ function TRDraft() {
   // const today = koreaNow.toISOString().split("T")[0];
   const today = getCurrentKoreaDateYYYYMMDD();
   // const today = "2023-04-11"; // for testing
+
+  const max_table_element_count=50;
 
   // 공통 code
   let history = useHistory();
@@ -95,6 +98,7 @@ function TRDraft() {
         return [];
       });
     setMyStudyInfo({"진행중교재":current_studying_books});
+    // console.log(`current books: ${JSON.stringify(current_studying_books)}`);
   },[]);
 
   const day_category=["평일","일요일"];
@@ -112,6 +116,230 @@ function TRDraft() {
     d.setFullYear(year); d.setMonth(month-1); d.setDate(date);
     return d.getDay()===0? day_category[1]:day_category[0]; 
   }
+
+  //db에 저장된 오늘의 모든 tr draft requests
+  const [prevTRDraftRequestData,setPrevTRDraftRequestData]=useState(null);
+  const [LATRequestStatusMap,setLATRequestStatusMap]=useState(null);
+  function getNewObjectIDString(){
+    return (new ObjectId()).toHexString();
+  }
+  function getNewLATRequestID(){
+    return ["element",getNewObjectIDString()].join("#");
+  }
+  function getLATRequestIDFromRequestElement(requestDataElement){
+    const request_specific_data=requestDataElement.request_specific_data;
+    if("textbookID" in request_specific_data && request_specific_data.textbookID) return ["textbook",request_specific_data.textbookID].join("#");
+    else if("elementID" in request_specific_data && request_specific_data.elementID) return ["element",request_specific_data.elementID].join("#");
+  }
+  function getLATRequestStatusMap(prevRequestData){
+    const ret={};
+    prevRequestData.forEach((e,idx)=>{
+      if(e.request_type!==2) return;
+      const LAT_request_id=getLATRequestIDFromRequestElement(e);
+      ret[LAT_request_id]=JSON.parse(JSON.stringify(e));
+      const study_data_list=ret[LAT_request_id].study_data_list;
+      ret[LAT_request_id]["study_data"]=study_data_list[study_data_list.length-1];
+    });
+    return ret;
+  }
+  function checkLATRequestElementDeleted(LATRequestID){
+    if(!(LATRequestID in LATRequestStatusMap)) return false;
+    const request_specific_data=LATRequestStatusMap[LATRequestID].request_specific_data;
+    if(!("deleted" in request_specific_data)) return false;
+    return request_specific_data.deleted;
+  }
+  function getLATRequestElementTemplate(duplicatableName="",duplicatableSubject=""){
+    return {
+      request_specific_data:{
+        textbookID:"",
+        elementID:"",
+        deleted:false,
+        duplicatable:false,
+        duplicatable_name:duplicatableName,
+        duplicatable_subject:duplicatableSubject,
+        duplicatable_recent_page:null,
+      },
+      request_type:2,
+      request_status:0,
+      review_msg_list:[],
+      study_data:{
+        excuse:"",
+        time_amount:null,
+        finished_state:-1,
+      }
+    };
+  }
+  function getLATRequestElementFromLATRequestID(LATRequestStatusMapCopy,LATRequestID=""){
+    if(LATRequestID in LATRequestStatusMapCopy) return LATRequestStatusMapCopy[LATRequestID];
+    const [element_type,element_id]= LATRequestID.split("#");
+    const new_request_element=getLATRequestElementTemplate();
+    const request_specific_data=new_request_element.request_specific_data;
+    if(element_type==="textbook"){
+      request_specific_data.textbookID=element_id;
+    }
+    else if(element_type==="element"){
+      request_specific_data.duplicatable=true;
+      request_specific_data.duplicatable_name=default_LAT_element_name;
+      request_specific_data.duplicatable_subject="";
+    }
+    return new_request_element;
+  }
+  function deleteLATRequestElement(LATRequestID){
+    console.log(`delete element: ${LATRequestID}`);
+    setLATRequestStatusMap(prevLATRequestStatusMap=>{
+      const [element_type,element_id]= LATRequestID.split("#");
+      const newLATRequestStatusMap=JSON.parse(JSON.stringify(prevLATRequestStatusMap));
+      if(element_type==="element"){
+        delete newLATRequestStatusMap[LATRequestID];
+      }
+      else if(element_type==="textbook"){
+        if(LATRequestID in newLATRequestStatusMap){
+          const LAT_request_element=newLATRequestStatusMap[LATRequestID];
+          const request_specific_data=LAT_request_element.request_specific_data;
+          request_specific_data.deleted=true;
+          request_specific_data.request_status=0;
+        }
+        else{
+          const LAT_request_element=getLATRequestElementFromLATRequestID(newLATRequestStatusMap);
+          const request_specific_data=LAT_request_element.request_specific_data;
+          request_specific_data.deleted=true;
+          newLATRequestStatusMap[LATRequestID]=LAT_request_element;
+        }
+      }
+      return newLATRequestStatusMap;
+    });
+  }
+  function insertLATRequestElement(LATRequestID,updateVal={}){
+    console.log(`insert element: ${LATRequestID}`);
+    setLATRequestStatusMap(prevLATRequestStatusMap=>{
+      const [element_type,element_id]= LATRequestID.split("#");
+      const newLATRequestStatusMap=JSON.parse(JSON.stringify(prevLATRequestStatusMap));
+      const LAT_request_element=getLATRequestElementFromLATRequestID(newLATRequestStatusMap,LATRequestID);
+      const LAT_request_element_request_specific_data= LAT_request_element.request_specific_data;
+      LAT_request_element_request_specific_data.deleted=false;
+      Object.keys(updateVal).forEach((field_name,idx)=>{
+        let target_object=LAT_request_element;
+        const updated_val=updateVal[field_name];
+        const field_path=field_name.split(".");
+        const field_path_count=field_path.length;
+        for(let i=0; i<field_path_count-1; i++){
+          target_object=target_object[field_path[i]];
+        }
+        target_object[field_path[field_path_count-1]]=updated_val;
+      });
+      newLATRequestStatusMap[LATRequestID]=LAT_request_element;
+      return newLATRequestStatusMap;
+    });
+  }
+  function updateLATRequestElementByLATRequestID(LATRequestID,updateVal){
+    setLATRequestStatusMap(prevLATRequestStatusMap=>{
+      const newLATRequestStatusMap=JSON.parse(JSON.stringify(prevLATRequestStatusMap));
+      if(!(LATRequestID in newLATRequestStatusMap)){
+        const new_request_element=getLATRequestElementFromLATRequestID({},LATRequestID);
+        newLATRequestStatusMap[LATRequestID]=new_request_element;
+      }
+      const LAT_request_element=getLATRequestElementFromLATRequestID(newLATRequestStatusMap,LATRequestID);
+      Object.keys(updateVal).forEach((field_name,idx)=>{
+        let target_object=LAT_request_element;
+        const updated_val=updateVal[field_name];
+        const field_path=field_name.split(".");
+        const field_path_count=field_path.length;
+        for(let i=0; i<field_path_count-1; i++){
+          target_object=target_object[field_path[i]];
+        }
+        target_object[field_path[field_path_count-1]]=updated_val;
+      });
+      return newLATRequestStatusMap;
+    });
+  }
+  function getTextbookStudyDataPayloadTemplate(){
+    return {
+      "textbookID":"",
+      "elementID":"",
+      "deleted":false,
+      "duplicatable":false,
+      "duplicatableName":"",
+      "duplicatableSubject":"",
+      "duplicatableRecentPage":0,
+      "timeAmount":time_default_string,
+      "excuse":"",
+      "finishedState":true,
+    };
+  }
+  function getTextbookStudyDataByLATRequestID(LATRequestID,textbookStudyFinished=false){
+    // const ret={...assignmentStudyDataPayloadTemplate,AOSID};
+    // ret["excuse"]=myAssignmentStudyData[AOSID].excuse;
+    // ret["timeAmount"]=myAssignmentStudyData[AOSID].time_amount;
+    // ret["finishedState"]=textbookStudyFinished;
+    // if(textbookStudyFinished) ret.excuse="";
+    // return ret;
+    const [element_type,element_id]=LATRequestID.split("#");
+    const LAT_request_element=getLATRequestElementFromLATRequestID(LATRequestStatusMap,LATRequestID);
+    const request_specific_data=LAT_request_element.request_specific_data;
+    const study_data=LAT_request_element.study_data;
+    const textbook_info=getTextbookInfoByLATRequestID(LATRequestID);
+    const ret={...getTextbookInfoTemplate};
+    ret["textbookID"]=request_specific_data.duplicatable?"":element_id;
+    ret["elementID"]=request_specific_data.duplicatable?element_id:"";
+    ret["duplicatable"]=request_specific_data.duplicatable;
+    ret["duplicatableName"]=request_specific_data.duplicatable_name;
+    ret["duplicatableSubject"]=request_specific_data.duplicatable_subject;
+    ret["duplicatableRecentPage"]=request_specific_data.duplicatable_recent_page?request_specific_data.duplicatable_recent_page:(textbook_info.최근진도).toString();
+    ret["timeAmount"]=study_data.time_amount;
+    ret["excuse"]=study_data.excuse;
+    ret["finishedState"]=textbookStudyFinished;
+    return ret;
+  }
+  function getTextbookInfoTemplate(){
+    return {
+      과목:"",
+      교재:"",
+      총교재량:"",
+      교재시작일:"",
+      권장종료일:"",
+      최근진도:0,
+      최근진도율:0,
+    };
+  }
+  function getTextbookInfoByLATRequestID(LATRequestID){
+    const [element_type,element_id]= LATRequestID.split("#");
+    if(element_type==="element"){
+      const ret=getTextbookInfoTemplate();
+      const LAT_request_element=getLATRequestElementFromLATRequestID(LATRequestStatusMap,LATRequestID);
+      ret.과목=LAT_request_element.request_specific_data.duplicatable_subject;
+      ret.교재=LAT_request_element.request_specific_data.duplicatable_name;
+      return ret;
+    }
+    else if(element_type==="textbook"){
+      for(let i=0;i<myStudyInfo.진행중교재.length; i++){
+        const textbook_info=myStudyInfo.진행중교재[i];
+        if(textbookIDMapping[textbook_info.교재]===element_id) return textbook_info;
+      }
+      return null;
+    }
+  }
+
+  useEffect(async ()=>{
+    const prevRequestData= await axios
+      .get("/api/getMyTodayTRDraftRequestsAll")
+      .then((res)=>{
+        const data=res.data;
+        if(!data.success) {
+          window.alert(`네트워크 오류로 데이터를 불러오지 못했습니다:0`);
+          window.location.reload();
+        }
+        return data.ret;
+      })
+      .catch((error)=>{
+        window.alert(`네트워크 오류로 데이터를 불러오지 못했습니다:1`);
+        window.location.reload();
+      });
+    setLATRequestStatusMap(getLATRequestStatusMap(prevRequestData));
+  },[]);
+
+  useEffect(()=>{
+    console.log(`lat request status map: ${JSON.stringify(LATRequestStatusMap)}`);
+  },[LATRequestStatusMap]);
 
   //생활 데이터 관련 코드
   const [myLifeCycleAndStudyTimeGoals,setMyLifeCycleAndStudyTimeGoals]= useState(life_cycle_and_study_time_goals_template);
@@ -213,6 +441,29 @@ function TRDraft() {
   function checkLectureAssignmentExists(){
     return myAssignmentInfo.assignments.length>0;
   }
+  function getAssignmentElementByAOSID(AOSID){
+    let ret=null;
+    for(let i=0; i<myAssignmentInfo.assignments.length; i++){
+      const assignment=myAssignmentInfo.assignments[i];
+      if(assignment.AOSID===AOSID) return assignment;
+    }
+    return ret;
+  }
+  function getLectureNameOfAssignmentByAOSID(AOSID){
+    let ret="";
+    for(let i=0; i<myAssignmentInfo.assignments.length; i++){
+      const assignment=myAssignmentInfo.assignments[i];
+      if(assignment.AOSID===AOSID) return assignment.lectureName;
+    }
+    return ret;
+  }
+  function checkTodayAssignmentIncludeTextbook(textbookName){
+    for(let i=0; i<myAssignmentInfo.assignments.length; i++){
+      const assignment_textbook_name=myAssignmentInfo.assignments[i].textbookName;
+      if(textbookName===assignment_textbook_name) return true;
+    }
+    return false;
+  }
 
   useEffect(async ()=>{
     const current_assignments=await axios
@@ -228,20 +479,73 @@ function TRDraft() {
     setMyAssignmentInfo({"assignments":current_assignments});
   },[]);
 
-  const [myAssignmentStudyData,setMyAssingmentStudyData]= useState({});
+  const [myAssignmentStudyData,setMyAssignmentStudyData]= useState({});
+  const time_default_string="00:00";
   const assignmentStudyDataTemplate={
-    "time_amount":null,
+    "time_amount":time_default_string,
     "excuse":"",
-  }
+    "finished_state":-1,
+  };
+  const assignmentStudyDataPayloadTemplate={
+    "AOSID":"",
+    "timeAmount":time_default_string,
+    "excuse":"",
+    "finishedState":true,
+  };
   function getAssignmentStudyDataByAOSID(AOSID,assignment_finished=false){
-    if(!(AOSID in myAssignmentStudyData)) return null;
-    const ret={AOSID};
+    if(!(AOSID in myAssignmentStudyData)) {
+      const newAssignmentStudyData=JSON.parse(JSON.stringify(myAssignmentStudyData));
+      newAssignmentStudyData[AOSID]={...assignmentStudyDataTemplate};
+      setMyAssignmentStudyData(newAssignmentStudyData);
+      return {...assignmentStudyDataTemplate,finishedState:assignment_finished,AOSID};
+    }
+    const ret={...assignmentStudyDataPayloadTemplate,AOSID};
     ret["excuse"]=myAssignmentStudyData[AOSID].excuse;
     ret["timeAmount"]=myAssignmentStudyData[AOSID].time_amount;
     ret["finishedState"]=assignment_finished;
     if(assignment_finished) ret.excuse="";
-    else if(!ret.time_amount) ret.timeAmount="00:00";
     return ret;
+  }
+  const excuse_min_len=15;
+  const excuse_max_len=200;
+  function checkStudyExcuseValid(excuse_val){
+    if(!(typeof excuse_val==="string")) return false;
+    return excuse_val.length>=excuse_min_len && excuse_val.length<=excuse_max_len;
+  }
+  function isAssignmentStudyDataValid(assignmentStudyData){
+    if(!assignmentStudyData) return false;
+    else if(assignmentStudyData.finishedState===true){
+      return checkTimeStringValid(assignmentStudyData.timeAmount);
+    }
+    else{
+      return checkTimeStringValid(assignmentStudyData.timeAmount) && checkStudyExcuseValid(assignmentStudyData.excuse);
+    }
+  }
+  function checkTextbookStudyRecentPageValid(recentPage){
+    console.log(`typeof page: ${typeof recentPage}`)
+    if(typeof recentPage !== "string" || recentPage.length===0) return false;
+    else return true;
+  }
+  function isTextbookStudyDataValid(textbookStudyData,LATRequestID){
+    if(!textbookStudyData) return [false,`error occurred`];
+    else if(!checkTextbookStudyRecentPageValid(textbookStudyData.duplicatableRecentPage)){
+      console.log(`recent page val: ${textbookStudyData.duplicatableRecentPage}`);
+      const textbook_info=getTextbookInfoByLATRequestID(LATRequestID);
+      updateLATRequestElementByLATRequestID(LATRequestID,{
+        "request_specific_data.duplictable_recent_page":textbook_info.최근진도,
+      });
+      return [false,"올바른 최근진도를 입력해주세요"];
+    }
+    else if(!checkTimeStringValid(textbookStudyData.timeAmount)){
+      updateLATRequestElementByLATRequestID(LATRequestID,{
+        "study_data.time_amount":time_default_string,
+      });
+      return [false,"올바른 학습시간을 입력해주세요"];
+    }
+    else if(textbookStudyData.finishedState===false && !checkStudyExcuseValid(textbookStudyData.excuse)){
+      return [false,"과제 미완료 사유를 15 글자 이상 입력해주세요"];
+    }
+    else return [true,""];
   }
 
   const isInitialMount = useRef(true);
@@ -251,6 +555,179 @@ function TRDraft() {
   function checkTextbookIsValid(textbookName){
     return textbookIDMapping[textbookName]?true:false;
   }
+
+  //수업 및 일반교재(type2) 관련 코드
+  const [textbookStudyNoDupElements,setTextbookStudyNoDupElements]= useState({}); // 중복 불가 항목: 교재가 정해진 경우
+  const [textbookStudyDupElements,setTextbookStudyDupElements]= useState({}); // 중복 가능 항목
+  const [textbookStudyDisplayList,setTextbookStudyDisplayList]= useState([]);
+  const default_LAT_element_name="선택";
+  const default_LAT_element_id="default";
+  const duplicatable_LAT_element_tmp_id="duplicatable";
+  const duplicatable_LAT_element_name_list=["모의고사","테스트","기타"];
+  const duplicatable_LAT_element_subject_list=["국어","수학","영어","탐구","기타"];
+  const textbookStudyDataDeletePayloadTemplate={
+    "textbookID":"",
+    "elementID":"",
+    "duplicatable":false,
+    "duplicatable_name":"",
+    "duplicatable_subject":"",
+    "duplicatable_recent_page":"",
+  };
+  function getTextbookStudyDataDeleteRequestPayload(study_data){
+    const ret={...textbookStudyDataDeletePayloadTemplate};
+    if(study_data["duplicatable"]){
+      ret.elementID=study_data.elementID;
+      ret.duplicatable=true;
+    }
+    else{
+      ret.textbookID=study_data.textbookID;
+      ret.duplicatable=false;
+    }
+    return ret;
+  }
+  function isLATTableElementNameDefault(element_name){
+    return element_name===default_LAT_element_name;
+  }
+  function isLATTableElementNameDuplicatable(element_name){
+    return duplicatable_LAT_element_name_list.includes(element_name);
+  }
+  function checkNewLATTableElementNameValid(element_name){
+    if(isLATTableElementNameDefault(element_name) || isLATTableElementNameDuplicatable(element_name)) return [true,""];
+    //check this textbook name already in table
+    for(let i=0; i<textbookStudyDisplayList.length; i++){
+      const LAT_request_element_id=textbookStudyDisplayList[i];
+      const textbook_info=getTextbookInfoByLATRequestID(LAT_request_element_id);
+      const table_element_name=textbook_info.교재;
+      if(isLATTableElementNameDefault(element_name) || isLATTableElementNameDuplicatable(element_name)) continue;
+      else if(table_element_name===element_name) return [false,"이미 리스트에 포함되어있는 교재입니다"];
+    }
+    //check this textbook is in today's lecture assignment
+    if(checkTodayAssignmentIncludeTextbook(element_name)) return [false,"오늘자 강의 과제에 포함되어있는 교재입니다"];
+    return [true,""];
+  }
+  
+  function getLATRequestIDFromTableElement(tableElement){
+    if("textbookID" in tableElement && tableElement.textbookID) return ["textbook",tableElement.textbookID].join("#");
+    else if("elementID" in tableElement && tableElement.elementID) return ["element",tableElement.elementID].join("#");
+    else return ["element",default_LAT_element_id].join("#");
+  }
+  function getLATTableElementNameFromLATRequestID(LATRequestID){
+    if(isLATTableElementNameDefault(LATRequestID)) return default_LAT_element_name;
+    const [element_type,element_id]=LATRequestID.split("#");
+    if(element_type==="textbook"){
+      return textbookIDMapping.reverse[element_id];
+    }
+    else if(element_type==="element"){
+      return LATRequestStatusMap[LATRequestID].request_specific_data.duplicatable_name;
+    }
+  }
+  function getLATRequestIDFromOptionName(optionName,prev_table_element_request_id=""){
+    const [prev_element_type,prev_element_id]= prev_table_element_request_id.split("#");
+    console.log(`prev element type: ${prev_element_type}, prev element id: ${prev_element_id}`);
+    const cur_element_type=isLATTableElementNameDefault(optionName) || isLATTableElementNameDuplicatable(optionName)?"element":"textbook";
+    if(cur_element_type==="textbook") return ["textbook",textbookIDMapping[optionName]].join("#");
+    else return ["element",prev_element_type==="element"?prev_element_id:getNewObjectIDString()].join("#");
+  }
+  function isLATTableElementRecentPageChangable(optionName){
+    return !(isLATTableElementNameDefault(optionName) || isLATTableElementNameDuplicatable(optionName));
+  }
+  function isLATTableAppendable(){
+    return textbookStudyDisplayList.length<max_table_element_count;
+  }
+  // function getLATTableElementTemplate(current_studying_book={}){
+  //   return {
+  //     과목:"",
+  //     교재:"",
+  //     총교재량:"",
+  //     교재시작일:"",
+  //     권장종료일:"",
+  //     최근진도:0,
+  //     최근진도율:0,
+  //     ...current_studying_book,
+  //     textbookID:"",
+  //     elementID:"",
+  //     duplicatable:false,
+  //     duplicatable_name:"",
+  //     duplicatable_subject:"",
+  //     duplicatable_recent_page:0,
+  //   };
+  // }
+  // function getLATTableElementFromLATRequestID(LATRequestID){
+  //   const [element_type,element_id]=LATRequestID.split("#");
+  //   if(element_type==="textbook"){
+  //     for(let i=0; i<myStudyInfo.진행중교재.length; i++){
+  //       const study_info=myStudyInfo.진행중교재[i];
+  //       const textbook_name=study_info.교재;
+  //       const textbook_id=textbookIDMapping[textbook_name];
+  //       if(textbook_id===element_id){
+  //         const ret=getLATTableElementTemplate(study_info);
+  //         ret.textbookID=element_id;
+  //         return ret;
+  //       }
+  //     }
+  //   }
+  //   else if(element_type==="element"){
+  //     const ret=getLATTableElementTemplate();
+  //     const LAT_request_element=LATRequestStatusMap[LATRequestID];
+  //     const request_specific_data=LAT_request_element.request_specific_data;
+  //     ret.elementID=element_id;
+  //     ret.duplicatable=true;
+  //     ret.duplicatable_name=request_specific_data.duplicatable_name;
+  //     ret.duplicatable_subject=request_specific_data.duplicatable_subject;
+  //     ret.과목=ret.duplicatable_subject;
+  //     ret.교재=ret.duplicatable_name;
+  //     return ret;
+  //   }
+  // }
+  function getTextbookStudyDisplayListDefault(){
+    const ret=JSON.parse(JSON.stringify(myStudyInfo.진행중교재));
+    ret.forEach((e,idx)=>{
+      e["textbookID"]=textbookIDMapping[e.교재];
+      e["duplicatable"]=false;
+    });
+    return ret;
+  }
+  function getTextbookStudyDisplayListFromLATRequestStatusMap(){
+    const ret_dict={};
+    const tmp_LAT_list=myStudyInfo.진행중교재;
+    //LAT table textbook elements
+    tmp_LAT_list.forEach((e,idx)=>{
+      const textbook_name=e.교재;
+      const textbook_id=textbookIDMapping[textbook_name];
+      const LAT_request_id=["textbook",textbook_id].join("#");
+      // marked as deleted or included in today's lecture assignment then cannot be LAT table
+      if(checkLATRequestElementDeleted(LAT_request_id) || checkTodayAssignmentIncludeTextbook(textbook_name)) return;
+      // const element_copy=getLATTableElementTemplate(e);
+      // element_copy.textbookID=textbook_id;
+      ret_dict[LAT_request_id]=true;  
+    });
+    //LAT table duplicatable elements
+    Object.keys(LATRequestStatusMap).forEach((LAT_key,idx)=>{
+      const [element_type,element_id]=LAT_key.split("#");
+      if(element_type==="element") {
+        // ret_dict[LAT_key]=getLATTableElementFromLATRequestID(LAT_key);
+        ret_dict[LAT_key]=true;
+      }
+    });
+
+    //sort to display elements in somewhat consistent order
+    const ret_dict_keys=Object.keys(ret_dict);
+    ret_dict_keys.sort((a,b)=>{ // textbook<duplicatable && element id ascending order
+      const [a_element_type,a_element_id]= a.split("#");
+      const [b_element_type,b_element_id]= b.split("#");
+      if(a_element_type!==b_element_type) return a_element_type==="textbook"?-1:1;
+      else return a_element_id<b_element_id?-1:a_element_id>b_element_id?1:0;
+    });
+    // return ret_dict_keys.map((key,idx)=>ret_dict[key]);
+    return ret_dict_keys;
+  }
+
+  useEffect(()=>{
+    if(Object.keys(textbookIDMapping).length>0 && LATRequestStatusMap){
+      // setTextbookStudyDisplayList(getTextbookStudyDisplayListDefault());
+      setTextbookStudyDisplayList(getTextbookStudyDisplayListFromLATRequestStatusMap());
+    }
+  },[textbookIDMapping,LATRequestStatusMap,myAssignmentInfo]);
 
   //과제 완료 여부 관련 코드
   const dailyGoalCheckLogDataTemplate={
@@ -521,7 +998,7 @@ function TRDraft() {
     myStudyInfo.진행중교재.forEach((book,idx)=>{
       textbook_name_set.add(book["교재"]);
     });
-    return [...textbook_name_set];
+    return [default_LAT_element_name,...textbook_name_set,...duplicatable_LAT_element_name_list];
   }
 
   useEffect(async () => {
@@ -553,9 +1030,10 @@ function TRDraft() {
         window.alert(`데이터를 불러오는 중 오류가 발생했습니다.\n페이지를 새로고침 합니다.`);
         window.location.reload();
       });
-    const textbook_name_to_id_map={};
+    const textbook_name_to_id_map={reverse:{}};
     textbook_id_list.forEach((e,idx)=>{
       textbook_name_to_id_map[e.교재]=e._id;
+      textbook_name_to_id_map.reverse[e._id]=e.교재;
     });
     setTextbookIDMapping(textbook_name_to_id_map);
   },[validTextbookNames]);
@@ -582,7 +1060,7 @@ function TRDraft() {
             <Form.Control
                 as="textarea"
                 placeholder="여기에 사유를 입력해주세요(15자 이상)"
-                maxLength={200}
+                maxLength={excuse_max_len}
                 className="mb-3 ModalTextarea"
                 onChange={(event)=>{
                   const excuse=event.target.value;
@@ -591,7 +1069,7 @@ function TRDraft() {
                     const newAssignmentStudyData= JSON.parse(JSON.stringify(myAssignmentStudyData));
                     if(!(AOSID in newAssignmentStudyData)) newAssignmentStudyData[AOSID]={...assignmentStudyDataTemplate};
                     newAssignmentStudyData[AOSID].excuse=excuse;
-                    setMyAssingmentStudyData(newAssignmentStudyData);
+                    setMyAssignmentStudyData(newAssignmentStudyData);
                     return;
                   }
                   else if(excuseFor.excuse_for==="lectureAndTextbook"){
@@ -606,7 +1084,7 @@ function TRDraft() {
             <Button
                 className="btn-secondary"
                 onClick={async ()=>{
-                  if(!window.confirm("과제 미완료 사유를 저장하시겠습니까?")) return;
+                  // if(!window.confirm("과제 미완료 사유를 저장하시겠습니까?")) return;
                   // if(currentExcuseInfo["excuse"].length<15){
                   //   window.alert("사유를 15자 이상 입력해주세요");
                   //   return;
@@ -615,7 +1093,31 @@ function TRDraft() {
                   // const goalAttribute= currentExcuseInfo["AOSID"]?goalAttributes.Assignment:goalAttributes.textbookProgress;
                   // const relatedID= currentExcuseInfo["AOSID"]?currentExcuseInfo["AOSID"]:currentExcuseInfo["textbookID"];
                   // updateGoalState(currentExcuseInfo,goalAttribute,relatedID,false);
-                  closeExcusemodal();
+                  const AOSID=excuseFor.extra_data[0];
+                  const assignmnet_element=getAssignmentElementByAOSID(AOSID);
+                  if(!window.confirm(`[${assignmnet_element["lectureName"]}]\n"${getDescriptionStringFromAssignment(assignmnet_element)}"\n과제에 대한 확인 요청을 보내시겠습니까?`)) return;
+                  const study_data=getAssignmentStudyDataByAOSID(AOSID,false);
+                  if(!isAssignmentStudyDataValid(study_data)){
+                    window.alert(`과제 미완료 사유를 15 글자 이상 입력해주세요`);
+                    return;
+                  }
+
+                  const save_success=await axios
+                    .post("/api/saveAssignmentStudyDataRequest",study_data)
+                    .then((res)=>{
+                      const data=res.data;
+                      if(!data.success) {
+                        window.alert(`네트워크 오류로 강의 과제 학습 데이터를 저장하지 못했습니다:0`);
+                        return false;
+                      }
+                      window.alert(`성공적으로 강의 과제 학습 데이터를 저장했습니다`);
+                      return true;
+                    })
+                    .catch((error)=>{
+                      window.alert(`네트워크 오류로 강의 과제 학습 데이터를 저장하지 못했습니다:1`);
+                      return false;
+                    });
+                  if(save_success) closeExcusemodal();
                 }}
                 type="button">
               <strong>확인 요청</strong>
@@ -825,7 +1327,7 @@ function TRDraft() {
                                               if(!(a.AOSID in newAssignmentStudyData)) newAssignmentStudyData[a.AOSID]={...assignmentStudyDataTemplate};
                                               newAssignmentStudyData[a.AOSID].time_amount=value
                                               // console.log(`assignment study data: ${JSON.stringify(newAssignmentStudyData)}`);
-                                              setMyAssingmentStudyData(newAssignmentStudyData);
+                                              setMyAssignmentStudyData(newAssignmentStudyData);
                                             }}
                                         ></TimePicker>
                                       </td>
@@ -846,8 +1348,16 @@ function TRDraft() {
                                               // const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,true,"");
                                               // //db & page state update
                                               // await updateGoalState(dailyGoalCheckLogData,goalAttributes.Assignment,a["AOSID"], true);
+                                              if(!window.confirm(`[${a["lectureName"]}]\n"${getDescriptionStringFromAssignment(a)}"\n과제에 대한 확인 요청을 보내시겠습니까?`)) return;
+
                                               const study_data= getAssignmentStudyDataByAOSID(AOSID,true);
                                               // console.log(`study data: ${JSON.stringify(study_data)}`);
+                                              
+                                              //check if study data for assingment valid
+                                              if(!isAssignmentStudyDataValid(study_data)){
+                                                window.alert(`해당 수업 과제에 대한 학습 시간이 올바르지 않습니다`);
+                                                return;
+                                              }
                                               await axios
                                                 .post("/api/saveAssignmentStudyDataRequest",study_data)
                                                 .then((res)=>{
@@ -867,6 +1377,12 @@ function TRDraft() {
                                             onClick={async ()=>{
                                               // const assignmentData=a;
                                               // const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,false,"");
+                                              const study_data=getAssignmentStudyDataByAOSID(AOSID,false);
+                                              // console.log(`study data: ${JSON.stringify(study_data)}`);
+                                              if(!checkTimeStringValid(study_data.timeAmount)){
+                                                window.alert(`미완료 사유를 입력하기 전 해당 과제에 대한 학습 시간을 입력해주세요`);
+                                                return;
+                                              }
                                               openExcuseModal("assignment",a.AOSID);
                                             }}
                                         >
@@ -909,9 +1425,22 @@ function TRDraft() {
                 </tr>
                 </thead>
                 <tbody>
-                {myStudyInfo.진행중교재.map((a, i)=> {
-                  const textbookName=a["교재"];
-                  const textbookID=textbookIDMapping[a["교재"]];
+                {textbookStudyDisplayList.map((LAT_request_element_id, display_element_index)=> {
+                  // const subject=a["과목"];
+                  // const textbookName=a["교재"];
+                  // const textbookID=textbookIDMapping[a["교재"]];
+                  // const LAT_request_element_id=getLATRequestIDFromTableElement(a);
+                  const [element_type,element_id]= LAT_request_element_id.split("#");
+                  const LAT_request_element=getLATRequestElementFromLATRequestID(LATRequestStatusMap,LAT_request_element_id);
+                  const request_specific_data=LAT_request_element.request_specific_data;
+                  const textbook_info=getTextbookInfoByLATRequestID(LAT_request_element_id);
+                  const textbookName=textbook_info.교재;
+                  const textbookSubject=textbook_info.과목;
+                  const textbookVolumne=textbook_info.총교재량;
+                  const textbookTodayGoal=getTodayGoalByTextbookName(textbookName);
+                  const textbookRecentPage=!request_specific_data.duplicatable_recent_page?textbook_info.최근진도:request_specific_data.duplicatable_recent_page;
+                  const textbookStudyTimeAmount=LAT_request_element.study_data.time_amount;
+                  const textbookID=textbookIDMapping[textbookName];
                   if(checkTextBookOfAssignment(textbookName)) return null;
                   let tableRowClassName="";
                   if(textbookID){
@@ -928,58 +1457,102 @@ function TRDraft() {
                     }
                   }
                   return (
-                      <tr key={i} className={tableRowClassName}>
+                      <tr key={display_element_index} className={tableRowClassName}>
                         <td>
                           <button
                               className="btn btn-opaque"
-                              onClick={() => {
-                                if (i > -1) {
-                                  if (window.confirm("삭제하시겠습니까?")) {
-                                    // var newTR = JSON.parse(JSON.stringify(TR));
-                                    // newTR.학습.splice(i, 1);
-                                    // let 실제학습시간 = 0;
-                                    // let 실제학습분 = 0;
-                                    // const astKeys= Object.keys(assignmentStudyTime);
-                                    // for(let i=0; i<astKeys.length; i++){
-                                    //   const studyTime=assignmentStudyTime[astKeys[i]];
-                                    //   실제학습시간 += parseInt(studyTime["학습시간"].split(":")[0]);
-                                    //   실제학습분 += parseInt(studyTime["학습시간"].split(":")[1]);
-                                    // }
-                                    // newTR.학습.map(function (b, j) {
-                                    //   if (b.학습시간) {
-                                    //     실제학습시간 += parseInt(b.학습시간.split(":")[0]);
-                                    //     실제학습분 += parseInt(b.학습시간.split(":")[1]);
-                                    //   }
-                                    // });
-                                    // newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
-                                    // setTR(newTR);
-                                  }
-                                }
+                              onClick={async () => {
+                                if(!window.confirm(`"${textbookName}"\n항목을 리스트에서 삭제하시겠습니까?`)) return;
+                                const LAT_request_element=getLATRequestElementFromLATRequestID(LATRequestStatusMap,LAT_request_element_id);
+                                const request_specific_data=LAT_request_element.request_specific_data;
+                                const delete_request_payload=getTextbookStudyDataDeleteRequestPayload(request_specific_data);
+                                const delete_success=await axios
+                                  .post("/api/setTextbookStudyElementDeletedOnTrDraft",delete_request_payload)
+                                  .then((res)=>{
+                                    const data=res.data;
+                                    if(!data.success) {
+                                      window.alert(`네트워크 오류로 학습 항목 삭제에 실패했습니다:0`);
+                                      return false;
+                                    }
+                                    return true;
+                                  })
+                                  .catch((error)=>{
+                                    window.alert(`네트워크 오류로 학습 항목 삭제에 실패했습니다:1`);
+                                    return false;
+                                  });
+                                if(!delete_success) return;
+                                deleteLATRequestElement(LAT_request_element_id);
                               }}
                           >
                             <FaTrash></FaTrash>
                           </button>
                         </td>
                         <td>
-                          {a.과목}
+                          {!isLATTableElementNameDuplicatable(textbookName)?textbookSubject:
+                            <Form.Select
+                                size="sm"
+                                value={textbookSubject}
+                                onChange={(e) => {
+                                  const LAT_element_subject=e.target.value;
+                                  updateLATRequestElementByLATRequestID(LAT_request_element_id,{
+                                    "request_specific_data.duplicatable_subject":LAT_element_subject,
+                                  });
+                                }}
+                            >
+                              {
+                                duplicatable_LAT_element_subject_list.map((option_name,idx)=>{
+                                  return (
+                                    <option value={option_name} key={idx}>
+                                      {option_name}
+                                    </option>
+                                  );
+                                  })
+                              }
+                            </Form.Select>
+                          }
                         </td>
                         <td>
                           <Form.Select
                               size="sm"
-                              value={a.교재}
+                              value={textbookName}
                               onChange={(e) => {
-                                // const textbook_name=e.target.value;
-                                // const textbook_volume=getTextbookVolumeFromTextbookName(textbook_name);
-                                // const textbook_recent_page=getRecentPageFromTextbookName(textbook_name);
-                                // const newTR=JSON.parse(JSON.stringify(TR));
-                                // newTR.학습[i].교재=textbook_name;
-                                // newTR.학습[i].총교재량=textbook_volume;
-                                // newTR.학습[i].최근진도=textbook_recent_page;
-                                // setTR(newTR);
-                                // change_depth_three("학습", i, "교재", textbook_name);
+                                console.log('changed');
+                                const new_table_element_name=e.target.value;
+                                const [changable,msg]=checkNewLATTableElementNameValid(new_table_element_name);
+                                if(!changable){
+                                  window.alert(msg);
+                                  return;
+                                }
+                                const LAT_table_element_request_id=LAT_request_element_id;
+                                const [prev_element_type,prev_element_id]= LAT_table_element_request_id.split("#");
+                                const new_LAT_table_element_request_id=getLATRequestIDFromOptionName(new_table_element_name,LAT_table_element_request_id);
+                                const [new_element_type,new_element_id]=new_LAT_table_element_request_id.split("#");
+                                if(prev_element_type==="element" && new_element_type==="element"){
+                                  updateLATRequestElementByLATRequestID(LAT_table_element_request_id,{
+                                    "request_specific_data.deleted":false,
+                                    "request_specific_data.duplicatable":true,
+                                    "request_specific_data.duplicatable_name":new_table_element_name,
+                                    "request_specific_data.duplicatable_subject":isLATTableElementNameDefault(new_table_element_name)?"":duplicatable_LAT_element_subject_list[0],
+                                    "study_data.time_amount":null,
+                                  });
+                                }
+                                else{
+                                  if(prev_element_type==="element") deleteLATRequestElement(LAT_table_element_request_id);
+                                  else if(!isLATTableAppendable()){
+                                    window.alert(`작성할 수 있는 테이블 당 최대 항목 수를 넘어섰습니다`);
+                                    return;
+                                  }
+                                  insertLATRequestElement(new_LAT_table_element_request_id,{
+                                    "request_specific_data.deleted":false,
+                                    "request_specific_data.duplicatable":true,
+                                    "request_specific_data.duplicatable_name":new_table_element_name,
+                                    "request_specific_data.duplicatable_subject":isLATTableElementNameDefault(new_table_element_name)?"":duplicatable_LAT_element_subject_list[0],
+                                    "study_data.time_amount":null,
+                                  });
+                                }
                               }}
                           >
-                            <option value="선택">선택</option>
+                            {/* <option value={getLATRequestIDFromTableElement(a)}>선택</option> */}
                             {/* {stuDB.진행중교재.map(function (book, index) {
                               return (
                                   <option value={book.교재} key={index}>
@@ -988,32 +1561,38 @@ function TRDraft() {
                               );
                             })} */}
                             {
-                              validTextbookNames.map((textbook_name,idx)=>{
+                              validTextbookNames.map((option_name,idx)=>{
                                 return (
-                                  <option value={textbook_name} key={idx}>
-                                    {textbook_name}
+                                  <option value={option_name} key={idx}>
+                                    {option_name}
                                   </option>
                                 );
                                 })
                             }
-                            <option value="모의고사">모의고사</option>
+                            {/* <option value="모의고사">모의고사</option>
                             <option value="테스트">테스트</option>
-                            <option value="기타">기타</option>
+                            <option value="기타">기타</option> */}
                           </Form.Select>
                         </td>
                         <td>
-                          <p className="fs-13px">{a.총교재량}</p>
+                          <p className="fs-13px">{textbookVolumne}</p>
                         </td>
                         <td>
-                          <p className="fs-13px">{getTodayGoalByTextbookName(a.교재)}</p>
+                          <p className="fs-13px">{getTodayGoalByTextbookName(textbookName)}</p>
                         </td>
                         <td>
                           <input
                               type="number"
-                              value={a.최근진도}
+                              value={textbookRecentPage}
+                              disabled={!isLATTableElementRecentPageChangable(textbookName)}
+                              maxLength={5}
                               className="inputText"
                               onChange={(e) => {
-                                // change_depth_three("학습", i, "최근진도", parseInt(e.target.value));
+                                const LAT_table_element_request_id=LAT_request_element_id;
+                                const page_val=e.target.value;
+                                updateLATRequestElementByLATRequestID(LAT_table_element_request_id,{
+                                  "request_specific_data.duplicatable_recent_page":page_val,
+                                });
                               }}
                           />
                         </td>
@@ -1021,48 +1600,44 @@ function TRDraft() {
                           <TimePicker
                               className="timepicker"
                               locale="sv-sv"
-                              value={myTextbookStudyTime[textbookID]}
+                              value={textbookStudyTimeAmount}
                               openClockOnFocus={false}
                               clearIcon={null}
                               clockIcon={null}
                               onChange={(value) => {
-                                // if(!value) value="0:00";
-                                // var newTR = JSON.parse(JSON.stringify(TR));
-                                // newTR.학습[i].학습시간 = value;
-                                // let 실제학습시간 = 0;
-                                // let 실제학습분 = 0;
-                                // const astKeys= Object.keys(assignmentStudyTime);
-                                // for(let i=0; i<astKeys.length; i++){
-                                //   const studyTime=assignmentStudyTime[astKeys[i]];
-                                //   실제학습시간 += parseInt(studyTime["학습시간"].split(":")[0]);
-                                //   실제학습분 += parseInt(studyTime["학습시간"].split(":")[1]);
-                                // }
-                                // newTR.학습.map(function (b, j) {
-                                //   if (b.학습시간) {
-                                //     실제학습시간 += parseInt(b.학습시간.split(":")[0]);
-                                //     실제학습분 += parseInt(b.학습시간.split(":")[1]);
-                                //   }
-                                // });
-                                // newTR.실제학습 = Math.round((실제학습시간 + 실제학습분 / 60) * 10) / 10;
-                                // setTR(newTR);
-                                const newTextbookStudyTime={...myTextbookStudyTime};
-                                newTextbookStudyTime[textbookID]=value;
-                                setMyTextbookStudyTime(newTextbookStudyTime);
+                                const study_data_time_amount=value;
+                                const LAT_table_element_request_id=LAT_request_element_id;
+                                updateLATRequestElementByLATRequestID(LAT_table_element_request_id,{
+                                  "study_data.time_amount":study_data_time_amount,
+                                });
                               }}
                           ></TimePicker>
                         </td>
                         <td>
-                          {checkTextbookIsValid(a["교재"])?(<>
+                          {!isLATTableElementNameDefault(textbookName)?(<>
                             <button
                                 className="btn btn-success btn-opaque"
                                 onClick={async ()=>{
-                                  if(!window.confirm(`선택한 진도 교재를 완료 처리 하시겠습니까?`)) return;
-                                  const textbookName=a["교재"];
-                                  // console.log("textbookname: ",textbookName);
-                                  const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromTextbookName(textbookName,true,"");
-                                  // console.log("dgcld:"+JSON.stringify(dailyGoalCheckLogData));
-                                  //db & page state update
-                                  await updateGoalState(dailyGoalCheckLogData,goalAttributes.textbookProgress,textbookIDMapping[a["교재"]], true);
+                                  if(!window.confirm(`선택한 수업 및 일반교재\n(${textbookSubject})[${textbookName}]\n학습의 확인 요청을 보내시겠습니까?`)) return;
+                                  const study_data= getTextbookStudyDataByLATRequestID(LAT_request_element_id,true);
+                                  // console.log(`study data: ${JSON.stringify(study_data)}`);
+                                  
+                                  //check if study data for assingment valid
+                                  const [textbookStudyValid,msg]= isTextbookStudyDataValid(study_data,LAT_request_element_id);
+                                  if(!textbookStudyValid){
+                                    window.alert(`${msg}`);
+                                    return;
+                                  }
+                                  await axios
+                                    .post("/api/saveTextbookStudyDataRequest",study_data)
+                                    .then((res)=>{
+                                      const data=res.data;
+                                      if(!data.success) return window.alert(`네트워크 오류로 수업 및 일반교재 학습 데이터를 저장하지 못했습니다:0`);
+                                      return window.alert(`성공적으로 수업 및 일반교재 학습 데이터를 저장했습니다`);
+                                    })
+                                    .catch((error)=>{
+                                      return window.alert(`네트워크 오류로 수업 및 일반교재 학습 데이터를 저장하지 못했습니다:1`);
+                                    });
                                 }}
                             >
                               <FaCheck></FaCheck>
@@ -1070,7 +1645,6 @@ function TRDraft() {
                             <button
                                 className="btn btn-danger btn-opaque"
                                 onClick={()=>{
-                                  const textbookName=a["교재"];
                                   const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromTextbookName(textbookName,false,"");
                                   openExcuseModal(dailyGoalCheckLogData);
                                 }}
@@ -1096,13 +1670,11 @@ function TRDraft() {
                     <button
                         className="btn btn-add program-add"
                         onClick={() => {
-                          // push_depth_one("학습", {
-                          //   과목: "선택",
-                          //   교재: "선택",
-                          //   총교재량: "---",
-                          //   최근진도: 0,
-                          //   학습시간: "00:00",
-                          // });
+                          if(!isLATTableAppendable()){
+                            window.alert(`작성할 수 있는 테이블 당 최대 항목 수를 넘어섰습니다`);
+                            return;
+                          }
+                          insertLATRequestElement(getNewLATRequestID());
                         }}
                     >
                       <strong>+</strong>
