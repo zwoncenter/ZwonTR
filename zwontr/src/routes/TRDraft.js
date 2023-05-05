@@ -131,14 +131,23 @@ function TRDraft() {
     if("textbookID" in request_specific_data && request_specific_data.textbookID) return ["textbook",request_specific_data.textbookID].join("#");
     else if("elementID" in request_specific_data && request_specific_data.elementID) return ["element",request_specific_data.elementID].join("#");
   }
+  function getStudyDataTemplate(){
+    return {
+      time_amount:null,
+      excuse:"",
+      finished_state:true,
+    };
+  }
   function getLATRequestStatusMap(prevRequestData){
     const ret={};
     prevRequestData.forEach((e,idx)=>{
       if(e.request_type!==2) return;
       const LAT_request_id=getLATRequestIDFromRequestElement(e);
-      ret[LAT_request_id]=JSON.parse(JSON.stringify(e));
-      const study_data_list=ret[LAT_request_id].study_data_list;
-      ret[LAT_request_id]["study_data"]=study_data_list[study_data_list.length-1];
+      const LAT_request_element=JSON.parse(JSON.stringify(e));
+      const study_data_list=LAT_request_element.study_data_list;
+      LAT_request_element["study_data"]=study_data_list.length>0?study_data_list[study_data_list.length-1]:{};
+      LAT_request_element["request_new"]=false;
+      ret[LAT_request_id]=LAT_request_element;
     });
     return ret;
   }
@@ -157,16 +166,13 @@ function TRDraft() {
         duplicatable:false,
         duplicatable_name:duplicatableName,
         duplicatable_subject:duplicatableSubject,
-        duplicatable_recent_page:null,
+        recent_page:null,
+        request_new:true,
       },
       request_type:2,
       request_status:0,
       review_msg_list:[],
-      study_data:{
-        excuse:"",
-        time_amount:null,
-        finished_state:-1,
-      }
+      study_data:getStudyDataTemplate(),
     };
   }
   function getLATRequestElementFromLATRequestID(LATRequestStatusMapCopy,LATRequestID=""){
@@ -217,6 +223,7 @@ function TRDraft() {
       const LAT_request_element=getLATRequestElementFromLATRequestID(newLATRequestStatusMap,LATRequestID);
       const LAT_request_element_request_specific_data= LAT_request_element.request_specific_data;
       LAT_request_element_request_specific_data.deleted=false;
+      console.log(`element: ${JSON.stringify(LAT_request_element)}\nupdateval: ${JSON.stringify(updateVal)}`);
       Object.keys(updateVal).forEach((field_name,idx)=>{
         let target_object=LAT_request_element;
         const updated_val=updateVal[field_name];
@@ -260,7 +267,8 @@ function TRDraft() {
       "duplicatable":false,
       "duplicatableName":"",
       "duplicatableSubject":"",
-      "duplicatableRecentPage":0,
+      "recentPage":0,
+      "requestNew":true,
       "timeAmount":time_default_string,
       "excuse":"",
       "finishedState":true,
@@ -273,6 +281,7 @@ function TRDraft() {
     // ret["finishedState"]=textbookStudyFinished;
     // if(textbookStudyFinished) ret.excuse="";
     // return ret;
+    console.log(`req id: ${LATRequestID}\nelement: ${JSON.stringify(getLATRequestElementFromLATRequestID(LATRequestStatusMap,LATRequestID))}`);
     const [element_type,element_id]=LATRequestID.split("#");
     const LAT_request_element=getLATRequestElementFromLATRequestID(LATRequestStatusMap,LATRequestID);
     const request_specific_data=LAT_request_element.request_specific_data;
@@ -284,7 +293,8 @@ function TRDraft() {
     ret["duplicatable"]=request_specific_data.duplicatable;
     ret["duplicatableName"]=request_specific_data.duplicatable_name;
     ret["duplicatableSubject"]=request_specific_data.duplicatable_subject;
-    ret["duplicatableRecentPage"]=request_specific_data.duplicatable_recent_page?request_specific_data.duplicatable_recent_page:(textbook_info.최근진도).toString();
+    ret["recentPage"]=request_specific_data.recent_page?request_specific_data.recent_page:(textbook_info.최근진도).toString();
+    ret["requestNew"]=request_specific_data.request_new;
     ret["timeAmount"]=study_data.time_amount;
     ret["excuse"]=study_data.excuse;
     ret["finishedState"]=textbookStudyFinished;
@@ -484,7 +494,7 @@ function TRDraft() {
   const assignmentStudyDataTemplate={
     "time_amount":time_default_string,
     "excuse":"",
-    "finished_state":-1,
+    "finished_state":true,
   };
   const assignmentStudyDataPayloadTemplate={
     "AOSID":"",
@@ -522,17 +532,16 @@ function TRDraft() {
     }
   }
   function checkTextbookStudyRecentPageValid(recentPage){
-    console.log(`typeof page: ${typeof recentPage}`)
     if(typeof recentPage !== "string" || recentPage.length===0) return false;
     else return true;
   }
   function isTextbookStudyDataValid(textbookStudyData,LATRequestID){
     if(!textbookStudyData) return [false,`error occurred`];
-    else if(!checkTextbookStudyRecentPageValid(textbookStudyData.duplicatableRecentPage)){
-      console.log(`recent page val: ${textbookStudyData.duplicatableRecentPage}`);
+    else if(!checkTextbookStudyRecentPageValid(textbookStudyData.recentPage)){
+      console.log(`recent page val: ${textbookStudyData.recentPage}`);
       const textbook_info=getTextbookInfoByLATRequestID(LATRequestID);
       updateLATRequestElementByLATRequestID(LATRequestID,{
-        "request_specific_data.duplictable_recent_page":textbook_info.최근진도,
+        "request_specific_data.recent_page":textbook_info.최근진도,
       });
       return [false,"올바른 최근진도를 입력해주세요"];
     }
@@ -571,7 +580,7 @@ function TRDraft() {
     "duplicatable":false,
     "duplicatable_name":"",
     "duplicatable_subject":"",
-    "duplicatable_recent_page":"",
+    "recent_page":"",
   };
   function getTextbookStudyDataDeleteRequestPayload(study_data){
     const ret={...textbookStudyDataDeletePayloadTemplate};
@@ -649,7 +658,7 @@ function TRDraft() {
   //     duplicatable:false,
   //     duplicatable_name:"",
   //     duplicatable_subject:"",
-  //     duplicatable_recent_page:0,
+  //     recent_page:0,
   //   };
   // }
   // function getLATTableElementFromLATRequestID(LATRequestID){
@@ -1438,7 +1447,7 @@ function TRDraft() {
                   const textbookSubject=textbook_info.과목;
                   const textbookVolumne=textbook_info.총교재량;
                   const textbookTodayGoal=getTodayGoalByTextbookName(textbookName);
-                  const textbookRecentPage=!request_specific_data.duplicatable_recent_page?textbook_info.최근진도:request_specific_data.duplicatable_recent_page;
+                  const textbookRecentPage=!request_specific_data.recent_page?textbook_info.최근진도:request_specific_data.recent_page;
                   const textbookStudyTimeAmount=LAT_request_element.study_data.time_amount;
                   const textbookID=textbookIDMapping[textbookName];
                   if(checkTextBookOfAssignment(textbookName)) return null;
@@ -1542,11 +1551,14 @@ function TRDraft() {
                                     window.alert(`작성할 수 있는 테이블 당 최대 항목 수를 넘어섰습니다`);
                                     return;
                                   }
+                                  const new_element_duplicatable=new_element_type==="element";
+                                  const new_element_duplicatable_name=new_element_duplicatable?new_table_element_name:"";
+                                  const new_element_duplicatable_subject=new_element_duplicatable?(isLATTableElementNameDefault(new_table_element_name)?"":duplicatable_LAT_element_subject_list[0]):"";
                                   insertLATRequestElement(new_LAT_table_element_request_id,{
                                     "request_specific_data.deleted":false,
-                                    "request_specific_data.duplicatable":true,
-                                    "request_specific_data.duplicatable_name":new_table_element_name,
-                                    "request_specific_data.duplicatable_subject":isLATTableElementNameDefault(new_table_element_name)?"":duplicatable_LAT_element_subject_list[0],
+                                    "request_specific_data.duplicatable":new_element_duplicatable,
+                                    "request_specific_data.duplicatable_name":new_element_duplicatable_name,
+                                    "request_specific_data.duplicatable_subject":new_element_duplicatable_subject,
                                     "study_data.time_amount":null,
                                   });
                                 }
@@ -1591,7 +1603,7 @@ function TRDraft() {
                                 const LAT_table_element_request_id=LAT_request_element_id;
                                 const page_val=e.target.value;
                                 updateLATRequestElementByLATRequestID(LAT_table_element_request_id,{
-                                  "request_specific_data.duplicatable_recent_page":page_val,
+                                  "request_specific_data.recent_page":page_val,
                                 });
                               }}
                           />
@@ -1620,6 +1632,7 @@ function TRDraft() {
                                 onClick={async ()=>{
                                   if(!window.confirm(`선택한 수업 및 일반교재\n(${textbookSubject})[${textbookName}]\n학습의 확인 요청을 보내시겠습니까?`)) return;
                                   const study_data= getTextbookStudyDataByLATRequestID(LAT_request_element_id,true);
+                                  console.log(`study data payload: ${JSON.stringify(study_data)}`);
                                   // console.log(`study data: ${JSON.stringify(study_data)}`);
                                   
                                   //check if study data for assingment valid
@@ -1629,7 +1642,7 @@ function TRDraft() {
                                     return;
                                   }
                                   await axios
-                                    .post("/api/saveTextbookStudyDataRequest",study_data)
+                                    .post("/api/saveLATStudyDataRequest",study_data)
                                     .then((res)=>{
                                       const data=res.data;
                                       if(!data.success) return window.alert(`네트워크 오류로 수업 및 일반교재 학습 데이터를 저장하지 못했습니다:0`);

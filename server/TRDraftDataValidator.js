@@ -16,6 +16,7 @@ const request_document_template={
 const request_study_data_template={
     excuse:null,
     time_amount:null,
+    finished_state:true,
     timestamp:null,
 };
 const request_review_msg_template={
@@ -23,6 +24,8 @@ const request_review_msg_template={
     review_from:null,
     timestamp:null,
 };
+const duplicatable_name_list=["모의고사","테스트","기타"];
+const duplicatable_subject_list=["국어","수학","영어","탐구","기타"];
 const daily_LAT_request_max_count=50;
 function intBetween(a,left,right){
     return a>=left && a<=right;
@@ -72,16 +75,40 @@ function getNewAssignmentStudyDataRequestDocument(student_id,today_string,AOSID)
     delete request_doc["study_data_list"];
     return request_doc;
 }
-function getNewTextbookStudyDataRequestDocument(student_id,today_string,textbookID,elementID){
+function getNewLATStudyDataRequestDocument(student_id,today_string,textbookID,elementID,duplicatableName="",duplicatableSubject="",recentPage=0){
     const request_doc={...request_document_template};
     request_doc["student_id"]=student_id;
     request_doc["date"]=today_string;
     request_doc["request_status"]=0;
     request_doc["request_type"]=request_type_name_to_index["LectureAndTextbookStudyData"];
-    request_doc["request_specific_data"]={textbookID,elementID,deleted:false,duplicatable:textbookID?false:true};
+    request_doc["request_specific_data"]={
+        textbookID,
+        elementID,
+        deleted:false,
+        duplicatable:textbookID?false:true,
+        duplicatable_name:duplicatableName,
+        duplicatable_subject:duplicatableSubject,
+        recent_page:recentPage,
+    };
     request_doc["review_msg_list"]=[];
     delete request_doc["study_data_list"];
     return request_doc;
+}
+function checkDuplicatableNameValid(duplicatableName){
+    for(let i=0; i<duplicatable_name_list.length; i++){
+        if(duplicatableName===duplicatable_name_list[i]) return true;
+    }
+    return false;
+}
+function checkDuplicatableSubjectValid(duplicatableSubject){
+    for(let i=0; i<duplicatable_subject_list.length; i++){
+        if(duplicatableSubject===duplicatable_subject_list[i]) return true;
+    }
+    return false;
+}
+function checkRecentPageValid(recentPageString){
+    if(typeof recentPageString !=="string" || !intBetween(recentPageString.length,1,5)) return false;
+    return !isNaN(parseInt(recentPageString)) || parseInt(recentPageString)<0;
 }
 module.exports={
     request_document_template,
@@ -96,6 +123,9 @@ module.exports={
     getNewLifeDataRequestDocument,
     checkExcuseValueValid,
     getNewAssignmentStudyDataRequestDocument,
-    getNewTextbookStudyDataRequestDocument,
+    getNewLATStudyDataRequestDocument,
     checkRequestDataUpdatable,
+    checkDuplicatableNameValid,
+    checkDuplicatableSubjectValid,
+    checkRecentPageValid,
 }

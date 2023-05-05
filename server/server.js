@@ -638,7 +638,11 @@ app.post("/api/saveLifeDataRequest",loginCheck, permissionCheck(Role("student"))
     if(!TRDraftRequestDataValidator.checkLifeDataValid(bodyCondition,sentimentCondition,goToBedTime,wakeUpTime)) throw new Error(`invalid life data`);
 
     const prev_life_data=await db.collection("TRDraftRequest").find(
-      {date:today_string,student_id:student_id,request_type:TRDraftRequestDataValidator.request_type_name_to_index["lifeData"]}
+      {
+        date:today_string,
+        student_id,
+        request_type:TRDraftRequestDataValidator.request_type_name_to_index["lifeData"]
+      }
     ).toArray();
     let newlySaved=false;
     if(prev_life_data.length>1) throw new Error(`daily life data count exceeds 1`);
@@ -646,7 +650,7 @@ app.post("/api/saveLifeDataRequest",loginCheck, permissionCheck(Role("student"))
       throw new Error(`life data request in inupdatable status`);
     else newlySaved=true;
 
-    let request_doc={};
+    let request_doc={request_specific_data:{}};
     if(newlySaved){
       request_doc=TRDraftRequestDataValidator.getNewLifeDataRequestDocument(student_id,today_string);
     }
@@ -655,7 +659,11 @@ app.post("/api/saveLifeDataRequest",loginCheck, permissionCheck(Role("student"))
     request_doc.request_specific_data["실제취침"]=goToBedTime;
     request_doc.request_specific_data["실제기상"]=wakeUpTime;
     await db.collection("TRDraftRequest").updateOne(
-      {date:today_string,student_id:student_id,request_type:TRDraftRequestDataValidator.request_type_name_to_index["lifeData"]},
+      {
+        date:today_string,
+        student_id,
+        request_type:TRDraftRequestDataValidator.request_type_name_to_index["lifeData"]
+      },
       {$set:request_doc},
       {"upsert":true}
     );
@@ -686,7 +694,12 @@ app.post("/api/saveAssignmentStudyDataRequest",loginCheck, permissionCheck(Role(
     if(!AOS_doc) throw new Error(`no such AOS doc`);
     
     const prev_assignment_study_data=await db.collection("TRDraftRequest").find(
-      {date:today_string,student_id:student_id,request_type:TRDraftRequestDataValidator.request_type_name_to_index["AssignmentStudyData"],"request_specific_data.AOSID":AOS_objectid}
+      {
+        date:today_string,
+        student_id,
+        request_type:TRDraftRequestDataValidator.request_type_name_to_index["AssignmentStudyData"],
+        "request_specific_data.AOSID":AOS_objectid
+      }
     ).toArray();
     let newlySaved=false;
     if(prev_assignment_study_data.length>1) throw new Error(`same assignment study data request count exceeds 1`);
@@ -701,8 +714,13 @@ app.post("/api/saveAssignmentStudyDataRequest",loginCheck, permissionCheck(Role(
     study_data_element["excuse"]=excuse;
     study_data_element["time_amount"]=timeAmount;
     study_data_element["timestamp"]=new Date(moment().toJSON());
+    study_data_element["finished_state"]=finishedState;
     await db.collection("TRDraftRequest").updateOne(
-      {date:today_string,student_id:student_id,request_type:TRDraftRequestDataValidator.request_type_name_to_index["AssignmentStudyData"],"request_specific_data.AOSID":AOS_objectid},
+      {
+        date:today_string,
+        student_id,
+        request_type:TRDraftRequestDataValidator.request_type_name_to_index["AssignmentStudyData"],
+        "request_specific_data.AOSID":AOS_objectid},
       {
         $set:request_doc,
         $push:{"study_data_list":study_data_element},
@@ -735,7 +753,7 @@ app.post("/api/setTextbookStudyElementDeletedOnTrDraft",loginCheck, permissionCh
       await db.collection("TRDraftRequest").deleteOne({
         date:today_string,
         student_id:student_id,
-        request_type:2,
+        request_type:TRDraftRequestDataValidator.request_type_name_to_index["LectureAndTextbookStudyData"],
         "request_specific_data.elementID":elementID_oid,
       });
       return;
@@ -758,9 +776,9 @@ app.post("/api/setTextbookStudyElementDeletedOnTrDraft",loginCheck, permissionCh
     else if(prev_assignment_study_data.length==1 && !TRDraftRequestDataValidator.checkRequestDataUpdatable(prev_assignment_study_data[0].request_status))
       throw new Error(`assignment study data request in inupdatable status`);
     else newlySaved=true;
-    let request_doc={};
+    let request_doc={request_specific_data:{}};
     if(newlySaved){
-      request_doc=TRDraftRequestDataValidator.getNewTextbookStudyDataRequestDocument(student_id,today_string,textbookID_oid,elementID_oid);
+      request_doc=TRDraftRequestDataValidator.getNewLATStudyDataRequestDocument(student_id,today_string,textbookID_oid,elementID_oid);
       request_doc["study_data_list"]=[];
     }
     request_doc["request_specific_data"]["deleted"]=true;
@@ -787,7 +805,7 @@ app.post("/api/setTextbookStudyElementDeletedOnTrDraft",loginCheck, permissionCh
 });
 
 //save student request data
-app.post("/api/saveTextbookStudyDataRequest",loginCheck, permissionCheck(Role("student")), async function (req, res) {
+app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("student")), async function (req, res) {
   const ret_val={"success":true, "ret":null};
   try{
     const student_id=req.session.passport.user.student_id;
@@ -802,41 +820,77 @@ app.post("/api/saveTextbookStudyDataRequest",loginCheck, permissionCheck(Role("s
       duplicatable,
       duplicatableName,
       duplicatableSubject,
-      duplicatableRecentPage,
+      recentPage,
+      requestNew,
     }= req.body;
     duplicatable=!!duplicatable;
     deleted=!!deleted;
     finishedState=!!finishedState;
+    requestNew=!!requestNew;
     if(finishedState===true) excuse="";
-    textbook_objectid=duplicatable?null:new ObjectId(textbookID);
-    element_objectid=duplicatable?new ObjectId(elementID):null;
+    const textbook_oid=duplicatable?null:new ObjectId(textbookID);
+    const element_oid=duplicatable?new ObjectId(elementID):null;
+    if(!duplicatable){
+      duplicatableName=null;
+      duplicatableSubject=null;
+    }
+    console.log(`req.body: ${JSON.stringify(req.body)}`);
     if(!TRDraftRequestDataValidator.checkExcuseValueValid(excuse,finishedState) || !TRDraftRequestDataValidator.checkTimeStringValid(timeAmount)) throw new Error(`invalid assignment study data`);
-    
+    else if(deleted) throw new Error(`invalid request parameter`);
+    else if(duplicatable && (!TRDraftRequestDataValidator.checkDuplicatableNameValid(duplicatableName) || !TRDraftRequestDataValidator.checkDuplicatableSubjectValid(duplicatableSubject) || !TRDraftRequestDataValidator.checkRecentPageValid(recentPage))) throw new Error(`invalid assignment study data`);
+    recentPage=parseInt(recentPage);
     if(!!textbookID){ //check if textbook document exists
-      const textbook_doc= await db.collection("TextBook").findOne({_id:textbook_objectid});
-      if(!textbook_doc) throw new Error(`no such AOS doc`);
+      const textbook_doc= await db.collection("TextBook").findOne({_id:textbook_oid});
+      if(!textbook_doc) throw new Error(`no such Textbook`);
     }
-    else{ //check if elment ID already in use
+    const prev_LAT_study_doc= await db.collection("TRDraftRequest")
+      .findOne({
+        student_id,
+        date:today_string,
+        request_type:TRDraftRequestDataValidator.request_type_name_to_index["LectureAndTextbookStudyData"],
+        "request_specific_data.textbookID":textbook_oid,
+        "request_specific_data.elementID":element_oid,
+      });
+    if(duplicatable && requestNew && prev_LAT_study_doc){ //check if elment ID already in use
+        ret_val.ret={"reset_object_id":true};
+        return;
+    }
+    else if(!requestNew && !prev_LAT_study_doc)
+      throw new Error(`no such previous request data`);
+    else if(prev_LAT_study_doc && !TRDraftRequestDataValidator.checkRequestDataUpdatable(prev_LAT_study_doc.request_status))
+      throw new Error(`LAT study data request in inupdatable status`);
 
-    }
-    const prev_assignment_study_data=await db.collection("TRDraftRequest").find(
-      {date:today_string,student_id:student_id,request_type:TRDraftRequestDataValidator.request_type_name_to_index["AssignmentStudyData"],"request_specific_data.AOSID":AOS_objectid}
+    const prev_LAT_study_data_list=await db.collection("TRDraftRequest").find(
+      {
+        date:today_string,
+        student_id,
+        request_type:TRDraftRequestDataValidator.request_type_name_to_index["LectureAndTextbookStudyData"],
+        "$or":[{"request_specific_data.deleted":{"$exists":false}},{"request_specific_data.deleted":false}],
+      }
     ).toArray();
-    let newlySaved=false;
-    if(prev_assignment_study_data.length>1) throw new Error(`same assignment study data request count exceeds 1`);
-    else if(prev_assignment_study_data.length==1 && !TRDraftRequestDataValidator.checkRequestDataUpdatable(prev_assignment_study_data[0].request_status))
-      throw new Error(`assignment study data request in inupdatable status`);
-    else newlySaved=true;
+    
+    if(prev_LAT_study_data_list.length + (!prev_LAT_study_doc?1:0) > TRDraftRequestDataValidator.daily_LAT_request_max_count)
+      throw new Error(`LAT study data request count exceeds max value`);
+
+    const newlySaved=!prev_LAT_study_doc;
     let request_doc={};
     if(newlySaved){
-      request_doc=TRDraftRequestDataValidator.getNewAssignmentStudyDataRequestDocument(student_id,today_string,AOS_objectid);
+      request_doc=TRDraftRequestDataValidator.getNewLATStudyDataRequestDocument(student_id,today_string,textbook_oid,element_oid,duplicatableName,duplicatableSubject,recentPage);
     }
+    request_doc["request_specific_data.deleted"]=false;
     const study_data_element={...TRDraftRequestDataValidator.request_study_data_template};
     study_data_element["excuse"]=excuse;
     study_data_element["time_amount"]=timeAmount;
     study_data_element["timestamp"]=new Date(moment().toJSON());
+    study_data_element["finished_state"]=finishedState;
     await db.collection("TRDraftRequest").updateOne(
-      {date:today_string,student_id:student_id,request_type:TRDraftRequestDataValidator.request_type_name_to_index["AssignmentStudyData"],"request_specific_data.AOSID":AOS_objectid},
+      {
+        date:today_string,
+        student_id,
+        request_type:TRDraftRequestDataValidator.request_type_name_to_index["LectureAndTextbookStudyData"],
+        "request_specific_data.textbookID":textbook_oid,
+        "request_specific_data.elementID":element_oid,
+      },
       {
         $set:request_doc,
         $push:{"study_data_list":study_data_element},
