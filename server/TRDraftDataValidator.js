@@ -70,7 +70,9 @@ function getNewAssignmentStudyDataRequestDocument(student_id,today_string,AOSID)
     request_doc["date"]=today_string;
     request_doc["request_status"]=0;
     request_doc["request_type"]=request_type_name_to_index["AssignmentStudyData"];
-    request_doc["request_specific_data"]={AOSID};
+    // request_doc["request_specific_data"]={AOSID};
+    delete request_doc["request_specific_data"];
+    request_doc["request_specific_data.AOSID"]=AOSID;
     request_doc["review_msg_list"]=[];
     delete request_doc["study_data_list"];
     return request_doc;
@@ -81,15 +83,23 @@ function getNewLATStudyDataRequestDocument(student_id,today_string,textbookID,el
     request_doc["date"]=today_string;
     request_doc["request_status"]=0;
     request_doc["request_type"]=request_type_name_to_index["LectureAndTextbookStudyData"];
-    request_doc["request_specific_data"]={
-        textbookID,
-        elementID,
-        deleted:false,
-        duplicatable:textbookID?false:true,
-        duplicatable_name:duplicatableName,
-        duplicatable_subject:duplicatableSubject,
-        recent_page:recentPage,
-    };
+    // request_doc["request_specific_data"]={
+    //     textbookID,
+    //     elementID,
+    //     deleted:false,
+    //     duplicatable:textbookID?false:true,
+    //     duplicatable_name:duplicatableName,
+    //     duplicatable_subject:duplicatableSubject,
+    //     recent_page:recentPage,
+    // };
+    delete request_doc["request_specific_data"];
+    request_doc["request_specific_data.textbookID"]=textbookID;
+    request_doc["request_specific_data.elementID"]=elementID;
+    request_doc["request_specific_data.deleted"]=false;
+    request_doc["request_specific_data.duplicatable"]=textbookID?false:true;
+    request_doc["request_specific_data.duplicatable_name"]=duplicatableName;
+    request_doc["request_specific_data.duplicatable_subject"]=duplicatableSubject;
+    request_doc["request_specific_data.recent_page"]=recentPage;
     request_doc["review_msg_list"]=[];
     delete request_doc["study_data_list"];
     return request_doc;

@@ -118,7 +118,6 @@ function TRDraft() {
   }
 
   //db에 저장된 오늘의 모든 tr draft requests
-  const [prevTRDraftRequestData,setPrevTRDraftRequestData]=useState(null);
   const [LATRequestStatusMap,setLATRequestStatusMap]=useState(null);
   function getNewObjectIDString(){
     return (new ObjectId()).toHexString();
@@ -147,15 +146,38 @@ function TRDraft() {
       const study_data_list=LAT_request_element.study_data_list;
       LAT_request_element["study_data"]=study_data_list.length>0?study_data_list[study_data_list.length-1]:{};
       LAT_request_element["request_new"]=false;
+      const request_specific_data=LAT_request_element["request_specific_data"];
+      request_specific_data.recent_page=request_specific_data.recent_page.toString(); // keep recent page value on client side as string
       ret[LAT_request_id]=LAT_request_element;
     });
     return ret;
   }
+  function getProgramRequestIDFromRequestElement(element){
+    return element.request_specific_data.elementID;
+  }
+  function getProgramRequestStatusMap(prevRequestData){
+    const ret={};
+    prevRequestData.forEach((e,idx)=>{
+      if(e.request_type!==3) return;
+      const program_request_id=getProgramRequestIDFromRequestElement(e);
+      const program_request_element=JSON.parse(JSON.stringify(e));
+      const study_data_list=program_request_element.study_data_list;
+      program_request_element["study_data"]=study_data_list.length>0?study_data_list[study_data_list.length-1]:{};
+      program_request_element["request_new"]=false;
+      ret[program_request_id]=program_request_element;
+    });
+    return ret;
+  }
+
+
   function checkLATRequestElementDeleted(LATRequestID){
     if(!(LATRequestID in LATRequestStatusMap)) return false;
     const request_specific_data=LATRequestStatusMap[LATRequestID].request_specific_data;
     if(!("deleted" in request_specific_data)) return false;
     return request_specific_data.deleted;
+  }
+  function checkLATRequestElementRecentPageNull(recentPage){
+    return !recentPage && typeof recentPage ==="object";
   }
   function getLATRequestElementTemplate(duplicatableName="",duplicatableSubject=""){
     return {
@@ -216,14 +238,12 @@ function TRDraft() {
     });
   }
   function insertLATRequestElement(LATRequestID,updateVal={}){
-    console.log(`insert element: ${LATRequestID}`);
     setLATRequestStatusMap(prevLATRequestStatusMap=>{
       const [element_type,element_id]= LATRequestID.split("#");
       const newLATRequestStatusMap=JSON.parse(JSON.stringify(prevLATRequestStatusMap));
       const LAT_request_element=getLATRequestElementFromLATRequestID(newLATRequestStatusMap,LATRequestID);
       const LAT_request_element_request_specific_data= LAT_request_element.request_specific_data;
       LAT_request_element_request_specific_data.deleted=false;
-      console.log(`element: ${JSON.stringify(LAT_request_element)}\nupdateval: ${JSON.stringify(updateVal)}`);
       Object.keys(updateVal).forEach((field_name,idx)=>{
         let target_object=LAT_request_element;
         const updated_val=updateVal[field_name];
@@ -259,6 +279,20 @@ function TRDraft() {
       return newLATRequestStatusMap;
     });
   }
+  function updateLATRequestElementIDByOldLATRequestID(LATRequestID){
+    setLATRequestStatusMap(prevLATRequestStatusMap=>{
+      const newLATRequestStatusMap=JSON.parse(JSON.stringify(prevLATRequestStatusMap));
+      const [element_type,element_id]=LATRequestID.split("#");
+      if(element_type!=="element" || !(LATRequestID in newLATRequestStatusMap)){
+        return newLATRequestStatusMap;
+      }
+      const LAT_request_element=getLATRequestElementFromLATRequestID(newLATRequestStatusMap,LATRequestID);
+      const new_element_id=getNewLATRequestID();
+      while(new_element_id in newLATRequestStatusMap) new_element_id=getNewLATRequestID();
+      newLATRequestStatusMap[new_element_id]=LAT_request_element;
+      return newLATRequestStatusMap;
+    });
+  }
   function getTextbookStudyDataPayloadTemplate(){
     return {
       "textbookID":"",
@@ -281,7 +315,6 @@ function TRDraft() {
     // ret["finishedState"]=textbookStudyFinished;
     // if(textbookStudyFinished) ret.excuse="";
     // return ret;
-    console.log(`req id: ${LATRequestID}\nelement: ${JSON.stringify(getLATRequestElementFromLATRequestID(LATRequestStatusMap,LATRequestID))}`);
     const [element_type,element_id]=LATRequestID.split("#");
     const LAT_request_element=getLATRequestElementFromLATRequestID(LATRequestStatusMap,LATRequestID);
     const request_specific_data=LAT_request_element.request_specific_data;
@@ -293,7 +326,7 @@ function TRDraft() {
     ret["duplicatable"]=request_specific_data.duplicatable;
     ret["duplicatableName"]=request_specific_data.duplicatable_name;
     ret["duplicatableSubject"]=request_specific_data.duplicatable_subject;
-    ret["recentPage"]=request_specific_data.recent_page?request_specific_data.recent_page:(textbook_info.최근진도).toString();
+    ret["recentPage"]= !checkLATRequestElementRecentPageNull(request_specific_data.recent_page)?request_specific_data.recent_page:(textbook_info.최근진도).toString();
     ret["requestNew"]=request_specific_data.request_new;
     ret["timeAmount"]=study_data.time_amount;
     ret["excuse"]=study_data.excuse;
@@ -328,6 +361,46 @@ function TRDraft() {
       return null;
     }
   }
+  async function saveLATStudyDataByLATRequestID(LATRequestID,finishedState){
+    const textbook_info=getTextbookInfoByLATRequestID(LATRequestID);
+    const textbookName=textbook_info.교재;
+    const textbookSubject=textbook_info.과목;
+    if(!window.confirm(`선택한 수업 및 일반교재\n(${textbookSubject})[${textbookName}]\n학습의 확인 요청을 보내시겠습니까?`)) return;
+    const study_data= getTextbookStudyDataByLATRequestID(LATRequestID,finishedState);
+    console.log(`study data payload: ${JSON.stringify(study_data)}`);
+    // console.log(`study data: ${JSON.stringify(study_data)}`);
+
+    //check if study data for assingment valid
+    const [textbookStudyValid,msg]= isTextbookStudyDataValid(study_data,LATRequestID);
+    if(!textbookStudyValid){
+      window.alert(`${msg}`);
+      return;
+    }
+    const reset_object_id= await axios
+      .post("/api/saveLATStudyDataRequest",study_data)
+      .then((res)=>{
+        const data=res.data;
+        if(!data.success) return window.alert(`네트워크 오류로 수업 및 일반교재 학습 데이터를 저장하지 못했습니다:0`);
+        else{
+          const ret_info=data.ret;
+          if(ret_info && typeof ret_info==="object" && "reset_object_id" in ret_info && ret_info.reset_object_id===true) {
+            window.alert(`네트워크 오류로 수업 및 일반교재 학습 데이터를 저장하지 못했습니다:0.5`);
+            return true;
+          }
+        }
+        window.alert(`성공적으로 수업 및 일반교재 학습 데이터를 저장했습니다`);
+        return false;
+      })
+      .catch((error)=>{
+        console.log(`error: ${error}`);
+        return window.alert(`네트워크 오류로 수업 및 일반교재 학습 데이터를 저장하지 못했습니다:1`);
+      });
+    if(reset_object_id){
+      updateLATRequestElementIDByOldLATRequestID(LATRequestID);
+      return false;
+    }
+    return true;
+  }
 
   useEffect(async ()=>{
     const prevRequestData= await axios
@@ -345,11 +418,12 @@ function TRDraft() {
         window.location.reload();
       });
     setLATRequestStatusMap(getLATRequestStatusMap(prevRequestData));
+    setProgramRequestStatusMap(getProgramRequestStatusMap(prevRequestData));
   },[]);
 
-  useEffect(()=>{
-    console.log(`lat request status map: ${JSON.stringify(LATRequestStatusMap)}`);
-  },[LATRequestStatusMap]);
+  // useEffect(()=>{
+  //   console.log(`lat request status map: ${JSON.stringify(LATRequestStatusMap)}`);
+  // },[LATRequestStatusMap]);
 
   //생활 데이터 관련 코드
   const [myLifeCycleAndStudyTimeGoals,setMyLifeCycleAndStudyTimeGoals]= useState(life_cycle_and_study_time_goals_template);
@@ -523,22 +597,47 @@ function TRDraft() {
     return excuse_val.length>=excuse_min_len && excuse_val.length<=excuse_max_len;
   }
   function isAssignmentStudyDataValid(assignmentStudyData){
-    if(!assignmentStudyData) return false;
-    else if(assignmentStudyData.finishedState===true){
-      return checkTimeStringValid(assignmentStudyData.timeAmount);
-    }
-    else{
-      return checkTimeStringValid(assignmentStudyData.timeAmount) && checkStudyExcuseValid(assignmentStudyData.excuse);
-    }
+    if(!assignmentStudyData) return [false,`error occurred`];
+    else if(!checkTimeStringValid) return [false,"올바른 학습시간을 입력해주세요"];
+    else if(assignmentStudyData.finishedState===false && !checkStudyExcuseValid(assignmentStudyData.excuse))
+      return [false,"과제 미완료 사유를 15글자 이상 입력해주세요"];
+    else return [true,""];
   }
+  async function saveAssignmentStudyDataByAOSID(AOSID,finishedState){
+    const assignmnet_element=getAssignmentElementByAOSID(AOSID);
+    if(!window.confirm(`[${assignmnet_element["lectureName"]}]\n"${getDescriptionStringFromAssignment(assignmnet_element)}"\n과제에 대한 확인 요청을 보내시겠습니까?`)) return;
+    const study_data=getAssignmentStudyDataByAOSID(AOSID,finishedState);
+    const [assignmentStudyDataValid,msg]=isAssignmentStudyDataValid(study_data);
+    if(!assignmentStudyDataValid){
+      window.alert(`${msg}`);
+      return;
+    }
+
+    const save_success=await axios
+      .post("/api/saveAssignmentStudyDataRequest",study_data)
+      .then((res)=>{
+        const data=res.data;
+        if(!data.success) {
+          window.alert(`네트워크 오류로 강의 과제 학습 데이터를 저장하지 못했습니다:0`);
+          return false;
+        }
+        window.alert(`성공적으로 강의 과제 학습 데이터를 저장했습니다`);
+        return true;
+      })
+      .catch((error)=>{
+        window.alert(`네트워크 오류로 강의 과제 학습 데이터를 저장하지 못했습니다:1`);
+        return false;
+      });
+    return save_success;
+  }
+
   function checkTextbookStudyRecentPageValid(recentPage){
-    if(typeof recentPage !== "string" || recentPage.length===0) return false;
-    else return true;
+    const tmp_val=parseInt(recentPage);
+    return !isNaN(tmp_val) && intBetween(recentPage,0,100000);
   }
   function isTextbookStudyDataValid(textbookStudyData,LATRequestID){
     if(!textbookStudyData) return [false,`error occurred`];
     else if(!checkTextbookStudyRecentPageValid(textbookStudyData.recentPage)){
-      console.log(`recent page val: ${textbookStudyData.recentPage}`);
       const textbook_info=getTextbookInfoByLATRequestID(LATRequestID);
       updateLATRequestElementByLATRequestID(LATRequestID,{
         "request_specific_data.recent_page":textbook_info.최근진도,
@@ -566,8 +665,6 @@ function TRDraft() {
   }
 
   //수업 및 일반교재(type2) 관련 코드
-  const [textbookStudyNoDupElements,setTextbookStudyNoDupElements]= useState({}); // 중복 불가 항목: 교재가 정해진 경우
-  const [textbookStudyDupElements,setTextbookStudyDupElements]= useState({}); // 중복 가능 항목
   const [textbookStudyDisplayList,setTextbookStudyDisplayList]= useState([]);
   const default_LAT_element_name="선택";
   const default_LAT_element_id="default";
@@ -738,6 +835,126 @@ function TRDraft() {
     }
   },[textbookIDMapping,LATRequestStatusMap,myAssignmentInfo]);
 
+  //프로그램 이수(type3) 관련 코드
+  const [programRequestStatusMap,setProgramRequestStatusMap]=useState(null);
+  const program_name_list=[
+    "자기인식",
+    "진로탐색",
+    "헬스",
+    "외부활동",
+    "독서",
+    "외국어"
+  ];
+  const program_description_max_len=500;
+  function getProgramRequestElementTemplate(duplicatableName="",duplicatableSubject=""){
+    return {
+      request_specific_data:{
+        elementID:"",
+        deleted:false,
+        program_name:null,
+        program_by:null,
+        program_description:"",
+        request_new:true,
+      },
+      request_type:3,
+      request_status:0,
+      review_msg_list:[],
+      study_data:getStudyDataTemplate(),
+    };
+  }
+  function getProgramRequestElementFromProgramRequestID(programRequestStatusMapCopy,programRequestID=""){
+    if(programRequestID in programRequestStatusMapCopy) return programRequestStatusMapCopy[programRequestID];
+    const new_request_element=getProgramRequestElementTemplate();
+    const request_specific_data=new_request_element.request_specific_data;
+    request_specific_data.elementID=programRequestID;
+    return new_request_element;
+  }  
+  function insertProgramRequestElement(programRequestID,updateVal={}){
+    console.log(`insert element: ${programRequestID}`);
+    setProgramRequestStatusMap(prevProgramRequestStatusMap=>{
+      const newProgramRequestStatusMap=JSON.parse(JSON.stringify(prevProgramRequestStatusMap));
+      const program_request_element=getProgramRequestElementFromProgramRequestID(newProgramRequestStatusMap,programRequestID);
+      const program_request_element_request_specific_data= program_request_element.request_specific_data;
+      program_request_element_request_specific_data.deleted=false;
+      Object.keys(updateVal).forEach((field_name,idx)=>{
+        let target_object=program_request_element;
+        const updated_val=updateVal[field_name];
+        const field_path=field_name.split(".");
+        const field_path_count=field_path.length;
+        for(let i=0; i<field_path_count-1; i++){
+          target_object=target_object[field_path[i]];
+        }
+        target_object[field_path[field_path_count-1]]=updated_val;
+      });
+      newProgramRequestStatusMap[programRequestID]=program_request_element;
+      return newProgramRequestStatusMap;
+    });
+  }
+  function updateProgramRequestElementByProgramRequestID(programRequestID,updateVal){
+    setProgramRequestStatusMap(prevProgramRequestStatusMap=>{
+      const newProgramRequestStatusMap=JSON.parse(JSON.stringify(prevProgramRequestStatusMap));
+      const program_request_element=getProgramRequestElementFromProgramRequestID(newProgramRequestStatusMap,programRequestID);
+      Object.keys(updateVal).forEach((field_name,idx)=>{
+        let target_object=program_request_element;
+        const updated_val=updateVal[field_name];
+        const field_path=field_name.split(".");
+        const field_path_count=field_path.length;
+        for(let i=0; i<field_path_count-1; i++){
+          target_object=target_object[field_path[i]];
+        }
+        target_object[field_path[field_path_count-1]]=updated_val;
+      });
+      return newProgramRequestStatusMap;
+    });
+  }
+  function deleteProgramRequestElement(programRequestID){
+    setProgramRequestStatusMap(prevProgramRequestStatusMap=>{
+      const newProgramRequestStatusMap=JSON.parse(JSON.stringify(prevProgramRequestStatusMap));
+      delete newProgramRequestStatusMap[programRequestID];
+      return newProgramRequestStatusMap;
+    });
+  }
+
+  function getNewProgramRequestID(){
+    return getNewObjectIDString();
+  }
+  const [programDisplayList,setProgramDisplayList]= useState([]);
+  const programDataDeletePayloadTemplate={
+    "elementID":"",
+  };
+  function getProgramDataDeleteRequestPayload(study_data){
+    const ret={...programDataDeletePayloadTemplate};
+    ret.elementID=study_data.elementID;
+    return ret;
+  }
+  function isProgramTableAppendable(){
+    return programDisplayList.length<max_table_element_count;
+  }
+  function getProgramDisplayListFromProgramRequestStatusMap(){
+    const ret_dict={};
+    Object.keys(programRequestStatusMap).forEach((program_key,idx)=>{
+      const [element_type,element_id]=program_key.split("#");
+      ret_dict[program_key]=true;
+    });
+
+    //sort to display elements in somewhat consistent order
+    const ret_dict_keys=Object.keys(ret_dict);
+    ret_dict_keys.sort((a,b)=>{
+      const a_element_id=a;
+      const b_element_id=b;
+      return a_element_id<b_element_id?-1:a_element_id>b_element_id?1:0;
+    });
+    // return ret_dict_keys.map((key,idx)=>ret_dict[key]);
+    return ret_dict_keys;
+  }
+
+  useEffect(()=>{
+    if(Object.keys(managerList).length>0 && programRequestStatusMap){
+      // setTextbookStudyDisplayList(getTextbookStudyDisplayListDefault());
+      setProgramDisplayList(getProgramDisplayListFromProgramRequestStatusMap());
+    }
+  },[managerList,programRequestStatusMap]);  
+
   //과제 완료 여부 관련 코드
   const dailyGoalCheckLogDataTemplate={
     "textbookID":"",
@@ -778,6 +995,32 @@ function TRDraft() {
 
     }
     return ret;
+  }
+  function getBriefStringFromAssignment(assignment){
+    const ret_list=[assignment["lectureName"]];
+    if(assignment["textbookName"]){
+      ret_list.push(assignment["textbookName"]);
+      if("pageRangeArray" in assignment && assignment["pageRangeArray"].length>0){
+        for(let i=0; i<assignment["pageRangeArray"].length; i++){
+          const range=assignment["pageRangeArray"][i];
+          ret_list.push(`${range[0]}~${range[1]}`);
+        }
+      }
+    }
+    if(assignment["description"]) ret_list.push(assignment["description"]);
+    return ret_list.join(",");
+  }
+  function getBriefStringFromLATRequestID(LATRequestID){
+    const [element_type,element_id]=LATRequestID.split("#");
+    const LAT_request_element=LATRequestStatusMap[LATRequestID];
+    const request_specific_data=LAT_request_element.request_specific_data;
+    const ret_list=[];
+    if(request_specific_data.duplicatable===false) ret_list.push(textbookIDMapping.reverse[request_specific_data.textbookID]);
+    else{
+      ret_list.push(request_specific_data.duplicatable_subject);
+      ret_list.push(request_specific_data.duplicatable_name);
+    }
+    return ret_list.join(",");
   }
   function getDailyGoalCheckLogDataFromAssignment(assignmentData,finished_flag,excuse){
     const ret=JSON.parse(JSON.stringify(dailyGoalCheckLogDataTemplate));
@@ -964,12 +1207,14 @@ function TRDraft() {
   
   const excuse_for_template={
     excuse_for:"assignment",
+    extra_data:[],
+    description:"",
   }
   const [excuseFor,setExcuseFor]= useState(excuse_for_template); // which study type the excuse for (assignment/textbook)
 
-  const openExcuseModal= (excuse_for,...extra_data)=>{
+  const openExcuseModal= (excuse_for,description,...extra_data)=>{
     // setCurrentExcuseInfo(newGoalExcuseData);
-    setExcuseFor({excuse_for,extra_data});
+    setExcuseFor({excuse_for,description,extra_data});
     setShowExcuseModal(true);
   };
   const closeExcusemodal= ()=>{
@@ -1063,7 +1308,7 @@ function TRDraft() {
           <Modal.Body className="text-center">
             <div className="row mb-5">
               <div className="col-3">과제 상세</div>
-              <div className="col-9">{currentExcuseInfo["description"]}</div>
+              <div className="col-9">{excuseFor.description}</div>
             </div>
 
             <Form.Control
@@ -1082,7 +1327,9 @@ function TRDraft() {
                     return;
                   }
                   else if(excuseFor.excuse_for==="lectureAndTextbook"){
-
+                    updateLATRequestElementByLATRequestID(excuseFor.extra_data[0],{
+                      "study_data.excuse":excuse,
+                    });
                   }
                   // const newGoalExcuseData= JSON.parse(JSON.stringify(currentExcuseInfo));
                   // newGoalExcuseData["excuse"]=event.target.value;
@@ -1102,31 +1349,14 @@ function TRDraft() {
                   // const goalAttribute= currentExcuseInfo["AOSID"]?goalAttributes.Assignment:goalAttributes.textbookProgress;
                   // const relatedID= currentExcuseInfo["AOSID"]?currentExcuseInfo["AOSID"]:currentExcuseInfo["textbookID"];
                   // updateGoalState(currentExcuseInfo,goalAttribute,relatedID,false);
-                  const AOSID=excuseFor.extra_data[0];
-                  const assignmnet_element=getAssignmentElementByAOSID(AOSID);
-                  if(!window.confirm(`[${assignmnet_element["lectureName"]}]\n"${getDescriptionStringFromAssignment(assignmnet_element)}"\n과제에 대한 확인 요청을 보내시겠습니까?`)) return;
-                  const study_data=getAssignmentStudyDataByAOSID(AOSID,false);
-                  if(!isAssignmentStudyDataValid(study_data)){
-                    window.alert(`과제 미완료 사유를 15 글자 이상 입력해주세요`);
-                    return;
+                  if(excuseFor.excuse_for==="assignment"){
+                    const save_success= await saveAssignmentStudyDataByAOSID(excuseFor.extra_data[0],false);
+                    if(save_success) closeExcusemodal();
                   }
-
-                  const save_success=await axios
-                    .post("/api/saveAssignmentStudyDataRequest",study_data)
-                    .then((res)=>{
-                      const data=res.data;
-                      if(!data.success) {
-                        window.alert(`네트워크 오류로 강의 과제 학습 데이터를 저장하지 못했습니다:0`);
-                        return false;
-                      }
-                      window.alert(`성공적으로 강의 과제 학습 데이터를 저장했습니다`);
-                      return true;
-                    })
-                    .catch((error)=>{
-                      window.alert(`네트워크 오류로 강의 과제 학습 데이터를 저장하지 못했습니다:1`);
-                      return false;
-                    });
-                  if(save_success) closeExcusemodal();
+                  else if(excuseFor.excuse_for==="lectureAndTextbook"){
+                    const save_success= await saveLATStudyDataByLATRequestID(excuseFor.extra_data[0],false);
+                    if(save_success) closeExcusemodal();
+                  }
                 }}
                 type="button">
               <strong>확인 요청</strong>
@@ -1352,31 +1582,7 @@ function TRDraft() {
                                         <button
                                             className="btn btn-success btn-opaque"
                                             onClick={async ()=>{
-                                              // if(!window.confirm(`선택한 강의 과제를 완료 처리 하시겠습니까?`)) return;
-                                              // const assignmentData=a;
-                                              // const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,true,"");
-                                              // //db & page state update
-                                              // await updateGoalState(dailyGoalCheckLogData,goalAttributes.Assignment,a["AOSID"], true);
-                                              if(!window.confirm(`[${a["lectureName"]}]\n"${getDescriptionStringFromAssignment(a)}"\n과제에 대한 확인 요청을 보내시겠습니까?`)) return;
-
-                                              const study_data= getAssignmentStudyDataByAOSID(AOSID,true);
-                                              // console.log(`study data: ${JSON.stringify(study_data)}`);
-                                              
-                                              //check if study data for assingment valid
-                                              if(!isAssignmentStudyDataValid(study_data)){
-                                                window.alert(`해당 수업 과제에 대한 학습 시간이 올바르지 않습니다`);
-                                                return;
-                                              }
-                                              await axios
-                                                .post("/api/saveAssignmentStudyDataRequest",study_data)
-                                                .then((res)=>{
-                                                  const data=res.data;
-                                                  if(!data.success) return window.alert(`네트워크 오류로 강의 과제 학습 데이터를 저장하지 못했습니다:0`);
-                                                  return window.alert(`성공적으로 강의 과제 학습 데이터를 저장했습니다`);
-                                                })
-                                                .catch((error)=>{
-                                                  return window.alert(`네트워크 오류로 강의 과제 학습 데이터를 저장하지 못했습니다:1`);
-                                                });
+                                              saveAssignmentStudyDataByAOSID(AOSID,true);
                                             }}
                                         >
                                           <FaCheck></FaCheck>
@@ -1392,7 +1598,7 @@ function TRDraft() {
                                                 window.alert(`미완료 사유를 입력하기 전 해당 과제에 대한 학습 시간을 입력해주세요`);
                                                 return;
                                               }
-                                              openExcuseModal("assignment",a.AOSID);
+                                              openExcuseModal("assignment",getBriefStringFromAssignment(getAssignmentElementByAOSID(a.AOSID)),a.AOSID);
                                             }}
                                         >
                                           <FaTimes></FaTimes>
@@ -1447,7 +1653,7 @@ function TRDraft() {
                   const textbookSubject=textbook_info.과목;
                   const textbookVolumne=textbook_info.총교재량;
                   const textbookTodayGoal=getTodayGoalByTextbookName(textbookName);
-                  const textbookRecentPage=!request_specific_data.recent_page?textbook_info.최근진도:request_specific_data.recent_page;
+                  const textbookRecentPage= checkLATRequestElementRecentPageNull(request_specific_data.recent_page)?textbook_info.최근진도:request_specific_data.recent_page;
                   const textbookStudyTimeAmount=LAT_request_element.study_data.time_amount;
                   const textbookID=textbookIDMapping[textbookName];
                   if(checkTextBookOfAssignment(textbookName)) return null;
@@ -1630,27 +1836,40 @@ function TRDraft() {
                             <button
                                 className="btn btn-success btn-opaque"
                                 onClick={async ()=>{
-                                  if(!window.confirm(`선택한 수업 및 일반교재\n(${textbookSubject})[${textbookName}]\n학습의 확인 요청을 보내시겠습니까?`)) return;
-                                  const study_data= getTextbookStudyDataByLATRequestID(LAT_request_element_id,true);
-                                  console.log(`study data payload: ${JSON.stringify(study_data)}`);
-                                  // console.log(`study data: ${JSON.stringify(study_data)}`);
+                                  // if(!window.confirm(`선택한 수업 및 일반교재\n(${textbookSubject})[${textbookName}]\n학습의 확인 요청을 보내시겠습니까?`)) return;
+                                  // const study_data= getTextbookStudyDataByLATRequestID(LAT_request_element_id,true);
+                                  // console.log(`study data payload: ${JSON.stringify(study_data)}`);
+                                  // // console.log(`study data: ${JSON.stringify(study_data)}`);
                                   
-                                  //check if study data for assingment valid
-                                  const [textbookStudyValid,msg]= isTextbookStudyDataValid(study_data,LAT_request_element_id);
-                                  if(!textbookStudyValid){
-                                    window.alert(`${msg}`);
-                                    return;
-                                  }
-                                  await axios
-                                    .post("/api/saveLATStudyDataRequest",study_data)
-                                    .then((res)=>{
-                                      const data=res.data;
-                                      if(!data.success) return window.alert(`네트워크 오류로 수업 및 일반교재 학습 데이터를 저장하지 못했습니다:0`);
-                                      return window.alert(`성공적으로 수업 및 일반교재 학습 데이터를 저장했습니다`);
-                                    })
-                                    .catch((error)=>{
-                                      return window.alert(`네트워크 오류로 수업 및 일반교재 학습 데이터를 저장하지 못했습니다:1`);
-                                    });
+                                  // //check if study data for assingment valid
+                                  // const [textbookStudyValid,msg]= isTextbookStudyDataValid(study_data,LAT_request_element_id);
+                                  // if(!textbookStudyValid){
+                                  //   window.alert(`${msg}`);
+                                  //   return;
+                                  // }
+                                  // const reset_object_id= await axios
+                                  //   .post("/api/saveLATStudyDataRequest",study_data)
+                                  //   .then((res)=>{
+                                  //     const data=res.data;
+                                  //     if(!data.success) return window.alert(`네트워크 오류로 수업 및 일반교재 학습 데이터를 저장하지 못했습니다:0`);
+                                  //     else{
+                                  //       const ret_info=data.ret;
+                                  //       if(ret_info && typeof ret_info==="object" && "reset_object_id" in ret_info && ret_info.reset_object_id===true) {
+                                  //         window.alert(`네트워크 오류로 수업 및 일반교재 학습 데이터를 저장하지 못했습니다:0.5`);
+                                  //         return true;
+                                  //       }
+                                  //     }
+                                  //     window.alert(`성공적으로 수업 및 일반교재 학습 데이터를 저장했습니다`);
+                                  //     return false;
+                                  //   })
+                                  //   .catch((error)=>{
+                                  //     console.log(`error: ${error}`);
+                                  //     return window.alert(`네트워크 오류로 수업 및 일반교재 학습 데이터를 저장하지 못했습니다:1`);
+                                  //   });
+                                  // if(reset_object_id){
+                                  //   updateLATRequestElementIDByOldLATRequestID(LAT_request_element_id);
+                                  // }
+                                  saveLATStudyDataByLATRequestID(LAT_request_element_id,true);
                                 }}
                             >
                               <FaCheck></FaCheck>
@@ -1658,8 +1877,17 @@ function TRDraft() {
                             <button
                                 className="btn btn-danger btn-opaque"
                                 onClick={()=>{
-                                  const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromTextbookName(textbookName,false,"");
-                                  openExcuseModal(dailyGoalCheckLogData);
+                                  const study_data= getTextbookStudyDataByLATRequestID(LAT_request_element_id,true);
+                                  console.log(`study data payload: ${JSON.stringify(study_data)}`);
+                                  
+                                  //check if study data for assingment valid
+                                  const [textbookStudyValid,msg]= isTextbookStudyDataValid(study_data,LAT_request_element_id);
+                                  if(!textbookStudyValid){
+                                    window.alert(`${msg}`);
+                                    return;
+                                  }
+
+                                  openExcuseModal("lectureAndTextbook",getBriefStringFromLATRequestID(LAT_request_element_id),LAT_request_element_id);
                                 }}
                             >
                               <FaTimes></FaTimes>
@@ -1814,6 +2042,132 @@ function TRDraft() {
                       </tr>
                   );
                 })} */}
+                {
+                  programDisplayList.map((program_request_element_id,idx)=>{
+                    const program_request_element=getProgramRequestElementFromProgramRequestID(program_request_element_id);
+                    const request_specific_data=program_request_element.request_specific_data;
+                    const study_data=program_request_element.program_request_element.study_data;
+                    const program_description=request_specific_data.program_description;
+                    return (
+                      <tr key={idx}>
+                        <td>
+                          <button
+                              className="btn btn-opaque"
+                              onClick={async () => {
+                                if(!window.confirm(`"${idx+1}번째" 프로그램 항목을 리스트에서 삭제하시겠습니까?`)) return;
+                                const program_request_element=getProgramRequestElementFromProgramRequestID(programRequestStatusMap,program_request_element_id);
+                                const request_specific_data=program_request_element.request_specific_data;
+                                const delete_request_payload=getProgramDataDeleteRequestPayload(request_specific_data);
+                                console.log(`program delete payload: ${JSON.stringify(delete_request_payload)}`);
+                                const delete_success=await axios
+                                  .post("/api/setProgramElementDeletedOnTrDraft",delete_request_payload)
+                                  .then((res)=>{
+                                    const data=res.data;
+                                    if(!data.success) {
+                                      window.alert(`네트워크 오류로 학습 항목 삭제에 실패했습니다:0`);
+                                      return false;
+                                    }
+                                    return true;
+                                  })
+                                  .catch((error)=>{
+                                    window.alert(`네트워크 오류로 학습 항목 삭제에 실패했습니다:1`);
+                                    return false;
+                                  });
+                                if(!delete_success) return;
+                                deleteProgramRequestElement(program_request_element_id);
+                              }}
+                          >
+                            <strong><FaTrash></FaTrash></strong>
+                          </button>
+                        </td>
+                        <td>
+                          <Form.Select
+                              size="sm"
+                              value={null}
+                              onChange={(e) => {
+                                const program_name_val=e.target.value;
+                                updateProgramRequestElementByProgramRequestID(program_request_element_id,{
+                                  "request_specific_data.program_name":program_name_val,
+                                });
+                              }}
+                          >
+                            <option value="선택">선택</option>
+                            {/* {stuDB.프로그램분류.map(function (p, j) {
+                              return (
+                                  <option value={p} key={j}>
+                                    {p}
+                                  </option>
+                              );
+                            })} */}
+                            {
+                              program_name_list.map((name,name_idx)=>{
+                                return (
+                                  <option value={name} key={name_idx}>
+                                    {name}
+                                  </option>
+                                );
+                              })
+                            }
+                          </Form.Select>
+                        </td>
+                        <td>
+                          <Form.Select
+                              size="sm"
+                              value={null}
+                              onChange={(e) => {
+                                const program_by_val=e.target.value;
+                                updateProgramRequestElementByProgramRequestID(program_request_element_id,{
+                                  "request_specific_data.program_by":program_by_val,
+                                });
+                              }}
+                          >
+                            <option value="선택">선택</option>
+                            {managerList.map(function (b, j) {
+                              return (
+                                  <option value={b} key={j}>
+                                    {b}
+                                  </option>
+                              );
+                            })}
+                          </Form.Select>
+                        </td>
+                        <td>
+                          <TimePicker
+                              className="timepicker"
+                              locale="sv-sv"
+                              value={null}
+                              openClockOnFocus={false}
+                              clearIcon={null}
+                              clockIcon={null}
+                              onChange={(value) => {
+                                const study_data_time_amount=value;
+                                updateProgramRequestElementByProgramRequestID(program_request_element_id,{
+                                  "study_data.time_amount":study_data_time_amount,
+                                });
+                              }}
+                          ></TimePicker>
+                        </td>
+                        <td>
+                      <textarea
+                          className="textArea"
+                          name=""
+                          id=""
+                          rows="3"
+                          maxLength={program_description_max_len}
+                          placeholder="프로그램 상세내용/특이사항 입력"
+                          value={program_description}
+                          onChange={(e) => {
+                            const program_description_val=e.target.value;
+                            updateProgramRequestElementByProgramRequestID(program_request_element_id,{
+                              "request_specific_data.program_description":program_description_val,
+                            });
+                          }}
+                      ></textarea>
+                        </td>
+                      </tr>
+                  );
+                  })
+                }
 
                 <tr>
                   <td colSpan={5}>프로그램 진행 시간 : {"TBD"}시간</td>
@@ -1824,12 +2178,11 @@ function TRDraft() {
                     <button
                         className="btn btn-add program-add"
                         onClick={() => {
-                          // push_depth_one("프로그램", {
-                          //   프로그램분류: "선택",
-                          //   매니저: "선택",
-                          //   소요시간: "00:00",
-                          //   상세내용: "",
-                          // });
+                          if(!isProgramTableAppendable()){
+                            window.alert(`작성할 수 있는 테이블 당 최대 항목 수를 넘어섰습니다`);
+                            return;
+                          }
+                          insertProgramRequestElement(getNewProgramRequestID());
                         }}
                     >
                       <strong>+</strong>

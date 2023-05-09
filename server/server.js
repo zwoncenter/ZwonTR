@@ -772,16 +772,16 @@ app.post("/api/setTextbookStudyElementDeletedOnTrDraft",loginCheck, permissionCh
         "request_specific_data.elementID":null,
       }).toArray();
     let newlySaved=false;
+    if(prev_assignment_study_data.length===0) newlySaved=true;
     if(prev_assignment_study_data.length>1) throw new Error(`same assignment study data request count exceeds 1`);
     else if(prev_assignment_study_data.length==1 && !TRDraftRequestDataValidator.checkRequestDataUpdatable(prev_assignment_study_data[0].request_status))
       throw new Error(`assignment study data request in inupdatable status`);
-    else newlySaved=true;
-    let request_doc={request_specific_data:{}};
+    let request_doc={};
     if(newlySaved){
       request_doc=TRDraftRequestDataValidator.getNewLATStudyDataRequestDocument(student_id,today_string,textbookID_oid,elementID_oid);
       request_doc["study_data_list"]=[];
     }
-    request_doc["request_specific_data"]["deleted"]=true;
+    request_doc["request_specific_data.deleted"]=true;
     await db.collection("TRDraftRequest").updateOne(
       {
         date:today_string,
@@ -806,6 +806,7 @@ app.post("/api/setTextbookStudyElementDeletedOnTrDraft",loginCheck, permissionCh
 
 //save student request data
 app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("student")), async function (req, res) {
+  console.log(`req.body: ${JSON.stringify(req.body)}`);
   const ret_val={"success":true, "ret":null};
   try{
     const student_id=req.session.passport.user.student_id;
@@ -834,10 +835,10 @@ app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("studen
       duplicatableName=null;
       duplicatableSubject=null;
     }
-    console.log(`req.body: ${JSON.stringify(req.body)}`);
     if(!TRDraftRequestDataValidator.checkExcuseValueValid(excuse,finishedState) || !TRDraftRequestDataValidator.checkTimeStringValid(timeAmount)) throw new Error(`invalid assignment study data`);
     else if(deleted) throw new Error(`invalid request parameter`);
-    else if(duplicatable && (!TRDraftRequestDataValidator.checkDuplicatableNameValid(duplicatableName) || !TRDraftRequestDataValidator.checkDuplicatableSubjectValid(duplicatableSubject) || !TRDraftRequestDataValidator.checkRecentPageValid(recentPage))) throw new Error(`invalid assignment study data`);
+    else if(duplicatable && (!TRDraftRequestDataValidator.checkDuplicatableNameValid(duplicatableName) || !TRDraftRequestDataValidator.checkDuplicatableSubjectValid(duplicatableSubject))) throw new Error(`invalid assignment study data`);
+    else if(!TRDraftRequestDataValidator.checkRecentPageValid(recentPage)) throw new Error(`recent page value invalid`);
     recentPage=parseInt(recentPage);
     if(!!textbookID){ //check if textbook document exists
       const textbook_doc= await db.collection("TextBook").findOne({_id:textbook_oid});
@@ -868,7 +869,7 @@ app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("studen
         "$or":[{"request_specific_data.deleted":{"$exists":false}},{"request_specific_data.deleted":false}],
       }
     ).toArray();
-    
+
     if(prev_LAT_study_data_list.length + (!prev_LAT_study_doc?1:0) > TRDraftRequestDataValidator.daily_LAT_request_max_count)
       throw new Error(`LAT study data request count exceeds max value`);
 
@@ -878,6 +879,7 @@ app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("studen
       request_doc=TRDraftRequestDataValidator.getNewLATStudyDataRequestDocument(student_id,today_string,textbook_oid,element_oid,duplicatableName,duplicatableSubject,recentPage);
     }
     request_doc["request_specific_data.deleted"]=false;
+    if(!duplicatable) request_doc["request_specific_data.recent_page"]=recentPage;
     const study_data_element={...TRDraftRequestDataValidator.request_study_data_template};
     study_data_element["excuse"]=excuse;
     study_data_element["time_amount"]=timeAmount;
@@ -896,6 +898,32 @@ app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("studen
         $push:{"study_data_list":study_data_element},
       },
       {"upsert":true});
+  }
+  catch(error){
+    console.log(`error: ${error}`);
+    ret_val["success"]=false;
+    ret_val["ret"]=`error while saving life data`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
+//set program element as deleted on tr draft page
+app.post("/api/setProgramElementDeletedOnTrDraft",loginCheck, permissionCheck(Role("student")), async function (req, res) {
+  const ret_val={"success":true, "ret":null};
+  try{
+    const student_id=req.session.passport.user.student_id;
+    const today_string=getCurrentKoreaDateYYYYMMDD();
+    let {elementID}= req.body;
+
+    let elementID_oid=new ObjectId(elementID);
+    await db.collection("TRDraftRequest").deleteOne({
+      date:today_string,
+      student_id:student_id,
+      request_type:TRDraftRequestDataValidator.request_type_name_to_index["LectureAndTextbookStudyData"],
+      "request_specific_data.elementID":elementID_oid,
+    });
   }
   catch(error){
     console.log(`error: ${error}`);
