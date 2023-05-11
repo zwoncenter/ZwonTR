@@ -12,6 +12,7 @@ const request_document_template={
     request_specific_data:null,
     study_data_list:null,
     review_msg_list:null,
+    deleted:false,
 };
 const request_study_data_template={
     excuse:null,
@@ -26,7 +27,13 @@ const request_review_msg_template={
 };
 const duplicatable_name_list=["모의고사","테스트","기타"];
 const duplicatable_subject_list=["국어","수학","영어","탐구","기타"];
-const daily_LAT_request_max_count=50;
+const daily_active_LAT_request_max_count=50;
+const daily_LAT_request_max_count=500;
+const program_name_list=["자기인식","진로탐색","헬스","외부활동","독서","외국어"];
+const program_description_min_len=10;
+const program_description_max_len=500;
+const daily_active_program_request_max_count=50;
+const daily_program_request_max_count=500;
 function intBetween(a,left,right){
     return a>=left && a<=right;
 }
@@ -53,7 +60,8 @@ function getNewLifeDataRequestDocument(student_id,today_string){
     request_doc["date"]=today_string;
     request_doc["request_status"]=0;
     request_doc["request_type"]=request_type_name_to_index["lifeData"];
-    request_doc["request_specific_data"]={};
+    // request_doc["request_specific_data"]={};
+    delete request_doc["request_specific_data"];
     request_doc["study_data_list"]=[];
     request_doc["review_msg_list"]=[];
     return request_doc;
@@ -95,7 +103,8 @@ function getNewLATStudyDataRequestDocument(student_id,today_string,textbookID,el
     delete request_doc["request_specific_data"];
     request_doc["request_specific_data.textbookID"]=textbookID;
     request_doc["request_specific_data.elementID"]=elementID;
-    request_doc["request_specific_data.deleted"]=false;
+    // request_doc["request_specific_data.deleted"]=false;
+    request_doc["deleted"]=false;
     request_doc["request_specific_data.duplicatable"]=textbookID?false:true;
     request_doc["request_specific_data.duplicatable_name"]=duplicatableName;
     request_doc["request_specific_data.duplicatable_subject"]=duplicatableSubject;
@@ -120,12 +129,48 @@ function checkRecentPageValid(recentPageString){
     if(typeof recentPageString !=="string" || !intBetween(recentPageString.length,1,5)) return false;
     return !isNaN(parseInt(recentPageString)) || parseInt(recentPageString)<0;
 }
+function getNewProgramDataRequestDocument(student_id,today_string,elementID,programName="",programBy="",programDescription=""){
+    const request_doc={...request_document_template};
+    request_doc["student_id"]=student_id;
+    request_doc["date"]=today_string;
+    request_doc["request_status"]=0;
+    request_doc["request_type"]=request_type_name_to_index["ProgramParticipationData"];
+    delete request_doc["request_specific_data"];
+    request_doc["request_specific_data.elementID"]=elementID;
+    // request_doc["request_specific_data.deleted"]=false;
+    request_doc["deleted"]=false;
+    request_doc["request_specific_data.program_name"]=programName;
+    request_doc["request_specific_data.program_by"]=programBy;
+    request_doc["request_specific_data.program_description"]=programDescription;
+    request_doc["review_msg_list"]=[];
+    delete request_doc["study_data_list"];
+    return request_doc;
+}
+function checkProgramNameValid(programName){
+    for(let i=0; i<program_name_list.length; i++){
+        if(programName===program_name_list[i]) return true;
+    }
+    return false;
+}
+function checkProgramByValid(programBy,program_manager_list){
+    for(let i=0; i<program_manager_list.length; i++){
+        if(programBy===program_manager_list[i]) return true;
+    }
+    return false;
+}
+function checkProgramDescriptionValid(programDescription){
+    if(typeof programDescription !=="string") return false;
+    return intBetween(programDescription.length,program_description_min_len,program_description_max_len);
+}
 module.exports={
     request_document_template,
     request_study_data_template,
     request_review_msg_template,
     request_type_name_to_index,
+    daily_active_LAT_request_max_count,
     daily_LAT_request_max_count,
+    daily_active_program_request_max_count,
+    daily_program_request_max_count,
     intBetween,
     checkTimeStringValid,
     checkConditionValueValid,
@@ -138,4 +183,8 @@ module.exports={
     checkDuplicatableNameValid,
     checkDuplicatableSubjectValid,
     checkRecentPageValid,
+    getNewProgramDataRequestDocument,
+    checkProgramNameValid,
+    checkProgramByValid,
+    checkProgramDescriptionValid,
 }

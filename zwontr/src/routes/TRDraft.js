@@ -172,9 +172,11 @@ function TRDraft() {
 
   function checkLATRequestElementDeleted(LATRequestID){
     if(!(LATRequestID in LATRequestStatusMap)) return false;
-    const request_specific_data=LATRequestStatusMap[LATRequestID].request_specific_data;
-    if(!("deleted" in request_specific_data)) return false;
-    return request_specific_data.deleted;
+    // const request_specific_data=LATRequestStatusMap[LATRequestID].request_specific_data;
+    // if(!("deleted" in request_specific_data)) return false;
+    // return request_specific_data.deleted;
+    const request_element=getLATRequestElementFromLATRequestID(LATRequestStatusMap,LATRequestID);
+    return !!request_element.deleted;
   }
   function checkLATRequestElementRecentPageNull(recentPage){
     return !recentPage && typeof recentPage ==="object";
@@ -184,13 +186,13 @@ function TRDraft() {
       request_specific_data:{
         textbookID:"",
         elementID:"",
-        deleted:false,
         duplicatable:false,
         duplicatable_name:duplicatableName,
         duplicatable_subject:duplicatableSubject,
         recent_page:null,
         request_new:true,
       },
+      deleted:false,
       request_type:2,
       request_status:0,
       review_msg_list:[],
@@ -206,6 +208,7 @@ function TRDraft() {
       request_specific_data.textbookID=element_id;
     }
     else if(element_type==="element"){
+      request_specific_data.elementID=element_id;
       request_specific_data.duplicatable=true;
       request_specific_data.duplicatable_name=default_LAT_element_name;
       request_specific_data.duplicatable_subject="";
@@ -224,13 +227,15 @@ function TRDraft() {
         if(LATRequestID in newLATRequestStatusMap){
           const LAT_request_element=newLATRequestStatusMap[LATRequestID];
           const request_specific_data=LAT_request_element.request_specific_data;
-          request_specific_data.deleted=true;
+          // request_specific_data.deleted=true;
+          LAT_request_element.deleted=true;
           request_specific_data.request_status=0;
         }
         else{
           const LAT_request_element=getLATRequestElementFromLATRequestID(newLATRequestStatusMap);
           const request_specific_data=LAT_request_element.request_specific_data;
-          request_specific_data.deleted=true;
+          // request_specific_data.deleted=true;
+          LAT_request_element.deleted=true;
           newLATRequestStatusMap[LATRequestID]=LAT_request_element;
         }
       }
@@ -243,7 +248,8 @@ function TRDraft() {
       const newLATRequestStatusMap=JSON.parse(JSON.stringify(prevLATRequestStatusMap));
       const LAT_request_element=getLATRequestElementFromLATRequestID(newLATRequestStatusMap,LATRequestID);
       const LAT_request_element_request_specific_data= LAT_request_element.request_specific_data;
-      LAT_request_element_request_specific_data.deleted=false;
+      // LAT_request_element_request_specific_data.deleted=false;
+      LAT_request_element.deleted=false;
       Object.keys(updateVal).forEach((field_name,idx)=>{
         let target_object=LAT_request_element;
         const updated_val=updateVal[field_name];
@@ -320,7 +326,7 @@ function TRDraft() {
     const request_specific_data=LAT_request_element.request_specific_data;
     const study_data=LAT_request_element.study_data;
     const textbook_info=getTextbookInfoByLATRequestID(LATRequestID);
-    const ret={...getTextbookInfoTemplate};
+    const ret={...(getTextbookStudyDataPayloadTemplate())};
     ret["textbookID"]=request_specific_data.duplicatable?"":element_id;
     ret["elementID"]=request_specific_data.duplicatable?element_id:"";
     ret["duplicatable"]=request_specific_data.duplicatable;
@@ -399,6 +405,9 @@ function TRDraft() {
       updateLATRequestElementIDByOldLATRequestID(LATRequestID);
       return false;
     }
+    updateLATRequestElementByLATRequestID(LATRequestID,{
+      "request_specific_data.request_new":false,
+    });
     return true;
   }
 
@@ -459,6 +468,7 @@ function TRDraft() {
       sentimentCondition: myLifeData.정서컨디션,
       goToBedTime: myLifeData.실제취침,
       wakeUpTime: myLifeData.실제기상,
+      deleted:false,
     }
   }
 
@@ -675,6 +685,7 @@ function TRDraft() {
     "textbookID":"",
     "elementID":"",
     "duplicatable":false,
+    "requestNew":true,
     "duplicatable_name":"",
     "duplicatable_subject":"",
     "recent_page":"",
@@ -689,6 +700,7 @@ function TRDraft() {
       ret.textbookID=study_data.textbookID;
       ret.duplicatable=false;
     }
+    ret.requestNew=study_data.request_new;
     return ret;
   }
   function isLATTableElementNameDefault(element_name){
@@ -837,7 +849,9 @@ function TRDraft() {
 
   //프로그램 이수(type3) 관련 코드
   const [programRequestStatusMap,setProgramRequestStatusMap]=useState(null);
+  const default_program_element_name="선택";
   const program_name_list=[
+    default_program_element_name,
     "자기인식",
     "진로탐색",
     "헬스",
@@ -845,17 +859,18 @@ function TRDraft() {
     "독서",
     "외국어"
   ];
+  const program_description_min_len=10;
   const program_description_max_len=500;
-  function getProgramRequestElementTemplate(duplicatableName="",duplicatableSubject=""){
+  function getProgramRequestElementTemplate(){
     return {
       request_specific_data:{
         elementID:"",
-        deleted:false,
-        program_name:null,
-        program_by:null,
+        program_name:"",
+        program_by:"",
         program_description:"",
         request_new:true,
       },
+      deleted:false,
       request_type:3,
       request_status:0,
       review_msg_list:[],
@@ -868,14 +883,15 @@ function TRDraft() {
     const request_specific_data=new_request_element.request_specific_data;
     request_specific_data.elementID=programRequestID;
     return new_request_element;
-  }  
+  }
   function insertProgramRequestElement(programRequestID,updateVal={}){
     console.log(`insert element: ${programRequestID}`);
     setProgramRequestStatusMap(prevProgramRequestStatusMap=>{
       const newProgramRequestStatusMap=JSON.parse(JSON.stringify(prevProgramRequestStatusMap));
       const program_request_element=getProgramRequestElementFromProgramRequestID(newProgramRequestStatusMap,programRequestID);
       const program_request_element_request_specific_data= program_request_element.request_specific_data;
-      program_request_element_request_specific_data.deleted=false;
+      // program_request_element_request_specific_data.deleted=false;
+      program_request_element.deleted=false;
       Object.keys(updateVal).forEach((field_name,idx)=>{
         let target_object=program_request_element;
         const updated_val=updateVal[field_name];
@@ -907,6 +923,19 @@ function TRDraft() {
       return newProgramRequestStatusMap;
     });
   }
+  function updateProgramRequestElementIDByOldProgramRequestID(programRequestID){
+    setProgramRequestStatusMap(prevProgramRequestStatusMap=>{
+      const newProgramRequestStatusMap=JSON.parse(JSON.stringify(prevProgramRequestStatusMap));
+      if(!(programRequestID in newProgramRequestStatusMap)){
+        return newProgramRequestStatusMap;
+      }
+      const program_request_element=getProgramRequestElementFromProgramRequestID(newProgramRequestStatusMap,programRequestID);
+      const new_element_id=getNewProgramRequestID();
+      while(new_element_id in newProgramRequestStatusMap) new_element_id=getNewProgramRequestID();
+      newProgramRequestStatusMap[new_element_id]=program_request_element;
+      return newProgramRequestStatusMap;
+    });
+  }
   function deleteProgramRequestElement(programRequestID){
     setProgramRequestStatusMap(prevProgramRequestStatusMap=>{
       const newProgramRequestStatusMap=JSON.parse(JSON.stringify(prevProgramRequestStatusMap));
@@ -914,17 +943,26 @@ function TRDraft() {
       return newProgramRequestStatusMap;
     });
   }
-
+  function checkProgramRequestElementDeleted(programRequestID){
+    if(!(programRequestID in programRequestStatusMap)) return false;
+    // const request_specific_data=LATRequestStatusMap[LATRequestID].request_specific_data;
+    // if(!("deleted" in request_specific_data)) return false;
+    // return request_specific_data.deleted;
+    const request_element=getProgramRequestElementFromProgramRequestID(programRequestStatusMap,programRequestID);
+    return !!request_element.deleted;
+  }
   function getNewProgramRequestID(){
     return getNewObjectIDString();
   }
   const [programDisplayList,setProgramDisplayList]= useState([]);
   const programDataDeletePayloadTemplate={
     "elementID":"",
+    "requestNew":true,
   };
   function getProgramDataDeleteRequestPayload(study_data){
     const ret={...programDataDeletePayloadTemplate};
     ret.elementID=study_data.elementID;
+    ret.requestNew=study_data.request_new;
     return ret;
   }
   function isProgramTableAppendable(){
@@ -933,7 +971,6 @@ function TRDraft() {
   function getProgramDisplayListFromProgramRequestStatusMap(){
     const ret_dict={};
     Object.keys(programRequestStatusMap).forEach((program_key,idx)=>{
-      const [element_type,element_id]=program_key.split("#");
       ret_dict[program_key]=true;
     });
 
@@ -946,6 +983,120 @@ function TRDraft() {
     });
     // return ret_dict_keys.map((key,idx)=>ret_dict[key]);
     return ret_dict_keys;
+  }
+  function getProgramDataPayloadTemplate(){
+    return {
+      "elementID":"",
+      "deleted":false,
+      "programName":"",
+      "programBy":"",
+      "programDescription":"",
+      "requestNew":true,
+      "timeAmount":time_default_string,
+      "excuse":"",
+      "finishedState":true,
+    };
+  }
+  function getProgramDataByLATRequestID(programRequestID,programFinished=true){
+    // const ret={...assignmentStudyDataPayloadTemplate,AOSID};
+    // ret["excuse"]=myAssignmentStudyData[AOSID].excuse;
+    // ret["timeAmount"]=myAssignmentStudyData[AOSID].time_amount;
+    // ret["finishedState"]=textbookStudyFinished;
+    // if(textbookStudyFinished) ret.excuse="";
+    // return ret;
+    const program_request_element=getProgramRequestElementFromProgramRequestID(programRequestStatusMap,programRequestID);
+    const request_specific_data=program_request_element.request_specific_data;
+    const study_data=program_request_element.study_data;
+    const ret={...(getProgramDataPayloadTemplate())};
+    ret["elementID"]=programRequestID;
+    ret["programName"]=request_specific_data.program_name;
+    ret["programBy"]=request_specific_data.program_by;
+    ret["programDescription"]=request_specific_data.program_description;
+    ret["requestNew"]=request_specific_data.request_new;
+    ret["timeAmount"]=study_data.time_amount;
+    ret["finishedState"]=programFinished;
+    return ret;
+  }
+  function isProgramNameDefault(programName){
+    return programName===default_program_element_name;
+  }
+  function isProgramByDefault(programBy){
+    return programBy===default_program_element_name;
+  }
+  function isProgramDescriptionValid(programDescription){
+    if(typeof programDescription!=="string") return false;
+    return intBetween(programDescription.length,program_description_min_len,program_description_max_len);
+  }
+  function isProgramDataValid(programData,programRequestID){
+    if(!programData) return [false,`error occurred`];
+    else if(!programData.programName || isProgramNameDefault(programData.programName)){
+      return [false,"올바른 프로그램 분류를 선택해주세요"];
+    }
+    else if(!programData.programBy || isProgramByDefault(programData.programBy)){
+      return [false,"올바른 프로그램 진행 매니저를 선택해주세요"];
+    }
+    else if(!checkTimeStringValid(programData.timeAmount)){
+      updateProgramRequestElementByProgramRequestID(programRequestID,{
+        "study_data.time_amount":time_default_string,
+      });
+      return [false,"올바른 프로그램 소요 시간을 입력해주세요"];
+    }
+    else if(!programData.programDescription || !isProgramDescriptionValid(programData.programDescription)){
+      return [false,`프로그램에 대한 설명을 ${program_description_min_len}자 이상 적어주세요`];
+    }
+    else return [true,""];
+  }
+  async function saveProgramDataByProgramRequestID(programRequestID,finishedState,element_index){
+    const program_element_brief=getBriefStringFromProgramRequestID(programRequestID);
+    const element_brief=program_element_brief.length>0?program_element_brief+"\n":`${element_index+1}번째 `;
+    if(!window.confirm(`${element_brief}프로그램 진행에 대한 확인 요청을 보내시겠습니까?`)) return;
+    const program_data=getProgramDataByLATRequestID(programRequestID,true);
+    console.log(`program data payload: ${JSON.stringify(program_data)}`);
+
+    //check if study data for assingment valid
+    const [programDataValid,msg]= isProgramDataValid(program_data,programRequestID);
+    if(!programDataValid){
+      window.alert(`${msg}`);
+      return;
+    }
+    const reset_object_id= await axios
+      .post("/api/saveProgramDataRequest",program_data)
+      .then((res)=>{
+        const data=res.data;
+        if(!data.success) return window.alert(`네트워크 오류로 프로그램 데이터를 저장하지 못했습니다:0`);
+        else{
+          const ret_info=data.ret;
+          if(ret_info && typeof ret_info==="object" && "reset_object_id" in ret_info && ret_info.reset_object_id===true) {
+            window.alert(`네트워크 오류로 프로그램 데이터를 저장하지 못했습니다:0.5`);
+            return true;
+          }
+        }
+        window.alert(`성공적으로 프로그램 데이터를 저장했습니다`);
+        return false;
+      })
+      .catch((error)=>{
+        console.log(`error: ${error}`);
+        return window.alert(`네트워크 오류로 프로그램 데이터를 저장하지 못했습니다:1`);
+      });
+    if(reset_object_id){
+      updateProgramRequestElementIDByOldProgramRequestID(programRequestID);
+      return false;
+    }
+    updateProgramRequestElementByProgramRequestID(programRequestID,{
+      "request_specific_data.request_new":false,
+    });
+    return true;
+  }
+  function getBriefStringFromProgramRequestID(programRequestID){
+    const program_request_element=programRequestStatusMap[programRequestID];
+    const request_specific_data=program_request_element.request_specific_data;
+    const ret_list=[];
+    if(!!request_specific_data.program_name) ret_list.push(request_specific_data.program_name);
+    if(!!request_specific_data.program_description){
+      if(request_specific_data.program_description.length>20) ret_list.push(request_specific_data.program_description.slice(0,20)+"...");
+      else ret_list.push(request_specific_data.program_description);
+    }
+    return ret_list.join(",");
   }
 
   useEffect(()=>{
@@ -1682,7 +1833,7 @@ function TRDraft() {
                                 const request_specific_data=LAT_request_element.request_specific_data;
                                 const delete_request_payload=getTextbookStudyDataDeleteRequestPayload(request_specific_data);
                                 const delete_success=await axios
-                                  .post("/api/setTextbookStudyElementDeletedOnTrDraft",delete_request_payload)
+                                  .post("/api/setLATStudyElementDeletedOnTrDraft",delete_request_payload)
                                   .then((res)=>{
                                     const data=res.data;
                                     if(!data.success) {
@@ -1744,7 +1895,8 @@ function TRDraft() {
                                 const [new_element_type,new_element_id]=new_LAT_table_element_request_id.split("#");
                                 if(prev_element_type==="element" && new_element_type==="element"){
                                   updateLATRequestElementByLATRequestID(LAT_table_element_request_id,{
-                                    "request_specific_data.deleted":false,
+                                    // "request_specific_data.deleted":false,
+                                    "deleted":false,
                                     "request_specific_data.duplicatable":true,
                                     "request_specific_data.duplicatable_name":new_table_element_name,
                                     "request_specific_data.duplicatable_subject":isLATTableElementNameDefault(new_table_element_name)?"":duplicatable_LAT_element_subject_list[0],
@@ -1761,7 +1913,8 @@ function TRDraft() {
                                   const new_element_duplicatable_name=new_element_duplicatable?new_table_element_name:"";
                                   const new_element_duplicatable_subject=new_element_duplicatable?(isLATTableElementNameDefault(new_table_element_name)?"":duplicatable_LAT_element_subject_list[0]):"";
                                   insertLATRequestElement(new_LAT_table_element_request_id,{
-                                    "request_specific_data.deleted":false,
+                                    // "request_specific_data.deleted":false,
+                                    "deleted":false,
                                     "request_specific_data.duplicatable":new_element_duplicatable,
                                     "request_specific_data.duplicatable_name":new_element_duplicatable_name,
                                     "request_specific_data.duplicatable_subject":new_element_duplicatable_subject,
@@ -1931,10 +2084,11 @@ function TRDraft() {
                 <thead>
                 <tr>
                   <th width="5%"></th>
-                  <th width="20%">프로그램</th>
-                  <th width="20%">매니저</th>
+                  <th width="15%">프로그램</th>
+                  <th width="15%">매니저</th>
                   <th width="15%">소요시간</th>
                   <th width="35%">상세내용</th>
+                  <th width="10%">확인요청</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -2044,17 +2198,23 @@ function TRDraft() {
                 })} */}
                 {
                   programDisplayList.map((program_request_element_id,idx)=>{
-                    const program_request_element=getProgramRequestElementFromProgramRequestID(program_request_element_id);
+                    const program_request_element=getProgramRequestElementFromProgramRequestID(programRequestStatusMap,program_request_element_id);
                     const request_specific_data=program_request_element.request_specific_data;
-                    const study_data=program_request_element.program_request_element.study_data;
+                    const study_data=program_request_element.study_data;
+                    const study_data_time_amount=study_data.time_amount;
+                    const program_name=request_specific_data.program_name;
+                    const program_by=request_specific_data.program_by;
                     const program_description=request_specific_data.program_description;
+                    const table_element_index=idx;                 
                     return (
                       <tr key={idx}>
                         <td>
                           <button
                               className="btn btn-opaque"
                               onClick={async () => {
-                                if(!window.confirm(`"${idx+1}번째" 프로그램 항목을 리스트에서 삭제하시겠습니까?`)) return;
+                                const program_element_brief=getBriefStringFromProgramRequestID(program_request_element_id);
+                                const element_brief=program_element_brief.length>0?program_element_brief+"\n":`${table_element_index+1}번째 `;
+                                if(!window.confirm(`${element_brief}프로그램 항목을 리스트에서 삭제하시겠습니까?`)) return;
                                 const program_request_element=getProgramRequestElementFromProgramRequestID(programRequestStatusMap,program_request_element_id);
                                 const request_specific_data=program_request_element.request_specific_data;
                                 const delete_request_payload=getProgramDataDeleteRequestPayload(request_specific_data);
@@ -2083,7 +2243,7 @@ function TRDraft() {
                         <td>
                           <Form.Select
                               size="sm"
-                              value={null}
+                              value={program_name}
                               onChange={(e) => {
                                 const program_name_val=e.target.value;
                                 updateProgramRequestElementByProgramRequestID(program_request_element_id,{
@@ -2091,7 +2251,6 @@ function TRDraft() {
                                 });
                               }}
                           >
-                            <option value="선택">선택</option>
                             {/* {stuDB.프로그램분류.map(function (p, j) {
                               return (
                                   <option value={p} key={j}>
@@ -2113,7 +2272,7 @@ function TRDraft() {
                         <td>
                           <Form.Select
                               size="sm"
-                              value={null}
+                              value={program_by}
                               onChange={(e) => {
                                 const program_by_val=e.target.value;
                                 updateProgramRequestElementByProgramRequestID(program_request_element_id,{
@@ -2121,7 +2280,7 @@ function TRDraft() {
                                 });
                               }}
                           >
-                            <option value="선택">선택</option>
+                            <option value={null}>선택</option>
                             {managerList.map(function (b, j) {
                               return (
                                   <option value={b} key={j}>
@@ -2135,7 +2294,7 @@ function TRDraft() {
                           <TimePicker
                               className="timepicker"
                               locale="sv-sv"
-                              value={null}
+                              value={study_data_time_amount}
                               openClockOnFocus={false}
                               clearIcon={null}
                               clockIcon={null}
@@ -2148,21 +2307,31 @@ function TRDraft() {
                           ></TimePicker>
                         </td>
                         <td>
-                      <textarea
-                          className="textArea"
-                          name=""
-                          id=""
-                          rows="3"
-                          maxLength={program_description_max_len}
-                          placeholder="프로그램 상세내용/특이사항 입력"
-                          value={program_description}
-                          onChange={(e) => {
-                            const program_description_val=e.target.value;
-                            updateProgramRequestElementByProgramRequestID(program_request_element_id,{
-                              "request_specific_data.program_description":program_description_val,
-                            });
-                          }}
-                      ></textarea>
+                          <textarea
+                              className="textArea"
+                              name=""
+                              id=""
+                              rows="3"
+                              maxLength={program_description_max_len}
+                              placeholder="프로그램 상세내용/특이사항 입력"
+                              value={program_description}
+                              onChange={(e) => {
+                                const program_description_val=e.target.value;
+                                updateProgramRequestElementByProgramRequestID(program_request_element_id,{
+                                  "request_specific_data.program_description":program_description_val,
+                                });
+                              }}
+                          ></textarea>
+                        </td>
+                        <td>
+                          <button
+                              className="btn btn-success btn-opaque"
+                              onClick={async ()=>{
+                                saveProgramDataByProgramRequestID(program_request_element_id,true,table_element_index);
+                              }}
+                          >
+                            <FaCheck></FaCheck>
+                          </button>
                         </td>
                       </tr>
                   );
@@ -2170,7 +2339,7 @@ function TRDraft() {
                 }
 
                 <tr>
-                  <td colSpan={5}>프로그램 진행 시간 : {"TBD"}시간</td>
+                  <td colSpan={6}>프로그램 진행 시간 : {"TBD"}시간</td>
                 </tr>
                 <tr>
                   <td colSpan={5}>
