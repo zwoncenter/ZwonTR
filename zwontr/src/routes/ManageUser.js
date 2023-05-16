@@ -115,6 +115,19 @@ function ManageUser() {
       setPagination(updated_status);
     }
   }
+  function getGroupString(groupArray){
+    if(!groupArray || Object.keys(groupArray[0]).length===0) return "";
+    return groupArray.map((e,idx)=>e.group_name).join(", ");
+  }
+  const today=new Date();
+  function checkIsDateToday(date){
+    return today.getFullYear()===date.getFullYear() && today.getMonth()===date.getMonth() && today.getDate()===date.getDate();
+  }
+  function getSignUpDateString(dateString){
+    const date=new Date(dateString);
+    if(checkIsDateToday(date)) return date.toLocaleTimeString();
+    else return date.toLocaleDateString();
+  }
   function getTableRowFromUserInfoDatum(user_info_datum,idx){
     return(
       <tr key={idx}>
@@ -122,7 +135,8 @@ function ManageUser() {
         <td><p>{user_info_datum.username}</p></td>
         <td><p>{user_info_datum.nickname}</p></td>
         <td><p>{user_type_to_user_type_prompt_map[ user_info_datum.userType]}</p></td>
-        <td><p>{isoDateStringToLocalDateString(user_info_datum.signUpDate)}</p></td>
+        <td><p>{getGroupString(user_info_datum.groupOfUser)}</p></td>
+        <td><p>{getSignUpDateString(user_info_datum.signUpDate)}</p></td>
         <td>
           <Button
             variant="success"
@@ -224,6 +238,10 @@ function ManageUser() {
         };
       })
     //here pagenation data should be extracted
+    const status_data=status_data_pagination.status_data;
+    if(status_data.length>0) status_data.sort((a,b)=>{
+      return a.signUpDate>b.signUpDate?-1:a.signUpDate<b.signUpDate?1:0;
+    });
     setPagination(status_data_pagination);
   }
   
@@ -244,7 +262,6 @@ function ManageUser() {
       window.alert("아직 학생 정보가 로드되지 않았습니다.\n같은 문제가 지속될 경우 새로고침 후 다시 시도해주세요.");
       return;
     }
-    console.log(`user info datum: ${JSON.stringify(user_info_datum)}`);
     //choose one student info datum whose nickname datum is equal to selected user's nickname
     const target_student_name= user_info_datum.nickname;
     const student_id_list=Object.keys(studentInfoMap);
@@ -431,10 +448,11 @@ function ManageUser() {
             <thead>
               <tr>
                 <th width="5%"></th>
-                <th width="20%">아이디</th>
-                <th width="20%">이름</th>
+                <th width="15%">아이디</th>
+                <th width="15%">이름</th>
                 <th width="10%">사용자<br/>유형</th>
-                <th width="25%">회원가입 날짜</th>
+                <th width="15%">소속</th>
+                <th width="20%">회원가입 날짜</th>
                 <th width="20%">사용 승인</th>
               </tr>
             </thead>

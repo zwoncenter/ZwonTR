@@ -15,6 +15,38 @@ const versionInfo = "1.6";
 
 function SignUpPage() {
   let history= useHistory();
+  const [groupList,setGroupList]=useState([]);
+  function groupOfUserNeeded(userTypeValue){
+    return userTypeValue==="student" || userTypeValue==="manager";
+  }
+  const group_name_default_option="선택";
+  const default_option={"group_name":group_name_default_option};
+  function getGroupOptionList(){
+    return [default_option,...groupList];
+  }
+  function isGroupOfUserValid(groupOfUserValue){
+    for(let i=0; i<groupList.length; i++){
+      if(groupOfUserValue===groupList[i].group_name) return true;
+    }
+    return false;
+  }
+  useEffect(async ()=>{
+    const group_list= await axios
+      .get("/api/groupList")
+      .then((res)=>{
+        const data=res.data;
+        if(!data.success) {
+          window.alert(`네트워크 오류로 데이터를 불러오지 못했습니다:0`);
+          window.location.reload();
+        }
+        return data.ret;
+      })
+      .catch((error)=>{
+        window.alert(`네트워크 오류로 데이터를 불러오지 못했습니다:1`);
+        window.location.reload();
+      });
+    setGroupList(group_list);
+  },[]);
   function UserTypePage(){
     return (
       <Form>
@@ -160,6 +192,7 @@ function SignUpPage() {
     password_confirm:false,
     nickname:false,
     birth_date:false,
+    group_of_user:false,
     sex:false,
     phone_number:false,
     email:false,
@@ -175,6 +208,7 @@ function SignUpPage() {
     birth_date_year:false,
     birth_date_month:false,
     birth_date_date:false,
+    group_of_user:false,
     sex:false,
     phone_number:false,
     email:false,
@@ -201,6 +235,7 @@ function SignUpPage() {
     school_attending_info_status:"졸업(검정고시 포함)",
     school_attending_info_department:"인문계열",
     school_attending_info_major:"",
+    group_of_user:null,
   });
   const [usernameDuplicationChecked,setUsernameDuplicationChecked]=useState(false);
   const [termAgreedDate,setTremAgreedDate]=useState(null);
@@ -222,6 +257,7 @@ function SignUpPage() {
   function getUserRegisterInfo(){
     return {
       userType:userType,
+      groupOfUser:userInfo.group_of_user,
       termAgreedDate:termAgreedDate,
       username:userInfo.username,
       password:userInfo.password,
@@ -252,7 +288,7 @@ function SignUpPage() {
     return usernameDuplicationChecked;
   }
   function isPasswordValid(password){
-    const matched=password.match(/^(?=.*[a-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,10}$/);
+    const matched=password.match(/^(?=.*[a-z])(?=.*\d)[A-Za-z\d]{8,16}$/);
     if(matched){
       return password.length===matched[0].length;
     }
@@ -486,6 +522,29 @@ function SignUpPage() {
             올바른 생년월일을 입력해주세요.
           </span>:null}
         </Row>
+
+        {groupOfUserNeeded(userType)?
+          <Row className="mb-3 userInfoRow">
+            <label for="group_of_user" className="userInfoInputLabel">
+              <strong>소속</strong>
+              {isFieldCheckedAndValid("group_of_user")?<span className="userInfoInputValidMark"> ✔</span>:null}
+            </label>
+            <select
+              id="group_of_user"
+              className="userInfoInputBox-third mb-1 me-3"
+              value={userInfo.group_of_user}
+              onChange={(e)=>{
+                updateUserInfoByFieldName("group_of_user",e.target.value,isGroupOfUserValid);
+              }}
+            >
+              {(getGroupOptionList()).map((element)=><option value={element.group_name}>{element.group_name}</option>)}
+            </select>
+            {isFieldInvalid("group_of_user")?
+            <span className="userInfoFeedbackInvalid">
+              올바른 소속을 선택해주세요
+            </span>:null}
+          </Row>
+        :null}
       </Form>
     );
   }
@@ -497,6 +556,7 @@ function SignUpPage() {
     else if(!isPasswordConfirmed(userInfo.password_confirm)) window.alert("재입력한 비밀번호가 일치하지 않습니다");
     else if(!isNicknameValid(userInfo.nickname)) window.alert("올바른 이름이 아닙니다");
     else if(!isBirthDateValid(userInfo.birth_date_date)) window.alert("올바른 생년월일이 아닙니다");
+    else if(groupOfUserNeeded(userType) && !isGroupOfUserValid(userInfo.group_of_user)) window.alert("올바른 소속을 선택해주세요");
     else ret=true;
     return ret;
   }

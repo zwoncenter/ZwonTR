@@ -1188,6 +1188,21 @@ app.get("/api/getMyTodayTRDraftRequestsAll",loginCheck, permissionCheck(Role("st
   }
 });
 
+//get manager list from registered user accounts whose roles are designated as "manager"s
+app.get("/api/groupList", async (req, res) => {
+  const ret={"success":false,"ret":null};
+  try{
+    const group_list= await db.collection("Group").find({group_name:{"$exists":true}}).project({_id:0}).toArray();
+    ret["success"]=true; ret["ret"]=group_list;
+  }
+  catch(e){
+    ret["ret"]="그룹 목록을 불러오는 중 오류가 발생했습니다";
+  }
+  finally{
+    return res.json(ret);
+  }
+});
+
 app.post("/api/checkUsernameAvailable", async function(req,res){
   const ret_val={"success":true, "ret":null};
   try{
@@ -1208,14 +1223,14 @@ app.post("/api/checkUsernameAvailable", async function(req,res){
   }
 });
 
-function getUserObjectWithRegisterInfo(register_info,salt,password_hashed){
+function getUserObjectWithRegisterInfo(register_info,salt,password_hashed,current_date){
   return {
     username:register_info.username,
     salt:salt,
     password:password_hashed,
     email:register_info.email,
     nickname:register_info.nickname,
-    create_date: getCurrentDate(),
+    create_date: current_date,
     modify_date:null,
     term_agreed_date:new Date(register_info.termAgreedDate),
     approved:false,
@@ -1259,12 +1274,23 @@ app.post("/api/registerUser", async function(req,res){
     else if(!validator.isGenderValid(register_info.gender)) ret_val["ret"]["excuse"]="올바른 성별이 아닙니다";
     else if(!validator.isPhoneNumberValid(register_info.phoneNumber)) ret_val["ret"]["excuse"]="올바른 휴대전화 번호가 아닙니다";
     else if(!validator.isAddressValid(register_info.address)) ret_val["ret"]["excuse"]="올바른 주소가 아닙니다";
-    else if(validator.MajorInfoNeeded(register_info.userType, register_info.schoolAttendingStatus.school) && !validator.isMajorValid(register_info.schoolAttendingStatus.major)) ret_val["ret"]["excuse"]="올바른 학과명이 아닙니다";
+    else if(!validator.isSchoolAttendingStatusValid(register_info.schoolAttendingStatus.school,register_info.schoolAttendingStatus.status)) ret_val["ret"]["excuse"]="올바른 재학 정보가 아닙니다";
+    else if(validator.MajorInfoNeeded(register_info.userType, register_info.schoolAttendingStatus.school) && !(validator.isDepartmentValid(register_info.schoolAttendingStatus.department) && validator.isMajorValid(register_info.schoolAttendingStatus.major))) ret_val["ret"]["excuse"]="올바른 학과명이 아닙니다";
     else fields_valid=true;
 
     if(!fields_valid) return;
+
+    //lastly, check if gropuofuser field valid
+    const group_designated=validator.groupOfUserNeeded(register_info.userType);
+    let group_doc=null;
+    if(group_designated){
+      group_doc= await db.collection("Group").findOne({"group_name":register_info.groupOfUser});
+      if(!group_doc) throw new Error("no such group name");
+    }
+
+    const current_date=getCurrentDate();
     const [salt,password_hashed]=authentificator.makeHashedSync(register_info.password);
-    const user_info=getUserObjectWithRegisterInfo(register_info,salt,password_hashed);
+    const user_info=getUserObjectWithRegisterInfo(register_info,salt,password_hashed,current_date);
     const user_id= new ObjectId();
     user_info["_id"]=user_id;
     await db.collection("User").insertOne(user_info);
@@ -1272,12 +1298,19 @@ app.post("/api/registerUser", async function(req,res){
     const role_doc=await db.collection("Role").findOne({role_index:roles.roleNameToIndex[register_info.userType]});
     const role_id= role_doc._id;
 
-    await db.collection("RoleOfUser").insertOne({user_id:user_id,role_id:role_id,modify_date:getCurrentDate(),activated:false});
+    await db.collection("RoleOfUser").insertOne({user_id:user_id,role_id:role_id,modify_date:current_date,activated:false});
+
+    if(group_designated) {
+      const group_id=group_doc._id;
+      await db.collection("GroupOfUser").insertOne({user_id:user_id,group_id:group_id,modify_date:current_date,activated:false});
+    }
 
     ret_val["ret"]["registered"]=true;
     session.commitTransaction();
   }
   catch(error){
+    console.log(`error: ${JSON.stringify(error)}`);
+    console.log(`invalid excuse: ${JSON.stringify(ret_val)}`);
     await session.abortTransaction();
     ret_val["success"]=false;
     ret_val["ret"]=`이미 사용중인 아이디입니다`;
@@ -1340,6 +1373,75 @@ app.get("/api/managerList", loginCheck, permissionCheck(Role("student"),Role("ma
   const ret={"success":false,"ret":null};
   try{
     const ret_data= await db.collection("Manager").find().toArray();
+    ret["success"]=true; ret["ret"]=ret_data[0]["매니저"];
+  }
+  catch(e){
+    ret["ret"]="매니저 목록 데이터를 불러오는 중 오류가 발생했습니다";
+  }
+  finally{
+    return res.json(ret);
+  }
+});
+
+//get manager list from registered user accounts whose roles are designated as "manager"s
+app.get("/api/managerListFromUserAccount", loginCheck, permissionCheck(Role("student"),Role("manager"),Role("admin")), async (req, res) => {
+  const ret={"success":false,"ret":null};
+  try{
+    // const ret_data= await db.collection("Manager").find().toArray();
+    const manager_list= await db.collection("User").aggregate([
+      {
+        $match:{
+          approved:true,
+        }
+      },
+      {
+        $lookup: {
+          from: "RoleOfUser",
+          localField: "_id",
+          foreignField: "user_id",
+          as: "RoleOfUser_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$RoleOfUser_aggregate",
+        }
+      },
+      {
+        $lookup: {
+          from: "Role",
+          localField: "RoleOfUser_aggregate.role_id",
+          foreignField: "_id",
+          as: "Role_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$Role_aggregate",
+        }
+      },
+      {
+        $match:{
+          "RoleOfUser_aggregate.activated":true,
+        }
+      },
+      {
+        $project: {
+          _id:0,
+          username: "$username",
+          nickname: "$nickname",
+          userType: "$Role_aggregate.role_name",
+          signUpDate: "$create_date",
+          approved: 1,
+        },
+      },
+      {
+        $facet:{
+          metadata:[{$count:"total_items_num"}],
+          data:[{$sort:{created_date:-1,modify_date:-1,approved_date:-1}},{$skip:items_per_page*(queryPage-1)},{$limit:items_per_page}]
+        }
+      }
+    ]).toArray();
     ret["success"]=true; ret["ret"]=ret_data[0]["매니저"];
   }
   catch(e){
@@ -3651,6 +3753,12 @@ app.post("/api/searchUserAccountApprovedStatus", loginCheck, permissionCheck(Rol
     };
     if(!query_all_user_type && !username) second_match_stage["$match"]["Role_aggregate.role_index"]=user_type_index;
 
+    const third_match_stage={
+      $match:{
+        "$or":[{"GroupOfUser_aggregate.activated":{"$exists":false}},{"GroupOfUser_aggregate.activated":approved_status,}],
+      }
+    };
+
     const result_data= (await db.collection("User").aggregate([
       first_match_stage,
       {
@@ -3681,15 +3789,55 @@ app.post("/api/searchUserAccountApprovedStatus", loginCheck, permissionCheck(Rol
       },
       second_match_stage,
       {
-        $project: {
-          _id:0,
-          username: "$username",
-          nickname: "$nickname",
-          userType: "$Role_aggregate.role_name",
-          signUpDate: "$create_date",
-          approved: 1,
+        $lookup: {
+          from: "GroupOfUser",
+          localField: "_id",
+          foreignField: "user_id",
+          as: "GroupOfUser_aggregate",
         },
       },
+      { 
+        $unwind: {
+          path:"$GroupOfUser_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      third_match_stage,
+      {
+        $lookup: {
+          from: "Group",
+          localField: "GroupOfUser_aggregate.group_id",
+          foreignField: "_id",
+          as: "Group_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$Group_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      {
+        $group: {
+          _id: {_id: "$_id"},
+          username: {"$first": "$username"},
+          nickname: {"$first": "$nickname"},
+          userType: {"$first": "$Role_aggregate.role_name"},
+          signUpDate: {"$first": "$create_date"},
+          groupOfUser: {"$push":{group_name:"$Group_aggregate.group_name"}},
+          approved: {"$first": "$approved"},
+        }
+      },
+      // {
+      //   $project: {
+      //     _id:0,
+      //     username: "$username",
+      //     nickname: "$nickname",
+      //     userType: "$Role_aggregate.role_name",
+      //     signUpDate: "$create_date",
+      //     approved: 1,
+      //   },
+      // },
       {
         $facet:{
           metadata:[{$count:"total_items_num"}],
@@ -3709,6 +3857,7 @@ app.post("/api/searchUserAccountApprovedStatus", loginCheck, permissionCheck(Rol
     } 
   }
   catch(error){
+    console.log(`error: ${JSON.stringify(error)}`);
     ret_val["success"]=false;
     ret_val["ret"]= `네트워크 오류로 데이터를 불러오지 못했습니다`;
   }
@@ -3809,13 +3958,22 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
         }
       },
       {
+        $lookup: {
+          from: "GroupOfUser",
+          localField: "_id",
+          foreignField: "user_id",
+          as: "GroupOfUser_aggregate",
+        },
+      },
+      {
         $project: {
           user_id:"$_id",
           username: "$username",
           user_approved: "$approved",
           role_index: "$Role_aggregate.role_index",
           role_of_user_id: "$RoleOfUser_aggregate._id",
-          role_of_user_activated: "$RoleOfUser_aggregate.activated"
+          role_of_user_activated: "$RoleOfUser_aggregate.activated",
+          group_of_user_list: "$GroupOfUser_aggregate"
         },
       },
     ],{session}).toArray();
@@ -3841,9 +3999,10 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
 
     await db.collection('RoleOfUserLog').insertOne(
       {
-      role_of_user_id:current_status.role_of_user_id,
-      role_index:current_status.role_index,
-      info_modified_date:cur_time,
+        role_of_user_id:current_status.role_of_user_id,
+        role_index:current_status.role_index,
+        info_modified_date:cur_time,
+        triggered_by:approving_admin_id,
       },
       {session}
     );
@@ -3853,6 +4012,7 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
       {$set:{
         activated:status_value,
         modify_date:cur_time,
+        modified_by:approving_admin_id,
       }},
       {session}
     );
@@ -3866,6 +4026,25 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
       }},
       {session}
     );
+
+    const group_of_user_list=current_status.group_of_user_list;
+    if(group_of_user_list.length>0){
+      const group_of_user_logs=group_of_user_list.map((group_of_user,idx)=>{
+        return {
+          group_of_user_id:group_of_user._id,
+          info_modified_date:cur_time,
+          triggered_by:approving_admin_id,
+        };
+      });
+      const group_of_user_id_list=group_of_user_list.map((group_of_user,idx)=>group_of_user._id);
+      const updated_fields={
+        activated:true,
+        modify_date:cur_time,
+        modified_by:approving_admin_id,
+      };
+      await db.collection("GroupOfUserLog").insertMany(group_of_user_logs,{ordered:true,session});
+      await db.collection("GroupOfUser").updateMany({_id:{"$in":group_of_user_id_list}},{"$set":updated_fields},{session});
+    }
 
     if(related_document_id){
       await setUserInfoOfRelatedDocument(user_type_string,related_document_id,current_status.user_id,current_status.role_of_user_id,session);
