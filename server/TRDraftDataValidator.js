@@ -4,26 +4,34 @@ const request_type_name_to_index={
     "LectureAndTextbookStudyData":2,
     "ProgramParticipationData":3,
 }
+const request_status_to_index={
+    "created":0,
+    "review_needed":1,
+    "confirmed":2,
+};
 const request_document_template={
     student_id:null,
     date:null,
+    modify_date:null,
     request_status:0,
     request_type:null,
     request_specific_data:null,
     study_data_list:null,
-    review_msg_list:null,
     deleted:false,
 };
 const request_study_data_template={
     excuse:null,
     time_amount:null,
     finished_state:true,
+    review_id:null,
     timestamp:null,
 };
-const request_review_msg_template={
-    review_msg:null,
+const request_review_document_template={
+    tr_draft_request_id:null,
+    study_data_review_id:null,
     review_from:null,
-    timestamp:null,
+    review_msg:null,
+    modify_date:null,
 };
 const duplicatable_name_list=["모의고사","테스트","기타"];
 const duplicatable_subject_list=["국어","수학","영어","탐구","기타"];
@@ -34,6 +42,8 @@ const program_description_min_len=10;
 const program_description_max_len=500;
 const daily_active_program_request_max_count=50;
 const daily_program_request_max_count=500;
+
+const reviewer_array_max_len=20;
 function intBetween(a,left,right){
     return a>=left && a<=right;
 }
@@ -62,15 +72,15 @@ function getNewLifeDataRequestDocument(student_id,today_string){
     request_doc["request_type"]=request_type_name_to_index["lifeData"];
     // request_doc["request_specific_data"]={};
     delete request_doc["request_specific_data"];
-    request_doc["study_data_list"]=[];
-    request_doc["review_msg_list"]=[];
+    // request_doc["study_data_list"]=[];
+    delete request_doc["study_data_list"];
     return request_doc;
 }
 function checkExcuseValueValid(excuse_val,finishedState){
     return (typeof excuse_val === "string") && ((finishedState===true && excuse_val.length===0) || (finishedState===false && intBetween(excuse_val.length,15,200)));
 }
 function checkRequestDataUpdatable(request_status){
-    return request_status===0 || request_status===2;
+    return request_status===request_status_to_index["created"];
 }
 function getNewAssignmentStudyDataRequestDocument(student_id,today_string,AOSID){
     const request_doc={...request_document_template};
@@ -81,7 +91,6 @@ function getNewAssignmentStudyDataRequestDocument(student_id,today_string,AOSID)
     // request_doc["request_specific_data"]={AOSID};
     delete request_doc["request_specific_data"];
     request_doc["request_specific_data.AOSID"]=AOSID;
-    request_doc["review_msg_list"]=[];
     delete request_doc["study_data_list"];
     return request_doc;
 }
@@ -109,7 +118,6 @@ function getNewLATStudyDataRequestDocument(student_id,today_string,textbookID,el
     request_doc["request_specific_data.duplicatable_name"]=duplicatableName;
     request_doc["request_specific_data.duplicatable_subject"]=duplicatableSubject;
     request_doc["request_specific_data.recent_page"]=recentPage;
-    request_doc["review_msg_list"]=[];
     delete request_doc["study_data_list"];
     return request_doc;
 }
@@ -142,7 +150,6 @@ function getNewProgramDataRequestDocument(student_id,today_string,elementID,prog
     request_doc["request_specific_data.program_name"]=programName;
     request_doc["request_specific_data.program_by"]=programBy;
     request_doc["request_specific_data.program_description"]=programDescription;
-    request_doc["review_msg_list"]=[];
     delete request_doc["study_data_list"];
     return request_doc;
 }
@@ -162,10 +169,36 @@ function checkProgramDescriptionValid(programDescription){
     if(typeof programDescription !=="string") return false;
     return intBetween(programDescription.length,program_description_min_len,program_description_max_len);
 }
+function checkReviewerUsernameValid(reviewer_username){
+    return typeof reviewer_username==="string";
+}
+function checkReviewerUsernameArrayValid(reviewer_array){
+    if(!Array.isArray(reviewer_array) || reviewer_array.length>reviewer_array_max_len) return false;
+    for(let i=0; i<reviewer_array.length; i++){
+        const reviewer_username=reviewer_array[i];
+        if(!checkReviewerUsernameValid(reviewer_username)) return false;
+    }
+    return true;
+}
+function getNewRequestReviewDocument(requestOid,studyDataReviewOid,reviewFromOid){
+    const ret={...request_review_document_template};
+    ret.tr_draft_request_id=requestOid;
+    ret.study_data_review_id=studyDataReviewOid;
+    ret.review_from=reviewFromOid;
+    return ret;
+}
+function getNewRequestReviewListByUserDocumentList(requestOid,studyDataReviewOid,userDocumentList){
+    return userDocumentList.map((user_doc,idx)=>{
+        const user_id=user_doc._id;
+        const new_review_doc=getNewRequestReviewDocument(requestOid,studyDataReviewOid,user_id);
+        return new_review_doc;
+    });
+}
 module.exports={
     request_document_template,
+    request_status_to_index,
     request_study_data_template,
-    request_review_msg_template,
+    request_review_document_template,
     request_type_name_to_index,
     daily_active_LAT_request_max_count,
     daily_LAT_request_max_count,
@@ -187,4 +220,7 @@ module.exports={
     checkProgramNameValid,
     checkProgramByValid,
     checkProgramDescriptionValid,
+    checkReviewerUsernameArrayValid,
+    getNewRequestReviewDocument,
+    getNewRequestReviewListByUserDocumentList,
 }

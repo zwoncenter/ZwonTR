@@ -29,6 +29,30 @@ function TRDraft() {
   let paramDate= today;
   const [managerList, setmanagerList] = useState([]);
 
+  function getManagerNicknameByUsername(manager_username){
+    for(let i=0; i<managerList.length; i++){
+      const manager=managerList[i];
+      if(manager.username===manager_username) return manager.nickname;
+    }
+    return "";
+  }
+  function checkReviewerUsernameValid(reviewer_username){
+    for(let i=0; i<managerList.length; i++){
+      const manager=managerList[i];
+      if(manager.username===reviewer_username) return true;
+    }
+    return false;
+  }
+  const reviewer_array_max_len=20;
+  function checkReviewerUsernameArrayValid(reviewer_array){
+    if(!Array.isArray(reviewer_array) || reviewer_array.length>reviewer_array_max_len || reviewer_array.length===0) return false;
+    for(let i=0; i<reviewer_array.length; i++){
+      const reviewer_username=reviewer_array[i];
+      if(!checkReviewerUsernameValid(reviewer_username)) return false;
+    }
+    return true;
+  }
+
   function getThisWeek(inputDate) { //return two dates: sunday to sunday; parameter: date string
     //console.log(inputDate);
     var inputDate = new Date(inputDate);
@@ -195,7 +219,6 @@ function TRDraft() {
       deleted:false,
       request_type:2,
       request_status:0,
-      review_msg_list:[],
       study_data:getStudyDataTemplate(),
     };
   }
@@ -371,7 +394,6 @@ function TRDraft() {
     const textbook_info=getTextbookInfoByLATRequestID(LATRequestID);
     const textbookName=textbook_info.교재;
     const textbookSubject=textbook_info.과목;
-    if(!window.confirm(`선택한 수업 및 일반교재\n(${textbookSubject})[${textbookName}]\n학습의 확인 요청을 보내시겠습니까?`)) return;
     const study_data= getTextbookStudyDataByLATRequestID(LATRequestID,finishedState);
     console.log(`study data payload: ${JSON.stringify(study_data)}`);
     // console.log(`study data: ${JSON.stringify(study_data)}`);
@@ -380,22 +402,25 @@ function TRDraft() {
     const [textbookStudyValid,msg]= isTextbookStudyDataValid(study_data,LATRequestID);
     if(!textbookStudyValid){
       window.alert(`${msg}`);
-      return;
+      return false;
     }
-    const reset_object_id= await axios
+    const [save_successful,reset_object_id]= await axios
       .post("/api/saveLATStudyDataRequest",study_data)
       .then((res)=>{
         const data=res.data;
-        if(!data.success) return window.alert(`네트워크 오류로 수업 및 일반교재 학습 데이터를 저장하지 못했습니다:0`);
+        if(!data.success) {
+          window.alert(`네트워크 오류로 수업 및 일반교재 학습 데이터를 저장하지 못했습니다:0`);
+          return [false,false];
+        }
         else{
           const ret_info=data.ret;
           if(ret_info && typeof ret_info==="object" && "reset_object_id" in ret_info && ret_info.reset_object_id===true) {
             window.alert(`네트워크 오류로 수업 및 일반교재 학습 데이터를 저장하지 못했습니다:0.5`);
-            return true;
+            return [false,true];
           }
         }
         window.alert(`성공적으로 수업 및 일반교재 학습 데이터를 저장했습니다`);
-        return false;
+        return [true,false];
       })
       .catch((error)=>{
         console.log(`error: ${error}`);
@@ -405,10 +430,12 @@ function TRDraft() {
       updateLATRequestElementIDByOldLATRequestID(LATRequestID);
       return false;
     }
-    updateLATRequestElementByLATRequestID(LATRequestID,{
-      "request_specific_data.request_new":false,
-    });
-    return true;
+    if(save_successful){
+      updateLATRequestElementByLATRequestID(LATRequestID,{
+        "request_specific_data.request_new":false,
+      });
+    }
+    return save_successful;
   }
 
   useEffect(async ()=>{
@@ -430,9 +457,9 @@ function TRDraft() {
     setProgramRequestStatusMap(getProgramRequestStatusMap(prevRequestData));
   },[]);
 
-  // useEffect(()=>{
-  //   console.log(`lat request status map: ${JSON.stringify(LATRequestStatusMap)}`);
-  // },[LATRequestStatusMap]);
+  useEffect(()=>{
+    console.log(`lat request status map: ${JSON.stringify(LATRequestStatusMap)}`);
+  },[LATRequestStatusMap]);
 
   //생활 데이터 관련 코드
   const [myLifeCycleAndStudyTimeGoals,setMyLifeCycleAndStudyTimeGoals]= useState(life_cycle_and_study_time_goals_template);
@@ -462,14 +489,56 @@ function TRDraft() {
     return checkConditionValueValid(myLifeData.신체컨디션) && checkConditionValueValid(myLifeData.정서컨디션)
       && checkTimeStringValid(myLifeData.실제취침) && checkTimeStringValid(myLifeData.실제기상);
   }
-  function getMyLifeData(){
-    return {
+  const lifeDataPayloadTemplate={
+    bodyCondition: null,
+    sentimentCondition: null,
+    goToBedTime: null,
+    wakeUpTime: null,
+    reviewedBy: [],
+  };
+  function getLifeData(){
+    const ret={...lifeDataPayloadTemplate,
       bodyCondition: myLifeData.신체컨디션,
       sentimentCondition: myLifeData.정서컨디션,
       goToBedTime: myLifeData.실제취침,
       wakeUpTime: myLifeData.실제기상,
-      deleted:false,
+      reviewedBy: [requestGoesTo],
+    };
+    return ret;
+  }
+  function isLifeDataValid(lifeData){
+    if(!lifeData) return [false,`error occurred`];
+    else if(!checkConditionValueValid(lifeData.bodyCondition)) return [false,"올바른 신체 컨디션을 선택해주세요"];
+    else if(!checkConditionValueValid(lifeData.sentimentCondition)) return [false,"올바른 정서 컨디션을 선택해주세요"];
+    else if(!checkTimeStringValid(lifeData.goToBedTime)) return [false,"올바른 실제 취침 시간을 입력해주세요"];
+    else if(!checkTimeStringValid(lifeData.wakeUpTime)) return [false,"올바른 실제 기상 시간을 입력해주세요"];
+    else return [true,""];
+  }
+  async function saveLifeData(){
+    const life_data=getLifeData();
+    console.log(`life data payload: ${JSON.stringify(life_data)}`);
+    const [valid,msg]=isLifeDataValid(life_data);
+    if(!valid){
+      window.alert(`${msg}`);
+      return false;
     }
+
+    const save_success=await axios
+      .post("/api/saveLifeDataRequest",life_data)
+      .then((res)=>{
+        const data=res.data;
+        if(!data.success) {
+          window.alert(`네트워크 오류로 생활 정보를 저장하지 못했습니다:0`);
+          return false;
+        }
+        window.alert(`성공적으로 생활 정보를 저장했습니다`);
+        return true;
+      })
+      .catch((error)=>{
+        window.alert(`네트워크 오류로 생활 정보를 저장하지 못했습니다:1`);
+        return false;
+      });
+    return save_success;
   }
 
   useEffect(async ()=>{
@@ -543,6 +612,13 @@ function TRDraft() {
     }
     return ret;
   }
+  function checkAssignmentElementHasPageRangeElement(assignmentElement){
+    const first_page_range_element=(assignmentElement.pageRangeArray)[0];
+    return !!first_page_range_element[0];
+  }
+  function checkAssignmentElementHasDescription(assignmentElement){
+    return !!assignmentElement.description;
+  }
   function getLectureNameOfAssignmentByAOSID(AOSID){
     let ret="";
     for(let i=0; i<myAssignmentInfo.assignments.length; i++){
@@ -570,10 +646,11 @@ function TRDraft() {
       .catch((err)=>{
         return [];
       });
+    // console.log(`cur assignments: ${JSON.stringify(current_assignments)}`);
     setMyAssignmentInfo({"assignments":current_assignments});
   },[]);
 
-  const [myAssignmentStudyData,setMyAssignmentStudyData]= useState({});
+  const [myAssignmentStudyData,setMyAssignmentStudyData]= useState({}); // map for storing study data of assignment(time amount, excuse)
   const time_default_string="00:00";
   const assignmentStudyDataTemplate={
     "time_amount":time_default_string,
@@ -582,21 +659,26 @@ function TRDraft() {
   };
   const assignmentStudyDataPayloadTemplate={
     "AOSID":"",
-    "timeAmount":time_default_string,
+    "timeAmount":null,
     "excuse":"",
     "finishedState":true,
+    "reviewedBy":null,
   };
   function getAssignmentStudyDataByAOSID(AOSID,assignment_finished=false){
     if(!(AOSID in myAssignmentStudyData)) {
       const newAssignmentStudyData=JSON.parse(JSON.stringify(myAssignmentStudyData));
-      newAssignmentStudyData[AOSID]={...assignmentStudyDataTemplate};
+      newAssignmentStudyData[AOSID]={...getStudyDataTemplate(),time_amount:time_default_string};
       setMyAssignmentStudyData(newAssignmentStudyData);
-      return {...assignmentStudyDataTemplate,finishedState:assignment_finished,AOSID};
+      return {...assignmentStudyDataPayloadTemplate,finishedState:assignment_finished,AOSID};
     }
-    const ret={...assignmentStudyDataPayloadTemplate,AOSID};
-    ret["excuse"]=myAssignmentStudyData[AOSID].excuse;
-    ret["timeAmount"]=myAssignmentStudyData[AOSID].time_amount;
-    ret["finishedState"]=assignment_finished;
+    const assignment_study_data=myAssignmentStudyData[AOSID];
+    const ret={...assignmentStudyDataPayloadTemplate,
+      excuse:assignment_study_data.excuse,
+      timeAmount:assignment_study_data.time_amount,
+      finishedState:assignment_finished,
+      reviewedBy:[requestGoesTo],
+      AOSID,
+    };
     if(assignment_finished) ret.excuse="";
     return ret;
   }
@@ -611,16 +693,18 @@ function TRDraft() {
     else if(!checkTimeStringValid) return [false,"올바른 학습시간을 입력해주세요"];
     else if(assignmentStudyData.finishedState===false && !checkStudyExcuseValid(assignmentStudyData.excuse))
       return [false,"과제 미완료 사유를 15글자 이상 입력해주세요"];
+    else if(!checkReviewerUsernameArrayValid(assignmentStudyData["reviewedBy"])) return [false,"지정된 리뷰어가 올바르지 않습니다"];
     else return [true,""];
   }
   async function saveAssignmentStudyDataByAOSID(AOSID,finishedState){
     const assignmnet_element=getAssignmentElementByAOSID(AOSID);
-    if(!window.confirm(`[${assignmnet_element["lectureName"]}]\n"${getDescriptionStringFromAssignment(assignmnet_element)}"\n과제에 대한 확인 요청을 보내시겠습니까?`)) return;
+    // if(!window.confirm(`[${assignmnet_element["lectureName"]}]\n"${getDescriptionStringFromAssignment(assignmnet_element)}"\n과제에 대한 확인 요청을 보내시겠습니까?`)) return;
     const study_data=getAssignmentStudyDataByAOSID(AOSID,finishedState);
+    console.log(`assignment study data payload: ${JSON.stringify(study_data)}`);
     const [assignmentStudyDataValid,msg]=isAssignmentStudyDataValid(study_data);
     if(!assignmentStudyDataValid){
       window.alert(`${msg}`);
-      return;
+      return false;
     }
 
     const save_success=await axios
@@ -873,7 +957,6 @@ function TRDraft() {
       deleted:false,
       request_type:3,
       request_status:0,
-      review_msg_list:[],
       study_data:getStudyDataTemplate(),
     };
   }
@@ -1059,33 +1142,39 @@ function TRDraft() {
       window.alert(`${msg}`);
       return;
     }
-    const reset_object_id= await axios
+    const [save_successful,reset_object_id]= await axios
       .post("/api/saveProgramDataRequest",program_data)
       .then((res)=>{
         const data=res.data;
-        if(!data.success) return window.alert(`네트워크 오류로 프로그램 데이터를 저장하지 못했습니다:0`);
+        if(!data.success) {
+          window.alert(`네트워크 오류로 프로그램 데이터를 저장하지 못했습니다:0`);
+          return [false,false];
+        }
         else{
           const ret_info=data.ret;
           if(ret_info && typeof ret_info==="object" && "reset_object_id" in ret_info && ret_info.reset_object_id===true) {
             window.alert(`네트워크 오류로 프로그램 데이터를 저장하지 못했습니다:0.5`);
-            return true;
+            return [false,true];
           }
         }
         window.alert(`성공적으로 프로그램 데이터를 저장했습니다`);
-        return false;
+        return [true,false];
       })
       .catch((error)=>{
         console.log(`error: ${error}`);
-        return window.alert(`네트워크 오류로 프로그램 데이터를 저장하지 못했습니다:1`);
+        window.alert(`네트워크 오류로 프로그램 데이터를 저장하지 못했습니다:1`);
+        return [false,false];
       });
     if(reset_object_id){
       updateProgramRequestElementIDByOldProgramRequestID(programRequestID);
       return false;
     }
-    updateProgramRequestElementByProgramRequestID(programRequestID,{
-      "request_specific_data.request_new":false,
-    });
-    return true;
+    if(save_successful){
+      updateProgramRequestElementByProgramRequestID(programRequestID,{
+        "request_specific_data.request_new":false,
+      });
+    }
+    return save_successful;
   }
   function getBriefStringFromProgramRequestID(programRequestID){
     const program_request_element=programRequestStatusMap[programRequestID];
@@ -1353,25 +1442,354 @@ function TRDraft() {
     return true;
   }
 
-  const [currentExcuseInfo,setCurrentExcuseInfo]= useState({}); //excuse modal related data
-  const [showExcuseModal,setShowExcuseModal]= useState(false); //excuse modal open/close state
+  const [currentConfirmInfo,setCurrentConfirmInfo]= useState({}); //excuse modal related data
+  const [showConfirmModal,setShowConfirmModal]= useState(false); //excuse modal open/close state
+  const [confirmType,setConfirmType]= useState(-1);
+  const [requestGoesTo,setRequestGoesTo]= useState(null); //user name who will receive current displayed draft element confirm request
+
+  const confirmTypeToIndexMap={
+    "default":-1,
+    "life":0,
+    "assignment":1,
+    "lectureAndTextbook":2,
+    "program":3
+  }
+  function getConfirmModalTitle(){
+    if(confirmType===confirmTypeToIndexMap["default"]) return "";
+    else if(confirmType===confirmTypeToIndexMap["life"]) return "생활 정보 확인";
+    else if(confirmType===confirmTypeToIndexMap["assignment"]) return "수업 과제 학습 확인";
+    else if(confirmType===confirmTypeToIndexMap["lectureAndTextbook"]) return "수업 및 일반교재 학습 확인";
+    else if(confirmType===confirmTypeToIndexMap["program"]) return "진행한 프로그램 확인";
+  }
+  function getConfirmModalBody(){
+    if(confirmType===confirmTypeToIndexMap["default"]) return null;
+    else if(confirmType===confirmTypeToIndexMap["life"]) return getLifeModalBody();
+    else if(confirmType===confirmTypeToIndexMap["assignment"]) return getAssignmentStudyModalBody();
+    else if(confirmType===confirmTypeToIndexMap["lectureAndTextbook"]) return getLATStudyModalBody();
+    else if(confirmType===confirmTypeToIndexMap["program"]) return null;
+  }
   
-  const excuse_for_template={
-    excuse_for:"assignment",
+  const confirm_for_template={
+    confirm_for:"assignment",
     extra_data:[],
     description:"",
+    finished_state:true,
   }
-  const [excuseFor,setExcuseFor]= useState(excuse_for_template); // which study type the excuse for (assignment/textbook)
+  const [confirmFor,setConfirmFor]= useState(confirm_for_template); // which study type the excuse for (assignment/textbook)
 
-  const openExcuseModal= (excuse_for,description,...extra_data)=>{
+  const openConfirmModal= (confirm_for,finished_state,description,...extra_data)=>{
     // setCurrentExcuseInfo(newGoalExcuseData);
-    setExcuseFor({excuse_for,description,extra_data});
-    setShowExcuseModal(true);
+    setConfirmFor({confirm_for,description,finished_state,extra_data});
+    setConfirmType(confirmTypeToIndexMap[confirm_for]);
+    setShowConfirmModal(true);
   };
-  const closeExcusemodal= ()=>{
+  const closeConfirmModal= ()=>{
+    setConfirmType(null); // this state setting should come first because...
+    setRequestGoesTo(null);
     // setCurrentExcuseInfo({});
-    setExcuseFor(excuse_for_template);
-    setShowExcuseModal(false);
+    setConfirmFor(confirm_for_template);
+    setShowConfirmModal(false);
+  }
+  function getLifeModalBody(){
+    const life_data=getLifeData();
+    const body_condition=life_data.bodyCondition;
+    const sentiment_condition=life_data.sentimentCondition;
+    const go_to_bed_time=life_data.goToBedTime;
+    const wake_up_time=life_data.wakeUpTime;
+    return (
+      <Modal.Body className="text-center">
+        <div className="border-bottom border-secondary border-3 mb-5">
+          <div className="row mb-2">
+            <div className="col-6">신체 컨디션</div>
+            <div className="col-6">{body_condition}</div>
+          </div>
+          <div className="row mb-2">
+            <div className="col-6">정서 컨디션</div>
+            <div className="col-6">{sentiment_condition}</div>
+          </div>
+          <div className="row mb-2">
+            <div className="col-6">실제 취침 시간</div>
+            <div className="col-6">{go_to_bed_time}</div>
+          </div>
+          <div className="row mb-2">
+            <div className="col-6">실제 기상 시간</div>
+            <div className="col-6">{wake_up_time}</div>
+          </div>
+        </div>
+
+        <div className="row mb-2">
+          <div className="col-3">리뷰어 지정</div>
+          <div className="col-9">
+            <Form.Select
+              size="sm"
+              className="ModalSelectBox"
+              value={requestGoesTo}
+              onChange={(e) => {
+                const request_goes_to_val=e.target.value;
+                setRequestGoesTo(request_goes_to_val);
+              }}
+            >
+              <option value={null}>선택</option>
+              {managerList.map(function (manager, idx) {
+                const manager_username=manager.username;
+                const manager_nickname=manager.nickname;
+                return (
+                    <option value={manager_username} key={idx}>
+                      {manager_nickname}
+                    </option>
+                );
+              })}
+            </Form.Select>
+          </div>
+        </div>
+        <Button
+            className="btn-secondary"
+            onClick={async ()=>{
+              if(!checkReviewerUsernameValid(requestGoesTo)){
+                window.alert(`확인 요청에 대한 리뷰어가 지정되지 않았습니다`);
+                return;
+              }
+              else if(!window.confirm(`생활 정보의 확인 요청을 '${getManagerNicknameByUsername(requestGoesTo)}' 매니저에게 보내시겠습니까?`)) return;
+              const save_success= await saveLifeData();
+              if(save_success) closeConfirmModal();
+            }}
+            type="button">
+          <strong>확인 요청</strong>
+        </Button>
+      </Modal.Body>
+    );
+  }
+  function getAssignmentStudyModalBody(){
+    const AOSID=confirmFor.extra_data[0];
+    const finished_state=confirmFor.finished_state;
+    const assignment_element=getAssignmentElementByAOSID(confirmFor.extra_data[0]);
+    const lecture_name=assignment_element.lectureName;
+    const lecturer=assignment_element.manager;
+    const lecture_subject=assignment_element.lectureSubject;
+    const page_range_array=assignment_element.pageRangeArray;
+    const description=assignment_element.description;
+    const page_range_exists=checkAssignmentElementHasPageRangeElement(assignment_element);
+    const description_exists=checkAssignmentElementHasDescription(assignment_element);
+    const assignment_study_data=getAssignmentStudyDataByAOSID(AOSID);
+    const study_data_time_amount=assignment_study_data.timeAmount;
+    const excuse=!finished_state?myAssignmentStudyData[AOSID].excuse:"";
+    return (
+      <Modal.Body className="text-center">
+        <div className="border-bottom border-secondary border-3 mb-5">
+          <div className="row mb-2">
+            <div className="col-3">강사명</div>
+            <div className="col-9">{lecture_name}</div>
+          </div>
+          <div className="row mb-2">
+            <div className="col-3">강의명</div>
+            <div className="col-9">{lecturer}</div>
+          </div>
+          <div className="row mb-2">
+            <div className="col-3">과목 구분</div>
+            <div className="col-9">{lecture_subject}</div>
+          </div>
+          {page_range_exists?
+            page_range_array.map((page_range,idx)=>{
+              const from=page_range[0];
+              const to=page_range[1];
+              return (
+                <div className={idx===page_range_array.length-1?"row mb-2":"row"}>
+                  <div className="col-3">{idx===0?"과제 범위":""}</div>
+                  <div className="col-9">{`${from} ~ ${to}`}</div>
+                </div>
+              );
+            })
+            
+          :null}
+          {description_exists?
+            <div className="row mb-2">
+              <div className="col-3">상세 설명</div>
+              <div className="col-9">{description}</div>
+            </div>
+          :null}
+        </div>
+
+        <div className="border-bottom border-secondary border-3 mb-5">
+          <div className="row mb-2">
+            <div className="col-3">소요 시간</div>
+            <div className="col-9">{study_data_time_amount}</div>
+          </div>
+        </div>
+
+        {!finished_state?
+          <Form.Control
+            as="textarea"
+            placeholder="여기에 사유를 입력해주세요(15자 이상)"
+            maxLength={excuse_max_len}
+            className="mb-3 ModalTextarea"
+            value={excuse}
+            onChange={(event)=>{
+              const changed_excuse=event.target.value;
+              const newAssignmentStudyData= JSON.parse(JSON.stringify(myAssignmentStudyData));
+              if(!(AOSID in newAssignmentStudyData)) newAssignmentStudyData[AOSID]={...assignmentStudyDataTemplate};
+              newAssignmentStudyData[AOSID].excuse=changed_excuse;
+              setMyAssignmentStudyData(newAssignmentStudyData);
+              return;
+            }}
+         />
+        :null}
+        <div className="row mb-2">
+          <div className="col-3">리뷰어 지정</div>
+          <div className="col-9">
+            <Form.Select
+              size="sm"
+              className="ModalSelectBox"
+              value={requestGoesTo}
+              onChange={(e) => {
+                const request_goes_to_val=e.target.value;
+                setRequestGoesTo(request_goes_to_val);
+              }}
+            >
+              <option value={null}>선택</option>
+              {managerList.map(function (manager, idx) {
+                const manager_username=manager.username;
+                const manager_nickname=manager.nickname;
+                return (
+                    <option value={manager_username} key={idx}>
+                      {manager_nickname}
+                    </option>
+                );
+              })}
+            </Form.Select>
+          </div>
+        </div>
+        <Button
+            className="btn-secondary"
+            onClick={async ()=>{
+              if(!checkReviewerUsernameValid(requestGoesTo)){
+                window.alert(`확인 요청에 대한 리뷰어가 지정되지 않았습니다`);
+                return;
+              }
+              else if(!window.confirm(`해당 과제의 확인 요청을 '${getManagerNicknameByUsername(requestGoesTo)}' 매니저에게 보내시겠습니까?`)) return;
+              const save_success= await saveAssignmentStudyDataByAOSID(AOSID,finished_state);
+              if(save_success) closeConfirmModal();
+            }}
+            type="button">
+          <strong>확인 요청</strong>
+        </Button>
+      </Modal.Body>
+    );
+  }
+  function getLATStudyModalBody(){
+    const LAT_request_id=confirmFor.extra_data[0];
+    const [element_type,element_id]=LAT_request_id.split("#");
+    const finished_state=confirmFor.finished_state;
+    const LAT_request_element=getLATRequestElementFromLATRequestID(LATRequestStatusMap,LAT_request_id);
+    const request_specific_data=LAT_request_element.request_specific_data;
+    const element_duplicatable=LAT_request_element.duplicatable;
+    
+    const textbook_info=getTextbookInfoByLATRequestID(LAT_request_id);
+    const LAT_subject=textbook_info["과목"];
+    const textbook_name=textbook_info["교재"];
+    const textbook_volume=textbook_info["총교재량"];
+    const textbook_volume_exists=!element_duplicatable;
+    const LAT_today_goal=getTodayGoalByTextbookName(textbook_name);
+    const LAT_today_goal_exists=!element_duplicatable && LAT_today_goal;
+    const textbook_recent_page=checkLATRequestElementRecentPageNull(request_specific_data.recent_page)?textbook_info.최근진도:request_specific_data.recent_page;
+    const textbook_recent_page_exists=!element_duplicatable;
+
+    const study_data=LAT_request_element.study_data;
+    const study_data_time_amount=study_data.time_amount;
+    const excuse=!finished_state?study_data.excuse:"";
+    return (
+      <Modal.Body className="text-center">
+        <div className="border-bottom border-secondary border-3 mb-5">
+          <div className="row mb-2">
+            <div className="col-3">과목 구분</div>
+            <div className="col-9">{LAT_subject}</div>
+          </div>
+          <div className="row mb-2">
+            <div className="col-3">{element_duplicatable?"학습명":"교재명"}</div>
+            <div className="col-9">{textbook_name}</div>
+          </div>
+          {textbook_volume_exists?
+            <div className="row mb-2">
+              <div className="col-3">총 교재량</div>
+              <div className="col-9">{textbook_volume}</div>
+            </div>
+          :null}
+          {LAT_today_goal_exists?
+            <div className="row mb-2">
+              <div className="col-3">오늘 목표량</div>
+              <div className="col-9">{LAT_today_goal}</div>
+            </div>
+          :null}
+          {textbook_recent_page_exists?
+            <div className="row mb-2">
+              <div className="col-3">최근 진도</div>
+              <div className="col-9">{textbook_recent_page}</div>
+            </div>
+          :null}
+        </div>
+
+        <div className="border-bottom border-secondary border-3 mb-5">
+          <div className="row mb-2">
+            <div className="col-3">소요 시간</div>
+            <div className="col-9">{study_data_time_amount}</div>
+          </div>
+        </div>
+
+        {!finished_state?
+          <Form.Control
+            as="textarea"
+            placeholder="여기에 사유를 입력해주세요(15자 이상)"
+            maxLength={excuse_max_len}
+            className="mb-3 ModalTextarea"
+            value={excuse}
+            onChange={(event)=>{
+              const changed_excuse=event.target.value;
+              updateLATRequestElementByLATRequestID(LAT_request_id,{
+                "study_data.excuse":changed_excuse,
+              });
+            }}
+         />
+        :null}
+        <div className="row mb-2">
+          <div className="col-3">리뷰어 지정</div>
+          <div className="col-9">
+            <Form.Select
+              size="sm"
+              className="ModalSelectBox"
+              value={requestGoesTo}
+              onChange={(e) => {
+                const request_goes_to_val=e.target.value;
+                setRequestGoesTo(request_goes_to_val);
+              }}
+            >
+              <option value={null}>선택</option>
+              {managerList.map(function (manager, idx) {
+                const manager_username=manager.username;
+                const manager_nickname=manager.nickname;
+                return (
+                    <option value={manager_username} key={idx}>
+                      {manager_nickname}
+                    </option>
+                );
+              })}
+            </Form.Select>
+          </div>
+        </div>
+        <Button
+            className="btn-secondary"
+            onClick={async ()=>{
+              if(!checkReviewerUsernameValid(requestGoesTo)){
+                window.alert(`확인 요청에 대한 리뷰어가 지정되지 않았습니다`);
+                return;
+              }
+              else if(!window.confirm(`해당 과제의 확인 요청을 '${getManagerNicknameByUsername(requestGoesTo)}' 매니저에게 보내시겠습니까?`)) return;
+              const save_success= await saveLATStudyDataByLATRequestID(LAT_request_id,finished_state);
+              if(save_success) closeConfirmModal();
+            }}
+            type="button">
+          <strong>확인 요청</strong>
+        </Button>
+      </Modal.Body>
+    );
   }
 
   //수업 및 일반교재 학습 기입 관련 코드
@@ -1406,21 +1824,36 @@ function TRDraft() {
     return [default_LAT_element_name,...textbook_name_set,...duplicatable_LAT_element_name_list];
   }
 
-  useEffect(async () => {
-    const newmanagerList = await axios
-        .get("/api/managerList")
-        .then((result) => {
-          const data=result.data;
-          if(data.success===true) return data.ret;
-          else throw new Error(data.ret);
-          // return result["data"];
-        })
-        .catch((err) => {
-          return err;
-        });
-    setmanagerList(newmanagerList);
-    isInitialMount.current = false;
-  }, []);
+  // useEffect(async () => {
+  //   const newmanagerList = await axios
+  //       .get("/api/managerList")
+  //       .then((result) => {
+  //         const data=result.data;
+  //         if(data.success===true) return data.ret;
+  //         else throw new Error(data.ret);
+  //         // return result["data"];
+  //       })
+  //       .catch((err) => {
+  //         return err;
+  //       });
+  //   setmanagerList(newmanagerList);
+  //   isInitialMount.current = false;
+  // }, []);
+
+  useEffect(async ()=>{
+    const manager_list= await axios
+      .get("/api/managerListByStudentAccount")
+      .then((res)=>{
+        const data=res.data;
+        if(!data.success) throw new Error('internal database connection error');
+        return data.ret;
+      })
+      .catch((err)=>{
+        window.alert(`데이터를 불러오는 중 오류가 발생했습니다.\n페이지를 새로고침 합니다.`);
+        window.location.reload();
+      });
+    setmanagerList(manager_list);
+  },[]);
 
   useEffect(async ()=>{
     if(validTextbookNames.length===0) return;
@@ -1452,14 +1885,14 @@ function TRDraft() {
   return (
       <div className="trEdit-background">
         {/*당일 과제 미완료 사유 작성 modal*/}
-        <Modal show={showExcuseModal} onHide={closeExcusemodal}>
+        <Modal show={showConfirmModal} onHide={closeConfirmModal}>
           <Modal.Header closeButton>
-            <Modal.Title>과제 미완료 사유 작성</Modal.Title>
+            <Modal.Title>{getConfirmModalTitle(confirmType)}</Modal.Title>
           </Modal.Header>
-          <Modal.Body className="text-center">
+          {/* <Modal.Body className="text-center">
             <div className="row mb-5">
               <div className="col-3">과제 상세</div>
-              <div className="col-9">{excuseFor.description}</div>
+              <div className="col-9">{confirmFor.description}</div>
             </div>
 
             <Form.Control
@@ -1469,16 +1902,16 @@ function TRDraft() {
                 className="mb-3 ModalTextarea"
                 onChange={(event)=>{
                   const excuse=event.target.value;
-                  if(excuseFor.excuse_for==="assignment"){
-                    const AOSID=excuseFor.extra_data[0];
+                  if(confirmFor.confirm_for==="assignment"){
+                    const AOSID=confirmFor.extra_data[0];
                     const newAssignmentStudyData= JSON.parse(JSON.stringify(myAssignmentStudyData));
                     if(!(AOSID in newAssignmentStudyData)) newAssignmentStudyData[AOSID]={...assignmentStudyDataTemplate};
                     newAssignmentStudyData[AOSID].excuse=excuse;
                     setMyAssignmentStudyData(newAssignmentStudyData);
                     return;
                   }
-                  else if(excuseFor.excuse_for==="lectureAndTextbook"){
-                    updateLATRequestElementByLATRequestID(excuseFor.extra_data[0],{
+                  else if(confirmFor.confirm_for==="lectureAndTextbook"){
+                    updateLATRequestElementByLATRequestID(confirmFor.extra_data[0],{
                       "study_data.excuse":excuse,
                     });
                   }
@@ -1500,19 +1933,20 @@ function TRDraft() {
                   // const goalAttribute= currentExcuseInfo["AOSID"]?goalAttributes.Assignment:goalAttributes.textbookProgress;
                   // const relatedID= currentExcuseInfo["AOSID"]?currentExcuseInfo["AOSID"]:currentExcuseInfo["textbookID"];
                   // updateGoalState(currentExcuseInfo,goalAttribute,relatedID,false);
-                  if(excuseFor.excuse_for==="assignment"){
-                    const save_success= await saveAssignmentStudyDataByAOSID(excuseFor.extra_data[0],false);
-                    if(save_success) closeExcusemodal();
+                  if(confirmFor.confirm_for==="assignment"){
+                    const save_success= await saveAssignmentStudyDataByAOSID(confirmFor.extra_data[0],false);
+                    if(save_success) closeConfirmModal();
                   }
-                  else if(excuseFor.excuse_for==="lectureAndTextbook"){
-                    const save_success= await saveLATStudyDataByLATRequestID(excuseFor.extra_data[0],false);
-                    if(save_success) closeExcusemodal();
+                  else if(confirmFor.confirm_for==="lectureAndTextbook"){
+                    const save_success= await saveLATStudyDataByLATRequestID(confirmFor.extra_data[0],false);
+                    if(save_success) closeConfirmModal();
                   }
                 }}
                 type="button">
               <strong>확인 요청</strong>
             </Button>
-          </Modal.Body>
+          </Modal.Body> */}
+          {getConfirmModalBody()}
         </Modal>
 
         <div className="row">
@@ -1613,16 +2047,13 @@ function TRDraft() {
                   <Button
                     variant="secondary"
                     onClick={async ()=>{
-                      await axios
-                        .post("/api/saveLifeDataRequest",getMyLifeData())
-                        .then((res)=>{
-                          const data=res.data;
-                          if(!data.success) return window.alert(`네트워크 오류로 생활 데이터를 저장하지 못했습니다:0`);
-                          return window.alert(`성공적으로 생활 데이터를 저장했습니다`);
-                        })
-                        .catch((error)=>{
-                          return window.alert(`네트워크 오류로 생활 데이터를 저장하지 못했습니다:1`);
-                        });
+                      const life_data= getLifeData();
+                      const [valid,msg]= isLifeDataValid(life_data);
+                      if(!valid){
+                        window.alert(`${msg}`);
+                        return;
+                      }
+                      openConfirmModal("life",true,"");
                     }}
                   >
                     save
@@ -1733,7 +2164,14 @@ function TRDraft() {
                                         <button
                                             className="btn btn-success btn-opaque"
                                             onClick={async ()=>{
-                                              saveAssignmentStudyDataByAOSID(AOSID,true);
+                                              // saveAssignmentStudyDataByAOSID(AOSID,true);
+                                              const study_data=getAssignmentStudyDataByAOSID(AOSID,true);
+                                              // console.log(`study data: ${JSON.stringify(study_data)}`);
+                                              if(!checkTimeStringValid(study_data.timeAmount)){
+                                                window.alert(`완료 요청을 보내기 전 해당 과제에 대한 학습 시간을 입력해주세요`);
+                                                return;
+                                              }
+                                              openConfirmModal("assignment",true,getBriefStringFromAssignment(getAssignmentElementByAOSID(a.AOSID)),a.AOSID);
                                             }}
                                         >
                                           <FaCheck></FaCheck>
@@ -1749,7 +2187,7 @@ function TRDraft() {
                                                 window.alert(`미완료 사유를 입력하기 전 해당 과제에 대한 학습 시간을 입력해주세요`);
                                                 return;
                                               }
-                                              openExcuseModal("assignment",getBriefStringFromAssignment(getAssignmentElementByAOSID(a.AOSID)),a.AOSID);
+                                              openConfirmModal("assignment",false,getBriefStringFromAssignment(getAssignmentElementByAOSID(a.AOSID)),a.AOSID);
                                             }}
                                         >
                                           <FaTimes></FaTimes>
@@ -2022,14 +2460,7 @@ function TRDraft() {
                                   // if(reset_object_id){
                                   //   updateLATRequestElementIDByOldLATRequestID(LAT_request_element_id);
                                   // }
-                                  saveLATStudyDataByLATRequestID(LAT_request_element_id,true);
-                                }}
-                            >
-                              <FaCheck></FaCheck>
-                            </button>
-                            <button
-                                className="btn btn-danger btn-opaque"
-                                onClick={()=>{
+                                  // saveLATStudyDataByLATRequestID(LAT_request_element_id,true);
                                   const study_data= getTextbookStudyDataByLATRequestID(LAT_request_element_id,true);
                                   console.log(`study data payload: ${JSON.stringify(study_data)}`);
                                   
@@ -2040,7 +2471,25 @@ function TRDraft() {
                                     return;
                                   }
 
-                                  openExcuseModal("lectureAndTextbook",getBriefStringFromLATRequestID(LAT_request_element_id),LAT_request_element_id);
+                                  openConfirmModal("lectureAndTextbook",true,getBriefStringFromLATRequestID(LAT_request_element_id),LAT_request_element_id);
+                                }}
+                            >
+                              <FaCheck></FaCheck>
+                            </button>
+                            <button
+                                className="btn btn-danger btn-opaque"
+                                onClick={()=>{
+                                  const study_data= getTextbookStudyDataByLATRequestID(LAT_request_element_id,true); // finished state checked as true to bypass "excuse" field validity check
+                                  console.log(`study data payload: ${JSON.stringify(study_data)}`);
+                                  
+                                  //check if study data for assingment valid
+                                  const [textbookStudyValid,msg]= isTextbookStudyDataValid(study_data,LAT_request_element_id);
+                                  if(!textbookStudyValid){
+                                    window.alert(`${msg}`);
+                                    return;
+                                  }
+
+                                  openConfirmModal("lectureAndTextbook",false,getBriefStringFromLATRequestID(LAT_request_element_id),LAT_request_element_id);
                                 }}
                             >
                               <FaTimes></FaTimes>
@@ -2080,6 +2529,7 @@ function TRDraft() {
             </div>
 
             <div className="trCard">
+              <h4><strong>진행한 프로그램</strong></h4>
               <Table striped hover size="sm" className="mt-3">
                 <thead>
                 <tr>
@@ -2281,10 +2731,12 @@ function TRDraft() {
                               }}
                           >
                             <option value={null}>선택</option>
-                            {managerList.map(function (b, j) {
+                            {managerList.map(function (manager, idx) {
+                              const manager_username=manager.username;
+                              const manager_nickname=manager.nickname;
                               return (
-                                  <option value={b} key={j}>
-                                    {b}
+                                  <option value={manager_username} key={idx}>
+                                    {manager_nickname}
                                   </option>
                               );
                             })}

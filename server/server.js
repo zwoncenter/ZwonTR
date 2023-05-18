@@ -633,26 +633,48 @@ app.get("/api/getMyCurrentAssignments", loginCheck, permissionCheck(Role("studen
 //save student request data
 app.post("/api/saveLifeDataRequest",loginCheck, permissionCheck(Role("student")), async function (req, res) {
   const ret_val={"success":true, "ret":null};
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
   try{
+    session.startTransaction();
+    const username=req.session.passport.user.username;
     const student_id=req.session.passport.user.student_id;
     const today_string=getCurrentKoreaDateYYYYMMDD();
-    const {bodyCondition,sentimentCondition,goToBedTime,wakeUpTime}= req.body;
+    const current_date=getCurrentDate();
+    const {bodyCondition,sentimentCondition,goToBedTime,wakeUpTime,reviewedBy}= req.body;
     if(!TRDraftRequestDataValidator.checkLifeDataValid(bodyCondition,sentimentCondition,goToBedTime,wakeUpTime)) throw new Error(`invalid life data`);
+    else if(!TRDraftRequestDataValidator.checkReviewerUsernameArrayValid(reviewedBy)) throw new Error(`invalid reviewer array:0`);
 
-    const prev_life_data=await db.collection("TRDraftRequest").find(
+    //check if reviewers in reviewer array exist
+    const reviewer_array_len=reviewedBy.length;
+    const reviewer_user_array=await getManagerUserListInSameGroupByMyUsername(username,true,reviewedBy,{session});
+    if(reviewer_user_array.length !== reviewer_array_len) throw new Error(`invalid reviewer array:1`);
+
+    //check if this request has been received before
+    const prev_life_doc=await db.collection("TRDraftRequest").findOne(
       {
         date:today_string,
         student_id,
         request_type:TRDraftRequestDataValidator.request_type_name_to_index["lifeData"]
-      }
-    ).toArray();
+      },
+      {session}
+    );
     let newlySaved=false;
-    if(prev_life_data.length>1) throw new Error(`daily life data count exceeds 1`);
-    else if(prev_life_data.length==1 && !TRDraftRequestDataValidator.checkRequestDataUpdatable(prev_life_data[0].request_status))
+    if(prev_life_doc && !TRDraftRequestDataValidator.checkRequestDataUpdatable(prev_life_doc.request_status))
       throw new Error(`life data request in inupdatable status`);
-    else newlySaved=true;
+    else newlySaved=!prev_life_doc;
 
-    let request_doc={request_specific_data:{}};
+    //update request info & status
+    let request_doc={};
     if(newlySaved){
       request_doc=TRDraftRequestDataValidator.getNewLifeDataRequestDocument(student_id,today_string);
     }
@@ -660,25 +682,47 @@ app.post("/api/saveLifeDataRequest",loginCheck, permissionCheck(Role("student"))
     // request_doc.request_specific_data["정서컨디션"]=sentimentCondition;
     // request_doc.request_specific_data["실제취침"]=goToBedTime;
     // request_doc.request_specific_data["실제기상"]=wakeUpTime;
+    request_doc["request_status"]=TRDraftRequestDataValidator.request_status_to_index["review_needed"]; // request status update to "review_needed": cannot be updated until a review written
     request_doc["request_specific_data.신체컨디션"]=bodyCondition;
     request_doc["request_specific_data.정서컨디션"]=sentimentCondition;
     request_doc["request_specific_data.실제취침"]=goToBedTime;
     request_doc["request_specific_data.실제기상"]=wakeUpTime;
+    request_doc["modify_date"]=current_date;
+    const life_doc_id=newlySaved?new ObjectId():prev_life_doc._id;
+    if(newlySaved) request_doc["_id"]=life_doc_id;
+    const study_data_element={...TRDraftRequestDataValidator.request_study_data_template};
+    study_data_element["timestamp"]=current_date;
+    const study_data_review_id= new ObjectId();
+    study_data_element["review_id"]=study_data_review_id;
     await db.collection("TRDraftRequest").updateOne(
       {
         date:today_string,
         student_id,
-        request_type:TRDraftRequestDataValidator.request_type_name_to_index["lifeData"]
+        request_type:TRDraftRequestDataValidator.request_type_name_to_index["lifeData"],
       },
-      {$set:request_doc},
-      {"upsert":true}
+      {
+        $set:request_doc,
+        $push:{
+          "study_data_list":study_data_element,
+        },
+      },
+      {"upsert":true,session}
     );
+
+    //insert review template documents to TrDraftRequestReview collection
+    const review_document_list=TRDraftRequestDataValidator.getNewRequestReviewListByUserDocumentList(life_doc_id,study_data_review_id,reviewer_user_array);
+    await db.collection("TRDraftRequestReview").insertMany(review_document_list,{session});
+
+    await session.commitTransaction();
   }
   catch(error){
+    console.log(`life data save error: ${error}`);
+    await session.abortTransaction();
     ret_val["success"]=false;
     ret_val["ret"]=`error while saving life data`;
   }
   finally{
+    await session.endSession();
     return res.json(ret_val);
   }
 });
@@ -686,41 +730,71 @@ app.post("/api/saveLifeDataRequest",loginCheck, permissionCheck(Role("student"))
 //save student request data
 app.post("/api/saveAssignmentStudyDataRequest",loginCheck, permissionCheck(Role("student")), async function (req, res) {
   const ret_val={"success":true, "ret":null};
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
   try{
+    session.startTransaction();
+    const username=req.session.passport.user.username;
     const student_id=req.session.passport.user.student_id;
     const today_string=getCurrentKoreaDateYYYYMMDD();
-    let {excuse,timeAmount,AOSID,finishedState}= req.body;
+    const current_date=getCurrentDate();
+    let {excuse,timeAmount,AOSID,finishedState,reviewedBy}= req.body;
     finishedState=!!finishedState;
     if(finishedState===true) excuse="";
     const AOS_objectid=new ObjectId(AOSID);
     if(!TRDraftRequestDataValidator.checkExcuseValueValid(excuse,finishedState) || !TRDraftRequestDataValidator.checkTimeStringValid(timeAmount)) throw new Error(`invalid assignment study data`);
+    else if(!TRDraftRequestDataValidator.checkReviewerUsernameArrayValid(reviewedBy)) throw new Error(`invalid reviewer array:0`);
     
     //check if AOS document exists
-    const AOS_doc= await db.collection("AssignmentOfStudent").findOne({_id:AOS_objectid});
+    const AOS_doc= await db.collection("AssignmentOfStudent").findOne({_id:AOS_objectid},{session});
     if(!AOS_doc) throw new Error(`no such AOS doc`);
+
+    //check if reviewers in reviewer array exist
+    const reviewer_array_len=reviewedBy.length;
+    const reviewer_user_array=await getManagerUserListInSameGroupByMyUsername(username,true,reviewedBy,{session});
+    if(reviewer_user_array.length !== reviewer_array_len) throw new Error(`invalid reviewer array:1`);
     
-    const prev_assignment_study_data=await db.collection("TRDraftRequest").find(
+    //check if this request has been received before
+    const prev_assignment_study_doc=await db.collection("TRDraftRequest").findOne(
       {
         date:today_string,
         student_id,
         request_type:TRDraftRequestDataValidator.request_type_name_to_index["AssignmentStudyData"],
         "request_specific_data.AOSID":AOS_objectid
-      }
-    ).toArray();
+      },
+      {session}
+    );
     let newlySaved=false;
-    if(prev_assignment_study_data.length>1) throw new Error(`same assignment study data request count exceeds 1`);
-    else if(prev_assignment_study_data.length==1 && !TRDraftRequestDataValidator.checkRequestDataUpdatable(prev_assignment_study_data[0].request_status))
+    if(prev_assignment_study_doc && !TRDraftRequestDataValidator.checkRequestDataUpdatable(prev_assignment_study_doc.request_status))
       throw new Error(`assignment study data request in inupdatable status`);
-    else newlySaved=true;
+    else newlySaved=!prev_assignment_study_doc;
+
+    //update request info & status
     let request_doc={};
     if(newlySaved){
       request_doc=TRDraftRequestDataValidator.getNewAssignmentStudyDataRequestDocument(student_id,today_string,AOS_objectid);
     }
+    request_doc["request_status"]=TRDraftRequestDataValidator.request_status_to_index["review_needed"]; // request status update to "review_needed": cannot be updated until a review written
+    const assignment_study_doc_id=newlySaved?new ObjectId():prev_assignment_study_doc._id;
+    if(newlySaved) request_doc["_id"]=assignment_study_doc_id;
+    request_doc["modify_date"]=current_date;
     const study_data_element={...TRDraftRequestDataValidator.request_study_data_template};
     study_data_element["excuse"]=excuse;
     study_data_element["time_amount"]=timeAmount;
-    study_data_element["timestamp"]=getCurrentDate();
+    study_data_element["timestamp"]=current_date;
     study_data_element["finished_state"]=finishedState;
+    const study_data_review_id= new ObjectId();
+    study_data_element["review_id"]=study_data_review_id;
+    
     await db.collection("TRDraftRequest").updateOne(
       {
         date:today_string,
@@ -729,16 +803,27 @@ app.post("/api/saveAssignmentStudyDataRequest",loginCheck, permissionCheck(Role(
         "request_specific_data.AOSID":AOS_objectid},
       {
         $set:request_doc,
-        $push:{"study_data_list":study_data_element},
+        $push:{
+          "study_data_list":study_data_element,
+        },
       },
-      {"upsert":true});
+      {"upsert":true,session}
+    );
+
+    //insert review template documents to TrDraftRequestReview collection
+    const review_document_list=TRDraftRequestDataValidator.getNewRequestReviewListByUserDocumentList(assignment_study_doc_id,study_data_review_id,reviewer_user_array);
+    await db.collection("TRDraftRequestReview").insertMany(review_document_list,{session});
+
+    await session.commitTransaction();
   }
   catch(error){
     console.log(`error: ${error}`);
+    await session.abortTransaction();
     ret_val["success"]=false;
     ret_val["ret"]=`error while saving life data`;
   }
   finally{
+    await session.endSession();
     return res.json(ret_val);
   }
 });
@@ -749,6 +834,7 @@ app.post("/api/setLATStudyElementDeletedOnTrDraft",loginCheck, permissionCheck(R
   try{
     const student_id=req.session.passport.user.student_id;
     const today_string=getCurrentKoreaDateYYYYMMDD();
+    const current_date=getCurrentDate();
     let {textbookID,elementID,duplicatable,requestNew}= req.body;
     duplicatable=!!duplicatable;
     requestNew=!!requestNew;
@@ -820,6 +906,7 @@ app.post("/api/setLATStudyElementDeletedOnTrDraft",loginCheck, permissionCheck(R
     }
     // request_doc["request_specific_data.deleted"]=true;
     request_doc["deleted"]=true;
+    request_doc["modify_date"]=current_date;
     await db.collection("TRDraftRequest").updateOne(
       {
         date:today_string,
@@ -849,6 +936,7 @@ app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("studen
   try{
     const student_id=req.session.passport.user.student_id;
     const today_string=getCurrentKoreaDateYYYYMMDD();
+    const current_date=getCurrentDate();
     let {
       excuse,
       timeAmount,
@@ -908,7 +996,7 @@ app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("studen
     //   }
     // ).toArray();
 
-    const this_type_doc_count= await db.collectoin("TRDraftRequest").countDocuments({
+    const this_type_doc_count= await db.collection("TRDraftRequest").countDocuments({
       date:today_string,
       student_id,
       request_type:TRDraftRequestDataValidator.request_type_name_to_index["LectureAndTextbookStudyData"],
@@ -940,8 +1028,9 @@ app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("studen
     const study_data_element={...TRDraftRequestDataValidator.request_study_data_template};
     study_data_element["excuse"]=excuse;
     study_data_element["time_amount"]=timeAmount;
-    study_data_element["timestamp"]=getCurrentDate();
+    study_data_element["timestamp"]=current_date;
     study_data_element["finished_state"]=finishedState;
+    request_doc["modify_date"]=current_date;
     await db.collection("TRDraftRequest").updateOne(
       {
         date:today_string,
@@ -972,6 +1061,7 @@ app.post("/api/setProgramElementDeletedOnTrDraft",loginCheck, permissionCheck(Ro
   try{
     const student_id=req.session.passport.user.student_id;
     const today_string=getCurrentKoreaDateYYYYMMDD();
+    const current_date=getCurrentDate();
     let {elementID,requestNew}= req.body;
     requestNew=!!requestNew;
 
@@ -1022,6 +1112,7 @@ app.post("/api/setProgramElementDeletedOnTrDraft",loginCheck, permissionCheck(Ro
     }
     // request_doc["request_specific_data.deleted"]=true;
     request_doc["deleted"]=true;
+    request_doc["modify_date"]=current_date;
     await db.collection("TRDraftRequest").updateOne(
       {
         date:today_string,
@@ -1050,6 +1141,7 @@ app.post("/api/saveProgramDataRequest",loginCheck, permissionCheck(Role("student
   try{
     const student_id=req.session.passport.user.student_id;
     const today_string=getCurrentKoreaDateYYYYMMDD();
+    const current_date=getCurrentDate();
     let {
       excuse,
       timeAmount,
@@ -1129,8 +1221,9 @@ app.post("/api/saveProgramDataRequest",loginCheck, permissionCheck(Role("student
     const study_data_element={...TRDraftRequestDataValidator.request_study_data_template};
     study_data_element["excuse"]=excuse;
     study_data_element["time_amount"]=timeAmount;
-    study_data_element["timestamp"]= getCurrentDate();
+    study_data_element["timestamp"]= current_date;
     study_data_element["finished_state"]=finishedState;
+    request_doc["modify_date"]=current_date;
     await db.collection("TRDraftRequest").updateOne(
       {
         date:today_string,
@@ -1188,7 +1281,7 @@ app.get("/api/getMyTodayTRDraftRequestsAll",loginCheck, permissionCheck(Role("st
   }
 });
 
-//get manager list from registered user accounts whose roles are designated as "manager"s
+//get group list
 app.get("/api/groupList", async (req, res) => {
   const ret={"success":false,"ret":null};
   try{
@@ -1383,66 +1476,100 @@ app.get("/api/managerList", loginCheck, permissionCheck(Role("student"),Role("ma
   }
 });
 
+// get user array whose roles are "manager" by 
+async function getManagerUserListInSameGroupByMyUsername(username,getUserObjectId=false,targetUsernameList=[],query_option={}){
+  const user_doc= await db.collection("User").findOne({username});
+  if(!user_doc) throw new Error(`invalid username argument`);
+  const user_id= user_doc._id;
+  const group_of_user_doc= await db.collection("GroupOfUser").findOne({user_id});
+  if(!group_of_user_doc) throw new Error(`invalid function call: user with no group assigned`);
+  const group_id= group_of_user_doc.group_id;
+
+  const user_match_filter={
+    approved:true,
+  }
+  if(targetUsernameList.length>0) user_match_filter.username={"$in":targetUsernameList};
+
+  const manager_list= await db.collection("User").aggregate([
+    {
+      $match:user_match_filter,
+    },
+    {
+      $lookup: {
+        from: "GroupOfUser",
+        localField: "_id",
+        foreignField: "user_id",
+        as: "GroupOfUser_aggregate",
+      },
+    },
+    { 
+      $unwind: {
+        path:"$GroupOfUser_aggregate",
+      }
+    },
+    {
+      $match:{
+        "GroupOfUser_aggregate.activated":true,
+        "GroupOfUser_aggregate.group_id":group_id,
+      }
+    },
+    {
+      $lookup: {
+        from: "RoleOfUser",
+        localField: "_id",
+        foreignField: "user_id",
+        as: "RoleOfUser_aggregate",
+      },
+    },
+    { 
+      $unwind: {
+        path:"$RoleOfUser_aggregate",
+      }
+    },
+    {
+      $match:{
+        "RoleOfUser_aggregate.activated":true,
+      }
+    },
+    {
+      $lookup: {
+        from: "Role",
+        localField: "RoleOfUser_aggregate.role_id",
+        foreignField: "_id",
+        as: "Role_aggregate",
+      },
+    },
+    { 
+      $unwind: {
+        path:"$Role_aggregate",
+      }
+    },
+    {
+      $match:{
+        "Role_aggregate.role_index":roles.roleNameToIndex["manager"],
+      }
+    },
+    {
+      $project: {
+        _id: getUserObjectId?1:0,
+        username: "$username",
+        nickname: "$nickname",
+        userType: "$Role_aggregate.role_name",
+        signUpDate: "$create_date",
+        approved: 1,
+      },
+    },
+  ],query_option).toArray();
+  return manager_list;
+}
+
 //get manager list from registered user accounts whose roles are designated as "manager"s
-app.get("/api/managerListFromUserAccount", loginCheck, permissionCheck(Role("student"),Role("manager"),Role("admin")), async (req, res) => {
+app.get("/api/managerListByStudentAccount", loginCheck, permissionCheck(Role("student")), async (req, res) => {
   const ret={"success":false,"ret":null};
   try{
-    // const ret_data= await db.collection("Manager").find().toArray();
-    const manager_list= await db.collection("User").aggregate([
-      {
-        $match:{
-          approved:true,
-        }
-      },
-      {
-        $lookup: {
-          from: "RoleOfUser",
-          localField: "_id",
-          foreignField: "user_id",
-          as: "RoleOfUser_aggregate",
-        },
-      },
-      { 
-        $unwind: {
-          path:"$RoleOfUser_aggregate",
-        }
-      },
-      {
-        $lookup: {
-          from: "Role",
-          localField: "RoleOfUser_aggregate.role_id",
-          foreignField: "_id",
-          as: "Role_aggregate",
-        },
-      },
-      { 
-        $unwind: {
-          path:"$Role_aggregate",
-        }
-      },
-      {
-        $match:{
-          "RoleOfUser_aggregate.activated":true,
-        }
-      },
-      {
-        $project: {
-          _id:0,
-          username: "$username",
-          nickname: "$nickname",
-          userType: "$Role_aggregate.role_name",
-          signUpDate: "$create_date",
-          approved: 1,
-        },
-      },
-      {
-        $facet:{
-          metadata:[{$count:"total_items_num"}],
-          data:[{$sort:{created_date:-1,modify_date:-1,approved_date:-1}},{$skip:items_per_page*(queryPage-1)},{$limit:items_per_page}]
-        }
-      }
-    ]).toArray();
-    ret["success"]=true; ret["ret"]=ret_data[0]["매니저"];
+    const username= req.session.passport.user.username;
+    const manager_list=await getManagerUserListInSameGroupByMyUsername(username);
+    ret["success"]=true; ret["ret"]=manager_list;
   }
   catch(e){
     ret["ret"]="매니저 목록 데이터를 불러오는 중 오류가 발생했습니다";
