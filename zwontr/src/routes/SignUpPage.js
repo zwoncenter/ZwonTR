@@ -587,7 +587,7 @@ function SignUpPage() {
         {getRowByFieldName("address","주소","주소를 10자 이상 입력해주세요",isAddressValid,"text","10자 이상 입력",40)}
         <Row className="mb-3 userInfoRow">
           <label for="school_attending_info_school" className="userInfoInputLabel">
-            <strong>재학정보</strong>
+            <strong>최종학력</strong>
             {true?<span className="userInfoInputValidMark"> ✔</span>:null}
           </label>
           <select

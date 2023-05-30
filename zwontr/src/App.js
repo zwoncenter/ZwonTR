@@ -3,6 +3,7 @@ import { Link, Route, Switch, useLocation, Redirect, matchPath } from "react-rou
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import { AiOutlineHome } from "react-icons/ai";
+import { VscBell, VscBellDot } from "react-icons/vsc";
 import axios from "axios";
 import menuarrow from "./next.png";
 
@@ -63,6 +64,40 @@ function App() {
   }
   const [myInfo,setMyInfo]= useState({...myInfoTemplate});
   const [myInfoLoaded,setMyInfoLoaded]=useState(false);
+  
+  const alarm_pagination_template={
+    cur_page:1,
+    total_page_num:1,
+    alarms_data:[]
+  };
+  const [alarmsPagination,setAlarmsPagination]=useState(alarm_pagination_template);
+  function getAlarmsPaginationTemplate(){
+    return {...alarm_pagination_template};
+  }
+
+  async function getRequestAlarms(queryPage=1){
+    const query= {
+      queryPage,
+    }
+    const alarm_data_pagination=await axios
+      .post("/api/getMyAlarms",query)
+      .then((res)=>{
+        const data=res.data;
+        if(!data.success) return getAlarmsPaginationTemplate();
+        return data.ret.pagination;
+      })
+      .catch((err)=>{
+        window.alert(`네트워크 오류로 사용자 데이터를 불러오지 못했습니다`);
+        return getAlarmsPaginationTemplate();
+      })
+    //here pagenation data should be extracted
+    const alarms_data=alarm_data_pagination.alarms_data;
+    if(alarms_data.length>0) alarms_data.sort((a,b)=>{
+      return a.study_data.timestamp>b.study_data.timestamp?-1:a.study_data.timestamp<b.study_data.timestamp?1:0;
+    });
+    console.log(`alarm pagination data: ${JSON.stringify(alarm_data_pagination)}`);
+    setAlarmsPagination(alarm_data_pagination);
+  }
 
   useEffect(async()=>{
     // console.log(`path: ${window.location.pathname}`);
@@ -80,7 +115,11 @@ function App() {
     }
   },[window.location.pathname,myInfoLoaded]);
 
-  
+  useEffect(async()=>{
+    if(myInfoLoaded && checkManagerMode()){
+      getRequestAlarms();
+    }
+  },[myInfoLoaded]);
 
   useEffect(async ()=>{
     const myInfoData= await axios
@@ -119,6 +158,12 @@ function App() {
 
   function checkAdminMode(){
     return myInfo.user_mode==="admin";
+  }
+  function checkManagerMode(){
+    return myInfo.user_mode==="manager";
+  }
+  function checkStudentMode(){
+    return myInfo.user_mode==="student";
   }
 
   const navBarMenus=[
@@ -304,7 +349,21 @@ function App() {
     : null
       }
       {window.location.pathname!=="/"?
-        <div className="HomeButtonBox">
+        <div className="UtilButtonBox">
+          {checkManagerMode()?
+            <Button
+              variant="primary"
+              onClick={()=>{
+                // const default_path_for_this_user_mode=getDefaultPathByUserMode(myInfo.user_mode);
+                // const current_location_pathname=window.location.pathname;
+                // if(current_location_pathname==default_path_for_this_user_mode) return;
+                // else if(window.location.pathname==="/SignUp" && !window.confirm("홈으로 이동하면 입력된 정보가 모두 사라집니다.\n이동하시겠습니까?")) return;
+                // history.push(default_path_for_this_user_mode);
+              }}
+            >
+              <VscBell/>
+            </Button>:null
+          }
           <Button
             variant="secondary"
             onClick={()=>{

@@ -141,6 +141,38 @@ function TRDraft() {
     return d.getDay()===0? day_category[1]:day_category[0]; 
   }
 
+  function getLifeDataFromPrevRequestList(prevRequestList){
+    let ret=myLifeData;
+    for(let i=0; i<prevRequestList.length; i++){
+      const prevRequest=prevRequestList[i];
+      if(prevRequest.request_type!==0) continue;
+      ret=prevRequest.request_specific_data;
+      break;
+    }
+    return ret;
+  }
+
+  function getAOSIDFromRequestElement(requestElement){
+    return requestElement.request_specific_data.AOSID;
+  }
+
+  function getAssignmentStudyDataMap(prevRequestData){
+    const ret={};
+    prevRequestData.forEach((e,idx)=>{
+      if(e.request_type!==1) return;
+      const assignment_request_id=getAOSIDFromRequestElement(e);
+      const assignment_request_element=JSON.parse(JSON.stringify(e));
+      const study_data_list=assignment_request_element.study_data_list;
+      const prev_study_data=study_data_list[study_data_list.length-1];
+      const study_data=getAssignmentStudyDataTemplate();
+      study_data.excuse=prev_study_data.excuse;
+      study_data.finished_state=prev_study_data.finished_state;
+      study_data.time_amount=prev_study_data.time_amount;
+      ret[assignment_request_id]=study_data;
+    });
+    return ret;
+  }
+
   //db에 저장된 오늘의 모든 tr draft requests
   const [LATRequestStatusMap,setLATRequestStatusMap]=useState(null);
   function getNewObjectIDString(){
@@ -335,6 +367,7 @@ function TRDraft() {
       "timeAmount":time_default_string,
       "excuse":"",
       "finishedState":true,
+      "reviewedBy":null,
     };
   }
   function getTextbookStudyDataByLATRequestID(LATRequestID,textbookStudyFinished=false){
@@ -360,6 +393,7 @@ function TRDraft() {
     ret["timeAmount"]=study_data.time_amount;
     ret["excuse"]=study_data.excuse;
     ret["finishedState"]=textbookStudyFinished;
+    ret["reviewedBy"]=[requestGoesTo];
     return ret;
   }
   function getTextbookInfoTemplate(){
@@ -453,13 +487,15 @@ function TRDraft() {
         window.alert(`네트워크 오류로 데이터를 불러오지 못했습니다:1`);
         window.location.reload();
       });
+    setMyLifeData(getLifeDataFromPrevRequestList(prevRequestData));
+    setMyAssignmentStudyData(getAssignmentStudyDataMap(prevRequestData));
     setLATRequestStatusMap(getLATRequestStatusMap(prevRequestData));
     setProgramRequestStatusMap(getProgramRequestStatusMap(prevRequestData));
   },[]);
 
-  useEffect(()=>{
-    console.log(`lat request status map: ${JSON.stringify(LATRequestStatusMap)}`);
-  },[LATRequestStatusMap]);
+  // useEffect(()=>{
+  //   console.log(`lat request status map: ${JSON.stringify(LATRequestStatusMap)}`);
+  // },[LATRequestStatusMap]);
 
   //생활 데이터 관련 코드
   const [myLifeCycleAndStudyTimeGoals,setMyLifeCycleAndStudyTimeGoals]= useState(life_cycle_and_study_time_goals_template);
@@ -657,6 +693,9 @@ function TRDraft() {
     "excuse":"",
     "finished_state":true,
   };
+  function getAssignmentStudyDataTemplate(){
+    return {...assignmentStudyDataTemplate};
+  }
   const assignmentStudyDataPayloadTemplate={
     "AOSID":"",
     "timeAmount":null,
@@ -1078,9 +1117,10 @@ function TRDraft() {
       "timeAmount":time_default_string,
       "excuse":"",
       "finishedState":true,
+      "reviewedBy":null,
     };
   }
-  function getProgramDataByLATRequestID(programRequestID,programFinished=true){
+  function getProgramDataByProgramRequestID(programRequestID,programFinished=true){
     // const ret={...assignmentStudyDataPayloadTemplate,AOSID};
     // ret["excuse"]=myAssignmentStudyData[AOSID].excuse;
     // ret["timeAmount"]=myAssignmentStudyData[AOSID].time_amount;
@@ -1098,6 +1138,7 @@ function TRDraft() {
     ret["requestNew"]=request_specific_data.request_new;
     ret["timeAmount"]=study_data.time_amount;
     ret["finishedState"]=programFinished;
+    ret["reviewedBy"]=[requestGoesTo];
     return ret;
   }
   function isProgramNameDefault(programName){
@@ -1129,11 +1170,9 @@ function TRDraft() {
     }
     else return [true,""];
   }
-  async function saveProgramDataByProgramRequestID(programRequestID,finishedState,element_index){
+  async function saveProgramDataByProgramRequestID(programRequestID,finishedState){
     const program_element_brief=getBriefStringFromProgramRequestID(programRequestID);
-    const element_brief=program_element_brief.length>0?program_element_brief+"\n":`${element_index+1}번째 `;
-    if(!window.confirm(`${element_brief}프로그램 진행에 대한 확인 요청을 보내시겠습니까?`)) return;
-    const program_data=getProgramDataByLATRequestID(programRequestID,true);
+    const program_data=getProgramDataByProgramRequestID(programRequestID,true);
     console.log(`program data payload: ${JSON.stringify(program_data)}`);
 
     //check if study data for assingment valid
@@ -1452,21 +1491,21 @@ function TRDraft() {
     "life":0,
     "assignment":1,
     "lectureAndTextbook":2,
-    "program":3
+    "programParticipation":3
   }
   function getConfirmModalTitle(){
     if(confirmType===confirmTypeToIndexMap["default"]) return "";
     else if(confirmType===confirmTypeToIndexMap["life"]) return "생활 정보 확인";
     else if(confirmType===confirmTypeToIndexMap["assignment"]) return "수업 과제 학습 확인";
     else if(confirmType===confirmTypeToIndexMap["lectureAndTextbook"]) return "수업 및 일반교재 학습 확인";
-    else if(confirmType===confirmTypeToIndexMap["program"]) return "진행한 프로그램 확인";
+    else if(confirmType===confirmTypeToIndexMap["programParticipation"]) return "진행한 프로그램 확인";
   }
   function getConfirmModalBody(){
     if(confirmType===confirmTypeToIndexMap["default"]) return null;
     else if(confirmType===confirmTypeToIndexMap["life"]) return getLifeModalBody();
     else if(confirmType===confirmTypeToIndexMap["assignment"]) return getAssignmentStudyModalBody();
     else if(confirmType===confirmTypeToIndexMap["lectureAndTextbook"]) return getLATStudyModalBody();
-    else if(confirmType===confirmTypeToIndexMap["program"]) return null;
+    else if(confirmType===confirmTypeToIndexMap["programParticipation"]) return getProgramParticipationModalBody();
   }
   
   const confirm_for_template={
@@ -1783,6 +1822,84 @@ function TRDraft() {
               }
               else if(!window.confirm(`해당 과제의 확인 요청을 '${getManagerNicknameByUsername(requestGoesTo)}' 매니저에게 보내시겠습니까?`)) return;
               const save_success= await saveLATStudyDataByLATRequestID(LAT_request_id,finished_state);
+              if(save_success) closeConfirmModal();
+            }}
+            type="button">
+          <strong>확인 요청</strong>
+        </Button>
+      </Modal.Body>
+    );
+  }
+  function getProgramParticipationModalBody(){
+    const program_request_id=confirmFor.extra_data[0];
+    const finished_state=confirmFor.finished_state;
+    const program_request_element=getProgramRequestElementFromProgramRequestID(programRequestStatusMap,program_request_id);
+    const request_specific_data=program_request_element.request_specific_data;
+    const program_name=request_specific_data.program_name;
+    const program_by=request_specific_data.program_by;
+    const program_by_nickname=getManagerNicknameByUsername(program_by);
+    const program_description=request_specific_data.program_description;
+
+    const study_data=program_request_element.study_data;
+    const study_data_time_amount=study_data.time_amount;
+    return (
+      <Modal.Body className="text-center">
+        <div className="border-bottom border-secondary border-3 mb-5">
+          <div className="row mb-2">
+            <div className="col-3">구분</div>
+            <div className="col-9">{program_name}</div>
+          </div>
+          <div className="row mb-2">
+            <div className="col-3">진행자</div>
+            <div className="col-9">{program_by_nickname}</div>
+          </div>
+          <div className="row mb-2">
+            <div className="col-3">설명</div>
+            <div className="col-9">{program_description}</div>
+          </div>
+        </div>
+
+        <div className="border-bottom border-secondary border-3 mb-5">
+          <div className="row mb-2">
+            <div className="col-3">소요 시간</div>
+            <div className="col-9">{study_data_time_amount}</div>
+          </div>
+        </div>
+
+        <div className="row mb-2">
+          <div className="col-3">리뷰어 지정</div>
+          <div className="col-9">
+            <Form.Select
+              size="sm"
+              className="ModalSelectBox"
+              value={requestGoesTo}
+              onChange={(e) => {
+                const request_goes_to_val=e.target.value;
+                setRequestGoesTo(request_goes_to_val);
+              }}
+            >
+              <option value={null}>선택</option>
+              {managerList.map(function (manager, idx) {
+                const manager_username=manager.username;
+                const manager_nickname=manager.nickname;
+                return (
+                    <option value={manager_username} key={idx}>
+                      {manager_nickname}
+                    </option>
+                );
+              })}
+            </Form.Select>
+          </div>
+        </div>
+        <Button
+            className="btn-secondary"
+            onClick={async ()=>{
+              if(!checkReviewerUsernameValid(requestGoesTo)){
+                window.alert(`확인 요청에 대한 리뷰어가 지정되지 않았습니다`);
+                return;
+              }
+              else if(!window.confirm(`해당 과제의 확인 요청을 '${getManagerNicknameByUsername(requestGoesTo)}' 매니저에게 보내시겠습니까?`)) return;
+              const save_success= await saveProgramDataByProgramRequestID(program_request_id,finished_state);
               if(save_success) closeConfirmModal();
             }}
             type="button">
@@ -2779,7 +2896,16 @@ function TRDraft() {
                           <button
                               className="btn btn-success btn-opaque"
                               onClick={async ()=>{
-                                saveProgramDataByProgramRequestID(program_request_element_id,true,table_element_index);
+                                const program_data=getProgramDataByProgramRequestID(program_request_element_id,true);
+                                console.log(`program data payload: ${JSON.stringify(program_data)}`);
+
+                                //check if study data for assingment valid
+                                const [programDataValid,msg]= isProgramDataValid(program_data,program_request_element_id);
+                                if(!programDataValid){
+                                  window.alert(`${msg}`);
+                                  return;
+                                }
+                                openConfirmModal("programParticipation",true,getBriefStringFromProgramRequestID(program_request_element_id),program_request_element_id);
                               }}
                           >
                             <FaCheck></FaCheck>
