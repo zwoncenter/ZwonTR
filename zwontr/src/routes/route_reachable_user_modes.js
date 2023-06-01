@@ -25,6 +25,7 @@ const path_to_permitted_user_modes_map={
     "/WeeklystudyfeedbackWrite/:ID/:feedbackDate":["manager","admin"],
     "/WeeklystudyfeedbackEdit/:ID/:feedbackDate":["manager","admin"],
     "/ManageUser":["admin"],
+    "/CheckAlarms":["manager"],
     "/NotFound":["guest","parent","student","manager","admin"],
 };
 const path_list= Object.keys(path_to_permitted_user_modes_map);
@@ -38,7 +39,7 @@ function checkUserPermittedToAccessPath(cur_path,user_mode){
             break;
         }
     }
-    if(!matched_path) return true;
+    if(!matched_path) return true; // this setting has pros and cons...
     const permitted_user_modes=new Set(path_to_permitted_user_modes_map[matched_path]);
     return permitted_user_modes.has(user_mode);
 }

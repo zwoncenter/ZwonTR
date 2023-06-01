@@ -347,7 +347,7 @@ function getCurrentDate(){
 
 // user info data: username, nickname
 app.get("/api/getMyInfo", async function (req, res) {
-  const ret_val={"success":false, "ret":null};
+  const ret_val={"success":true, "ret":null};
   try{
     ret_val["ret"]={loginStatus:isLogined(req), username:"", nickname:"", user_mode:"guest"};
     if(ret_val["ret"]["loginStatus"]===true){
@@ -355,10 +355,359 @@ app.get("/api/getMyInfo", async function (req, res) {
       ret_val["ret"].nickname=req.session.passport.user.nickname;
       ret_val["ret"].user_mode=req.session.passport.user.user_mode;
     }
-    ret_val["success"]=true;
   }
   catch(error){
+    ret_val["success"]=false;
     ret_val["ret"]=`error while getting my info`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
+app.get("/api/countMyNewAlarms", loginCheck, permissionCheck(Role("manager")),async function (req, res) {
+  const ret_val={"success":true, "ret":null};
+  try{
+    const username=req.session.passport.user.username;
+    const result_data=(await db.collection("User").aggregate([
+      {
+        $match: {
+          username,
+        }
+      },
+      {
+        $lookup: {
+          from: "TRDraftRequestReview",
+          localField: "_id",
+          foreignField: "review_from",
+          as: "TDRR_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$TDRR_aggregate",
+        }
+      },
+      {
+        $match: {
+          "TDRR_aggregate.review_status":TRDraftRequestDataValidator.review_status_to_index["not_reviewed"]
+        }
+      },
+      {
+        $lookup: {
+          from: "TRDraftRequest",
+          let: {
+            study_data_review_id: "$TDRR_aggregate.study_data_review_id",
+            tr_draft_request_id: "$TDRR_aggregate.tr_draft_request_id"
+          },
+          pipeline:[
+            {
+              $match:{
+                $expr:{
+                  $and:[
+                    {
+                      $eq:[
+                        {
+                          "$getField":{
+                            "field": "review_id",
+                            "input": {"$last":"$study_data_list"}
+                          }
+                        },
+                        "$$study_data_review_id"
+                      ]
+                    },
+                    {
+                      $eq:[
+                        "$_id",
+                        "$$tr_draft_request_id"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              $project:{
+                student_id:"$student_id",
+                request_date:"$date",
+                request_type:"$request_type",
+                request_specific_data:"$request_specific_data",
+                study_data:{"$last":"$study_data_list"},
+              }
+            }
+          ],
+          as: "TrDraftRequest_aggregate",
+        },
+      },
+      {
+        $unwind:{
+          path: "$TrDraftRequest_aggregate"
+        }
+      },
+      {
+        $count: "my_new_alarms_count"
+      }
+    ]).toArray());
+    ret_val["ret"]=result_data.length>0?(result_data[0]).my_new_alarms_count : 0;
+  }
+  catch(error){
+    console.log(`error in count alarms: ${error}`);
+    ret_val["success"]=false;
+    ret_val["ret"]=`error while getting my alarms`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
+// user alarm data: get alarms when user role is manager
+app.post("/api/getMyAlarms", loginCheck, permissionCheck(Role("manager")),async function (req, res) {
+  const ret_val={"success":true, "ret":null};
+  try{
+    ret_val["ret"]={
+      pagination:{
+        cur_page:1,
+        total_page_num:1,
+        alarms_data:[],
+        pageInvalid:false,
+      },
+    };
+    let {
+      queryPage
+    }= req.body;
+    if(!Number.isInteger(queryPage) || queryPage<1) throw new Error(`query page invalid`);
+    
+    const username=req.session.passport.user.username;
+    const result_data=(await db.collection("User").aggregate([
+      {
+        $match: {
+          username,
+        }
+      },
+      {
+        $lookup: {
+          from: "TRDraftRequestReview",
+          localField: "_id",
+          foreignField: "review_from",
+          as: "TDRR_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$TDRR_aggregate",
+        }
+      },
+      {
+        $lookup: {
+          from: "TRDraftRequest",
+          let: {
+            study_data_review_id: "$TDRR_aggregate.study_data_review_id",
+            tr_draft_request_id: "$TDRR_aggregate.tr_draft_request_id"
+          },
+          pipeline:[
+            {
+              $match:{
+                $expr:{
+                  $and:[
+                    {
+                      $eq:[
+                        {
+                          "$getField":{
+                            "field": "review_id",
+                            "input": {"$last":"$study_data_list"}
+                          }
+                        },
+                        "$$study_data_review_id"
+                      ]
+                    },
+                    {
+                      $eq:[
+                        "$_id",
+                        "$$tr_draft_request_id"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              $project:{
+                student_id:"$student_id",
+                request_date:"$date",
+                request_type:"$request_type",
+                request_specific_data:"$request_specific_data",
+                study_data:{"$last":"$study_data_list"},
+              }
+            }
+          ],
+          as: "TrDraftRequest_aggregate",
+        },
+      },
+      {
+        $unwind:{
+          path: "$TrDraftRequest_aggregate"
+        }
+      },
+      {
+        $lookup:{
+          from: "StudentDB",
+          localField: "TrDraftRequest_aggregate.student_id",
+          foreignField: "_id",
+          as: "Student_aggregate",
+        }
+      },
+      {
+        $unwind:{
+          path:"$Student_aggregate"
+        }
+      },
+      {
+        $lookup:{
+          from: "User",
+          localField: "Student_aggregate.user_id",
+          foreignField: "_id",
+          as: "StudentUser_aggregate",
+        }
+      },
+      {
+        $unwind:{
+          path:"$StudentUser_aggregate"
+        }
+      },
+      //get textbook info(if proper)
+      {
+        $lookup:{
+          from: "TextBook",
+          localField: "TrDraftRequest_aggregate.request_specific_data.textbookID",
+          foreignField: "_id",
+          as:"TextBook_aggregate",
+        }
+      },
+      {
+        $unwind:{
+          path:"$TextBook_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      //get Assignment info(lecture name, lecturer, textbook, ... etc) of assignment(if proper)
+      {
+        $lookup:{
+          from: "AssignmentOfStudent",
+          localField: "TrDraftRequest_aggregate.request_specific_data.AOSID",
+          foreignField: "_id",
+          as:"AOS_aggregate",
+        }
+      },
+      {
+        $unwind:{
+          path:"$AOS_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      {
+        $lookup:{
+          from: "Assignment",
+          localField: "AOS_aggregate.assignmentID",
+          foreignField: "_id",
+          as:"Assignment_aggregate",
+        }
+      },
+      {
+        $unwind:{
+          path:"$Assignment_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      {
+        $lookup:{
+          from: "TextBook",
+          localField: "Assignment_aggregate.textbookID",
+          foreignField: "_id",
+          as:"Assignment_TextBook_aggregate",
+        }
+      },
+      {
+        $unwind:{
+          path:"$Assignment_TextBook_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      {
+        $lookup:{
+          from: "Lecture",
+          localField: "Assignment_aggregate.lectureID",
+          foreignField: "_id",
+          as:"Lecture_aggregate",
+        }
+      },
+      {
+        $unwind:{
+          path:"$Lecture_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      //get progarm info(program leader username and nickname) (if proper)
+      {
+        $lookup:{
+          from: "User",
+          localField: "TrDraftRequest_aggregate.request_specific_data.program_by",
+          foreignField: "_id",
+          as:"TDR_User_aggregate",
+        }
+      },
+      {
+        $unwind:{
+          path:"$TDR_User_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      {
+        $project: {
+          _id:0,         
+          tdrr_id:"$TDRR_aggregate._id",
+          student_username:"$StudentUser_aggregate.username",
+          student_nickname:"$StudentUser_aggregate.nickname",
+          student_DB_name:"$Student_aggregate.이름",
+          request_specific_data:"$TrDraftRequest_aggregate.request_specific_data",
+          request_type: "$TrDraftRequest_aggregate.request_type",
+          request_date: "$TrDraftRequest_aggregate.request_date",
+          study_data:"$TrDraftRequest_aggregate.study_data",
+          review_msg:"$TDRR_aggregate.review_msg",
+          review_status:"$TDRR_aggregate.review_status",
+          review_timestamp:"$TDRR_aggregate.modify_date",
+          textbook_name:"$TextBook_aggregate.교재",
+          textbook_subject:"$TextBook_aggregate.과목",
+          lecture_name:"$Lecture_aggregate.lectureName",
+          lecturer:"$Lecture_aggregate.manager", // this should be change later
+          AOSID:"$AOS_aggregate._id",
+          assignment_page_range_array:"$Assignment_aggregate.pageRangeArray",
+          assignment_description:'$Assignment_aggregate.description',
+          assignment_textbook_name:'$Assignment_TextBook_aggregate.교재',
+          program_leader_username:'$TDR_User_aggregate.username',
+          program_leader_nickname:'$TDR_User_aggregate.nickname',
+        },
+      },
+      {
+        $facet:{
+          metadata:[{$count:"total_items_num"}],
+          data:[{$sort:{"study_data.timestamp":-1}},{$skip:alarm_items_per_page*(queryPage-1)},{$limit:alarm_items_per_page}]
+        }
+      }
+    ]).toArray())[0];
+    if(result_data.metadata.length===0) return; // no matching data
+    const item_count=(result_data.metadata)[0].total_items_num;
+    const total_page_num= Math.ceil(item_count/items_per_page);
+    ret_val["ret"]["pagination"]["cur_page"]=queryPage;
+    ret_val["ret"]["pagination"]["total_page_num"]=total_page_num;
+    ret_val["ret"]["pagination"]["alarms_data"]=result_data.data;
+    if(result_data.metadata.total_items_num>1 && result_data.data.length===0){
+      ret_val["ret"]["pagination"]["pageInvalid"]=true;
+    } 
+  }
+  catch(error){
+    console.log(`error: ${error}`);
+    ret_val["success"]=false;
+    ret_val["ret"]=`error while getting my alarms`;
   }
   finally{
     return res.json(ret_val);
@@ -674,26 +1023,40 @@ app.post("/api/saveLifeDataRequest",loginCheck, permissionCheck(Role("student"))
     else newlySaved=!prev_life_doc;
 
     //update request info & status
-    let request_doc={};
-    if(newlySaved){
-      request_doc=TRDraftRequestDataValidator.getNewLifeDataRequestDocument(student_id,today_string);
-    }
+    // let request_doc={};
+    // if(newlySaved){
+    //   request_doc=TRDraftRequestDataValidator.getNewLifeDataRequestDocument(student_id,today_string);
+    // }
     // request_doc.request_specific_data["신체컨디션"]=bodyCondition;
     // request_doc.request_specific_data["정서컨디션"]=sentimentCondition;
     // request_doc.request_specific_data["실제취침"]=goToBedTime;
     // request_doc.request_specific_data["실제기상"]=wakeUpTime;
-    request_doc["request_status"]=TRDraftRequestDataValidator.request_status_to_index["review_needed"]; // request status update to "review_needed": cannot be updated until a review written
-    request_doc["request_specific_data.신체컨디션"]=bodyCondition;
-    request_doc["request_specific_data.정서컨디션"]=sentimentCondition;
-    request_doc["request_specific_data.실제취침"]=goToBedTime;
-    request_doc["request_specific_data.실제기상"]=wakeUpTime;
-    request_doc["modify_date"]=current_date;
+
+    // request_doc["request_status"]=TRDraftRequestDataValidator.request_status_to_index["review_needed"]; // request status update to "review_needed": cannot be updated until a review written
+    // request_doc["request_specific_data.신체컨디션"]=bodyCondition;
+    // request_doc["request_specific_data.정서컨디션"]=sentimentCondition;
+    // request_doc["request_specific_data.실제취침"]=goToBedTime;
+    // request_doc["request_specific_data.실제기상"]=wakeUpTime;
+    // request_doc["modify_date"]=current_date;
+
     const life_doc_id=newlySaved?new ObjectId():prev_life_doc._id;
-    if(newlySaved) request_doc["_id"]=life_doc_id;
-    const study_data_element={...TRDraftRequestDataValidator.request_study_data_template};
-    study_data_element["timestamp"]=current_date;
+    const life_doc_insert_settings=TRDraftRequestDataValidator.getLifeDataRequestOnInsertSettings(student_id,today_string);
+    const life_doc_update_settings=TRDraftRequestDataValidator.getLifeDataRequestOnUpdateSettings(
+      TRDraftRequestDataValidator.request_status_to_index["review_needed"],
+      bodyCondition,
+      sentimentCondition,
+      goToBedTime,
+      wakeUpTime,
+      current_date,
+      newlySaved?life_doc_id:null
+    );
+    
+    // if(newlySaved) request_doc["_id"]=life_doc_id;
+    // const study_data_element={...TRDraftRequestDataValidator.request_study_data_template};
+    // study_data_element["timestamp"]=current_date;
     const study_data_review_id= new ObjectId();
-    study_data_element["review_id"]=study_data_review_id;
+    // study_data_element["review_id"]=study_data_review_id;
+    const study_data_element=TRDraftRequestDataValidator.getStudyDataElement(null,null,true,study_data_review_id,current_date);
     await db.collection("TRDraftRequest").updateOne(
       {
         date:today_string,
@@ -701,7 +1064,8 @@ app.post("/api/saveLifeDataRequest",loginCheck, permissionCheck(Role("student"))
         request_type:TRDraftRequestDataValidator.request_type_name_to_index["lifeData"],
       },
       {
-        $set:request_doc,
+        $setOnInsert:life_doc_insert_settings,
+        $set:life_doc_update_settings,
         $push:{
           "study_data_list":study_data_element,
         },
@@ -710,7 +1074,7 @@ app.post("/api/saveLifeDataRequest",loginCheck, permissionCheck(Role("student"))
     );
 
     //insert review template documents to TrDraftRequestReview collection
-    const review_document_list=TRDraftRequestDataValidator.getNewRequestReviewListByUserDocumentList(life_doc_id,study_data_review_id,reviewer_user_array);
+    const review_document_list=TRDraftRequestDataValidator.getNewRequestReviewListByUserDocumentList(life_doc_id,study_data_review_id,reviewer_user_array,current_date);
     await db.collection("TRDraftRequestReview").insertMany(review_document_list,{session});
 
     await session.commitTransaction();
@@ -779,30 +1143,43 @@ app.post("/api/saveAssignmentStudyDataRequest",loginCheck, permissionCheck(Role(
     else newlySaved=!prev_assignment_study_doc;
 
     //update request info & status
-    let request_doc={};
-    if(newlySaved){
-      request_doc=TRDraftRequestDataValidator.getNewAssignmentStudyDataRequestDocument(student_id,today_string,AOS_objectid);
-    }
-    request_doc["request_status"]=TRDraftRequestDataValidator.request_status_to_index["review_needed"]; // request status update to "review_needed": cannot be updated until a review written
+    // let request_doc={};
+    // if(newlySaved){
+    //   request_doc=TRDraftRequestDataValidator.getNewAssignmentStudyDataRequestDocument(student_id,today_string,AOS_objectid);
+    // }
+    // request_doc["request_status"]=TRDraftRequestDataValidator.request_status_to_index["review_needed"]; // request status update to "review_needed": cannot be updated until a review written
+
     const assignment_study_doc_id=newlySaved?new ObjectId():prev_assignment_study_doc._id;
-    if(newlySaved) request_doc["_id"]=assignment_study_doc_id;
-    request_doc["modify_date"]=current_date;
-    const study_data_element={...TRDraftRequestDataValidator.request_study_data_template};
-    study_data_element["excuse"]=excuse;
-    study_data_element["time_amount"]=timeAmount;
-    study_data_element["timestamp"]=current_date;
-    study_data_element["finished_state"]=finishedState;
+    const assignment_study_doc_insert_settings= TRDraftRequestDataValidator.getAssignmentStudyDataRequestOnInsertSettings(student_id,today_string,AOS_objectid);
+    const assignment_study_doc_update_settings= TRDraftRequestDataValidator.getAssignmentStudyDataRequestOnUpdateSettings(
+      TRDraftRequestDataValidator.request_status_to_index["review_needed"],
+      current_date,
+      newlySaved?assignment_study_doc_id:null
+    );
+
+    // if(newlySaved) request_doc["_id"]=assignment_study_doc_id;
+    // request_doc["modify_date"]=current_date;
+    // const study_data_element={...TRDraftRequestDataValidator.request_study_data_template};
+    // study_data_element["excuse"]=excuse;
+    // study_data_element["time_amount"]=timeAmount;
+    // study_data_element["timestamp"]=current_date;
+    // study_data_element["finished_state"]=finishedState;
+
     const study_data_review_id= new ObjectId();
-    study_data_element["review_id"]=study_data_review_id;
+    // study_data_element["review_id"]=study_data_review_id;
+
+    const study_data_element=TRDraftRequestDataValidator.getStudyDataElement(excuse,timeAmount,finishedState,study_data_review_id,current_date);
     
     await db.collection("TRDraftRequest").updateOne(
       {
         date:today_string,
         student_id,
         request_type:TRDraftRequestDataValidator.request_type_name_to_index["AssignmentStudyData"],
-        "request_specific_data.AOSID":AOS_objectid},
+        "request_specific_data.AOSID":AOS_objectid
+      },
       {
-        $set:request_doc,
+        $setOnInsert:assignment_study_doc_insert_settings,
+        $set:assignment_study_doc_update_settings,
         $push:{
           "study_data_list":study_data_element,
         },
@@ -811,7 +1188,7 @@ app.post("/api/saveAssignmentStudyDataRequest",loginCheck, permissionCheck(Role(
     );
 
     //insert review template documents to TrDraftRequestReview collection
-    const review_document_list=TRDraftRequestDataValidator.getNewRequestReviewListByUserDocumentList(assignment_study_doc_id,study_data_review_id,reviewer_user_array);
+    const review_document_list=TRDraftRequestDataValidator.getNewRequestReviewListByUserDocumentList(assignment_study_doc_id,study_data_review_id,reviewer_user_array,current_date);
     await db.collection("TRDraftRequestReview").insertMany(review_document_list,{session});
 
     await session.commitTransaction();
@@ -820,7 +1197,7 @@ app.post("/api/saveAssignmentStudyDataRequest",loginCheck, permissionCheck(Role(
     console.log(`error: ${error}`);
     await session.abortTransaction();
     ret_val["success"]=false;
-    ret_val["ret"]=`error while saving life data`;
+    ret_val["ret"]=`error while saving assignment study data`;
   }
   finally{
     await session.endSession();
@@ -866,13 +1243,15 @@ app.post("/api/setLATStudyElementDeletedOnTrDraft",loginCheck, permissionCheck(R
     //     "request_specific_data.textbookID":textbookID_oid,
     //     "request_specific_data.elementID":elementID_oid,
     //   }).toArray();
-    const prev_LAT_study_doc=await db.collection("TRDraftRequest").findOne({
+    const prev_LAT_study_doc=await db.collection("TRDraftRequest").findOne(
+      {
         date:today_string,
         student_id:student_id,
         request_type:TRDraftRequestDataValidator.request_type_name_to_index["LectureAndTextbookStudyData"],
         "request_specific_data.textbookID":textbookID_oid,
         "request_specific_data.elementID":elementID_oid,
-    });
+      }
+    );
     // if(prev_LAT_study_data.length===0) newlySaved=true;
     // if(prev_LAT_study_data.length>1) throw new Error(`same LAT study data request count exceeds 1`);
     // else if(prev_LAT_study_data.length==1 && !TRDraftRequestDataValidator.checkRequestDataUpdatable(prev_LAT_study_data[0].request_status))
@@ -883,30 +1262,53 @@ app.post("/api/setLATStudyElementDeletedOnTrDraft",loginCheck, permissionCheck(R
         throw new Error(`LAT study data request in inupdatable status`);
     }
     else{
-      const this_type_doc_count=await db.collection("TRDraftRequest").countDocuments({
+      const this_type_doc_count=await db.collection("TRDraftRequest").countDocuments(
+        {
         date:today_string,
         student_id:student_id,
         request_type:TRDraftRequestDataValidator.request_type_name_to_index["LectureAndTextbookStudyData"],
-      });
-      const this_type_active_doc_count= await db.collection("TRDraftRequest").countDocuments({
+        }
+      );
+      const this_type_active_doc_count= await db.collection("TRDraftRequest").countDocuments(
+        {
         date:today_string,
         student_id:student_id,
         request_type:TRDraftRequestDataValidator.request_type_name_to_index["LectureAndTextbookStudyData"],
         deleted:false,
-      });
+        }
+      );
       if(this_type_doc_count>=TRDraftRequestDataValidator.daily_LAT_request_max_count ||
           this_type_active_doc_count>=TRDraftRequestDataValidator.daily_active_LAT_request_max_count)
           throw new Error(`LAT study data request count exceeds 1`);
     }
+
+    //update request info & status
     let newlySaved=!prev_LAT_study_doc;
-    let request_doc={};
-    if(newlySaved){
-      request_doc=TRDraftRequestDataValidator.getNewLATStudyDataRequestDocument(student_id,today_string,textbookID_oid,elementID_oid);
-      request_doc["study_data_list"]=[];
-    }
+
+    const LAT_study_doc_id=newlySaved?new ObjectId():prev_LAT_study_doc._id;
+    const LAT_study_doc_insert_settings=TRDraftRequestDataValidator.getLATStudyDataRequestOnInsertSettings(student_id,today_string,textbookID_oid,elementID_oid);
+    if(newlySaved) LAT_study_doc_insert_settings["study_data_list"]=[];
+    const LAT_study_doc_update_settings=TRDraftRequestDataValidator.getLATStudyDataRequestOnUpdateSettings(
+      TRDraftRequestDataValidator.request_status_to_index["created"],
+      current_date,
+      true,
+      duplicatable,
+      "",
+      "",
+      0,
+      newlySaved?LAT_study_doc_id:null
+    );
+    // let request_doc={};
+    // if(newlySaved){
+    //   request_doc=TRDraftRequestDataValidator.getNewLATStudyDataRequestDocument(student_id,today_string,textbookID_oid,elementID_oid);
+    //   request_doc["study_data_list"]=[];
+    // }
     // request_doc["request_specific_data.deleted"]=true;
-    request_doc["deleted"]=true;
-    request_doc["modify_date"]=current_date;
+    // request_doc["deleted"]=true;
+    // request_doc["modify_date"]=current_date;
+    // const study_data_review_id= new ObjectId();
+    // study_data_element["review_id"]=study_data_review_id;
+
     await db.collection("TRDraftRequest").updateOne(
       {
         date:today_string,
@@ -916,9 +1318,12 @@ app.post("/api/setLATStudyElementDeletedOnTrDraft",loginCheck, permissionCheck(R
         "request_specific_data.elementID":elementID_oid,
       },
       {
-        $set:request_doc,
+        $setOnInsert:LAT_study_doc_insert_settings,
+        $set:LAT_study_doc_update_settings,
       },
-      {"upsert":true});
+      {"upsert":true}
+    );
+
   }
   catch(error){
     console.log(`error: ${error}`);
@@ -933,7 +1338,20 @@ app.post("/api/setLATStudyElementDeletedOnTrDraft",loginCheck, permissionCheck(R
 //save student request data
 app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("student")), async function (req, res) {
   const ret_val={"success":true, "ret":null};
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
   try{
+    session.startTransaction();
+    const username=req.session.passport.user.username;
     const student_id=req.session.passport.user.student_id;
     const today_string=getCurrentKoreaDateYYYYMMDD();
     const current_date=getCurrentDate();
@@ -949,6 +1367,7 @@ app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("studen
       duplicatableSubject,
       recentPage,
       requestNew,
+      reviewedBy
     }= req.body;
     duplicatable=!!duplicatable;
     deleted=!!deleted;
@@ -965,20 +1384,32 @@ app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("studen
     else if(deleted) throw new Error(`invalid request parameter`);
     else if(duplicatable && (!TRDraftRequestDataValidator.checkDuplicatableNameValid(duplicatableName) || !TRDraftRequestDataValidator.checkDuplicatableSubjectValid(duplicatableSubject))) throw new Error(`invalid assignment study data`);
     else if(!TRDraftRequestDataValidator.checkRecentPageValid(recentPage)) throw new Error(`recent page value invalid`);
+    else if(!TRDraftRequestDataValidator.checkReviewerUsernameArrayValid(reviewedBy)) throw new Error(`invalid reviewer array:0`);
     recentPage=parseInt(recentPage);
-    if(!!textbookID){ //check if textbook document exists
-      const textbook_doc= await db.collection("TextBook").findOne({_id:textbook_oid});
+
+    //check if textbook document exists
+    if(!!textbookID){
+      const textbook_doc= await db.collection("TextBook").findOne({_id:textbook_oid},{session});
       if(!textbook_doc) throw new Error(`no such Textbook`);
     }
+
+    //check if reviewers in reviewer array exist
+    const reviewer_array_len=reviewedBy.length;
+    const reviewer_user_array=await getManagerUserListInSameGroupByMyUsername(username,true,reviewedBy,{session});
+    if(reviewer_user_array.length !== reviewer_array_len) throw new Error(`invalid reviewer array:1`);
+
     const prev_LAT_study_doc= await db.collection("TRDraftRequest")
-      .findOne({
-        student_id,
-        date:today_string,
-        request_type:TRDraftRequestDataValidator.request_type_name_to_index["LectureAndTextbookStudyData"],
-        "request_specific_data.textbookID":textbook_oid,
-        "request_specific_data.elementID":element_oid,
-      });
-    if(duplicatable && requestNew && prev_LAT_study_doc){ //check if elment ID already in use
+      .findOne(
+        {
+          student_id,
+          date:today_string,
+          request_type:TRDraftRequestDataValidator.request_type_name_to_index["LectureAndTextbookStudyData"],
+          "request_specific_data.textbookID":textbook_oid,
+          "request_specific_data.elementID":element_oid,
+        },
+        {session}
+      );
+    if(duplicatable && requestNew && prev_LAT_study_doc){ //check if element ID already in use
         ret_val.ret={"reset_object_id":true};
         return;
     }
@@ -996,17 +1427,23 @@ app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("studen
     //   }
     // ).toArray();
 
-    const this_type_doc_count= await db.collection("TRDraftRequest").countDocuments({
-      date:today_string,
-      student_id,
-      request_type:TRDraftRequestDataValidator.request_type_name_to_index["LectureAndTextbookStudyData"],
-    });
-    const this_type_active_doc_count= await db.collection("TRDraftRequest").countDocuments({
-      date:today_string,
-      student_id,
-      request_type:TRDraftRequestDataValidator.request_type_name_to_index["LectureAndTextbookStudyData"],
-      deleted:false,
-    });
+    const this_type_doc_count= await db.collection("TRDraftRequest").countDocuments(
+      {
+        date:today_string,
+        student_id,
+        request_type:TRDraftRequestDataValidator.request_type_name_to_index["LectureAndTextbookStudyData"],
+      },
+      {session}
+    );
+    const this_type_active_doc_count= await db.collection("TRDraftRequest").countDocuments(
+      {
+        date:today_string,
+        student_id,
+        request_type:TRDraftRequestDataValidator.request_type_name_to_index["LectureAndTextbookStudyData"],
+        deleted:false,
+      },
+      {session}
+    );
     // if(prev_LAT_study_data_list.length + (!prev_LAT_study_doc?1:0) > TRDraftRequestDataValidator.daily_LAT_request_max_count)
     //   throw new Error(`LAT study data request count exceeds max value`);
     if(!prev_LAT_study_doc &&
@@ -1015,22 +1452,43 @@ app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("studen
         throw new Error(`LAT study data request count exceeds max value`);
     
     const newlySaved=!prev_LAT_study_doc;
-    let request_doc={};
-    if(newlySaved){
-      request_doc=TRDraftRequestDataValidator.getNewLATStudyDataRequestDocument(student_id,today_string,textbook_oid,element_oid,duplicatableName,duplicatableSubject,recentPage);
-    }
+
+    const LAT_study_doc_id=newlySaved?new ObjectId():prev_LAT_study_doc._id;
+    const LAT_study_doc_insert_settings=TRDraftRequestDataValidator.getLATStudyDataRequestOnInsertSettings(
+      student_id,
+      today_string,
+      textbook_oid,
+      element_oid
+    );
+    const LAT_study_doc_update_settings=TRDraftRequestDataValidator.getLATStudyDataRequestOnUpdateSettings(
+      TRDraftRequestDataValidator.request_status_to_index["review_needed"],
+      current_date,
+      false,
+      duplicatable,
+      duplicatableName,
+      duplicatableSubject,
+      recentPage,
+      newlySaved?LAT_study_doc_id:null
+    );
+
+    // let request_doc={};
+    // if(newlySaved){
+    //   request_doc=TRDraftRequestDataValidator.getNewLATStudyDataRequestDocument(student_id,today_string,textbook_oid,element_oid,duplicatableName,duplicatableSubject,recentPage);
+    // }
     // request_doc["request_specific_data.deleted"]=false;
-    request_doc["deleted"]=false;
-    if(!duplicatable) request_doc["request_specific_data.recent_page"]=recentPage;
-    request_doc["request_specific_data.duplicatable_name"]=duplicatableName;
-    request_doc["request_specific_data.duplicatable_subject"]=duplicatableSubject;
-    request_doc["request_specific_data.recent_page"]=recentPage;
-    const study_data_element={...TRDraftRequestDataValidator.request_study_data_template};
-    study_data_element["excuse"]=excuse;
-    study_data_element["time_amount"]=timeAmount;
-    study_data_element["timestamp"]=current_date;
-    study_data_element["finished_state"]=finishedState;
-    request_doc["modify_date"]=current_date;
+    // request_doc["deleted"]=false;
+    // if(!duplicatable) request_doc["request_specific_data.recent_page"]=recentPage;
+    // request_doc["request_specific_data.duplicatable_name"]=duplicatableName;
+    // request_doc["request_specific_data.duplicatable_subject"]=duplicatableSubject;
+    // request_doc["request_specific_data.recent_page"]=recentPage;
+    // const study_data_element={...TRDraftRequestDataValidator.request_study_data_template};
+    // study_data_element["excuse"]=excuse;
+    // study_data_element["time_amount"]=timeAmount;
+    // study_data_element["timestamp"]=current_date;
+    // study_data_element["finished_state"]=finishedState;
+    // request_doc["modify_date"]=current_date;
+    const study_data_review_id=new ObjectId();
+    const study_data_element=TRDraftRequestDataValidator.getStudyDataElement(excuse,timeAmount,finishedState,study_data_review_id,current_date);
     await db.collection("TRDraftRequest").updateOne(
       {
         date:today_string,
@@ -1040,17 +1498,27 @@ app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("studen
         "request_specific_data.elementID":element_oid,
       },
       {
-        $set:request_doc,
+        $setOnInsert:LAT_study_doc_insert_settings,
+        $set:LAT_study_doc_update_settings,
         $push:{"study_data_list":study_data_element},
       },
-      {"upsert":true});
+      {"upsert":true,session},
+    );
+
+    //insert review template documents to TrDraftRequestReview collection
+    const review_document_list=TRDraftRequestDataValidator.getNewRequestReviewListByUserDocumentList(LAT_study_doc_id,study_data_review_id,reviewer_user_array,current_date);
+    await db.collection("TRDraftRequestReview").insertMany(review_document_list,{session});
+    
+    await session.commitTransaction();
   }
   catch(error){
     console.log(`error: ${error}`);
+    await session.abortTransaction();
     ret_val["success"]=false;
-    ret_val["ret"]=`error while saving life data`;
+    ret_val["ret"]=`error while saving lat study data`;
   }
   finally{
+    await session.endSession();
     return res.json(ret_val);
   }
 });
@@ -1137,9 +1605,23 @@ app.post("/api/setProgramElementDeletedOnTrDraft",loginCheck, permissionCheck(Ro
 
 //save program request data
 app.post("/api/saveProgramDataRequest",loginCheck, permissionCheck(Role("student")), async function (req, res) {
+  const ret_val={"success":true, "ret":null};
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
   console.log(`req.body: ${JSON.stringify(req.body)}`);
   try{
+    session.startTransaction();
     const student_id=req.session.passport.user.student_id;
+    const username=req.session.passport.user.username;
     const today_string=getCurrentKoreaDateYYYYMMDD();
     const current_date=getCurrentDate();
     let {
@@ -1152,27 +1634,42 @@ app.post("/api/saveProgramDataRequest",loginCheck, permissionCheck(Role("student
       programName,
       programBy,
       programDescription,
+      reviewedBy
     }= req.body;
     deleted=!!deleted;
     finishedState=!!finishedState;
     requestNew=!!requestNew;
     if(finishedState===true) excuse="";
     const element_oid= new ObjectId(elementID);
+    let programBy_oid=null;
     if(!TRDraftRequestDataValidator.checkExcuseValueValid(excuse,finishedState) || !TRDraftRequestDataValidator.checkTimeStringValid(timeAmount)) throw new Error(`invalid program participation data`);
     else if(deleted) throw new Error(`invalid request parameter`);
-    else if(!TRDraftRequestDataValidator.checkProgramNameValid(programName) || !TRDraftRequestDataValidator.checkProgramDescriptionValid(programDescription)) throw new Error(`invalid program participation data`);
+    else if(!TRDraftRequestDataValidator.checkProgramNameValid(programName) ||
+      !TRDraftRequestDataValidator.checkProgramByUsernameValid(programBy) ||
+      !TRDraftRequestDataValidator.checkProgramDescriptionValid(programDescription)) throw new Error(`invalid program participation data`);
+    else if(!TRDraftRequestDataValidator.checkReviewerUsernameArrayValid(reviewedBy)) throw new Error(`invalid reviewer array:0`);
     else{
       //check if program leading manager is valid
-      const managerList=(await db.collection("Manager").find().toArray())[0].매니저;
-      if(!TRDraftRequestDataValidator.checkProgramByValid(programBy,managerList)) throw new Error(`invalid program participation data`);
+      const managerList= await getManagerUserListInSameGroupByMyUsername(username,true,[programBy],{session});
+      programBy_oid=TRDraftRequestDataValidator.checkProgramByValid(programBy,managerList);
+      if(!programBy_oid) throw new Error(`invalid programBy value`);
     }
+
+    //check if reviewers in reviewer array exist
+    const reviewer_array_len=reviewedBy.length;
+    const reviewer_user_array=await getManagerUserListInSameGroupByMyUsername(username,true,reviewedBy,{session});
+    if(reviewer_user_array.length !== reviewer_array_len) throw new Error(`invalid reviewer array:1`);
+
     const prev_program_participation_doc= await db.collection("TRDraftRequest")
-      .findOne({
-        student_id,
-        date:today_string,
-        request_type:TRDraftRequestDataValidator.request_type_name_to_index["ProgramParticipationData"],
-        "request_specific_data.elementID":element_oid,
-      });
+      .findOne(
+        {
+          student_id,
+          date:today_string,
+          request_type:TRDraftRequestDataValidator.request_type_name_to_index["ProgramParticipationData"],
+          "request_specific_data.elementID":element_oid,
+        },
+        {session}
+      );
     if(requestNew && prev_program_participation_doc){ //check if elment ID already in use
         ret_val.ret={"reset_object_id":true};
         return;
@@ -1190,17 +1687,23 @@ app.post("/api/saveProgramDataRequest",loginCheck, permissionCheck(Role("student
     //     "$or":[{"request_specific_data.deleted":{"$exists":false}},{"request_specific_data.deleted":false}],
     //   }
     // ).toArray();
-    const this_type_doc_count= await db.collection("TRDraftRequest").countDocuments({
-      date:today_string,
-      student_id,
-      request_type:TRDraftRequestDataValidator.request_type_name_to_index["ProgramParticipationData"],
-    });
-    const this_type_active_doc_count= await db.collection("TRDraftRequest").countDocuments({
-      date:today_string,
-      student_id,
-      request_type:TRDraftRequestDataValidator.request_type_name_to_index["ProgramParticipationData"],
-      deleted:false,
-    });
+    const this_type_doc_count= await db.collection("TRDraftRequest").countDocuments(
+      {
+        date:today_string,
+        student_id,
+        request_type:TRDraftRequestDataValidator.request_type_name_to_index["ProgramParticipationData"],
+      },
+      {session}
+    );
+    const this_type_active_doc_count= await db.collection("TRDraftRequest").countDocuments(
+      {
+        date:today_string,
+        student_id,
+        request_type:TRDraftRequestDataValidator.request_type_name_to_index["ProgramParticipationData"],
+        deleted:false,
+      },
+      {session}
+    );
     // if(prev_program_participation_data_list.length + (!prev_program_participation_doc?1:0) > TRDraftRequestDataValidator.daily_program_request_max_count)
     //   throw new Error(`LAT study data request count exceeds max value`);
     if(!prev_program_participation_doc && 
@@ -1209,21 +1712,39 @@ app.post("/api/saveProgramDataRequest",loginCheck, permissionCheck(Role("student
         throw new Error(`LAT study data request count exceeds max value`);
     
     const newlySaved=!prev_program_participation_doc;
-    let request_doc={};
-    if(newlySaved){
-      request_doc=TRDraftRequestDataValidator.getNewProgramDataRequestDocument(student_id,today_string,element_oid,programName,programBy,programDescription);
-    }
+    const program_doc_id=newlySaved?new ObjectId():prev_program_participation_doc._id;
+    const program_doc_insert_settings=TRDraftRequestDataValidator.getProgramDataRequestOnInsertSettings(
+      student_id,
+      today_string,
+      element_oid
+    );
+    const program_doc_update_settings=TRDraftRequestDataValidator.getProgramDataRequestOnUpdateSettings(
+      TRDraftRequestDataValidator.request_status_to_index["review_needed"],
+      current_date,
+      false,
+      programName,
+      programBy_oid,
+      programDescription,
+      newlySaved?program_doc_id:null
+    );
+
+    // let request_doc={};
+    // if(newlySaved){
+    //   request_doc=TRDraftRequestDataValidator.getNewProgramDataRequestDocument(student_id,today_string,element_oid,programName,programBy,programDescription);
+    // }
     // request_doc["request_specific_data.deleted"]=false;
-    request_doc["deleted"]=false;
-    request_doc["request_specific_data.program_name"]=programName;
-    request_doc["request_specific_data.program_by"]=programBy;
-    request_doc["request_specific_data.program_description"]=programDescription;
-    const study_data_element={...TRDraftRequestDataValidator.request_study_data_template};
-    study_data_element["excuse"]=excuse;
-    study_data_element["time_amount"]=timeAmount;
-    study_data_element["timestamp"]= current_date;
-    study_data_element["finished_state"]=finishedState;
-    request_doc["modify_date"]=current_date;
+    // request_doc["deleted"]=false;
+    // request_doc["request_specific_data.program_name"]=programName;
+    // request_doc["request_specific_data.program_by"]=programBy;
+    // request_doc["request_specific_data.program_description"]=programDescription;
+    // const study_data_element={...TRDraftRequestDataValidator.request_study_data_template};
+    // study_data_element["excuse"]=excuse;
+    // study_data_element["time_amount"]=timeAmount;
+    // study_data_element["timestamp"]= current_date;
+    // study_data_element["finished_state"]=finishedState;
+    // request_doc["modify_date"]=current_date;
+    const study_data_review_id=new ObjectId();
+    const study_data_element=TRDraftRequestDataValidator.getStudyDataElement("",timeAmount,true,study_data_review_id,current_date);
     await db.collection("TRDraftRequest").updateOne(
       {
         date:today_string,
@@ -1232,17 +1753,27 @@ app.post("/api/saveProgramDataRequest",loginCheck, permissionCheck(Role("student
         "request_specific_data.elementID":element_oid,
       },
       {
-        $set:request_doc,
+        $setOnInsert:program_doc_insert_settings,
+        $set:program_doc_update_settings,
         $push:{"study_data_list":study_data_element},
       },
-      {"upsert":true});
+      {"upsert":true, session},
+    );
+
+    //insert review template documents to TrDraftRequestReview collection
+    const review_document_list=TRDraftRequestDataValidator.getNewRequestReviewListByUserDocumentList(program_doc_id,study_data_review_id,reviewer_user_array,current_date);
+    await db.collection("TRDraftRequestReview").insertMany(review_document_list,{session});
+
+    await session.commitTransaction();
   }
   catch(error){
     console.log(`error: ${error}`);
+    await session.abortTransaction();
     ret_val["success"]=false;
     ret_val["ret"]=`error while saving life data`;
   }
   finally{
+    await session.endSession();
     return res.json(ret_val);
   }
 });
@@ -1399,7 +1930,7 @@ app.post("/api/registerUser", async function(req,res){
     }
 
     ret_val["ret"]["registered"]=true;
-    session.commitTransaction();
+    await session.commitTransaction();
   }
   catch(error){
     console.log(`error: ${JSON.stringify(error)}`);
@@ -1409,7 +1940,7 @@ app.post("/api/registerUser", async function(req,res){
     ret_val["ret"]=`이미 사용중인 아이디입니다`;
   }
   finally{
-    session.endSession();
+    await session.endSession();
     return res.json(ret_val);
   }
 });
@@ -3842,7 +4373,8 @@ function userTypeQueryValid(userType,queryAllUserType,username){
   else return roles.RoleNameValidCheck(userType);
 }
 
-const items_per_page=parseInt(process.env.SHOWED_MANAGED_USER_PER_PAGE);
+const items_per_page=parseInt(process.env.SHOWN_MANAGED_USER_PER_PAGE);
+const alarm_items_per_page=parseInt(process.env.SHOWN_ALARM_PER_PAGE);
 
 // get status of user accounts
 app.post("/api/searchUserAccountApprovedStatus", loginCheck, permissionCheck(Role("admin")), async (req,res)=>{
@@ -3978,9 +4510,8 @@ app.post("/api/searchUserAccountApprovedStatus", loginCheck, permissionCheck(Rol
     ret_val["ret"]["pagination"]["cur_page"]=queryPage;
     ret_val["ret"]["pagination"]["total_page_num"]=total_page_num;
     ret_val["ret"]["pagination"]["status_data"]=result_data.data;
-    if(result_data.metadata.total_items_num>0 && result_data.data.length===0){
+    if(result_data.metadata.total_items_num>1 && result_data.data.length===0){
       ret_val["ret"]["pagination"]["pageInvalid"]=true;
-      ret_val["ret"]["pagination"]["cur_page"]=total_page_num;
     } 
   }
   catch(error){

@@ -1,22 +1,49 @@
+const { request } = require("express");
+
 const request_type_name_to_index={
     "lifeData":0,
     "AssignmentStudyData":1,
     "LectureAndTextbookStudyData":2,
     "ProgramParticipationData":3,
 }
+const index_to_request_type_name={
+    0:"lifeData",
+    1:"AssignmentStudyData",
+    2:"LectureAndTextbookStudyData",
+    3:"ProgramParticipationData",
+};
 const request_status_to_index={
     "created":0,
     "review_needed":1,
     "confirmed":2,
 };
-const request_document_template={
+const review_status_to_index={
+    "not_reviewed":0,
+    "accepted":1,
+    "declined":2,
+};
+const index_to_review_status={
+    0:"not_reviewed",
+    1:"accepted",
+    2:"declined",
+};
+const request_document_on_insert_template={
     student_id:null,
     date:null,
+    request_type:null,
+};
+const life_data_request_document_on_update_template={
     modify_date:null,
     request_status:0,
-    request_type:null,
-    request_specific_data:null,
-    study_data_list:null,
+    "request_specific_data.신체컨디션":null,
+    "request_specific_data.정서컨디션":null,
+    "request_specific_data.실제취침":null,
+    "request_specific_data.실제기상":null,
+    deleted:false,
+};
+const assignment_study_data_request_document_on_update_template={
+    modify_date:null,
+    request_status:0,
     deleted:false,
 };
 const request_study_data_template={
@@ -30,8 +57,10 @@ const request_review_document_template={
     tr_draft_request_id:null,
     study_data_review_id:null,
     review_from:null,
+    review_status:null,
     review_msg:null,
     modify_date:null,
+    create_date:null,
 };
 const duplicatable_name_list=["모의고사","테스트","기타"];
 const duplicatable_subject_list=["국어","수학","영어","탐구","기타"];
@@ -64,17 +93,32 @@ function checkLifeDataValid(bodyCondition,sentimentCondition,goToBedTime,wakeUpT
     return checkConditionValueValid(bodyCondition) && checkConditionValueValid(sentimentCondition)
         && checkTimeStringValid(goToBedTime) && checkTimeStringValid(wakeUpTime);
 }
-function getNewLifeDataRequestDocument(student_id,today_string){
-    const request_doc={...request_document_template};
-    request_doc["student_id"]=student_id
-    request_doc["date"]=today_string;
-    request_doc["request_status"]=0;
-    request_doc["request_type"]=request_type_name_to_index["lifeData"];
-    // request_doc["request_specific_data"]={};
-    delete request_doc["request_specific_data"];
-    // request_doc["study_data_list"]=[];
-    delete request_doc["study_data_list"];
-    return request_doc;
+function getStudyDataElement(excuse,timeAmount,finishedState,reviewID,timestamp){
+    const ret={...request_study_data_template};
+    ret.excuse=excuse;
+    ret.time_amount=timeAmount;
+    ret.finished_state=finishedState;
+    ret.review_id=reviewID;
+    ret.timestamp=timestamp;
+    return ret;
+}
+function getLifeDataRequestOnInsertSettings(student_id,today_string){
+    const ret={...request_document_on_insert_template};
+    ret["student_id"]=student_id;
+    ret["date"]=today_string;
+    ret["request_type"]=request_type_name_to_index["lifeData"];
+    return ret;
+}
+function getLifeDataRequestOnUpdateSettings(requestStatus,bodyCondition,sentimentCondition,goToBedTime,wakeUpTime,currentDate,_id=null){
+    const ret={...life_data_request_document_on_update_template};
+    ret["request_status"]=requestStatus;
+    ret["request_specific_data.신체컨디션"]=bodyCondition;
+    ret["request_specific_data.정서컨디션"]=sentimentCondition;
+    ret["request_specific_data.실제취침"]=goToBedTime;
+    ret["request_specific_data.실제기상"]=wakeUpTime;
+    ret["modify_date"]=currentDate;
+    if(_id) ret._id=_id;
+    return ret;
 }
 function checkExcuseValueValid(excuse_val,finishedState){
     return (typeof excuse_val === "string") && ((finishedState===true && excuse_val.length===0) || (finishedState===false && intBetween(excuse_val.length,15,200)));
@@ -82,44 +126,42 @@ function checkExcuseValueValid(excuse_val,finishedState){
 function checkRequestDataUpdatable(request_status){
     return request_status===request_status_to_index["created"];
 }
-function getNewAssignmentStudyDataRequestDocument(student_id,today_string,AOSID){
-    const request_doc={...request_document_template};
-    request_doc["student_id"]=student_id
-    request_doc["date"]=today_string;
-    request_doc["request_status"]=0;
-    request_doc["request_type"]=request_type_name_to_index["AssignmentStudyData"];
+function getAssignmentStudyDataRequestOnInsertSettings(student_id,today_string,AOSID){
+    const ret={...request_document_on_insert_template};
+    ret["student_id"]=student_id;
+    ret["date"]=today_string;
+    ret["request_type"]=request_type_name_to_index["AssignmentStudyData"];
     // request_doc["request_specific_data"]={AOSID};
-    delete request_doc["request_specific_data"];
-    request_doc["request_specific_data.AOSID"]=AOSID;
-    delete request_doc["study_data_list"];
-    return request_doc;
+    ret["request_specific_data.AOSID"]=AOSID;
+    return ret;
 }
-function getNewLATStudyDataRequestDocument(student_id,today_string,textbookID,elementID,duplicatableName="",duplicatableSubject="",recentPage=0){
-    const request_doc={...request_document_template};
-    request_doc["student_id"]=student_id;
-    request_doc["date"]=today_string;
-    request_doc["request_status"]=0;
-    request_doc["request_type"]=request_type_name_to_index["LectureAndTextbookStudyData"];
-    // request_doc["request_specific_data"]={
-    //     textbookID,
-    //     elementID,
-    //     deleted:false,
-    //     duplicatable:textbookID?false:true,
-    //     duplicatable_name:duplicatableName,
-    //     duplicatable_subject:duplicatableSubject,
-    //     recent_page:recentPage,
-    // };
-    delete request_doc["request_specific_data"];
-    request_doc["request_specific_data.textbookID"]=textbookID;
-    request_doc["request_specific_data.elementID"]=elementID;
-    // request_doc["request_specific_data.deleted"]=false;
-    request_doc["deleted"]=false;
-    request_doc["request_specific_data.duplicatable"]=textbookID?false:true;
-    request_doc["request_specific_data.duplicatable_name"]=duplicatableName;
-    request_doc["request_specific_data.duplicatable_subject"]=duplicatableSubject;
-    request_doc["request_specific_data.recent_page"]=recentPage;
-    delete request_doc["study_data_list"];
-    return request_doc;
+function getAssignmentStudyDataRequestOnUpdateSettings(requestStatus,currentDate,_id=null){
+    const ret={...assignment_study_data_request_document_on_update_template};
+    ret.request_status=requestStatus;
+    ret.modify_date=currentDate;
+    if(_id) ret._id=_id;
+    return ret;
+}
+function getLATStudyDataRequestOnInsertSettings(student_id,today_string,textbookID,elementID){
+    const ret={...request_document_on_insert_template};
+    ret["student_id"]=student_id;
+    ret["date"]=today_string;
+    ret["request_type"]=request_type_name_to_index["LectureAndTextbookStudyData"];
+    ret["request_specific_data.textbookID"]=textbookID;
+    ret["request_specific_data.elementID"]=elementID;
+    return ret;
+}
+function getLATStudyDataRequestOnUpdateSettings(requestStatus,currentDate,deleted=false,duplicatable=true,duplicatableName="",duplicatableSubject="",recentPage=0,_id=null){
+    const ret={...assignment_study_data_request_document_on_update_template};
+    ret.request_status=requestStatus;
+    ret.modify_date=currentDate;
+    ret.deleted=deleted;
+    ret["request_specific_data.duplicatable"]=duplicatable;
+    ret["request_specific_data.duplicatable_name"]=duplicatableName;
+    ret["request_specific_data.duplicatable_subject"]=duplicatableSubject;
+    ret["request_specific_data.recent_page"]=recentPage;
+    if(_id) ret._id=_id;
+    return ret;
 }
 function checkDuplicatableNameValid(duplicatableName){
     for(let i=0; i<duplicatable_name_list.length; i++){
@@ -137,21 +179,24 @@ function checkRecentPageValid(recentPageString){
     if(typeof recentPageString !=="string" || !intBetween(recentPageString.length,1,5)) return false;
     return !isNaN(parseInt(recentPageString)) || parseInt(recentPageString)<0;
 }
-function getNewProgramDataRequestDocument(student_id,today_string,elementID,programName="",programBy="",programDescription=""){
-    const request_doc={...request_document_template};
-    request_doc["student_id"]=student_id;
-    request_doc["date"]=today_string;
-    request_doc["request_status"]=0;
-    request_doc["request_type"]=request_type_name_to_index["ProgramParticipationData"];
-    delete request_doc["request_specific_data"];
-    request_doc["request_specific_data.elementID"]=elementID;
-    // request_doc["request_specific_data.deleted"]=false;
-    request_doc["deleted"]=false;
-    request_doc["request_specific_data.program_name"]=programName;
-    request_doc["request_specific_data.program_by"]=programBy;
-    request_doc["request_specific_data.program_description"]=programDescription;
-    delete request_doc["study_data_list"];
-    return request_doc;
+function getProgramDataRequestOnInsertSettings(student_id,today_string,elementID){
+    const ret={...request_document_on_insert_template};
+    ret["student_id"]=student_id;
+    ret["date"]=today_string;
+    ret["request_type"]=request_type_name_to_index["ProgramParticipationData"];
+    ret["request_specific_data.elementID"]=elementID;
+    return ret;
+}
+function getProgramDataRequestOnUpdateSettings(requestStatus,currentDate,deleted=false,programName="",programBy=null,programDescription="",_id=null){
+    const ret={...assignment_study_data_request_document_on_update_template};
+    ret.request_status=requestStatus;
+    ret.modify_date=currentDate;
+    ret.deleted=deleted;
+    ret["request_specific_data.program_name"]=programName;
+    ret["request_specific_data.program_by"]=programBy;
+    ret["request_specific_data.program_description"]=programDescription;
+    if(_id) ret._id=_id;
+    return ret;
 }
 function checkProgramNameValid(programName){
     for(let i=0; i<program_name_list.length; i++){
@@ -159,11 +204,16 @@ function checkProgramNameValid(programName){
     }
     return false;
 }
+//return ObjectId of user if exists, else false if not
 function checkProgramByValid(programBy,program_manager_list){
     for(let i=0; i<program_manager_list.length; i++){
-        if(programBy===program_manager_list[i]) return true;
+        const program_leader=program_manager_list[i];
+        if(programBy===program_leader.username) return program_leader._id;
     }
     return false;
+}
+function checkProgramByUsernameValid(programBy_username){
+    return typeof programBy_username==="string";
 }
 function checkProgramDescriptionValid(programDescription){
     if(typeof programDescription !=="string") return false;
@@ -180,23 +230,29 @@ function checkReviewerUsernameArrayValid(reviewer_array){
     }
     return true;
 }
-function getNewRequestReviewDocument(requestOid,studyDataReviewOid,reviewFromOid){
+function getNewRequestReviewDocument(requestOid,studyDataReviewOid,reviewFromOid,currentDate){
     const ret={...request_review_document_template};
     ret.tr_draft_request_id=requestOid;
     ret.study_data_review_id=studyDataReviewOid;
     ret.review_from=reviewFromOid;
+    ret.create_date=currentDate;
+    ret.review_status=review_status_to_index["not_reviewed"];
     return ret;
 }
-function getNewRequestReviewListByUserDocumentList(requestOid,studyDataReviewOid,userDocumentList){
+function getNewRequestReviewListByUserDocumentList(requestOid,studyDataReviewOid,userDocumentList,currentDate){
     return userDocumentList.map((user_doc,idx)=>{
         const user_id=user_doc._id;
-        const new_review_doc=getNewRequestReviewDocument(requestOid,studyDataReviewOid,user_id);
+        const new_review_doc=getNewRequestReviewDocument(requestOid,studyDataReviewOid,user_id,currentDate);
         return new_review_doc;
     });
 }
 module.exports={
-    request_document_template,
+    request_document_on_insert_template,
+    life_data_request_document_on_update_template,
     request_status_to_index,
+    review_status_to_index,
+    index_to_review_status,
+    index_to_request_type_name,
     request_study_data_template,
     request_review_document_template,
     request_type_name_to_index,
@@ -208,16 +264,23 @@ module.exports={
     checkTimeStringValid,
     checkConditionValueValid,
     checkLifeDataValid,
-    getNewLifeDataRequestDocument,
+    getStudyDataElement,
+    getLifeDataRequestOnInsertSettings,
+    getLifeDataRequestOnUpdateSettings,
     checkExcuseValueValid,
-    getNewAssignmentStudyDataRequestDocument,
-    getNewLATStudyDataRequestDocument,
+    getAssignmentStudyDataRequestOnInsertSettings,
+    getAssignmentStudyDataRequestOnUpdateSettings,
+    getLATStudyDataRequestOnInsertSettings,
+    getLATStudyDataRequestOnUpdateSettings,
     checkRequestDataUpdatable,
     checkDuplicatableNameValid,
     checkDuplicatableSubjectValid,
     checkRecentPageValid,
-    getNewProgramDataRequestDocument,
+    getProgramDataRequestOnInsertSettings,
+    getProgramDataRequestOnUpdateSettings,
+    // getNewProgramDataRequestDocument,
     checkProgramNameValid,
+    checkProgramByUsernameValid,
     checkProgramByValid,
     checkProgramDescriptionValid,
     checkReviewerUsernameArrayValid,

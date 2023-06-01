@@ -17,6 +17,7 @@ import SignUpPage from "./routes/SignUpPage";
 import StuInfoAdd from "./routes/StuInfoAdd";
 import StuInfoEdit from "./routes/StuInfoEdit";
 import StudyChart from "./routes/StudyChart";
+import CheckAlarms from "./routes/CheckAlarms";
 import ClosemeetingWrite from "./routes/ClosemeetingWrite";
 import ClosemeetingEdit from "./routes/ClosemeetingEdit";
 import Todolist from "./routes/Todolist.js";
@@ -65,40 +66,6 @@ function App() {
   const [myInfo,setMyInfo]= useState({...myInfoTemplate});
   const [myInfoLoaded,setMyInfoLoaded]=useState(false);
   
-  const alarm_pagination_template={
-    cur_page:1,
-    total_page_num:1,
-    alarms_data:[]
-  };
-  const [alarmsPagination,setAlarmsPagination]=useState(alarm_pagination_template);
-  function getAlarmsPaginationTemplate(){
-    return {...alarm_pagination_template};
-  }
-
-  async function getRequestAlarms(queryPage=1){
-    const query= {
-      queryPage,
-    }
-    const alarm_data_pagination=await axios
-      .post("/api/getMyAlarms",query)
-      .then((res)=>{
-        const data=res.data;
-        if(!data.success) return getAlarmsPaginationTemplate();
-        return data.ret.pagination;
-      })
-      .catch((err)=>{
-        window.alert(`네트워크 오류로 사용자 데이터를 불러오지 못했습니다`);
-        return getAlarmsPaginationTemplate();
-      })
-    //here pagenation data should be extracted
-    const alarms_data=alarm_data_pagination.alarms_data;
-    if(alarms_data.length>0) alarms_data.sort((a,b)=>{
-      return a.study_data.timestamp>b.study_data.timestamp?-1:a.study_data.timestamp<b.study_data.timestamp?1:0;
-    });
-    console.log(`alarm pagination data: ${JSON.stringify(alarm_data_pagination)}`);
-    setAlarmsPagination(alarm_data_pagination);
-  }
-
   useEffect(async()=>{
     // console.log(`path: ${window.location.pathname}`);
     if(myInfoLoaded){
@@ -117,7 +84,40 @@ function App() {
 
   useEffect(async()=>{
     if(myInfoLoaded && checkManagerMode()){
-      getRequestAlarms();
+      // getRequestAlarms();
+      // await getRequestAlarmsCount();
+    }
+  },[myInfoLoaded]);
+
+  const [newAlarmsCount,setNewAlarmsCount]=useState(0);
+  async function getRequestAlarmsCount(){
+    const new_alarms_count=await axios
+      .get("/api/countMyNewAlarms")
+      .then((res)=>{
+        const data=res.data;
+        if(!data.success) return 0;
+        return data.ret;
+      })
+      .catch((err)=>{
+        return 0;
+      })
+    // console.log(`my new alarms count: ${JSON.stringify(new_alarms_count)}`);
+    setNewAlarmsCount(new_alarms_count);
+  }
+  function getAlarmsButtonVariant(){
+    return newAlarmsCount>0?"primary":"secondary";
+  }
+  function getAlarmsButtonNumberString(){
+    return newAlarmsCount>999?"999+":newAlarmsCount.toString();
+  }
+  function checkAlarmsButtonNeeded(){
+    return checkManagerMode() && !checkCurrentPageIsCheckAlarmsPage();
+  }
+
+  useEffect(async()=>{
+    if(myInfoLoaded && checkManagerMode()){
+      // getRequestAlarms();
+      await getRequestAlarmsCount();
     }
   },[myInfoLoaded]);
 
@@ -208,6 +208,14 @@ function App() {
     if(user_mode==="admin" || user_mode==="manager") return "/studentList";
     else if(user_mode==="student") return "/TRDraft";
     else return "/";
+  }
+  function getCheckAlarmPagePath(){
+    return "/CheckAlarms";
+  }
+  function checkCurrentPageIsCheckAlarmsPage(){
+    const current_location_pathname=window.location.pathname;
+    const check_alarms_page_path=getCheckAlarmPagePath();
+    return current_location_pathname===check_alarms_page_path;
   }
 
   return (
@@ -350,18 +358,25 @@ function App() {
       }
       {window.location.pathname!=="/"?
         <div className="UtilButtonBox">
-          {checkManagerMode()?
+          {checkAlarmsButtonNeeded()?
             <Button
-              variant="primary"
+              variant={getAlarmsButtonVariant()}
+              className="alarmsButton"
               onClick={()=>{
-                // const default_path_for_this_user_mode=getDefaultPathByUserMode(myInfo.user_mode);
-                // const current_location_pathname=window.location.pathname;
-                // if(current_location_pathname==default_path_for_this_user_mode) return;
-                // else if(window.location.pathname==="/SignUp" && !window.confirm("홈으로 이동하면 입력된 정보가 모두 사라집니다.\n이동하시겠습니까?")) return;
-                // history.push(default_path_for_this_user_mode);
+                const default_path_for_this_user_mode=getDefaultPathByUserMode(myInfo.user_mode);
+                const current_location_pathname=window.location.pathname;
+                const check_alarms_page_path=getCheckAlarmPagePath();
+                if(current_location_pathname!==default_path_for_this_user_mode &&
+                  !window.confirm("알람 확인 페이지로 이동하면\n현재 페이지에서 입력된 정보가 모두 사라집니다.\n이동하시겠습니까?")) return;
+                history.push(check_alarms_page_path);
               }}
             >
               <VscBell/>
+              <div
+                className="AlarmsCountBox text-sm"
+              >
+                {getAlarmsButtonNumberString()}
+              </div>
             </Button>:null
           }
           <Button
@@ -460,6 +475,9 @@ function App() {
         </Route>
         <Route exact path="/TRDraft">
           <TRDraft/>
+        </Route>
+        <Route exact path="/CheckAlarms">
+          <CheckAlarms/>
         </Route>
         <Route exact path="/NotFound">
           <NotFound/>
