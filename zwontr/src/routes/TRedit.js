@@ -2,12 +2,14 @@ import "./TRWriteEdit.scss";
 import { Form, Button, Card, ListGroup, Table, Modal, Row, Col, Accordion, OverlayTrigger, Popover } from "react-bootstrap";
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect, useRef } from "react";
-import {FaCheck, FaSistrix, FaTrash, FaTimes} from "react-icons/fa"
+import {FaCheck, FaSistrix, FaTrash, FaTimes, FaSearch, FaSleigh} from "react-icons/fa"
 import axios from "axios";
 import TimePicker from "react-time-picker";
 // import { FaPencilAlt, FaTrash, FaCheck, FaUndo } from "react-icons/fa";
 // import { CgMailForward } from "react-icons/cg";
 import { BsFillChatSquareFill } from "react-icons/bs";
+import { TbBrandPython, TbUserExclamation } from "react-icons/tb";
+import { min } from "moment";
 
 function TRedit() {
   const now = new Date(); // 현재 시간
@@ -178,6 +180,10 @@ function TRedit() {
     매니저피드백: "",
     큐브책: [],
   });
+
+  function checkTRAssignmentStudyTimeEmpty(){
+    return Object.keys(TR.강의과제학습).length==0;
+  }
 
   // 당일학습목표, 주간학습목표 관련 코드
   const weekDays = ["월", "화", "수", "목", "금", "일"];
@@ -633,6 +639,35 @@ function TRedit() {
 
     return Math.round(diff * 10) / 10;
   }
+  function recalculateStudyAndProgramTime(){
+    setTR((prevData)=>{
+      const newTR=JSON.parse(JSON.stringify(prevData));
+      //study time recal goes here
+      let study_time_hour=0;
+      let study_time_minute=0;
+      newTR.학습.forEach((e,idx)=>{
+        let [hour,minute]= e.학습시간.split(":");
+        study_time_hour+=parseInt(hour);
+        study_time_minute+=parseInt(minute);
+      })
+      Object.keys(newTR.강의과제학습).forEach((e,idx)=>{
+        let [hour,minute]= newTR.강의과제학습[e].학습시간.split(":");
+        study_time_hour+=parseInt(hour);
+        study_time_minute+=parseInt(minute);
+      });
+      newTR.실제학습= Math.round((study_time_hour + study_time_minute / 60) * 10) / 10;
+      //program time recal goes here
+      let pp_hour=0;
+      let pp_minute=0;
+      newTR.프로그램.forEach((e,idx)=>{
+        let [hour,minute]= e.소요시간.split(":");
+        pp_hour+=parseInt(hour);
+        pp_minute+=parseInt(minute);
+      });
+      newTR.프로그램시간= Math.round((pp_hour + pp_minute / 60) * 10) / 10;
+      return newTR;
+    });
+  }
   /**  **/
   function centerTimeDiff(backHome,centerArrival){
     // backHome = 귀가 시간 | centerArrival = 등원 시간
@@ -759,21 +794,28 @@ function TRedit() {
               return result["data"]["ret"];
             else{
               console.log("error: "+result["data"]["ret"]);
+              throw new Error(`error while getting textbookinprogress data:internal server error`);
               return [];
             }
           }
           else{
+            throw new Error(`error while getting textbookinprogress data:external error`);
             return [];
           }
         })
         .catch((err) => {
           console.log(err);
+          window.alert(`네트워크 오류로 데이터를 가져오는데 실패했습니다:1`);
+          window.location.reload();
+          return [];
         });
-    const nameToIDMapping= {};
+    const nameToIDMapping= {reverse:{}};
     nameToIDArray.forEach((e,idx)=>{
       nameToIDMapping[e["교재"]]=e["_id"];
+      nameToIDMapping.reverse[e["_id"]]={...e};
     });
     setTextbookIDMapping(nameToIDMapping);
+    updateDraftOverwriteReady("textbook",true);
     // console.log("name id mapping:"+JSON.stringify(nameToIDMapping));
   },[]);
 
@@ -800,6 +842,13 @@ function TRedit() {
       if(!e["hiddenOnTRPage"]) ret.push(e);
     });
     return ret;
+  }
+  function getAssignmentInfoByAOSID(AOSID){
+    for(let i=0; i<todayAssignments.length; i++){
+      const assignment_element=todayAssignments[i];
+      if(AOSID===assignment_element.AOSID) return assignment_element;
+    }
+    return null;
   }
   function getDescriptionStringFromAssignment(assignment){
     let ret=assignment["description"];
@@ -861,10 +910,107 @@ function TRedit() {
       학습시간: "00:00",
     };
   }
+  function updateAssignmentStudyTime(AOSID,studyTime){
+    setAssignmentStudyTime((prevData)=>{
+      const newAST=JSON.parse(JSON.stringify(prevData));
+      if(!(AOSID in newAST)) {
+        const assignment_info=getAssignmentInfoByAOSID(AOSID);
+        newAST[AOSID]=getAssignmentStudyTimeElementFromAssignmentData(assignment_info);
+      }
+      newAST[AOSID].학습시간=studyTime;
+      return newAST;
+    });
+  }
+  function updateAssignmentStudyTimeInTR(AOSID,studyTime){
+    setTR((prevData)=>{
+      const newData=JSON.parse(JSON.stringify(prevData));
+      const newAST= newData.강의과제학습;
+      if(!(AOSID in newAST)) {
+        const assignment_info=getAssignmentInfoByAOSID(AOSID);
+        newAST[AOSID]=getAssignmentStudyTimeElementFromAssignmentData(assignment_info);
+      }
+      newAST[AOSID].학습시간=studyTime;
+      return newData;
+    });
+  }
+  function getStudyElementTemplateInTR(){
+    return {
+      과목: "선택",
+      교재: "선택",
+      총교재량: "",
+      최근진도: 0,
+      학습시간: "00:00",
+    };
+  }
+  function updateLATStudyTimeInTR(request_specific_data,studyTime){
+    const duplicatable=request_specific_data.duplicatable;
+    const textbookID=request_specific_data.textbookID;
+    const duplicatable_name=request_specific_data.duplicatable_name;
+    const duplicatable_subject=request_specific_data.duplicatable_subject;
+    const recent_page=request_specific_data.recent_page;
+    setTR((prevData)=>{
+      const newData=JSON.parse(JSON.stringify(prevData));
+      const study_list=newData.학습;
+      if(duplicatable){
+        const study_element=getStudyElementTemplateInTR();
+        study_element.과목=duplicatable_subject;
+        study_element.교재=duplicatable_name;
+        study_element.학습시간=studyTime;
+        study_list.push(study_element);
+      }
+      else{
+        let study_element=textbookIDMapping.reverse[textbookID];
+        let new_study_element=true;
+        for(let i=0; i<study_list.length; i++){
+          const cur_study_element=study_list[i];
+          const cur_textbook_name=cur_study_element.교재;
+          if(textbookID===textbookIDMapping[cur_textbook_name]){
+            study_element=cur_study_element;
+            new_study_element=false;
+            break;
+          }
+        }
+        if(!study_element) return newData;
+        study_element.최근진도=recent_page;
+        study_element.학습시간=studyTime;
+      }
+      return newData;
+    });
+  }
+  function getProgramElementTemplateInTR(){
+    return {
+      프로그램분류:"",
+      매니저:"",
+      소요시간:"00:00",
+      상세내용:"",
+    }
+  }
+  function updateProgramParticipationTimeInTR(request_specific_data,timeAmount){
+    const program_by=request_specific_data.program_by;
+    const program_by_user_nickname=userIDToUserNickname[program_by];
+    const program_description=request_specific_data.program_description;
+    const program_name=request_specific_data.program_name;
+    setTR((prevData)=>{
+      const newData=JSON.parse(JSON.stringify(prevData));
+      if(!program_by_user_nickname) return newData;
+      const program_list=newData.프로그램;
+      const program_element=getProgramElementTemplateInTR();
+      program_element.매니저=program_by_user_nickname;
+      program_element.상세내용=program_description;
+      program_element.프로그램분류=program_name;
+      program_element.소요시간=timeAmount;
+      program_list.push(program_element);
+      return newData;
+    });
+  }
 
   // daily goal check log(강의 과제, 진도 교재 완료 여부) 관련 코드
   const [savedDailyGoalCheckLogData,setSavedDailyGoalCheckLogData]= useState([]); //goal check log data in db
   const [AOSIDToSavedGoalStateMapping,setAOSIDToSavedGoalStateMapping]=useState({}); // aosid to state goal state mapping
+  const goal_state_template={
+    finishedState:true,
+    excuse:"",
+  }
   function makeAOSIDToSavedGoalStateMapping(savedDailyGoalCheckLogData){
     const newMapping={};
     savedDailyGoalCheckLogData.forEach((e,idx)=>{
@@ -872,6 +1018,16 @@ function TRedit() {
       newMapping[e["AOSID"]]={"finishedState":e["finishedStateList"][0],"excuse":e["excuseList"][0]};
     });
     return newMapping;
+  }
+  function updateAOSIDToSavedGoalStateMapping(AOSID,finishedState,excuse){
+    setAOSIDToSavedGoalStateMapping((prevData)=>{
+      const newData= JSON.parse(JSON.stringify(prevData));
+      if(!(AOSID in newData)) newData[AOSID]={...goal_state_template};
+      const goal_state=newData[AOSID];
+      goal_state.finishedState=finishedState;
+      goal_state.excuse=excuse;
+      return newData;
+    });
   }
   const [textbookIDToSavedGoalStateMapping,setTextbookIDToSavedGoalStateMapping]= useState({});
   function makeTextbookIDToSavedGoalStateMapping(savedDailyGoalCheckLogData){ // textbook id to goal state mapping
@@ -881,6 +1037,16 @@ function TRedit() {
       newMapping[e["textbookID"]]={"finishedState":e["finishedStateList"][0],"excuse":e["excuseList"][0]};
     });
     return newMapping;
+  }
+  function updateTextbookIDToSavedGoalStateMapping(TextbookID,finishedState,excuse){
+    setTextbookIDToSavedGoalStateMapping((prevData)=>{
+      const newData= JSON.parse(JSON.stringify(prevData));
+      if(!(TextbookID in newData)) newData[TextbookID]={...goal_state_template};
+      const goal_state=newData[TextbookID];
+      goal_state.finishedState=finishedState;
+      goal_state.excuse=excuse;
+      return newData;
+    });
   }
 
   const goalAttributes={Assignment:0,textbookProgress:1};
@@ -1118,6 +1284,180 @@ function TRedit() {
     return [...textbook_name_set];
   }
 
+  //TR Draft request 관련 코드
+  const draft_request_type_name_to_index={
+    "lifeData":0,
+    "AssignmentStudyData":1,
+    "LectureAndTextbookStudyData":2,
+    "ProgramParticipationData":3,
+  }
+  const draft_request_status_to_index={
+    "created":0,
+    "review_needed":1,
+    "confirmed":2,
+    "expired":3,
+  };
+  const draft_written_to_TR_status_to_index={
+    "not_written":0,
+    "written":1,
+    "passed":2
+  };
+  const [draftRequestData,setDraftRequestData]=useState([]);
+  const [draftOverwriteReady,setDraftOverwriteReady]=useState({
+    "textbook":false,
+    "assignment":false,
+    "assignmentStudyTime":false,
+    "dailyGoalCheckLog":false,
+    "TR":false,
+    "managerList":false,
+    "draftRequest":false,
+  });
+  const [draftOverwritingDone,setDraftOverwritingDone]=useState(false);
+  const [draftWritten,setDraftWritten]= useState({});
+  const [userIDToUserNickname,setUserIDToUserNickname]= useState({});
+  function updateDraftOverwriteReady(fieldName,value){
+    setDraftOverwriteReady((prevData)=>{
+      const newDraftOverwriteReady={...prevData};
+      newDraftOverwriteReady[fieldName]=value;
+      return newDraftOverwriteReady;
+    });
+  }
+  function checkDraftOverwriteAllReady(){
+    const field_names=Object.keys(draftOverwriteReady);
+    for(let i=0; i<field_names.length; i++){
+      const field_name=field_names[i];
+      if(!draftOverwriteReady[field_name]) return false;
+    }
+    return true;
+  }
+  function updateDraftWritten(TDRR_id){
+    setDraftWritten((prevData)=>{
+      const newDraftWrittenData={...prevData};
+      newDraftWrittenData[TDRR_id]=true;
+      return newDraftWrittenData;
+    });
+  }
+  function getWrittenTDRRIDList(){
+    return Object.keys(draftWritten).filter((TDRR_id)=>draftWritten[TDRR_id]);
+  }
+
+  //get draft request data approved but not written to TR document
+  useEffect(async ()=>{
+    if(today!==paramDate) return;
+    const not_written_request_data=await axios
+      .post("/api/getNotWrittenTRDraftRequests",{studentLegacyID:paramID,date:paramDate})
+      .then((result)=>{
+        const data=result.data;
+        if(!data.success) throw new Error(`네트워크 에러`);
+        return data.ret;
+      })
+      .catch((err)=>{
+        console.log(`err while getting not written: ${err}`);
+        window.alert(`네트워크 오류로 데이터를 불러오지 못했습니다:1`);
+        window.location.reload();
+        return [];
+      });
+    console.log(`not written request data: ${JSON.stringify(not_written_request_data)}`);
+    setDraftRequestData(not_written_request_data);
+    updateDraftOverwriteReady("draftRequest",true);
+  },[paramDate]);
+
+  //check data needed for overwriting study data w.r.t. draft request data is ready and do overwrite
+  useEffect(async ()=>{
+    // console.log(`draft overwrite ready flag: ${JSON.stringify(draftOverwriteReady)}`);
+    if(!checkDraftOverwriteAllReady() || draftOverwritingDone) return;
+    console.log(`draft overwrite all ready!`);
+    //do overwrite here
+    //type0
+    for(let i=0; i<draftRequestData.length; i++){
+      const draft_request=draftRequestData[i];
+      const TDRR_id=draft_request._id;
+      const draft_confirmed=draft_request.request_status===draft_request_status_to_index["confirmed"];
+      if(draft_request.request_type!==draft_request_type_name_to_index["lifeData"] || !draft_confirmed) continue;
+      const request_specific_data=draft_request.request_specific_data;
+      const body_condition=request_specific_data.신체컨디션;
+      const sentiment_condition=request_specific_data.정서컨디션;
+      const wake_up_time=request_specific_data.실제기상;
+      const go_to_bed_time=request_specific_data.실제취침;
+      setTR((prevData)=>{
+        const newTR=JSON.parse(JSON.stringify(TR));
+        newTR.신체컨디션=body_condition;
+        newTR.정서컨디션=sentiment_condition;
+        newTR.실제기상=wake_up_time;
+        newTR.실제취침=go_to_bed_time;
+        return newTR;
+      });
+      updateDraftWritten(TDRR_id);
+    }
+    //type1
+    for(let i=0; i<draftRequestData.length; i++){
+      const draft_request=draftRequestData[i];
+      const TDRR_id=draft_request._id;
+      const draft_confirmed=draft_request.request_status===draft_request_status_to_index["confirmed"];
+      if(draft_request.request_type!==draft_request_type_name_to_index["AssignmentStudyData"] || !draft_confirmed) continue;
+      const request_specific_data=draft_request.request_specific_data;
+      const study_data=(draft_request.study_data)[0]; // study_data field always returned as a list
+      const finished_state=study_data.finished_state;
+      const study_time=study_data.time_amount;
+      const excuse=study_data.excuse;
+      const AOSID=request_specific_data.AOSID;
+      
+      //study data
+      updateAssignmentStudyTime(AOSID,study_time);
+      updateAssignmentStudyTimeInTR(AOSID,study_time);
+      //finished state
+      updateAOSIDToSavedGoalStateMapping(AOSID,finished_state,excuse);
+      updateDraftWritten(TDRR_id);
+    }
+
+    //type2
+    for(let i=0; i<draftRequestData.length; i++){
+      const draft_request=draftRequestData[i];
+      const TDRR_id=draft_request._id;
+      const draft_confirmed=draft_request.request_status===draft_request_status_to_index["confirmed"];
+      if(draft_request.request_type!==draft_request_type_name_to_index["LectureAndTextbookStudyData"] || !draft_confirmed) continue;
+      const request_specific_data=draft_request.request_specific_data;
+      const duplicatable=request_specific_data.duplicatable;
+      const textbookID=request_specific_data.textbookID;
+      const study_data=(draft_request.study_data)[0]; // study_data field always returned as a list
+      const finished_state=study_data.finished_state;
+      const study_time=study_data.time_amount;
+      const excuse=study_data.excuse;
+      
+      //study data
+      updateLATStudyTimeInTR(request_specific_data,study_time);
+      //finished state
+      if(!duplicatable) updateTextbookIDToSavedGoalStateMapping(textbookID,finished_state,excuse);
+      updateDraftWritten(TDRR_id);
+    }
+    
+    //type3
+    for(let i=0; i<draftRequestData.length; i++){
+      const draft_request=draftRequestData[i];
+      const TDRR_id=draft_request._id;
+      const draft_confirmed=draft_request.request_status===draft_request_status_to_index["confirmed"];
+      if(draft_request.request_type!==draft_request_type_name_to_index["ProgramParticipationData"] || !draft_confirmed) continue;
+      const request_specific_data=draft_request.request_specific_data;
+      const study_data=(draft_request.study_data)[0]; // study_data field always returned as a list
+      const study_time=study_data.time_amount;
+      
+      //program participation data
+      updateProgramParticipationTimeInTR(request_specific_data,study_time);
+      updateDraftWritten(TDRR_id);
+    }
+
+    recalculateStudyAndProgramTime();
+    setDraftOverwritingDone(true);
+  },[draftOverwriteReady]);
+
+  // useEffect(()=>{
+  //   console.log(`ast: ${JSON.stringify(assignmentStudyTime)}`);
+  // },[assignmentStudyTime]);
+
+  useEffect(()=>{
+    console.log(`draft written: ${JSON.stringify(draftWritten)}`);
+  },[draftWritten])
+
   useEffect(async () => {
     // 오늘 마감인 해당 학생의 강의 과제를 가져온다 (post 방식 사용)
     const requestArgument = { studentID: paramID, today_date: paramDate };
@@ -1137,6 +1477,7 @@ function TRedit() {
     todayAssignmentData = processTodayAssignmentData(todayAssignmentData);
     // console.log("twad:"+JSON.stringify(todayAssignmentData));
     setTodayAssignments(todayAssignmentData);
+    updateDraftOverwriteReady("assignment",true);
     // console.log("created description:"+getDescriptionStringFromAssignment(todayAssignmentData[0]));
     // console.log("check: ", todayAssignmentData);
 
@@ -1160,19 +1501,6 @@ function TRedit() {
         });
     setstuDB(newstuDB);
 
-    const newmanagerList = await axios
-        .get("/api/managerList")
-        .then((result) => {
-          const data=result.data;
-          if(data.success===true) return data.ret;
-          else throw new Error(data.ret);
-          // return result["data"];
-        })
-        .catch((err) => {
-          return err;
-        });
-    setmanagerList(newmanagerList);
-
     const newTR = await axios
         .get(`/api/TR/${paramID}/${paramDate}`)
         .then((result) => {
@@ -1182,9 +1510,17 @@ function TRedit() {
           // return result["data"];
         })
         .catch((err) => {
+          console.log(`error while getting prev TR data: ${err}`);
+          window.alert(`네트워크 오류로 데이터를 불러오는데 실패했습니다:1`);
+          window.location.reload();
           return err;
         });
     await setTR(newTR);
+    updateDraftOverwriteReady("TR",true);
+    if(checkTRAssignmentStudyTimeEmpty()) {
+      // console.log(`no ast breakpoint`);
+      updateDraftOverwriteReady("assignmentStudyTime",true);
+    }
 
     if ("수강중강의" in newstuDB) {
       const newlectureList = [];
@@ -1208,6 +1544,30 @@ function TRedit() {
 
     isInitialMount.current = false;
   }, [paramDate]);
+
+  //get manager in same group as student
+  useEffect(async ()=>{
+    const id_to_nickname_list= await axios
+      .post("/api/managerListByStudentLegacyID",{studentLegacyID:paramID})
+      .then((result)=>{
+        const data=result.data;
+        if(!data.success) throw new Error(`error while getting manager list:0`);
+        return data.ret;
+      })
+      .catch((err)=>{
+        console.log(`err: ${err}`);
+        window.alert(`네트워크 오류로 데이터를 불러오지 못했습니다:1`);
+        window.location.reload();
+      });
+    const itn_map={reverse:{}};
+    id_to_nickname_list.forEach((e,idx)=>{
+      itn_map[e._id]=e.nickname;
+      itn_map.reverse[e.nickname]=e._id;
+    });
+    setUserIDToUserNickname(itn_map);
+    setmanagerList(id_to_nickname_list.map(e=>e.nickname));
+    updateDraftOverwriteReady("managerList",true);
+  },[]);
 
   //하나의 변수(paramDate)를 지켜보면서 load 해오는 데이터 코드가 너무 많아서 useEffect 하나 더 만듦(thread사용 등의 이유로 속도 올리기 위함)
   useEffect(async()=>{
@@ -1234,7 +1594,9 @@ function TRedit() {
     // console.log("sdgcld:"+JSON.stringify(newSavedDailyGoalCheckLogData));
     setSavedDailyGoalCheckLogData(newSavedDailyGoalCheckLogData);
     setAOSIDToSavedGoalStateMapping(makeAOSIDToSavedGoalStateMapping(newSavedDailyGoalCheckLogData));
+    // console.log(`aosid to ~ ${JSON.stringify(makeAOSIDToSavedGoalStateMapping(newSavedDailyGoalCheckLogData))}`);
     setTextbookIDToSavedGoalStateMapping(makeTextbookIDToSavedGoalStateMapping(newSavedDailyGoalCheckLogData));
+    updateDraftOverwriteReady("dailyGoalCheckLog",true);
     // console.log("mapping: "+JSON.stringify(makeAOSIDToSavedGoalStateMapping(newSavedDailyGoalCheckLogData)));
     // console.log("mapping2: "+JSON.stringify(makeTextbookIDToSavedGoalStateMapping(newSavedDailyGoalCheckLogData)));
   },[paramDate]);
@@ -1247,6 +1609,7 @@ function TRedit() {
       newAssignmentStudyTime[assignment["AOSID"]]= getAssignmentStudyTimeElementFromAssignmentData(assignment);
     });
     setAssignmentStudyTime(newAssignmentStudyTime);
+    if(draftOverwriteReady.TR && !draftOverwriteReady.assignmentStudyTime) updateDraftOverwriteReady("assignmentStudyTime",true);
     // console.log("ast: "+JSON.stringify(newAssignmentStudyTime));
   },[TR.강의과제학습]);
 
@@ -1333,15 +1696,26 @@ function TRedit() {
 
   useEffect(() => {
     if (!isInitialMount.current) {
-      const newTR = JSON.parse(JSON.stringify(TR));
-      ["취침", "기상", "등원", "귀가"].forEach((a) => {
-        newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
+      // const newTR = JSON.parse(JSON.stringify(TR));
+      // ["취침", "기상", "등원", "귀가"].forEach((a) => {
+      //   newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
+      // });
+      // newTR.학습차이 = Math.round((TR.실제학습 - TR.목표학습) * 10) / 10;
+      // newTR.센터내시간 = centerTimeDiff(newTR.실제귀가, newTR.실제등원);
+      // newTR.센터활용률 = Math.round(((newTR.프로그램시간 + newTR.실제학습) / newTR.센터내시간) * 1000) / 10;
+      // newTR.센터학습활용률 = Math.round((newTR.실제학습 / newTR.센터내시간) * 1000) / 10;
+      // setTR(newTR);
+      setTR((prevData)=>{
+        const newTR=JSON.parse(JSON.stringify(prevData));
+        ["취침", "기상", "등원", "귀가"].forEach((a) => {
+          newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
+        });
+        newTR.학습차이 = Math.round((TR.실제학습 - TR.목표학습) * 10) / 10;
+        newTR.센터내시간 = centerTimeDiff(newTR.실제귀가, newTR.실제등원);
+        newTR.센터활용률 = Math.round(((newTR.프로그램시간 + newTR.실제학습) / newTR.센터내시간) * 1000) / 10;
+        newTR.센터학습활용률 = Math.round((newTR.실제학습 / newTR.센터내시간) * 1000) / 10;
+        return newTR
       });
-      newTR.학습차이 = Math.round((TR.실제학습 - TR.목표학습) * 10) / 10;
-      newTR.센터내시간 = centerTimeDiff(newTR.실제귀가, newTR.실제등원);
-      newTR.센터활용률 = Math.round(((newTR.프로그램시간 + newTR.실제학습) / newTR.센터내시간) * 1000) / 10;
-      newTR.센터학습활용률 = Math.round((newTR.실제학습 / newTR.센터내시간) * 1000) / 10;
-      setTR(newTR);
     }
   }, [
     TR.밤샘여부,
@@ -2715,7 +3089,8 @@ function TRedit() {
                             if (fail_flag) return;
 
                             const postedTR = JSON.parse(JSON.stringify(TR));
-                            postedTR["강의과제학습"] = assignmentStudyTime; //TR 객체의 강의 과제 학습 시간 관련 state를 state로부터 업데이트하여 post: 더 나은 방법 찾아봐야
+                            postedTR["강의과제학습"] = assignmentStudyTime; //TR 객체의 강의 과제 학습 시간 관련 state를 state로부터 업데이트하여 post: 더 나은 방법 찾아봐야: react state update queue 써야
+                            postedTR["TDRRIDList"] = getWrittenTDRRIDList();
 
                             await axios
                                 .put("/api/TR", postedTR)

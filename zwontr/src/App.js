@@ -119,7 +119,7 @@ function App() {
       // getRequestAlarms();
       await getRequestAlarmsCount();
     }
-  },[myInfoLoaded]);
+  },[myInfoLoaded,window.location.pathname]);
 
   useEffect(async ()=>{
     const myInfoData= await axios
@@ -367,7 +367,7 @@ function App() {
                 const current_location_pathname=window.location.pathname;
                 const check_alarms_page_path=getCheckAlarmPagePath();
                 if(current_location_pathname!==default_path_for_this_user_mode &&
-                  !window.confirm("알람 확인 페이지로 이동하면\n현재 페이지에서 입력된 정보가 모두 사라집니다.\n이동하시겠습니까?")) return;
+                  !window.confirm("알람 확인 페이지로 이동하면\n현재 페이지에서 입력 중인 정보가 저장되지 않습니다\n이동하시겠습니까?")) return;
                 history.push(check_alarms_page_path);
               }}
             >
@@ -375,7 +375,9 @@ function App() {
               <div
                 className="AlarmsCountBox text-sm"
               >
-                {getAlarmsButtonNumberString()}
+                <label>
+                  {getAlarmsButtonNumberString()}
+                </label>
               </div>
             </Button>:null
           }

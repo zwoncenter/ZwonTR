@@ -1,5 +1,3 @@
-const { request } = require("express");
-
 const request_type_name_to_index={
     "lifeData":0,
     "AssignmentStudyData":1,
@@ -16,16 +14,29 @@ const request_status_to_index={
     "created":0,
     "review_needed":1,
     "confirmed":2,
+    "expired":3,
 };
 const review_status_to_index={
     "not_reviewed":0,
     "accepted":1,
     "declined":2,
+    "passed":3,
 };
 const index_to_review_status={
     0:"not_reviewed",
     1:"accepted",
     2:"declined",
+    3:"passed"
+};
+const written_to_TR_status_to_index={
+    "not_written":0,
+    "written":1,
+    "passed":2
+};
+const index_to_written_to_TR_status={
+    0:"not_written",
+    1:"written",
+    2:"passed"
 };
 const request_document_on_insert_template={
     student_id:null,
@@ -40,11 +51,13 @@ const life_data_request_document_on_update_template={
     "request_specific_data.실제취침":null,
     "request_specific_data.실제기상":null,
     deleted:false,
+    written_to_TR:0,
 };
 const assignment_study_data_request_document_on_update_template={
     modify_date:null,
     request_status:0,
     deleted:false,
+    written_to_TR:0,
 };
 const request_study_data_template={
     excuse:null,
@@ -62,6 +75,28 @@ const request_review_document_template={
     modify_date:null,
     create_date:null,
 };
+const TR_draft_request_on_review_update_template={
+    request_status:request_status_to_index["created"],
+    modify_date:null,
+}
+const request_reivew_on_update_template={
+    review_status:review_status_to_index["not_reviewed"],
+    review_msg:null,
+    modify_date:null,
+};
+const DGCL_on_insert_template={ // daily goal check log insert template
+    AOSID:null,
+    date:null,
+    studentID:null,
+    studentName:null,
+    textbookID:null,
+    AOSTextbookID:null,
+    description:null,
+};
+const DGCL_on_update_push_template={ // daily goal check log update template
+    excuseList:null,
+    finishedStateList:null,
+};
 const duplicatable_name_list=["모의고사","테스트","기타"];
 const duplicatable_subject_list=["국어","수학","영어","탐구","기타"];
 const daily_active_LAT_request_max_count=50;
@@ -73,6 +108,10 @@ const daily_active_program_request_max_count=50;
 const daily_program_request_max_count=500;
 
 const reviewer_array_max_len=20;
+
+const review_msg_min_len=10;
+const review_msg_max_len=200;
+
 function intBetween(a,left,right){
     return a>=left && a<=right;
 }
@@ -109,7 +148,7 @@ function getLifeDataRequestOnInsertSettings(student_id,today_string){
     ret["request_type"]=request_type_name_to_index["lifeData"];
     return ret;
 }
-function getLifeDataRequestOnUpdateSettings(requestStatus,bodyCondition,sentimentCondition,goToBedTime,wakeUpTime,currentDate,_id=null){
+function getLifeDataRequestOnUpdateSettings(requestStatus,bodyCondition,sentimentCondition,goToBedTime,wakeUpTime,currentDate,_id=null,writtenToTR=written_to_TR_status_to_index["not_written"]){
     const ret={...life_data_request_document_on_update_template};
     ret["request_status"]=requestStatus;
     ret["request_specific_data.신체컨디션"]=bodyCondition;
@@ -117,6 +156,7 @@ function getLifeDataRequestOnUpdateSettings(requestStatus,bodyCondition,sentimen
     ret["request_specific_data.실제취침"]=goToBedTime;
     ret["request_specific_data.실제기상"]=wakeUpTime;
     ret["modify_date"]=currentDate;
+    ret["written_to_TR"]=writtenToTR;
     if(_id) ret._id=_id;
     return ret;
 }
@@ -135,10 +175,11 @@ function getAssignmentStudyDataRequestOnInsertSettings(student_id,today_string,A
     ret["request_specific_data.AOSID"]=AOSID;
     return ret;
 }
-function getAssignmentStudyDataRequestOnUpdateSettings(requestStatus,currentDate,_id=null){
+function getAssignmentStudyDataRequestOnUpdateSettings(requestStatus,currentDate,_id=null,writtenToTR=written_to_TR_status_to_index["not_written"]){
     const ret={...assignment_study_data_request_document_on_update_template};
     ret.request_status=requestStatus;
     ret.modify_date=currentDate;
+    ret.written_to_TR=writtenToTR;
     if(_id) ret._id=_id;
     return ret;
 }
@@ -151,7 +192,7 @@ function getLATStudyDataRequestOnInsertSettings(student_id,today_string,textbook
     ret["request_specific_data.elementID"]=elementID;
     return ret;
 }
-function getLATStudyDataRequestOnUpdateSettings(requestStatus,currentDate,deleted=false,duplicatable=true,duplicatableName="",duplicatableSubject="",recentPage=0,_id=null){
+function getLATStudyDataRequestOnUpdateSettings(requestStatus,currentDate,deleted=false,duplicatable=true,duplicatableName="",duplicatableSubject="",recentPage=0,_id=null,writtenToTR=written_to_TR_status_to_index["not_written"]){
     const ret={...assignment_study_data_request_document_on_update_template};
     ret.request_status=requestStatus;
     ret.modify_date=currentDate;
@@ -160,6 +201,7 @@ function getLATStudyDataRequestOnUpdateSettings(requestStatus,currentDate,delete
     ret["request_specific_data.duplicatable_name"]=duplicatableName;
     ret["request_specific_data.duplicatable_subject"]=duplicatableSubject;
     ret["request_specific_data.recent_page"]=recentPage;
+    ret["written_to_TR"]=writtenToTR;
     if(_id) ret._id=_id;
     return ret;
 }
@@ -187,7 +229,7 @@ function getProgramDataRequestOnInsertSettings(student_id,today_string,elementID
     ret["request_specific_data.elementID"]=elementID;
     return ret;
 }
-function getProgramDataRequestOnUpdateSettings(requestStatus,currentDate,deleted=false,programName="",programBy=null,programDescription="",_id=null){
+function getProgramDataRequestOnUpdateSettings(requestStatus,currentDate,deleted=false,programName="",programBy=null,programDescription="",_id=null,writtenToTR=written_to_TR_status_to_index["not_written"]){
     const ret={...assignment_study_data_request_document_on_update_template};
     ret.request_status=requestStatus;
     ret.modify_date=currentDate;
@@ -195,6 +237,7 @@ function getProgramDataRequestOnUpdateSettings(requestStatus,currentDate,deleted
     ret["request_specific_data.program_name"]=programName;
     ret["request_specific_data.program_by"]=programBy;
     ret["request_specific_data.program_description"]=programDescription;
+    ret["written_to_TR"]=writtenToTR
     if(_id) ret._id=_id;
     return ret;
 }
@@ -246,6 +289,52 @@ function getNewRequestReviewListByUserDocumentList(requestOid,studyDataReviewOid
         return new_review_doc;
     });
 }
+function checkReviewStatusValid(reviewStatus){
+    if(typeof reviewStatus!=="number") return false;
+    return reviewStatus===review_status_to_index["accepted"] || reviewStatus===review_status_to_index["declined"];
+}
+function checkReviewMsgValid(reviewStatus,reviewMsg){
+    if(typeof reviewMsg !== "string") return false;
+    else if(reviewStatus===review_status_to_index["accepted"] && reviewMsg.length===0) return true;
+    else if(reviewStatus===review_status_to_index["declined"] && intBetween(reviewMsg.length,review_msg_min_len,review_msg_max_len)) return true;
+    else return false;
+}
+function getTDRROnUpdateSettings(reviewStatus,reviewMsg,modifyDate){
+    const ret={...request_reivew_on_update_template};
+    ret.review_status=reviewStatus;
+    ret.review_msg=reviewMsg;
+    ret.modify_date=modifyDate;
+    return ret;
+}
+function getTRDraftOnReviewUpdateSettings(reviewStatus,modifyDate){
+    const ret={...TR_draft_request_on_review_update_template};
+    if(reviewStatus===review_status_to_index["accepted"]) ret.request_status=request_status_to_index["confirmed"];
+    else if(reviewStatus===review_status_to_index["declined"]) ret.request_status=request_status_to_index["created"];
+    ret.modify_date=modifyDate;
+    return ret;
+}
+function checkRequestTypeNeedDGCLUpdate(requestType,request_specific_data){
+    const element_duplicatable=request_specific_data.duplicatable;
+    return requestType===request_type_name_to_index["AssignmentStudyData"] || 
+        (requestType===request_type_name_to_index["LectureAndTextbookStudyData"] && !element_duplicatable);
+}
+function getDGCLOnInsertSettings(date,studentID,studentName,AOSID,textbookID,AOSTextbookID,description=""){
+    const ret={...DGCL_on_insert_template};
+    ret.date=date;
+    ret.studentID=studentID;
+    ret.studentName=studentName;
+    ret.AOSID=AOSID;
+    ret.textbookID=textbookID;
+    ret.AOSTextbookID=AOSTextbookID;
+    ret.description=description;
+    return ret;
+}
+function getDGCLOnUpdatePushSettings(finishedState,excuse){
+    const ret={...DGCL_on_update_push_template};
+    ret.finishedStateList=finishedState
+    ret.excuseList=finishedState?"":excuse;
+    return ret;
+}
 module.exports={
     request_document_on_insert_template,
     life_data_request_document_on_update_template,
@@ -253,6 +342,8 @@ module.exports={
     review_status_to_index,
     index_to_review_status,
     index_to_request_type_name,
+    written_to_TR_status_to_index,
+    index_to_written_to_TR_status,
     request_study_data_template,
     request_review_document_template,
     request_type_name_to_index,
@@ -286,4 +377,11 @@ module.exports={
     checkReviewerUsernameArrayValid,
     getNewRequestReviewDocument,
     getNewRequestReviewListByUserDocumentList,
+    checkReviewStatusValid,
+    checkReviewMsgValid,
+    checkRequestTypeNeedDGCLUpdate,
+    getTRDraftOnReviewUpdateSettings,
+    getTDRROnUpdateSettings,
+    getDGCLOnInsertSettings,
+    getDGCLOnUpdatePushSettings,
 }

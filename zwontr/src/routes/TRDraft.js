@@ -2619,11 +2619,11 @@ function TRDraft() {
                   );
                 })}
 
-                <tr>
+                {/* <tr>
                   <td colSpan={5}>목표 학습 - {"TBD"} 시간</td>
                   <td> {"TBD"} 시간</td>
                   <td colSpan={2}>{"TBD"}시간</td>
-                </tr>
+                </tr> */}
                 <tr>
                   <td colSpan={8}>
                     {" "}
@@ -2916,9 +2916,9 @@ function TRDraft() {
                   })
                 }
 
-                <tr>
+                {/* <tr>
                   <td colSpan={6}>프로그램 진행 시간 : {"TBD"}시간</td>
-                </tr>
+                </tr> */}
                 <tr>
                   <td colSpan={5}>
                     {" "}

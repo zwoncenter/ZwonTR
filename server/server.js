@@ -246,6 +246,7 @@ passport.serializeUser(function (user, done) {
         student_id=student_doc._id;
       }
       catch(error){
+        console.log(`error: ${JSON.stringify(error)}`);
         throw new Error(`네트워크 오류로 로그인에 실패했습니다:1`); // this can be thrown if data inconsistency occurs
       }
     }
@@ -696,13 +697,13 @@ app.post("/api/getMyAlarms", loginCheck, permissionCheck(Role("manager")),async 
     ]).toArray())[0];
     if(result_data.metadata.length===0) return; // no matching data
     const item_count=(result_data.metadata)[0].total_items_num;
-    const total_page_num= Math.ceil(item_count/items_per_page);
+    const total_page_num= Math.ceil(item_count/alarm_items_per_page);
     ret_val["ret"]["pagination"]["cur_page"]=queryPage;
     ret_val["ret"]["pagination"]["total_page_num"]=total_page_num;
     ret_val["ret"]["pagination"]["alarms_data"]=result_data.data;
     if(result_data.metadata.total_items_num>1 && result_data.data.length===0){
       ret_val["ret"]["pagination"]["pageInvalid"]=true;
-    } 
+    }
   }
   catch(error){
     console.log(`error: ${error}`);
@@ -710,6 +711,280 @@ app.post("/api/getMyAlarms", loginCheck, permissionCheck(Role("manager")),async 
     ret_val["ret"]=`error while getting my alarms`;
   }
   finally{
+    return res.json(ret_val);
+  }
+});
+
+//save review result for student users' tr draft requests
+app.post("/api/saveTRDraftRequestReview",loginCheck, permissionCheck(Role("manager")), async function (req, res) {
+  const ret_val={"success":true, "ret":null};
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
+  try{
+    session.startTransaction();
+    const username=req.session.passport.user.username;
+    const today_string=getCurrentKoreaDateYYYYMMDD();
+    const current_date=getCurrentDate();
+    ret_val.ret={
+      "saved":false,
+      "msg":"",
+    };
+    let {
+      reviewStatus,
+      reviewMsg,
+      TDRRID,
+    }= req.body;
+    const TDRR_oid=new ObjectId(TDRRID);
+    if(!TRDraftRequestDataValidator.checkReviewStatusValid(reviewStatus)) throw new Error(`invalid review status`);
+    else if(!TRDraftRequestDataValidator.checkReviewMsgValid(reviewStatus,reviewMsg)) throw new Error(`invalid review msg`);
+    
+    //check review user is the designated user for the request
+    const user_doc=await db.collection('User').findOne({username},{session});
+    if(!user_doc) throw new Error(`internal server error: wrong session error`);
+    const user_oid=user_doc._id;
+    const TDRR_doc=await db.collection('TRDraftRequestReview').findOne(
+      {_id:TDRR_oid},
+      {session},
+      );
+    if(!TDRR_doc) throw new Error(`no such TR draft request review doc`);
+    else if(!TDRR_doc.review_from.equals(user_oid)) throw new Error(`review from wrong reviewer`);
+    const TRDraftRequest_oid=TDRR_doc.tr_draft_request_id;
+
+    //check corresponding TRDraftRequest doc exists
+    const TRDraftRequest_doc=(await db.collection('TRDraftRequest').aggregate([
+      {
+        $match:{
+          _id:TRDraftRequest_oid
+        }
+      },
+      {
+        $project:{
+          student_id:1,
+          date:1,
+          modify_date:1,
+          create_date:1,
+          request_type:1,
+          request_status:1,
+          request_specific_data:1,
+          study_data: {$slice: ["$study_data_list",-1]},
+          written_to_TR:1,
+        }
+      }
+    ],{session}).toArray())[0];
+    if(!TRDraftRequest_doc) throw new Error(`no such TR draft request: DB inconsistency`);
+    else if(TRDraftRequest_doc.request_status !== TRDraftRequestDataValidator.request_status_to_index["review_needed"]) throw new Error(`request not in review needed state`);
+    else if(!(TRDraftRequest_doc.study_data)[0]) throw new Error(`TR draft doc has no study data`);
+    const student_oid=TRDraftRequest_doc.student_id;
+    const request_date=TRDraftRequest_doc.date;
+    const request_type=TRDraftRequest_doc.request_type;
+    const request_study_data=(TRDraftRequest_doc.study_data)[0];
+    const request_specific_data=TRDraftRequest_doc.request_specific_data;
+
+    //check corresponding student info & TR doc exist : this DB structure should be changed...
+    const student_and_TR_doc=(await db.collection('StudentDB').aggregate([
+      {
+        $match: {
+          _id:student_oid,
+        }
+      },
+      {
+        $lookup: {
+          from: "TR",
+          localField: "ID",
+          foreignField: "ID",
+          as: "TR_aggregate",
+        },
+      },
+      {
+        $unwind:{
+          path: "$TR_aggregate"
+        }
+      },
+    ],{session}).toArray())[0];
+    if(!student_and_TR_doc){
+      ret_val.ret.saved=false;
+      ret_val.ret.msg="요청을 검토하기 전에 해당 날짜의 학생 TR을 만들어주세요";
+      return;
+    }
+    const student_name=student_and_TR_doc.이름;
+    
+    //update TDRR doc
+    const TDRR_doc_update_settings=TRDraftRequestDataValidator.getTDRROnUpdateSettings(reviewStatus,reviewMsg,current_date);
+    await db.collection('TRDraftRequestReview').updateOne(
+      {_id:TDRR_oid},
+      {
+        $set:TDRR_doc_update_settings
+      },
+      {session}
+    );
+
+    //update TRDraftRequest doc and corresponding data w.r.t. TR draft request review status
+    const TR_draft_doc_update_settings=TRDraftRequestDataValidator.getTRDraftOnReviewUpdateSettings(reviewStatus,current_date);
+    await db.collection('TRDraftRequest').updateOne(
+      {_id:TRDraftRequest_oid},
+      {
+        $set:TR_draft_doc_update_settings,
+      },
+      {session}
+    );
+    if(reviewStatus===TRDraftRequestDataValidator.review_status_to_index["accepted"]){
+      const finished_state=request_study_data.finished_state;
+      const excuse=request_study_data.excuse;
+      const time_amount=request_study_data.time_amount;
+      let AOS_doc=null;
+      //update aos finished status if request type is AssignmentStudyData(type 1)
+      if(request_type===TRDraftRequestDataValidator.request_type_name_to_index["AssignmentStudyData"])  {
+        const AOSID=TRDraftRequest_doc.request_specific_data.AOSID;
+        AOS_doc=(await db.collection('AssignmentOfStudent').aggregate([
+          {
+            $match:{
+              _id:AOSID,
+            }
+          },
+          {
+            $lookup: {
+              from: "Assignment",
+              localField: "assignmentID",
+              foreignField: "_id",
+              as: "Assignment_aggregate",
+            },
+          },
+          {
+            $unwind:{
+              path: "$Assignment_aggregate"
+            }
+          },
+          {
+            $project:{
+              textbookID: "$Assignment_aggregate.textbookID",
+              deleted: {$ifNull: ["$Assignment_aggregate.hiddenOnLecturePage",false]}
+            }
+          }
+        ],{session}).toArray())[0];
+        if(!AOS_doc) throw new Error(`there is no assignment related to `)
+        else if(AOS_doc.deleted) {
+          ret_val.ret.msg="삭제된 과제에 대한 요청입니다";
+          throw new Error(`request on deleted assignment`);
+        }
+        await db.collection('AssignmentOfStudent').updateOne(
+          {_id:AOSID},
+          {
+            $set:{
+              finished:finished_state,
+              finished_date:finished_state?today_string:"",
+            }
+          },
+          {session}
+        );
+      }
+
+      //update daily goal check log if request type is AssignmentStudyData(type 1) or LectureAndTextbookStudyData(type 2)
+      // if(TRDraftRequestDataValidator.checkRequestTypeNeedDGCLUpdate(request_type,request_specific_data)){
+      //   const AOSID= TRDraftRequest_doc.request_type===TRDraftRequestDataValidator.request_type_name_to_index["AssignmentStudyData"]?TRDraftRequest_doc.request_specific_data.AOSID:"";
+      //   const textbookID= TRDraftRequest_doc.request_type===TRDraftRequestDataValidator.request_type_name_to_index["LectureAndTextbookStudyData"]?TRDraftRequest_doc.request_specific_data.textbookID:"";
+      //   const AOSTextbookID= TRDraftRequest_doc.request_type===TRDraftRequestDataValidator.request_type_name_to_index["AssignmentStudyData"] && AOS_doc.textbookID?AOS_doc.textbookID:"";
+      //   const DGCL_insert_settings=TRDraftRequestDataValidator.getDGCLOnInsertSettings(today_string,student_oid,student_name,AOSID,textbookID,AOSTextbookID);
+      //   const DGCL_update_push_settings=TRDraftRequestDataValidator.getDGCLOnUpdatePushSettings(finished_state,excuse);
+      //   await db.collection('DailyGoalCheckLog').updateOne(
+      //     {
+      //       studentID:student_oid,
+      //       date:today_string,
+      //       AOSID:AOSID,
+      //       textbookID:textbookID,
+      //       AOSTextbookID:AOSTextbookID,
+      //     },
+      //     {
+      //       $setOnInsert:DGCL_insert_settings,
+      //       $push:DGCL_update_push_settings,
+      //     },
+      //     {upsert:true,session}
+      //   );
+      // }
+      
+      //daily goal check logs are should be upserted when the approved draft request are written to tr documents
+    }
+    
+    ret_val.ret.saved=true;
+    await session.commitTransaction();
+  }
+  catch(error){
+    console.log(`error: ${error}`);
+    await session.abortTransaction();
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret_val);
+  }
+});
+
+//get student request data approved but not written to TR document
+app.post("/api/getNotWrittenTRDraftRequests", loginCheck, permissionCheck(Role("manager"),Role("admin")),async function (req, res) {
+  const ret_val={"success":true, "ret":null};
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
+  try{
+    session.startTransaction();
+    let {
+      studentLegacyID,
+      date
+    }= req.body;
+    const username=req.session.passport.user.username;
+
+    const student_doc=await db.collection('StudentDB').findOne({ID:studentLegacyID},{session});
+    if(!student_doc) throw new Error(`no such student`);
+    const student_oid=student_doc._id;
+
+    const not_written_requests=(await db.collection('TRDraftRequest').find(
+    {
+      date,
+      student_id:student_oid,
+      "$or":[
+        {"request_status":TRDraftRequestDataValidator.request_status_to_index["review_needed"]},
+        {"request_status":TRDraftRequestDataValidator.request_status_to_index["confirmed"]}
+      ],
+    }
+    ,{session}
+    ).project({
+      _id:1,
+      date:1,
+      request_specific_data:1,
+      request_type:1,
+      student_id:1,
+      deleted:1,
+      modify_date:1,
+      request_status:1,
+      study_data:{
+        $slice: ["$study_data_list",-1]
+      },
+      written_to_TR:1,
+    }).toArray());
+    ret_val.ret=not_written_requests;
+  }
+  catch(error){
+    console.log(`error : ${error}`);
+    ret_val["success"]=false;
+    ret_val["ret"]=`error while getting my alarms`;
+  }
+  finally{
+    await session.endSession();
     return res.json(ret_val);
   }
 });
@@ -809,8 +1084,8 @@ function getThisSundayDateStringYYYYMMDD(){
 app.get("/api/getThisWeekStudyGoals", loginCheck, permissionCheck(Role("student")), async function (req, res) {
   const ret_val={"success":true, "ret":null};
   try{
-    // const this_sunday_string=getThisSundayDateStringYYYYMMDD();
-    const this_sunday_string='2023-02-19';
+    const this_sunday_string=getThisSundayDateStringYYYYMMDD();
+    // const this_sunday_string='2023-02-19';
     const this_week_goals= await db.collection("User").aggregate(
       [
         {
@@ -873,8 +1148,8 @@ app.get("/api/getThisWeekStudyGoals", loginCheck, permissionCheck(Role("student"
 app.get("/api/getMyCurrentAssignments", loginCheck, permissionCheck(Role("student")), async function (req, res) {
   const ret_val={"success":true, "ret":null};
   try{
-    // const today_string=getCurrentKoreaDateYYYYMMDD();
-    const today_string="2023-04-11"; // for testing
+    const today_string=getCurrentKoreaDateYYYYMMDD();
+    // const today_string="2023-04-11"; // for testing
     const current_assignments= await db.collection("User").aggregate(
       [
         {
@@ -1617,7 +1892,7 @@ app.post("/api/saveProgramDataRequest",loginCheck, permissionCheck(Role("student
       readPreference: 'primary'
     }
   });
-  console.log(`req.body: ${JSON.stringify(req.body)}`);
+  // console.log(`req.body: ${JSON.stringify(req.body)}`);
   try{
     session.startTransaction();
     const student_id=req.session.passport.user.student_id;
@@ -2110,6 +2385,48 @@ app.get("/api/managerListByStudentAccount", loginCheck, permissionCheck(Role("st
   }
 });
 
+//get manager list from registered user accounts whose roles are designated as "manager"s
+app.post("/api/managerListByStudentLegacyID", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
+  const ret={"success":false,"ret":null};
+  try{
+    let {
+      studentLegacyID
+    }= req.body;
+    const student_doc=(await db.collection("StudentDB").aggregate(
+      [
+        {
+          $match:{
+            ID:studentLegacyID,
+          }
+        },
+        {
+          $lookup: {
+            from: "User",
+            localField: "user_id",
+            foreignField: "_id",
+            as: "User_aggregate",
+          },
+        },
+        { 
+          $unwind: {
+            path:"$User_aggregate",
+          }
+        },
+      ]
+    ).toArray())[0];
+    if(!student_doc) throw new Error(`no such student user`);
+    const student_username=student_doc.User_aggregate.username;
+    const manager_list=await getManagerUserListInSameGroupByMyUsername(student_username,true);
+    ret["success"]=true; ret["ret"]=manager_list;
+  }
+  catch(e){
+    ret["ret"]="매니저 목록 데이터를 불러오는 중 오류가 발생했습니다";
+  }
+  finally{
+    return res.json(ret);
+  }
+});
+
 // StudentDB에 새로운 stuDB 추가 요청
 app.post("/api/StudentDB", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   const newDB = req.body;
@@ -2311,6 +2628,10 @@ app.put("/api/StudentDB", loginCheck, permissionCheck(Role("manager"),Role("admi
   let dayIndex = ['월','화','수','목','금','일'];
 
   const newstuDB = req.body;
+  
+  //this delete code is too dirty but...
+  delete newstuDB["rou_id"];
+  delete newstuDB["user_id"];
 
   const findID = newstuDB["ID"];
 
@@ -2628,8 +2949,7 @@ app.put("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), a
   } catch (err) {
     return res.send(`invalid access`);
   }
-
-  delete newTR._id;
+  
   // db.collection("TR").findOne({ 이름: newTR.이름, 날짜: newTR.날짜 }, function (err, result) {
   //   if (err) {
   //     return res.send(`/api/TR - findOne Error : `, err);
@@ -2653,20 +2973,64 @@ app.put("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), a
   //   });
   // });
 
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
   const ret={"success":false,"ret":null};
-  const student_legacy_id=newTR.ID;
-  const date_string=newTR.날짜;
   try{
-    const tr_doc= await db.collection("TR").findOne({ID:student_legacy_id, 날짜:date_string});
+    session.startTransaction();
+
+    delete newTR._id;
+    const student_legacy_id=newTR.ID;
+    const date_string=newTR.날짜;
+    const TDRRIDList=newTR.TDRRIDList;
+    delete newTR["TDRRIDList"];
+    console.log(`tdrridlist: ${JSON.stringify(TDRRIDList)}`);
+    if(TDRRIDList){
+      for(let i=0; i<TDRRIDList.length; i++){
+        TDRRIDList[i]=new ObjectId(TDRRIDList[i]);
+      }
+    }
+
+    const tr_doc= await db.collection("TR").findOne({ID:student_legacy_id, 날짜:date_string},{session});
     if(!tr_doc) throw new Error("해당 날짜에 저장된 TR이 없습니다");
     if(tr_doc && !tr_doc._id.equals(findID)) throw new Error("해당 날짜에 작성된 다른 TR이 이미 존재합니다");
-    await db.collection("TR").updateOne({_id:findID},{ $set: newTR });
+    // await db.collection("TR").updateOne({_id:findID},{ $set: newTR },{session});
+
+    if(TDRRIDList.length>0){
+      //update trdraftrequest document written_to_TR field
+      await db.collection('TRDraftRequest').updateMany(
+        {_id:{$in:TDRRIDList}},
+        {
+          $set:{
+            written_to_TR:TRDraftRequestDataValidator.written_to_TR_status_to_index["written"],
+          }
+        },
+        {session}
+      );
+
+      //upsert daily goal check logs from TDRR ID list with bulkwrite function
+      
+    }
+    
+
+    await session.commitTransaction();
     ret["success"]=true;
   }
   catch(e){
+    await session.abortTransaction();
     ret["ret"]=`해당 날짜의 학생 TR 데이터를 저장하는 중 오류가 발생했습니다: ${e}`;
   }
   finally{
+    await session.endSession();
     return res.json(ret);
   }
 });

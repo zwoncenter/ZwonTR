@@ -7,10 +7,7 @@ import Loginpage from "./LoginModal";
 import { TbBulb, TbBuilding } from "react-icons/tb";
 import { RiParentLine } from "react-icons/ri";
 import { MdNavigateBefore, MdNavigateNext } from "react-icons/md";
-import {FaCheck, FaSistrix, FaTrash} from "react-icons/fa"
-import privateInfoTerm from "../terms/privateInfoAgree";
-import identifyingInfoTerm from "../terms/identifyingInfoAgree";
-import sensitiveInfoTerm from "../terms/sensitiveInfoAgree";
+import {FaCheck, FaSistrix, FaSleigh, FaTrash} from "react-icons/fa"
 
 const versionInfo = "1.6";
 
@@ -37,6 +34,13 @@ function CheckAlarms() {
     "not_reviewed":0,
     "accepted":1,
     "declined":2,
+    "passed":3,
+  };
+  const index_to_review_status_prompt={
+    0:"아직 검토되지 않음",
+    1:"승인",
+    2:"반려",
+    3:"읽음처리 됨",
   };
   const [pagination,setPagination]=useState(alarm_pagination_template);
   function getAlarmsPaginationTemplate(){
@@ -214,12 +218,29 @@ function CheckAlarms() {
   const [modalFor,setModalFor]= useState(modal_for_template); // which study type the excuse for (assignment/textbook)
   const openModal= (modal_type_index,...extra_data)=>{
     setModalFor({modal_type:modal_type_index,extra_data});
+    if(modal_type_index===modal_type_name_to_index["request_review"]){
+      const datum_pagination_index=extra_data[0];
+      const request_alarm_datum=pagination.alarms_data[datum_pagination_index];
+      const review_status=request_alarm_datum.review_status;
+      if(checkRequestReviewNeeded(review_status)){
+        setReviewResult(getReviewResultTemplate());
+      }
+      else{
+        const review_msg=request_alarm_datum.review_msg;
+        const review_result=getReviewResultTemplate();
+        review_result.review_status=review_status;
+        review_result.review_msg=review_msg;
+        setReviewResult(review_result);
+      }
+    }
     setModalShowStatus(true);
   };
   const closeModal= ()=>{
-    setModalFor(modal_for_template);
-    setReviewResult(getReviewResultTemplate());
     setModalShowStatus(false);
+    if(modalFor.modal_type===modal_type_name_to_index["request_review"]){
+      setReviewResult(getReviewResultTemplate());
+    }
+    setModalFor(modal_for_template);
   }
   function getModalTitle(){
     if(modalFor.modal_type===modal_type_name_to_index["default"]) return null;
@@ -260,14 +281,16 @@ function CheckAlarms() {
   const review_result_payload_template={
     reviewStatus:review_status_to_index["declined"],
     reviewMsg:"",
+    TDRRID:null,
   };
   function getReviewResultPayloadTemplate(){
     return {...review_result_payload_template};
   }
-  function getReviewResultPayload(){
+  function getReviewResultPayload(requestAlarmDatum){
     const ret=getReviewResultPayloadTemplate();
     ret.reviewStatus=reviewResult.review_status;
-    ret.reviewMsg=reviewResult.review_msg;
+    ret.reviewMsg=review_status_to_index["declined"]?reviewResult.review_msg:"";
+    ret.TDRRID=requestAlarmDatum.tdrr_id;
     return ret;
   }
   function intBetween(target,left,right){
@@ -279,11 +302,16 @@ function CheckAlarms() {
   function checkReviewMsgValid(msg){
     return typeof msg === "string" && intBetween(msg.length,review_msg_min_len,review_msg_max_len);
   }
+  function checkTDRRIDValid(TDRRID){
+    return !!TDRRID;
+  }
   function checkReviewResultPayloadValid(payload){
     const status=payload.reviewStatus;
     const msg=payload.reviewMsg;
+    const TDRRID=payload.TDRRID;
     if(!checkReviewStatusValid(status)) return [false,"승인 및 반려 상태가 올바르지 않습니다.\n새로고침 후 다시 시도해주세요"];
     else if(status===review_status_to_index["declined"] && !checkReviewMsgValid(msg)) return [false,"요청 반려 사유를 10자 이상 입력해주세요"];
+    else if(!checkTDRRIDValid(TDRRID)) return [false,"예기치 못한 오류가 발생했습니다\n새로고침 후 다시 시도해주세요"];
     else return [true,""];
   }
   function getRequestReviewModalReviewStatusRow(request_alarm_datum){
@@ -581,13 +609,62 @@ function CheckAlarms() {
       </div>
     );
   }
+  function getPrevReviewResultRow(request_alarm_datum){
+    const review_status=request_alarm_datum.review_status;
+    const review_status_string=index_to_review_status_prompt[review_status];
+    const review_msg_needed=review_status===review_status_to_index["declined"];
+    const review_msg=request_alarm_datum.review_msg;
+    return (
+      <div className="border-bottom border-secondary border-3 mb-3">
+        <div className="row mb-2">
+          <div className="col-3">승인 결과</div>
+          <div className="col-9">{review_status_string}</div>
+        </div>
+        {review_msg_needed?
+          <div className="row mb-2">
+            <div className="col-3">반려 사유</div>
+            <div className="col-9">{review_msg}</div>
+          </div>:null
+        }
+      </div>
+    );
+  }
+
   async function saveReviewResult(reviewResultPayload,datum_pagination_index){
     //here goes a http request
-
+    const [payload_valid,alert_msg]=checkReviewResultPayloadValid(reviewResultPayload);
+    if(!payload_valid){
+      window.alert(alert_msg);
+      return false;
+    }
+    const save_success=await axios
+      .post("/api/saveTRDraftRequestReview",reviewResultPayload)
+      .then((result)=>{
+        const data=result.data;
+        if(!data.success) return false;
+        //here success of save would be checked
+        const saved=data.ret.saved;
+        if(!saved){
+          window.alert(data.ret.msg);
+          return false;
+        }
+        return true;
+      })
+      .catch((err)=>{
+        return false;
+      });
+    if(!save_success) return save_success;
     //here goes a state update
     const status=reviewResultPayload.reviewStatus;
     const msg=reviewResultPayload.reviewMsg;
     updatePagination(status,msg,datum_pagination_index);
+    return true;
+  }
+  function checkReviewForCreateElement(request_alarm_datum){
+    const request_type=request_alarm_datum.request_type;
+    const request_for_duplicatable=request_alarm_datum.request_specific_data.duplicatable;
+    return request_type===request_type_name_to_index["프로그램 참여"] || 
+      (request_type===request_type_name_to_index["수업 및 일반교재"] && request_for_duplicatable);
   }
 
   function getRequestReviewModalBody(){
@@ -605,25 +682,28 @@ function CheckAlarms() {
         {getStudyDataRow(request_alarm_datum)}
         {getRequestContentRow(request_alarm_datum)}
         
-        <div className="border-top border-dark border-3 mb-3">
-          <div className="row mb-2">
-            <div className="col-4"><h5>반려</h5></div>
-            <div className="col-4">
-              <FormCheck
-                type="switch"
-                defaultValue={true}
-                onClick={async ()=>{
-                  const prev_review_status=cur_review_result_status;
-                  const new_review_status=prev_review_status===review_status_to_index["accepted"]?review_status_to_index["declined"]:review_status_to_index["accepted"];
-                  updateReviewResultStatus(new_review_status);
-                }}
-              />
-            </div>
-            <div className="col-4"><h5>승인</h5></div>
-          </div>
-        </div>
 
-        {cur_review_result_status===review_status_to_index["declined"]?
+        {/* rows when review needed */}
+        {review_needed?
+          <div className="border-top border-dark border-3 mb-3">
+            <div className="row mb-2">
+              <div className="col-4"><h5>반려</h5></div>
+              <div className="col-4">
+                <FormCheck
+                  type="switch"
+                  onClick={async ()=>{
+                    const prev_review_status=cur_review_result_status;
+                    const new_review_status=prev_review_status===review_status_to_index["accepted"]?review_status_to_index["declined"]:review_status_to_index["accepted"];
+                    updateReviewResultStatus(new_review_status);
+                  }}
+                />
+              </div>
+              <div className="col-4"><h5>승인</h5></div>
+            </div>
+          </div>:null
+        }
+
+        {review_needed && cur_review_result_status===review_status_to_index["declined"]?
           <Form.Control
             as="textarea"
             placeholder="여기에 요청 반려 사유를 입력해주세요(10자 이상)"
@@ -637,26 +717,40 @@ function CheckAlarms() {
          />
         :null}
         
-        <Button
-            className="btn-secondary"
-            onClick={async ()=>{
-              if(!review_needed){
+        {review_needed?
+          <Button
+              className="btn-secondary"
+              onClick={async ()=>{
+                if(!review_needed){
+                  closeModal();
+                  return;
+                }
+                if(checkReviewForCreateElement(request_alarm_datum) &&
+                  cur_review_result_status===review_status_to_index["accepted"] &&
+                  !window.confirm(`해당 요청을 승인하는 경우\n요청 날짜에 해당하는 학생 TR에 새롭게 항목에 추가됩니다\n승인하시겠습니까?`)) return;
+                const review_result_payload=getReviewResultPayload(request_alarm_datum);
+                // console.log(`payload: ${JSON.stringify(review_result_payload)}`);
+                const [payload_valid,msg]=checkReviewResultPayloadValid(review_result_payload);
+                if(!payload_valid){
+                  window.alert(msg);
+                  return;
+                }
+                const save_success=await saveReviewResult(review_result_payload,datum_pagination_index);
+                if(!save_success){
+                  window.alert("저장중 오류가 발생했습니다\n다시 시도해주세요");
+                  return;
+                }
+                window.alert(`요청 확인이 성공적으로 반영되었습니다`);
                 closeModal();
-                return;
-              }
-              const review_result_payload=getReviewResultPayload();
-              // console.log(`payload: ${JSON.stringify(review_result_payload)}`);
-              const [payload_valid,msg]=checkReviewResultPayloadValid(review_result_payload);
-              if(!payload_valid){
-                window.alert(msg);
-                return;
-              }
-              await saveReviewResult(review_result_payload,datum_pagination_index);
-              closeModal();
-            }}
-            type="button">
-          <strong>요청 확인</strong>
-        </Button>
+              }}
+              type="button">
+            <strong>요청 확인</strong>
+          </Button>:null
+        }
+
+        {/* rows when review not needed */}
+        {!review_needed?getPrevReviewResultRow(request_alarm_datum):null}
+
       </Modal.Body>
     );
   }
