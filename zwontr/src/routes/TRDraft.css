@@ -131,8 +131,16 @@ textarea {
   font-size: 20px;
   padding: 0px;
   color: rgba(0, 0, 0, 0.24);
-  margin-left: 5px;
-  margin-right: 5px;
+  margin-left: 1px;
+  margin-right: 1px;
+}
+
+.RequestStatusBadge {
+  height: 25px;
+  width: 5em;
+  padding-left: 3px;
+  padding-right: 3px;
+  font-size: 15px;
 }
 
 .program-add {

@@ -258,6 +258,9 @@ function SignUpPage() {
     return {
       userType:userType,
       groupOfUser:userInfo.group_of_user,
+      privacyTermAgreed:agreeState[0],
+      uniqueInfoTermAgreed:agreeState[1],
+      sensitiveInfoTermAgreed:agreeState[2],
       termAgreedDate:termAgreedDate,
       username:userInfo.username,
       password:userInfo.password,

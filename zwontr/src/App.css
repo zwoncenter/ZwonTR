@@ -74,7 +74,12 @@ p {
 
 .AlarmsCountBox {
   position: absolute;
-  right: 0px;
+  left: 3px;
   bottom: 0px;
   font-size: 12px;
+  width: -moz-fit-content;
+  width: fit-content;
+  height: 12px;
+  font-family: "NanumSquareEB", sans-serif !important;
+  font-weight: bolder;
 }

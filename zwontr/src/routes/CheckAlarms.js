@@ -641,7 +641,8 @@ function CheckAlarms() {
       .post("/api/saveTRDraftRequestReview",reviewResultPayload)
       .then((result)=>{
         const data=result.data;
-        if(!data.success) return false;
+        const error_prompt=data.ret;
+        if(!data.success) throw new Error('error');
         //here success of save would be checked
         const saved=data.ret.saved;
         if(!saved){
@@ -651,6 +652,7 @@ function CheckAlarms() {
         return true;
       })
       .catch((err)=>{
+        window.alert(`네크워크 오류로 저장하지 못했습니다`)
         return false;
       });
     if(!save_success) return save_success;
@@ -737,7 +739,7 @@ function CheckAlarms() {
                 }
                 const save_success=await saveReviewResult(review_result_payload,datum_pagination_index);
                 if(!save_success){
-                  window.alert("저장중 오류가 발생했습니다\n다시 시도해주세요");
+                  // window.alert("저장중 오류가 발생했습니다\n다시 시도해주세요");
                   return;
                 }
                 window.alert(`요청 확인이 성공적으로 반영되었습니다`);

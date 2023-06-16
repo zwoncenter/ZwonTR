@@ -921,6 +921,10 @@ function TRwrite() {
     ret["description"]=getDescriptionStringFromAssignment(assignmentData);
     return ret;
   }
+  function getDGCLExcuseFromAOSID(AOSID){
+    const goal_state=AOSIDToSavedGoalStateMapping[AOSID];
+    return goal_state?goal_state.excuse:"";
+  }
   function getDailyGoalCheckLogDataFromTextbookName(textbookName,finished_flag,excuse){
     const ret=JSON.parse(JSON.stringify(dailyGoalCheckLogDataTemplate));
     ret["textbookID"]=textbookIDMapping[textbookName];
@@ -928,6 +932,10 @@ function TRwrite() {
     ret["excuse"]=excuse;
     ret["description"]=textbookName;
     return ret;
+  }
+  function getDGCLExcuseFromTextbookID(textbookID){
+    const goal_state=textbookIDToSavedGoalStateMapping[textbookID];
+    return goal_state?goal_state.excuse:"";
   }
   const [textbookOfAssignment,setTextbookOfAssignment]=useState({}); // 강의 과제의 교재와 자체 진도 교재가 겹치지 않으므로 강의에서 사용되는 교재 저장
   function checkTextBookOfAssignment(textbookName){
@@ -1407,6 +1415,7 @@ function TRwrite() {
             as="textarea"
             placeholder="여기에 사유를 입력해주세요(15자 이상)"
             className="mb-3 ModalTextarea"
+            value={currentExcuseInfo.excuse}
             onChange={(event)=>{
               const newGoalExcuseData= JSON.parse(JSON.stringify(currentExcuseInfo));
               newGoalExcuseData["excuse"]=event.target.value;
@@ -1912,7 +1921,8 @@ function TRwrite() {
                                       className="btn btn-danger btn-opaque"
                                       onClick={async ()=>{
                                         const assignmentData=a;
-                                        const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,false,"");
+                                        const prev_excuse=getDGCLExcuseFromAOSID(assignmentData.AOSID);
+                                        const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,false,prev_excuse);
                                         openExcuseModal(dailyGoalCheckLogData);
                                       }}
                                     >
@@ -2114,7 +2124,8 @@ function TRwrite() {
                                   className="btn btn-danger btn-opaque"
                                   onClick={()=>{
                                     const textbookName=a["교재"];
-                                    const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromTextbookName(textbookName,false,"");
+                                    const prev_excuse=getDGCLExcuseFromTextbookID(textbookID);
+                                    const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromTextbookName(textbookName,false,prev_excuse);
                                     openExcuseModal(dailyGoalCheckLogData);
                                   }}
                                 >

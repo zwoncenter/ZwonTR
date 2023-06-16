@@ -876,6 +876,10 @@ function TRedit() {
     ret["description"]=getDescriptionStringFromAssignment(assignmentData);
     return ret;
   }
+  function getDGCLExcuseFromAOSID(AOSID){
+    const goal_state=AOSIDToSavedGoalStateMapping[AOSID];
+    return goal_state?goal_state.excuse:"";
+  }
   function getDailyGoalCheckLogDataFromTextbookName(textbookName,finished_flag,excuse){
     const ret=JSON.parse(JSON.stringify(dailyGoalCheckLogDataTemplate));
     ret["textbookID"]=textbookIDMapping[textbookName];
@@ -883,6 +887,10 @@ function TRedit() {
     ret["excuse"]=excuse;
     ret["description"]=textbookName;
     return ret;
+  }
+  function getDGCLExcuseFromTextbookID(textbookID){
+    const goal_state=textbookIDToSavedGoalStateMapping[textbookID];
+    return goal_state?goal_state.excuse:"";
   }
   const [textbookOfAssignment,setTextbookOfAssignment]=useState({}); // 강의 과제의 교재와 자체 진도 교재가 겹치지 않으므로 강의에서 사용되는 교재 저장
   function checkTextBookOfAssignment(textbookName){
@@ -942,6 +950,10 @@ function TRedit() {
       학습시간: "00:00",
     };
   }
+  function getStudyElementTemplateByTextbookID(textbookID){
+    const ret_tmp=textbookIDMapping.reverse[textbookID];
+    return {...ret_tmp};
+  }
   function updateLATStudyTimeInTR(request_specific_data,studyTime){
     const duplicatable=request_specific_data.duplicatable;
     const textbookID=request_specific_data.textbookID;
@@ -959,7 +971,7 @@ function TRedit() {
         study_list.push(study_element);
       }
       else{
-        let study_element=textbookIDMapping.reverse[textbookID];
+        let study_element=getStudyElementTemplateByTextbookID(textbookID);
         let new_study_element=true;
         for(let i=0; i<study_list.length; i++){
           const cur_study_element=study_list[i];
@@ -970,9 +982,12 @@ function TRedit() {
             break;
           }
         }
-        if(!study_element) return newData;
+        if((Object.keys(study_element)).length===0) return newData;
         study_element.최근진도=recent_page;
         study_element.학습시간=studyTime;
+        if(new_study_element) {
+          study_list.push(study_element);
+        }
       }
       return newData;
     });
@@ -987,7 +1002,7 @@ function TRedit() {
   }
   function updateProgramParticipationTimeInTR(request_specific_data,timeAmount){
     const program_by=request_specific_data.program_by;
-    const program_by_user_nickname=userIDToUserNickname[program_by];
+    const program_by_user_nickname=usernameToUserNickname[program_by];
     const program_description=request_specific_data.program_description;
     const program_name=request_specific_data.program_name;
     setTR((prevData)=>{
@@ -1314,7 +1329,7 @@ function TRedit() {
   });
   const [draftOverwritingDone,setDraftOverwritingDone]=useState(false);
   const [draftWritten,setDraftWritten]= useState({});
-  const [userIDToUserNickname,setUserIDToUserNickname]= useState({});
+  const [usernameToUserNickname,setUsernameToUserNickname]= useState({});
   function updateDraftOverwriteReady(fieldName,value){
     setDraftOverwriteReady((prevData)=>{
       const newDraftOverwriteReady={...prevData};
@@ -1337,8 +1352,8 @@ function TRedit() {
       return newDraftWrittenData;
     });
   }
-  function getWrittenTDRRIDList(){
-    return Object.keys(draftWritten).filter((TDRR_id)=>draftWritten[TDRR_id]);
+  function getWrittenTDRIDList(){
+    return Object.keys(draftWritten).filter((TDR_id)=>draftWritten[TDR_id]);
   }
 
   //get draft request data approved but not written to TR document
@@ -1545,7 +1560,7 @@ function TRedit() {
     isInitialMount.current = false;
   }, [paramDate]);
 
-  //get manager in same group as student
+  //get manager in same group with student legacy ID
   useEffect(async ()=>{
     const id_to_nickname_list= await axios
       .post("/api/managerListByStudentLegacyID",{studentLegacyID:paramID})
@@ -1561,10 +1576,10 @@ function TRedit() {
       });
     const itn_map={reverse:{}};
     id_to_nickname_list.forEach((e,idx)=>{
-      itn_map[e._id]=e.nickname;
-      itn_map.reverse[e.nickname]=e._id;
+      itn_map[e.username]=e.nickname;
+      itn_map.reverse[e.nickname]=e.username;
     });
-    setUserIDToUserNickname(itn_map);
+    setUsernameToUserNickname(itn_map);
     setmanagerList(id_to_nickname_list.map(e=>e.nickname));
     updateDraftOverwriteReady("managerList",true);
   },[]);
@@ -1783,6 +1798,7 @@ function TRedit() {
                 as="textarea"
                 placeholder="여기에 사유를 입력해주세요(15자 이상)"
                 className="mb-3 ModalTextarea"
+                value={currentExcuseInfo.excuse}
                 onChange={(event)=>{
                   const newGoalExcuseData= JSON.parse(JSON.stringify(currentExcuseInfo));
                   newGoalExcuseData["excuse"]=event.target.value;
@@ -2297,7 +2313,9 @@ function TRedit() {
                                                 className="btn btn-danger btn-opaque"
                                                 onClick={async ()=>{
                                                   const assignmentData=a;
-                                                  const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,false,"");
+                                                  const prev_excuse=getDGCLExcuseFromAOSID(assignmentData.AOSID);
+                                                  console.log(`prev excuse: ${prev_excuse}`);
+                                                  const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,false,prev_excuse);
                                                   openExcuseModal(dailyGoalCheckLogData);
                                                 }}
                                             >
@@ -2507,7 +2525,8 @@ function TRedit() {
                                         className="btn btn-danger btn-opaque"
                                         onClick={()=>{
                                           const textbookName=a["교재"];
-                                          const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromTextbookName(textbookName,false,"");
+                                          const prev_excuse=getDGCLExcuseFromTextbookID(textbookID);
+                                          const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromTextbookName(textbookName,false,prev_excuse);
                                           openExcuseModal(dailyGoalCheckLogData);
                                         }}
                                     >
@@ -3090,7 +3109,7 @@ function TRedit() {
 
                             const postedTR = JSON.parse(JSON.stringify(TR));
                             postedTR["강의과제학습"] = assignmentStudyTime; //TR 객체의 강의 과제 학습 시간 관련 state를 state로부터 업데이트하여 post: 더 나은 방법 찾아봐야: react state update queue 써야
-                            postedTR["TDRRIDList"] = getWrittenTDRRIDList();
+                            postedTR["TDRIDList"] = getWrittenTDRIDList();
 
                             await axios
                                 .put("/api/TR", postedTR)

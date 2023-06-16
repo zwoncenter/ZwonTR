@@ -84,6 +84,12 @@ const request_reivew_on_update_template={
     review_msg:null,
     modify_date:null,
 };
+const DGCL_filter_template={ // daily goal check log filter template
+    date:null,
+    studentID:null,
+    AOSID:null,
+    textbookID:null,
+}
 const DGCL_on_insert_template={ // daily goal check log insert template
     AOSID:null,
     date:null,
@@ -335,6 +341,42 @@ function getDGCLOnUpdatePushSettings(finishedState,excuse){
     ret.excuseList=finishedState?"":excuse;
     return ret;
 }
+function getDGCLFilter(date,studentID,AOSID,textbookID){
+    const ret={...DGCL_filter_template};
+    ret.date=date;
+    ret.studentID=studentID;
+    ret.AOSID=AOSID;
+    ret.textbookID=textbookID;
+    return ret;
+}
+function getDGCLBulkWriteUpdateOneSettings(filter,setOnInsertSettings,pushSettings){
+    const ret= {
+        updateOne:{
+            filter,
+            update:{
+                $setOnInsert:setOnInsertSettings,
+                $push:pushSettings,
+            },
+            upsert:true,
+        }
+    };
+    return ret;
+}
+function getDGCLBulkWriteUpsertDocsFromTDRDocs(TDRDocs,studentName,description=""){
+    return TDRDocs.map((doc,idx)=>{
+        const date=doc.date;
+        const student_id=doc.student_id;
+        const AOSID=doc.request_type===request_type_name_to_index["AssignmentStudyData"]?doc.request_specific_data.AOSID:"";
+        const AOSTextbookID=doc.AOSTextbookID;
+        const textbookID=doc.request_type===request_type_name_to_index["LectureAndTextbookStudyData"]?doc.request_specific_data.textbookID:"";
+        const finished_state=doc.study_data.finished_state;
+        const excuse=doc.study_data.excuse;
+        const filter=getDGCLFilter(date,student_id,AOSID,textbookID);
+        const set_on_insert_settings=getDGCLOnInsertSettings(date,student_id,studentName,AOSID,textbookID,AOSTextbookID,description);
+        const push_settings=getDGCLOnUpdatePushSettings(finished_state,excuse);
+        return getDGCLBulkWriteUpdateOneSettings(filter,set_on_insert_settings,push_settings);
+    });
+}
 module.exports={
     request_document_on_insert_template,
     life_data_request_document_on_update_template,
@@ -384,4 +426,6 @@ module.exports={
     getTDRROnUpdateSettings,
     getDGCLOnInsertSettings,
     getDGCLOnUpdatePushSettings,
+    getDGCLBulkWriteUpdateOneSettings,
+    getDGCLBulkWriteUpsertDocsFromTDRDocs,
 }
