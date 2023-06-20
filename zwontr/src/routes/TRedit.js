@@ -1411,7 +1411,7 @@ function TRedit() {
       const draft_confirmed=draft_request.request_status===draft_request_status_to_index["confirmed"];
       if(draft_request.request_type!==draft_request_type_name_to_index["AssignmentStudyData"] || !draft_confirmed) continue;
       const request_specific_data=draft_request.request_specific_data;
-      const study_data=(draft_request.study_data)[0]; // study_data field always returned as a list
+      const study_data=draft_request.study_data;
       const finished_state=study_data.finished_state;
       const study_time=study_data.time_amount;
       const excuse=study_data.excuse;
@@ -1434,7 +1434,7 @@ function TRedit() {
       const request_specific_data=draft_request.request_specific_data;
       const duplicatable=request_specific_data.duplicatable;
       const textbookID=request_specific_data.textbookID;
-      const study_data=(draft_request.study_data)[0]; // study_data field always returned as a list
+      const study_data=draft_request.study_data;
       const finished_state=study_data.finished_state;
       const study_time=study_data.time_amount;
       const excuse=study_data.excuse;
@@ -1453,7 +1453,7 @@ function TRedit() {
       const draft_confirmed=draft_request.request_status===draft_request_status_to_index["confirmed"];
       if(draft_request.request_type!==draft_request_type_name_to_index["ProgramParticipationData"] || !draft_confirmed) continue;
       const request_specific_data=draft_request.request_specific_data;
-      const study_data=(draft_request.study_data)[0]; // study_data field always returned as a list
+      const study_data=draft_request.study_data;
       const study_time=study_data.time_amount;
       
       //program participation data
@@ -2229,7 +2229,7 @@ function TRedit() {
                                             {a["description"] != "" ? (
                                                 <OverlayTrigger
                                                     trigger="click"
-                                                    placement="right"
+                                                    placement="auto-start"
                                                     overlay={
                                                       <Popover id="popover-basic">
                                                         <Popover.Body>{a["description"]}</Popover.Body>

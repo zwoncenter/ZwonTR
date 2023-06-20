@@ -226,14 +226,17 @@ function TRDraft() {
       if(e.request_type!==1) return;
       const assignment_request_id=getAOSIDFromRequestElement(e);
       const assignment_request_element=JSON.parse(JSON.stringify(e));
-      const study_data_list=assignment_request_element.study_data_list;
-      const prev_study_data=study_data_list[study_data_list.length-1];
+      // const study_data_list=assignment_request_element.study_data_list;
+      // const prev_study_data=study_data_list[study_data_list.length-1];
+      const prev_study_data=assignment_request_element.study_data;
       const study_data=getAssignmentStudyDataTemplate();
+      study_data.time_amount=prev_study_data.time_amount;
       study_data.excuse=prev_study_data.excuse;
       study_data.finished_state=prev_study_data.finished_state;
-      study_data.time_amount=prev_study_data.time_amount;
+
       study_data.request_status=assignment_request_element.request_status;
       study_data.review_status=assignment_request_element.review_status;
+      study_data.review_username=assignment_request_element.review_username;
       study_data.review_msg=assignment_request_element.review_msg;
       ret[assignment_request_id]=study_data;
     });
@@ -266,8 +269,10 @@ function TRDraft() {
       if(e.request_type!==2) return;
       const LAT_request_id=getLATRequestIDFromRequestElement(e);
       const LAT_request_element=JSON.parse(JSON.stringify(e));
-      const study_data_list=LAT_request_element.study_data_list;
-      LAT_request_element["study_data"]=study_data_list.length>0?study_data_list[study_data_list.length-1]:getStudyDataTemplate();
+      // const study_data_list=LAT_request_element.study_data_list;
+      const study_data=LAT_request_element.study_data;
+      // LAT_request_element["study_data"]=study_data_list.length>0?study_data_list[study_data_list.length-1]:getStudyDataTemplate();
+      LAT_request_element["study_data"]=study_data?study_data:getStudyDataTemplate();
       LAT_request_element["request_new"]=false;
       const request_specific_data=LAT_request_element["request_specific_data"];
       request_specific_data.recent_page=request_specific_data.recent_page.toString(); // keep recent page value on client side as string
@@ -284,8 +289,10 @@ function TRDraft() {
       if(e.request_type!==3) return;
       const program_request_id=getProgramRequestIDFromRequestElement(e);
       const program_request_element=JSON.parse(JSON.stringify(e));
-      const study_data_list=program_request_element.study_data_list;
-      program_request_element["study_data"]=study_data_list.length>0?study_data_list[study_data_list.length-1]:{};
+      // const study_data_list=program_request_element.study_data_list;
+      const study_data=program_request_element.study_data;
+      // program_request_element["study_data"]=study_data_list.length>0?study_data_list[study_data_list.length-1]:getStudyDataTemplate();
+      program_request_element["study_data"]=study_data?study_data:getStudyDataTemplate();
       program_request_element["request_new"]=false;
       ret[program_request_id]=program_request_element;
     });
@@ -320,6 +327,7 @@ function TRDraft() {
       "request_status":request_status_to_index["created"],
       "review_status":review_status_to_index["not_reviewed"],
       "review_msg":"",
+      "review_username":null,
       study_data:getStudyDataTemplate(),
     };
   }
@@ -435,6 +443,8 @@ function TRDraft() {
   function getLATStudyDataRequestButton(LATRequestID){
     const LAT_request_element=getLATRequestElementFromLATRequestID(LATRequestStatusMap,LATRequestID);
     const study_data_element=LAT_request_element.study_data;
+    const request_status=LAT_request_element.request_status;
+    const review_username=LAT_request_element.review_username;
     const review_msg=LAT_request_element.review_msg;
     const finished_state=study_data_element.finished_state;
     const confirmed_prompt=getConfirmedPromptWithFinishedState(finished_state);
@@ -445,7 +455,7 @@ function TRDraft() {
           <button
             className="btn btn-success btn-opaque"
             onClick={async ()=>{
-              const study_data= getTextbookStudyDataByLATRequestID(LATRequestID,true);
+              const study_data= getLATStudyDataPayloadByLATRequestID(LATRequestID,true);
               console.log(`study data payload: ${JSON.stringify(study_data)}`);
               
               //check if study data for assingment valid
@@ -463,7 +473,7 @@ function TRDraft() {
           <button
               className="btn btn-danger btn-opaque"
               onClick={()=>{
-                const study_data= getTextbookStudyDataByLATRequestID(LATRequestID,true); // finished state checked as true to bypass "excuse" field validity check
+                const study_data= getLATStudyDataPayloadByLATRequestID(LATRequestID,true); // finished state checked as true to bypass "excuse" field validity check
                 console.log(`study data payload: ${JSON.stringify(study_data)}`);
                 
                 //check if study data for assingment valid
@@ -481,7 +491,7 @@ function TRDraft() {
           {checkLATStudyDataRequestDeclinedByLATRequestID(LATRequestID)?
             <OverlayTrigger
               trigger="click"
-              placement="right"
+              placement="auto-start"
               overlay={
                 <Popover id="popover-basic">
                   <Popover.Body>{review_msg}</Popover.Body>
@@ -496,8 +506,30 @@ function TRDraft() {
         </span>
       );
     }
+    else if(request_status===request_status_to_index["review_needed"]){
+      return (
+        <button
+          className="btn btn-secondary RequestStatusBadge btn-padding-top-1"
+          onClick={()=>{
+            const study_data= getLATStudyDataPayloadByLATRequestID(LATRequestID,finished_state);
+            console.log(`study data payload: ${JSON.stringify(study_data)}`);
+            
+            //check if study data for assingment valid
+            const [textbookStudyValid,msg]= isTextbookStudyDataValid(study_data,LATRequestID);
+            if(!textbookStudyValid){
+              window.alert(`${msg}`);
+              return;
+            }
+
+            openConfirmModal("lectureAndTextbook",finished_state,getBriefStringFromLATRequestID(LATRequestID),LATRequestID,review_username);
+          }}
+        >
+          <strong>확인중...</strong>
+        </button>
+      );
+    }
     else {
-      return getBadgeFromRequestStatus(LAT_request_element.request_status,confirmed_prompt,confirmed_badge_class);
+      return getBadgeFromRequestStatus(request_status,confirmed_prompt,confirmed_badge_class);
     }
   }
   
@@ -517,13 +549,7 @@ function TRDraft() {
       "reviewedBy":null,
     };
   }
-  function getTextbookStudyDataByLATRequestID(LATRequestID,textbookStudyFinished=false){
-    // const ret={...assignmentStudyDataPayloadTemplate,AOSID};
-    // ret["excuse"]=myAssignmentStudyData[AOSID].excuse;
-    // ret["timeAmount"]=myAssignmentStudyData[AOSID].time_amount;
-    // ret["finishedState"]=textbookStudyFinished;
-    // if(textbookStudyFinished) ret.excuse="";
-    // return ret;
+  function getLATStudyDataPayloadByLATRequestID(LATRequestID,textbookStudyFinished=false,reviewerReassigned=false){
     const [element_type,element_id]=LATRequestID.split("#");
     const LAT_request_element=getLATRequestElementFromLATRequestID(LATRequestStatusMap,LATRequestID);
     const request_specific_data=LAT_request_element.request_specific_data;
@@ -540,7 +566,8 @@ function TRDraft() {
     ret["timeAmount"]=study_data.time_amount;
     ret["excuse"]=study_data.excuse;
     ret["finishedState"]=textbookStudyFinished;
-    ret["reviewedBy"]=[requestGoesTo];
+    ret["reviewedBy"]=[requestGoesTo.goes_to];
+    ret["reviewerReassigned"]=reviewerReassigned;
     return ret;
   }
   function getTextbookInfoTemplate(){
@@ -571,11 +598,11 @@ function TRDraft() {
       return null;
     }
   }
-  async function saveLATStudyDataByLATRequestID(LATRequestID,finishedState){
+  async function saveLATStudyDataByLATRequestID(LATRequestID,finishedState,reviewerReassigned=false){
     const textbook_info=getTextbookInfoByLATRequestID(LATRequestID);
     const textbookName=textbook_info.교재;
     const textbookSubject=textbook_info.과목;
-    const study_data= getTextbookStudyDataByLATRequestID(LATRequestID,finishedState);
+    const study_data= getLATStudyDataPayloadByLATRequestID(LATRequestID,finishedState,reviewerReassigned);
     console.log(`study data payload: ${JSON.stringify(study_data)}`);
     // console.log(`study data: ${JSON.stringify(study_data)}`);
 
@@ -591,8 +618,13 @@ function TRDraft() {
         const data=res.data;
         const success=data.success;
         const error_prompt=data.ret;
+        const page_reload=data.page_reload;
         if(!success) {
           window.alert(`${error_prompt}`);
+          if(page_reload) {
+            window.alert(`페이지를 새로고침 합니다`);
+            window.location.reload();
+          }
           return [false,false];
         }
         else{
@@ -602,7 +634,7 @@ function TRDraft() {
             return [false,true];
           }
         }
-        window.alert(`성공적으로 생활 정보를 확인 요청을 보냈습니다`);
+        window.alert(`성공적으로 수업/일반교재 학습 정보 확인 요청을 보냈습니다`);
         return [true,false];
       })
       .catch((error)=>{
@@ -657,6 +689,7 @@ function TRDraft() {
     "실제기상":null,
     "request_status":request_status_to_index["review_needed"],
     "review_status":review_status_to_index["not_reviewed"],
+    "review_username":null,
     "review_msg":"",
   });
   const condition_name_to_score_map={
@@ -708,13 +741,14 @@ function TRDraft() {
     wakeUpTime: null,
     reviewedBy: [],
   };
-  function getLifeData(){
+  function getLifeDataPayload(reviewerReassigned){
     const ret={...lifeDataPayloadTemplate,
       bodyCondition: myLifeData.신체컨디션,
       sentimentCondition: myLifeData.정서컨디션,
       goToBedTime: myLifeData.실제취침,
       wakeUpTime: myLifeData.실제기상,
-      reviewedBy: [requestGoesTo],
+      reviewedBy: [requestGoesTo.goes_to],
+      reviewerReassigned: reviewerReassigned,
     };
     return ret;
   }
@@ -726,8 +760,8 @@ function TRDraft() {
     else if(!checkTimeStringValid(lifeData.wakeUpTime)) return [false,"올바른 실제 기상 시간을 입력해주세요"];
     else return [true,""];
   }
-  async function saveLifeData(){
-    const life_data=getLifeData();
+  async function saveLifeData(reviewerReassigned=false){
+    const life_data=getLifeDataPayload(reviewerReassigned);
     console.log(`life data payload: ${JSON.stringify(life_data)}`);
     const [valid,msg]=isLifeDataValid(life_data);
     if(!valid){
@@ -741,11 +775,16 @@ function TRDraft() {
         const data=res.data;
         const success=data.success;
         const error_prompt=data.ret;
+        const page_reload=data.page_reload;
         if(!success) {
           window.alert(`${error_prompt}`);
+          if(page_reload){
+            window.alert(`페이지를 새로고침 합니다`);
+            window.location.reload();
+          }
           return false;
         }
-        window.alert(`성공적으로 생활 정보를 확인 요청을 보냈습니다`);
+        window.alert(`성공적으로 생활 정보 확인 요청을 보냈습니다`);
         return true;
       })
       .catch((error)=>{
@@ -761,7 +800,9 @@ function TRDraft() {
     return myLifeData.review_status===review_status_to_index["declined"];
   }
   function getLifeDataRequestButton(){
+    const review_username=myLifeData.review_username;
     const review_msg=myLifeData.review_msg;
+    const request_status=myLifeData.request_status;
     if(checkLifeDataUpdatable()){
       return (
         <span>
@@ -769,7 +810,7 @@ function TRDraft() {
             variant="success"
             disabled={!checkLifeDataUpdatable()}
             onClick={async ()=>{
-              const life_data= getLifeData();
+              const life_data= getLifeDataPayload();
               const [valid,msg]= isLifeDataValid(life_data);
               if(!valid){
                 window.alert(`${msg}`);
@@ -783,7 +824,7 @@ function TRDraft() {
           {checkLifeDataRequestDeclined()?
             <OverlayTrigger
               trigger="click"
-              placement="right"
+              placement="auto-start"
               overlay={
                 <Popover id="popover-basic">
                   <Popover.Body>{review_msg}</Popover.Body>
@@ -796,6 +837,24 @@ function TRDraft() {
             </OverlayTrigger>
           :null}
         </span>
+      );
+    }
+    else if(request_status===request_status_to_index["review_needed"]){
+      return (
+        <button
+          className="btn btn-secondary RequestStatusBadge btn-padding-top-1"
+          onClick={()=>{
+            const life_data= getLifeDataPayload();
+            const [valid,msg]= isLifeDataValid(life_data);
+            if(!valid){
+              window.alert(`${msg}`);
+              return;
+            }
+            openConfirmModal("life",true,"","dummyElementID",review_username);
+          }}
+        >
+          <strong>확인중...</strong>
+        </button>
       );
     }
     else return getBadgeFromRequestStatus(myLifeData.request_status);
@@ -862,15 +921,20 @@ function TRDraft() {
   });
 
   function checkLectureAssignmentExists(){
-    return myAssignmentInfo.assignments.length>0;
+    // return myAssignmentInfo.assignments.length>0;
+    const assignment_info_map=myAssignmentInfo.assignments;
+    return Object.keys(assignment_info_map).length>0;
   }
   function getAssignmentElementByAOSID(AOSID){
-    let ret=null;
-    for(let i=0; i<myAssignmentInfo.assignments.length; i++){
-      const assignment=myAssignmentInfo.assignments[i];
-      if(assignment.AOSID===AOSID) return assignment;
-    }
-    return ret;
+    // let ret=null;
+    // for(let i=0; i<myAssignmentInfo.assignments.length; i++){
+    //   const assignment=myAssignmentInfo.assignments[i];
+    //   if(assignment.AOSID===AOSID) return assignment;
+    // }
+    // return re;
+    const assignment_info_map=myAssignmentInfo.assignments;
+    if(!(AOSID in assignment_info_map)) return null;
+    return assignment_info_map[AOSID];
   }
   function checkAssignmentElementHasPageRangeElement(assignmentElement){
     const first_page_range_element=(assignmentElement.pageRangeArray)[0];
@@ -880,19 +944,43 @@ function TRDraft() {
     return !!assignmentElement.description;
   }
   function getLectureNameOfAssignmentByAOSID(AOSID){
-    let ret="";
-    for(let i=0; i<myAssignmentInfo.assignments.length; i++){
-      const assignment=myAssignmentInfo.assignments[i];
-      if(assignment.AOSID===AOSID) return assignment.lectureName;
-    }
-    return ret;
+    // let ret="";
+    // for(let i=0; i<myAssignmentInfo.assignments.length; i++){
+    //   const assignment=myAssignmentInfo.assignments[i];
+    //   if(assignment.AOSID===AOSID) return assignment.lectureName;
+    // }
+    // return ret;
+    const assignment_info_map=myAssignmentInfo.assignments;
+    if(!(AOSID in assignment_info_map)) return null;
+    return assignment_info_map[AOSID];
   }
   function checkTodayAssignmentIncludeTextbook(textbookName){
-    for(let i=0; i<myAssignmentInfo.assignments.length; i++){
-      const assignment_textbook_name=myAssignmentInfo.assignments[i].textbookName;
-      if(textbookName===assignment_textbook_name) return true;
+    // for(let i=0; i<myAssignmentInfo.assignments.length; i++){
+    //   const assignment_textbook_name=myAssignmentInfo.assignments[i].textbookName;
+    //   if(textbookName===assignment_textbook_name) return true;
+    // }
+    // return false;
+    const assignment_info_map=myAssignmentInfo.assignments;
+    const AOSID_list=Object.keys(assignment_info_map);
+    for(let i=0; i<AOSID_list.length; i++){
+      const cur_AOSID=AOSID_list[i];
+      const assignment_element=getAssignmentElementByAOSID(cur_AOSID);
+      if(textbookName===assignment_element.textbookName) return true;
     }
     return false;
+  }
+
+  function getAssignmentInfoMapFromAssignmentsList(assignmentsList){
+    const ret={};
+    assignmentsList.forEach((element,idx)=>{
+      const AOSID=element.AOSID;
+      ret[AOSID]=element;
+    });
+    return ret;
+  }
+  function getAssignmentList(){
+    const assignment_info_map=myAssignmentInfo.assignments;
+    return Object.keys(assignment_info_map).map((AOSID,idx)=>assignment_info_map[AOSID]);
   }
 
   useEffect(async ()=>{
@@ -907,46 +995,36 @@ function TRDraft() {
         return [];
       });
     // console.log(`cur assignments: ${JSON.stringify(current_assignments)}`);
-    setMyAssignmentInfo({"assignments":current_assignments});
+    setMyAssignmentInfo({"assignments":getAssignmentInfoMapFromAssignmentsList(current_assignments)});
   },[]);
 
   const [myAssignmentStudyData,setMyAssignmentStudyData]= useState({}); // map for storing study data of assignment(time amount, excuse)
   const time_default_string="00:00";
   const assignmentStudyDataTemplate={
-    "time_amount":time_default_string,
+    "time_amount":"",
     "excuse":"",
     "finished_state":true,
+    "request_type":1,
     "request_status":request_status_to_index["created"],
     "review_status":review_status_to_index["not_reviewed"],
+    "review_username":null,
     "review_msg":"",
   };
   function getAssignmentStudyDataTemplate(){
     return {...assignmentStudyDataTemplate};
   }
-  const assignmentStudyDataPayloadTemplate={
-    "AOSID":"",
-    "timeAmount":null,
-    "excuse":"",
-    "finishedState":true,
-    "reviewedBy":null,
-  };
-  function getAssignmentStudyDataByAOSID(AOSID,assignment_finished=false){
-    if(!(AOSID in myAssignmentStudyData)) {
-      const newAssignmentStudyData=JSON.parse(JSON.stringify(myAssignmentStudyData));
-      newAssignmentStudyData[AOSID]={...getAssignmentStudyDataTemplate(),time_amount:time_default_string};
-      setMyAssignmentStudyData(newAssignmentStudyData);
-      return {...assignmentStudyDataPayloadTemplate,finishedState:assignment_finished,AOSID};
-    }
-    const assignment_study_data=myAssignmentStudyData[AOSID];
-    const ret={...assignmentStudyDataPayloadTemplate,
-      excuse:assignment_study_data.excuse,
-      timeAmount:assignment_study_data.time_amount,
-      finishedState:assignment_finished,
-      reviewedBy:[requestGoesTo],
-      AOSID,
-    };
-    if(assignment_finished) ret.excuse="";
-    return ret;
+  function getAssignmentStudyDataByAOSID(myAssignmentStudyDataCopy,AOSID){
+    if(AOSID in myAssignmentStudyData) return myAssignmentStudyDataCopy[AOSID];
+    const study_data=getAssignmentStudyDataTemplate();
+    insertAssignmentStudyDataByAOSID(AOSID,study_data);
+    return study_data;
+  }
+  function insertAssignmentStudyDataByAOSID(AOSID,studyData){
+    setMyAssignmentStudyData((prevData)=>{
+      const newData=JSON.parse(JSON.stringify(prevData));
+      newData[AOSID]=studyData;
+      return newData;
+    });
   }
   function updateAssignmentStudyDataByAOSID(AOSID,fieldName,value){
     setMyAssignmentStudyData((prevData)=>{
@@ -956,26 +1034,49 @@ function TRDraft() {
       return newData;
     });
   }
+  const assignmentStudyDataPayloadTemplate={
+    "AOSID":"",
+    "timeAmount":null,
+    "excuse":"",
+    "finishedState":true,
+    "reviewedBy":null,
+    "reviewerReassigned":false,
+  };
+  function getAssignmentStudyDataPayloadByAOSID(AOSID,assignment_finished=false,reviewerReassigned=false){
+    const assignment_study_data=getAssignmentStudyDataByAOSID(myAssignmentStudyData,AOSID);
+    const ret={...assignmentStudyDataPayloadTemplate,
+      AOSID,
+      timeAmount:assignment_study_data.time_amount,
+      excuse:assignment_study_data.excuse,
+      finishedState:assignment_finished,
+      reviewedBy:[requestGoesTo.goes_to],
+      reviewerReassigned:reviewerReassigned,
+    };
+    if(assignment_finished) ret.excuse="";
+    return ret;
+  }
   const excuse_min_len=15;
   const excuse_max_len=200;
   function checkStudyExcuseValid(excuse_val){
     if(!(typeof excuse_val==="string")) return false;
     return excuse_val.length>=excuse_min_len && excuse_val.length<=excuse_max_len;
   }
-  function isAssignmentStudyDataValid(assignmentStudyData){
+  function isAssignmentStudyDataValid(assignmentStudyData,AOSID){
     if(!assignmentStudyData) return [false,`error occurred`];
-    else if(!checkTimeStringValid) return [false,"올바른 학습시간을 입력해주세요"];
+    else if(!checkTimeStringValid(assignmentStudyData.timeAmount)) {
+      updateAssignmentStudyDataByAOSID(AOSID,"time_amount",time_default_string);
+      return [false,"올바른 학습시간을 입력해주세요"];
+    }
     else if(assignmentStudyData.finishedState===false && !checkStudyExcuseValid(assignmentStudyData.excuse))
       return [false,"과제 미완료 사유를 15글자 이상 입력해주세요"];
-    else if(!checkReviewerUsernameArrayValid(assignmentStudyData["reviewedBy"])) return [false,"지정된 리뷰어가 올바르지 않습니다"];
     else return [true,""];
   }
-  async function saveAssignmentStudyDataByAOSID(AOSID,finishedState){
-    const assignmnet_element=getAssignmentElementByAOSID(AOSID);
+  async function saveAssignmentStudyDataByAOSID(AOSID,finishedState,reviewerReassigned=false){
+    // const assignmnet_element=getAssignmentElementByAOSID(AOSID);
     // if(!window.confirm(`[${assignmnet_element["lectureName"]}]\n"${getDescriptionStringFromAssignment(assignmnet_element)}"\n과제에 대한 확인 요청을 보내시겠습니까?`)) return;
-    const study_data=getAssignmentStudyDataByAOSID(AOSID,finishedState);
+    const study_data=getAssignmentStudyDataPayloadByAOSID(AOSID,finishedState,reviewerReassigned);
     console.log(`assignment study data payload: ${JSON.stringify(study_data)}`);
-    const [assignmentStudyDataValid,msg]=isAssignmentStudyDataValid(study_data);
+    const [assignmentStudyDataValid,msg]=isAssignmentStudyDataValid(study_data,AOSID);
     if(!assignmentStudyDataValid){
       window.alert(`${msg}`);
       return false;
@@ -987,11 +1088,16 @@ function TRDraft() {
         const data=res.data;
         const success=data.success;
         const error_prompt=data.ret;
+        const page_reload=data.page_reload;
         if(!success) {
           window.alert(`${error_prompt}`);
+          if(page_reload) {
+            window.alert(`페이지를 새로고침 합니다`);
+            window.location.reload();
+          }
           return false;
         }
-        window.alert(`성공적으로 생활 정보를 확인 요청을 보냈습니다`);
+        window.alert(`성공적으로 과제 학습 정보 확인 요청을 보냈습니다`);
         return true;
       })
       .catch((error)=>{
@@ -1001,19 +1107,24 @@ function TRDraft() {
     return save_success;
   }
   function checkAssignmentStudyDataUpdatableByAOSID(AOSID){
-    const study_data_element=myAssignmentStudyData[AOSID];
+    // const study_data_element=myAssignmentStudyData[AOSID];
+    const study_data_element=getAssignmentStudyDataByAOSID(myAssignmentStudyData,AOSID);
     if(!study_data_element) return true;
     return study_data_element.request_status===request_status_to_index["created"];
   }
   function checkAssignmentStudyDataRequestDeclinedByAOSID(AOSID){
-    const study_data_element=myAssignmentStudyData[AOSID];
+    // const study_data_element=myAssignmentStudyData[AOSID];
+    const study_data_element=getAssignmentStudyDataByAOSID(myAssignmentStudyData,AOSID);
     if(!study_data_element) return false;
     return study_data_element.review_status===review_status_to_index["declined"];
   }
   function getAssignmentStudyDataRequestButton(AOSID){
-    const study_data_element=myAssignmentStudyData[AOSID];
-    const review_msg=study_data_element?study_data_element.review_msg:"";
-    const finished_state=study_data_element?study_data_element.finished_state:false;
+    // const study_data_element=myAssignmentStudyData[AOSID];
+    const study_data_element=getAssignmentStudyDataByAOSID(myAssignmentStudyData,AOSID);
+    const request_status=study_data_element.request_status;
+    const review_username=study_data_element.review_username;
+    const review_msg=study_data_element.review_msg;
+    const finished_state=study_data_element.finished_state;
     const confirmed_prompt=getConfirmedPromptWithFinishedState(finished_state);
     const confirmed_badge_class=getConfirmedBadgeClassWithFinishedState(finished_state);
     if(checkAssignmentStudyDataUpdatableByAOSID(AOSID)){
@@ -1023,12 +1134,21 @@ function TRDraft() {
             className="btn btn-success btn-opaque"
             onClick={async ()=>{
               // saveAssignmentStudyDataByAOSID(AOSID,true);
-              const study_data=getAssignmentStudyDataByAOSID(AOSID,true);
+              // const study_data=getAssignmentStudyDataPayloadByAOSID(AOSID,true);
               // console.log(`study data: ${JSON.stringify(study_data)}`);
-              if(!checkTimeStringValid(study_data.timeAmount)){
-                window.alert(`완료 요청을 보내기 전 해당 과제에 대한 학습 시간을 입력해주세요`);
-                return;
+              // if(!checkTimeStringValid(study_data.timeAmount)){
+              //   window.alert(`완료 요청을 보내기 전 해당 과제에 대한 학습 시간을 입력해주세요`);
+              //   return;
+              // }
+
+              const study_data=getAssignmentStudyDataPayloadByAOSID(AOSID,true);
+              console.log(`assignment study data payload: ${JSON.stringify(study_data)}`);
+              const [assignmentStudyDataValid,msg]=isAssignmentStudyDataValid(study_data,AOSID);
+              if(!assignmentStudyDataValid){
+                window.alert(`${msg}`);
+                return false;
               }
+
               openConfirmModal("assignment",true,getBriefStringFromAssignment(getAssignmentElementByAOSID(AOSID)),AOSID);
             }}
           >
@@ -1039,12 +1159,21 @@ function TRDraft() {
               onClick={async ()=>{
                 // const assignmentData=a;
                 // const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,false,"");
-                const study_data=getAssignmentStudyDataByAOSID(AOSID,false);
+                // const study_data=getAssignmentStudyDataPayloadByAOSID(AOSID,false);
                 // console.log(`study data: ${JSON.stringify(study_data)}`);
-                if(!checkTimeStringValid(study_data.timeAmount)){
-                  window.alert(`미완료 사유를 입력하기 전 해당 과제에 대한 학습 시간을 입력해주세요`);
-                  return;
+                // if(!checkTimeStringValid(study_data.timeAmount)){
+                //   window.alert(`미완료 사유를 입력하기 전 해당 과제에 대한 학습 시간을 입력해주세요`);
+                //   return;
+                // }
+
+                const study_data=getAssignmentStudyDataPayloadByAOSID(AOSID,true); //finished state set as true to bypass "excuse" field validity check
+                console.log(`assignment study data payload: ${JSON.stringify(study_data)}`);
+                const [assignmentStudyDataValid,msg]=isAssignmentStudyDataValid(study_data,AOSID);
+                if(!assignmentStudyDataValid){
+                  window.alert(`${msg}`);
+                  return false;
                 }
+
                 openConfirmModal("assignment",false,getBriefStringFromAssignment(getAssignmentElementByAOSID(AOSID)),AOSID);
               }}
           >
@@ -1053,7 +1182,7 @@ function TRDraft() {
           {checkAssignmentStudyDataRequestDeclinedByAOSID(AOSID)?
             <OverlayTrigger
               trigger="click"
-              placement="right"
+              placement="auto-start"
               overlay={
                 <Popover id="popover-basic">
                   <Popover.Body>{review_msg}</Popover.Body>
@@ -1068,8 +1197,29 @@ function TRDraft() {
         </span>
       );
     }
+    else if(request_status===request_status_to_index["review_needed"]){
+      return (
+        <button
+          className="btn btn-secondary RequestStatusBadge btn-padding-top-1"
+          onClick={()=>{
+            const study_data= getAssignmentStudyDataPayloadByAOSID(AOSID,finished_state);
+            console.log(`study data payload: ${JSON.stringify(study_data)}`);
+            
+            //check if study data for assingment valid
+            const [assignmentStudyDataValid,msg]= isAssignmentStudyDataValid(study_data,AOSID);
+            if(!assignmentStudyDataValid){
+              window.alert(`${msg}`);
+              return;
+            }
+
+            openConfirmModal("assignment",finished_state,getBriefStringFromAssignment(getAssignmentElementByAOSID(AOSID)),AOSID,review_username);
+          }}
+        >
+          <strong>확인중...</strong>
+        </button>
+      );
+    }
     else {
-      console.log(`a s d breakpoint`);
       return getBadgeFromRequestStatus(study_data_element.request_status,confirmed_prompt,confirmed_badge_class);
     }
   }
@@ -1307,6 +1457,7 @@ function TRDraft() {
       request_type:3,
       "request_status":request_status_to_index["created"],
       "review_status":review_status_to_index["not_reviewed"],
+      "review_username":null,
       "review_msg":"",
       study_data:getStudyDataTemplate(),
     };
@@ -1389,6 +1540,8 @@ function TRDraft() {
   function getProgramDataRequestButton(programRequestID){
     const program_request_element=getProgramRequestElementFromProgramRequestID(programRequestStatusMap,programRequestID);
     const study_data_element=program_request_element.study_data;
+    const request_status=program_request_element.request_status;
+    const review_username=program_request_element.review_username;
     const review_msg=program_request_element.review_msg;
     const finished_state=study_data_element.finished_state;
     const confirmed_prompt=getConfirmedPromptWithFinishedState(finished_state,"확인됨","확인됨");
@@ -1399,7 +1552,7 @@ function TRDraft() {
           <button
             className="btn btn-success btn-opaque"
             onClick={async ()=>{
-              const program_data=getProgramDataByProgramRequestID(programRequestID,true);
+              const program_data=getProgramDataPayloadByProgramRequestID(programRequestID,true);
               console.log(`program data payload: ${JSON.stringify(program_data)}`);
 
               //check if study data for assingment valid
@@ -1416,7 +1569,7 @@ function TRDraft() {
           {checkProgramDataRequestDeclinedByProgramRequestID(programRequestID)?
             <OverlayTrigger
               trigger="click"
-              placement="right"
+              placement="auto-start"
               overlay={
                 <Popover id="popover-basic">
                   <Popover.Body>{review_msg}</Popover.Body>
@@ -1429,6 +1582,27 @@ function TRDraft() {
             </OverlayTrigger>
           :null}
         </span>
+      );
+    }
+    else if(request_status===request_status_to_index["review_needed"]){
+      return (
+        <button
+          className="btn btn-secondary RequestStatusBadge btn-padding-top-1"
+          onClick={()=>{
+            const program_data=getProgramDataPayloadByProgramRequestID(programRequestID,true);
+            console.log(`program data payload: ${JSON.stringify(program_data)}`);
+
+            //check if study data for assingment valid
+            const [programDataValid,msg]= isProgramDataValid(program_data,programRequestID);
+            if(!programDataValid){
+              window.alert(`${msg}`);
+              return;
+            }
+            openConfirmModal("programParticipation",finished_state,getBriefStringFromProgramRequestID(programRequestID),programRequestID,review_username);
+          }}
+        >
+          <strong>확인중...</strong>
+        </button>
       );
     }
     else {
@@ -1488,15 +1662,10 @@ function TRDraft() {
       "excuse":"",
       "finishedState":true,
       "reviewedBy":null,
+      "reviewerReassigned":false,
     };
   }
-  function getProgramDataByProgramRequestID(programRequestID,programFinished=true){
-    // const ret={...assignmentStudyDataPayloadTemplate,AOSID};
-    // ret["excuse"]=myAssignmentStudyData[AOSID].excuse;
-    // ret["timeAmount"]=myAssignmentStudyData[AOSID].time_amount;
-    // ret["finishedState"]=textbookStudyFinished;
-    // if(textbookStudyFinished) ret.excuse="";
-    // return ret;
+  function getProgramDataPayloadByProgramRequestID(programRequestID,programFinished=true,reviewerReassigned){
     const program_request_element=getProgramRequestElementFromProgramRequestID(programRequestStatusMap,programRequestID);
     const request_specific_data=program_request_element.request_specific_data;
     const study_data=program_request_element.study_data;
@@ -1508,7 +1677,8 @@ function TRDraft() {
     ret["requestNew"]=request_specific_data.request_new;
     ret["timeAmount"]=study_data.time_amount;
     ret["finishedState"]=programFinished;
-    ret["reviewedBy"]=[requestGoesTo];
+    ret["reviewedBy"]=[requestGoesTo.goes_to];
+    ret["reviewerReassigned"]=reviewerReassigned;
     return ret;
   }
   function isProgramNameDefault(programName){
@@ -1540,9 +1710,9 @@ function TRDraft() {
     }
     else return [true,""];
   }
-  async function saveProgramDataByProgramRequestID(programRequestID,finishedState){
+  async function saveProgramDataByProgramRequestID(programRequestID,finishedState,reviewerReassigned=false){
     const program_element_brief=getBriefStringFromProgramRequestID(programRequestID);
-    const program_data=getProgramDataByProgramRequestID(programRequestID,true);
+    const program_data=getProgramDataPayloadByProgramRequestID(programRequestID,true,reviewerReassigned);
     console.log(`program data payload: ${JSON.stringify(program_data)}`);
 
     //check if study data for assingment valid
@@ -1568,7 +1738,7 @@ function TRDraft() {
             return [false,true];
           }
         }
-        window.alert(`성공적으로 생활 정보를 확인 요청을 보냈습니다`);
+        window.alert(`성공적으로 프로그램 참여 정보 확인 요청을 보냈습니다`);
         return [true,false];
       })
       .catch((error)=>{
@@ -1855,8 +2025,27 @@ function TRDraft() {
   const [currentConfirmInfo,setCurrentConfirmInfo]= useState({}); //excuse modal related data
   const [showConfirmModal,setShowConfirmModal]= useState(false); //excuse modal open/close state
   const [confirmType,setConfirmType]= useState(-1);
-  const [requestGoesTo,setRequestGoesTo]= useState(null); //user name who will receive current displayed draft element confirm request
-
+  const request_goes_to_template={
+    selectable:true, //whether user can select reviewer or not
+    goes_to:null, //username who will receive current displayed draft element confirm request
+  };
+  function getRequestGoesToTemlpate(){
+    return {...request_goes_to_template};
+  }
+  const [requestGoesTo,setRequestGoesTo]= useState(getRequestGoesToTemlpate()); //reviwer of request currently selected element
+  function updateRequestGoesTo(updated_values){
+    setRequestGoesTo((prevData)=>{
+      const newData={...prevData};
+      Object.keys(updated_values).forEach((field_name,idx)=>{
+        newData[field_name]=updated_values[field_name];
+      })
+      return newData;
+    });
+  }
+  function checkReviewerReassignedMode(){
+    return !requestGoesTo.selectable;
+  }
+  
   const confirmTypeToIndexMap={
     "default":-1,
     "life":0,
@@ -1881,37 +2070,51 @@ function TRDraft() {
   
   const confirm_for_template={
     confirm_for:"assignment",
-    extra_data:[],
+    extra_data:[], //index0: elementID, index1: prev reviwer username
     description:"",
     finished_state:true,
   }
   const [confirmFor,setConfirmFor]= useState(confirm_for_template); // which study type the excuse for (assignment/textbook)
 
   const openConfirmModal= (confirm_for,finished_state,description,...extra_data)=>{
-    // if(todayTRFinished){
-    //   window.alert(`오늘자 귀가검사가 끝난 후 새로 요청을 보낼 수 없습니다`);
-    //   return;
-    // }
+    if(todayTRFinished){
+      window.alert(`오늘자 귀가검사가 끝난 후 새로 요청을 보낼 수 없습니다`);
+      return;
+    }
     // setCurrentExcuseInfo(newGoalExcuseData);
     setConfirmFor({confirm_for,description,finished_state,extra_data});
     setConfirmType(confirmTypeToIndexMap[confirm_for]);
+    if(extra_data.length>1 && extra_data[1]){
+      const review_username=extra_data[1];
+      updateRequestGoesTo({
+        selectable:false,
+        goes_to:review_username,
+      });
+    }
     setShowConfirmModal(true);
   };
   const closeConfirmModal= ()=>{
+    setRequestGoesTo(request_goes_to_template);
     setConfirmType(null); // this state setting should come first because...
-    setRequestGoesTo(null);
+    // setRequestGoesTo(null);
     // setCurrentExcuseInfo({});
     setConfirmFor(confirm_for_template);
     setShowConfirmModal(false);
   }
   function getLifeModalBody(){
-    const life_data=getLifeData();
+    const life_data=getLifeDataPayload();
     const body_condition=life_data.bodyCondition;
     const body_condition_prompt=score_to_condition_name_map[body_condition];
     const sentiment_condition=life_data.sentimentCondition;
     const sentiment_condition_prompt=score_to_condition_name_map[sentiment_condition];
     const go_to_bed_time=life_data.goToBedTime;
     const wake_up_time=life_data.wakeUpTime;
+
+    const reviewer_reassigned=checkReviewerReassignedMode();
+    
+    const request_send_button_prompt=!reviewer_reassigned?"확인 요청":"리뷰어 재지정";
+    const window_confirm_prompt=!reviewer_reassigned?`해당 학습의 확인 요청을 '${getManagerNicknameByUsername(requestGoesTo.goes_to)}' 매니저에게 보내시겠습니까?`:
+      `리뷰어를 '${getManagerNicknameByUsername(requestGoesTo.goes_to)}' 매니저로 재지정하여 요청을 보내시겠습니까?`;
     return (
       <Modal.Body className="text-center">
         <div className="border-bottom border-secondary border-3 mb-5">
@@ -1939,10 +2142,13 @@ function TRDraft() {
             <Form.Select
               size="sm"
               className="ModalSelectBox"
-              value={requestGoesTo}
+              value={requestGoesTo.goes_to}
               onChange={(e) => {
                 const request_goes_to_val=e.target.value;
-                setRequestGoesTo(request_goes_to_val);
+                // setRequestGoesTo(request_goes_to_val);
+                updateRequestGoesTo({
+                  goes_to:request_goes_to_val
+                });
               }}
             >
               <option value={null}>선택</option>
@@ -1961,19 +2167,20 @@ function TRDraft() {
         <Button
             className="btn-secondary"
             onClick={async ()=>{
-              if(!checkReviewerUsernameValid(requestGoesTo)){
+              if(!checkReviewerUsernameValid(requestGoesTo.goes_to)){
                 window.alert(`확인 요청에 대한 리뷰어가 지정되지 않았습니다`);
                 return;
               }
-              else if(!window.confirm(`생활 정보의 확인 요청을 '${getManagerNicknameByUsername(requestGoesTo)}' 매니저에게 보내시겠습니까?`)) return;
-              const save_success= await saveLifeData();
+              else if(!window.confirm(window_confirm_prompt)) return;
+              const save_success= await saveLifeData(reviewer_reassigned);
               if(save_success) {
                 updateMyLifeData("request_status",request_status_to_index["review_needed"]);
+                updateMyLifeData("review_username",requestGoesTo.goes_to);
                 closeConfirmModal();
               }
             }}
             type="button">
-          <strong>확인 요청</strong>
+          <strong>{request_send_button_prompt}</strong>
         </Button>
       </Modal.Body>
     );
@@ -1989,9 +2196,15 @@ function TRDraft() {
     const description=assignment_element.description;
     const page_range_exists=checkAssignmentElementHasPageRangeElement(assignment_element);
     const description_exists=checkAssignmentElementHasDescription(assignment_element);
-    const assignment_study_data=getAssignmentStudyDataByAOSID(AOSID);
+    const assignment_study_data=getAssignmentStudyDataPayloadByAOSID(AOSID);
     const study_data_time_amount=assignment_study_data.timeAmount;
-    const excuse=!finished_state?myAssignmentStudyData[AOSID].excuse:"";
+    const excuse=!finished_state?assignment_study_data.excuse:"";
+    
+    const reviewer_reassigned=checkReviewerReassignedMode();
+
+    const request_send_button_prompt=!reviewer_reassigned?"확인 요청":"리뷰어 재지정";
+    const window_confirm_prompt=!reviewer_reassigned?`해당 학습의 확인 요청을 '${getManagerNicknameByUsername(requestGoesTo.goes_to)}' 매니저에게 보내시겠습니까?`:
+      `리뷰어를 '${getManagerNicknameByUsername(requestGoesTo.goes_to)}' 매니저로 재지정하여 요청을 보내시겠습니까?`;
     return (
       <Modal.Body className="text-center">
         <div className="border-bottom border-secondary border-3 mb-5">
@@ -2042,6 +2255,7 @@ function TRDraft() {
             maxLength={excuse_max_len}
             className="mb-3 ModalTextarea"
             value={excuse}
+            disabled={reviewer_reassigned}
             onChange={(event)=>{
               const changed_excuse=event.target.value;
               const newAssignmentStudyData= JSON.parse(JSON.stringify(myAssignmentStudyData));
@@ -2058,10 +2272,13 @@ function TRDraft() {
             <Form.Select
               size="sm"
               className="ModalSelectBox"
-              value={requestGoesTo}
+              value={requestGoesTo.goes_to}
               onChange={(e) => {
                 const request_goes_to_val=e.target.value;
-                setRequestGoesTo(request_goes_to_val);
+                // setRequestGoesTo(request_goes_to_val);
+                updateRequestGoesTo({
+                  goes_to:request_goes_to_val
+                });
               }}
             >
               <option value={null}>선택</option>
@@ -2080,19 +2297,20 @@ function TRDraft() {
         <Button
             className="btn-secondary"
             onClick={async ()=>{
-              if(!checkReviewerUsernameValid(requestGoesTo)){
+              if(!checkReviewerUsernameValid(requestGoesTo.goes_to)){
                 window.alert(`확인 요청에 대한 리뷰어가 지정되지 않았습니다`);
                 return;
               }
-              else if(!window.confirm(`해당 과제의 확인 요청을 '${getManagerNicknameByUsername(requestGoesTo)}' 매니저에게 보내시겠습니까?`)) return;
-              const save_success= await saveAssignmentStudyDataByAOSID(AOSID,finished_state);
+              else if(!window.confirm(window_confirm_prompt)) return;
+              const save_success= await saveAssignmentStudyDataByAOSID(AOSID,finished_state,reviewer_reassigned);
               if(save_success) {
                 updateAssignmentStudyDataByAOSID(AOSID,"request_status",request_status_to_index["review_needed"]);
+                updateAssignmentStudyDataByAOSID(AOSID,"review_username",requestGoesTo.goes_to);
                 closeConfirmModal();
               }
             }}
             type="button">
-          <strong>확인 요청</strong>
+          <strong>{request_send_button_prompt}</strong>
         </Button>
       </Modal.Body>
     );
@@ -2118,6 +2336,13 @@ function TRDraft() {
     const study_data=LAT_request_element.study_data;
     const study_data_time_amount=study_data.time_amount;
     const excuse=!finished_state?study_data.excuse:"";
+
+    const reviewer_reassigned=checkReviewerReassignedMode();
+
+    // const reviewer_assignment_prompt=!reviewer_reassigned?"리뷰어 지정":"리뷰어 재지정";
+    const request_send_button_prompt=!reviewer_reassigned?"확인 요청":"리뷰어 재지정";
+    const window_confirm_prompt=!reviewer_reassigned?`해당 학습의 확인 요청을 '${getManagerNicknameByUsername(requestGoesTo.goes_to)}' 매니저에게 보내시겠습니까?`:
+      `리뷰어를 '${getManagerNicknameByUsername(requestGoesTo.goes_to)}' 매니저로 재지정하여 요청을 보내시겠습니까?`;
     return (
       <Modal.Body className="text-center">
         <div className="border-bottom border-secondary border-3 mb-5">
@@ -2163,6 +2388,7 @@ function TRDraft() {
             maxLength={excuse_max_len}
             className="mb-3 ModalTextarea"
             value={excuse}
+            disabled={reviewer_reassigned}
             onChange={(event)=>{
               const changed_excuse=event.target.value;
               updateLATRequestElementByLATRequestID(LAT_request_id,{
@@ -2172,15 +2398,22 @@ function TRDraft() {
          />
         :null}
         <div className="row mb-2">
-          <div className="col-3">리뷰어 지정</div>
-          <div className="col-9">
+          <div className="col-4">리뷰어 지정</div>
+          <div className="col-8">
             <Form.Select
               size="sm"
               className="ModalSelectBox"
-              value={requestGoesTo}
+              // value={requestGoesTo}
+              value={requestGoesTo.goes_to}
               onChange={(e) => {
                 const request_goes_to_val=e.target.value;
-                setRequestGoesTo(request_goes_to_val);
+                // setRequestGoesTo(request_goes_to_val);
+                // updateLATRequestElementByLATRequestID(LAT_request_id,{
+                //   "review_username":request_goes_to_val,
+                // });
+                updateRequestGoesTo({
+                  goes_to:request_goes_to_val
+                });
               }}
             >
               <option value={null}>선택</option>
@@ -2199,22 +2432,23 @@ function TRDraft() {
         <Button
             className="btn-secondary"
             onClick={async ()=>{
-              if(!checkReviewerUsernameValid(requestGoesTo)){
+              if(!checkReviewerUsernameValid(requestGoesTo.goes_to)){
                 window.alert(`확인 요청에 대한 리뷰어가 지정되지 않았습니다`);
                 return;
               }
-              else if(!window.confirm(`해당 과제의 확인 요청을 '${getManagerNicknameByUsername(requestGoesTo)}' 매니저에게 보내시겠습니까?`)) return;
-              const save_success= await saveLATStudyDataByLATRequestID(LAT_request_id,finished_state);
+              else if(!window.confirm(window_confirm_prompt)) return;
+              const save_success= await saveLATStudyDataByLATRequestID(LAT_request_id,finished_state,reviewer_reassigned);
               if(save_success) {
                 // updateAssignmentStudyDataByAOSID(AOSID,"request_status",request_status_to_index["review_needed"]);
                 updateLATRequestElementByLATRequestID(LAT_request_id,{
                   "request_status":request_status_to_index["review_needed"],
+                  "review_username":requestGoesTo.goes_to,
                 });
                 closeConfirmModal();
               }
             }}
             type="button">
-          <strong>확인 요청</strong>
+          <strong>{request_send_button_prompt}</strong>
         </Button>
       </Modal.Body>
     );
@@ -2231,6 +2465,13 @@ function TRDraft() {
 
     const study_data=program_request_element.study_data;
     const study_data_time_amount=study_data.time_amount;
+
+    const reviewer_reassigned=checkReviewerReassignedMode();
+
+    const request_send_button_prompt=!reviewer_reassigned?"확인 요청":"리뷰어 재지정";
+    const window_confirm_prompt=!reviewer_reassigned?`해당 학습의 확인 요청을 '${getManagerNicknameByUsername(requestGoesTo.goes_to)}' 매니저에게 보내시겠습니까?`:
+      `리뷰어를 '${getManagerNicknameByUsername(requestGoesTo.goes_to)}' 매니저로 재지정하여 요청을 보내시겠습니까?`;
+
     return (
       <Modal.Body className="text-center">
         <div className="border-bottom border-secondary border-3 mb-5">
@@ -2261,10 +2502,13 @@ function TRDraft() {
             <Form.Select
               size="sm"
               className="ModalSelectBox"
-              value={requestGoesTo}
+              value={requestGoesTo.goes_to}
               onChange={(e) => {
                 const request_goes_to_val=e.target.value;
-                setRequestGoesTo(request_goes_to_val);
+                // setRequestGoesTo(request_goes_to_val);
+                updateRequestGoesTo({
+                  goes_to:request_goes_to_val
+                });
               }}
             >
               <option value={null}>선택</option>
@@ -2283,21 +2527,22 @@ function TRDraft() {
         <Button
             className="btn-secondary"
             onClick={async ()=>{
-              if(!checkReviewerUsernameValid(requestGoesTo)){
+              if(!checkReviewerUsernameValid(requestGoesTo.goes_to)){
                 window.alert(`확인 요청에 대한 리뷰어가 지정되지 않았습니다`);
                 return;
               }
-              else if(!window.confirm(`해당 과제의 확인 요청을 '${getManagerNicknameByUsername(requestGoesTo)}' 매니저에게 보내시겠습니까?`)) return;
-              const save_success= await saveProgramDataByProgramRequestID(program_request_id,finished_state);
+              else if(!window.confirm(window_confirm_prompt)) return;
+              const save_success= await saveProgramDataByProgramRequestID(program_request_id,finished_state,reviewer_reassigned);
               if(save_success) {
                 updateProgramRequestElementByProgramRequestID(program_request_id,{
                   "request_status":request_status_to_index["review_needed"],
+                  "review_username":requestGoesTo.goes_to,
                 });
                 closeConfirmModal();
               }
             }}
             type="button">
-          <strong>확인 요청</strong>
+          <strong>{request_send_button_prompt}</strong>
         </Button>
       </Modal.Body>
     );
@@ -2580,10 +2825,12 @@ function TRDraft() {
                               </tr>
                               </thead>
                               <tbody>
-                              {myAssignmentInfo.assignments.map(function (a, i) {
+                              {getAssignmentList().map(function (a, i) {
                                 let tableRowClassName="";
                                 const AOSID=a.AOSID;
                                 const goalState=AOSIDToSavedGoalStateMapping[AOSID];
+                                const assignment_study_data=getAssignmentStudyDataByAOSID(myAssignmentStudyData,AOSID);
+                                const time_amount=assignment_study_data.time_amount;
                                 if(a["AOSID"] in highlightedLectureAssignments){
                                   tableRowClassName="AssignmentHighlighted";
                                 }
@@ -2621,7 +2868,7 @@ function TRDraft() {
                                         {a["description"] != "" ? (
                                             <OverlayTrigger
                                                 trigger="click"
-                                                placement="right"
+                                                placement="auto-start"
                                                 overlay={
                                                   <Popover id="popover-basic">
                                                     <Popover.Body>{a["description"]}</Popover.Body>
@@ -2640,7 +2887,7 @@ function TRDraft() {
                                         <TimePicker
                                             className="timepicker"
                                             locale="sv-sv"
-                                            value={myAssignmentStudyData[a.AOSID]?myAssignmentStudyData[a.AOSID]["time_amount"]:null}
+                                            value={time_amount}
                                             disabled={!checkAssignmentStudyDataUpdatableByAOSID(AOSID)}
                                             openClockOnFocus={false}
                                             clearIcon={null}
@@ -2667,7 +2914,7 @@ function TRDraft() {
                                             className="btn btn-success btn-opaque"
                                             onClick={async ()=>{
                                               // saveAssignmentStudyDataByAOSID(AOSID,true);
-                                              const study_data=getAssignmentStudyDataByAOSID(AOSID,true);
+                                              const study_data=getAssignmentStudyDataPayloadByAOSID(AOSID,true);
                                               // console.log(`study data: ${JSON.stringify(study_data)}`);
                                               if(!checkTimeStringValid(study_data.timeAmount)){
                                                 window.alert(`완료 요청을 보내기 전 해당 과제에 대한 학습 시간을 입력해주세요`);
@@ -2683,7 +2930,7 @@ function TRDraft() {
                                             onClick={async ()=>{
                                               // const assignmentData=a;
                                               // const dailyGoalCheckLogData=getDailyGoalCheckLogDataFromAssignment(assignmentData,false,"");
-                                              const study_data=getAssignmentStudyDataByAOSID(AOSID,false);
+                                              const study_data=getAssignmentStudyDataPayloadByAOSID(AOSID,false);
                                               // console.log(`study data: ${JSON.stringify(study_data)}`);
                                               if(!checkTimeStringValid(study_data.timeAmount)){
                                                 window.alert(`미완료 사유를 입력하기 전 해당 과제에 대한 학습 시간을 입력해주세요`);
@@ -2801,6 +3048,7 @@ function TRDraft() {
                             <Form.Select
                                 size="sm"
                                 value={textbookSubject}
+                                disabled={!checkLATStudyDataUpdatableByLATRequestID(LAT_request_element_id)}
                                 onChange={(e) => {
                                   const LAT_element_subject=e.target.value;
                                   updateLATRequestElementByLATRequestID(LAT_request_element_id,{

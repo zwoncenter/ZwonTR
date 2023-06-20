@@ -55,6 +55,21 @@ function CheckAlarms() {
       return new_pagination;
     });
   }
+  function deletePaginationElementByTDRRID(TDRRID){
+    setPagination((prevPagination)=>{
+      const new_pagination=JSON.parse(JSON.stringify(prevPagination));
+      const alarms_data=new_pagination.alarms_data;
+      for(let i=0; i<alarms_data.length; i++){
+        const alarm_datum=alarms_data[i];
+        const cur_TDRR_ID=alarm_datum.tdrr_id;
+        if(cur_TDRR_ID===TDRRID){
+          alarms_data.splice(i,1);
+          break;
+        }
+      }
+      return new_pagination;
+    });
+  }
 
   async function getRequestAlarms(queryPage=1){
     const query= {
@@ -637,30 +652,44 @@ function CheckAlarms() {
       window.alert(alert_msg);
       return false;
     }
-    const save_success=await axios
+    const [save_success,reviewer_reassigned]=await axios
       .post("/api/saveTRDraftRequestReview",reviewResultPayload)
       .then((result)=>{
         const data=result.data;
         const error_prompt=data.ret;
-        if(!data.success) throw new Error('error');
+        const reviewer_reassigned=data.reviewer_reassigned;
+        if(!data.success) {
+          if(reviewer_reassigned){
+            window.alert(`${error_prompt}`);
+            return [false,true];
+          }
+          else throw new Error('error');
+        }
         //here success of save would be checked
         const saved=data.ret.saved;
         if(!saved){
           window.alert(data.ret.msg);
-          return false;
+          return [false,false];
         }
-        return true;
+        return [true,false];
       })
       .catch((err)=>{
         window.alert(`네크워크 오류로 저장하지 못했습니다`)
-        return false;
+        return [false,false];
       });
-    if(!save_success) return save_success;
+    if(!save_success) {
+      if(reviewer_reassigned){
+        const TDRR_ID=reviewResultPayload.TDRRID;
+        deletePaginationElementByTDRRID(TDRR_ID);
+        return [false,true];
+      }
+      else return [false,false];
+    }
     //here goes a state update
     const status=reviewResultPayload.reviewStatus;
     const msg=reviewResultPayload.reviewMsg;
     updatePagination(status,msg,datum_pagination_index);
-    return true;
+    return [true,false];
   }
   function checkReviewForCreateElement(request_alarm_datum){
     const request_type=request_alarm_datum.request_type;
@@ -670,6 +699,7 @@ function CheckAlarms() {
   }
 
   function getRequestReviewModalBody(){
+    if(pagination.alarms_data.length===0) return null;
     const datum_pagination_index=modalFor.extra_data[0];
     const request_alarm_datum=pagination.alarms_data[datum_pagination_index];
     const review_status=request_alarm_datum.review_status;
@@ -737,9 +767,10 @@ function CheckAlarms() {
                   window.alert(msg);
                   return;
                 }
-                const save_success=await saveReviewResult(review_result_payload,datum_pagination_index);
+                const [save_success,reviewer_reassigned]=await saveReviewResult(review_result_payload,datum_pagination_index);
                 if(!save_success){
                   // window.alert("저장중 오류가 발생했습니다\n다시 시도해주세요");
+                  if(reviewer_reassigned) closeModal();
                   return;
                 }
                 window.alert(`요청 확인이 성공적으로 반영되었습니다`);

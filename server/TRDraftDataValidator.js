@@ -74,6 +74,7 @@ const request_review_document_template={
     review_msg:null,
     modify_date:null,
     create_date:null,
+    forwarded_from:null,
 };
 const TR_draft_request_on_review_update_template={
     request_status:request_status_to_index["created"],
@@ -377,6 +378,24 @@ function getDGCLBulkWriteUpsertDocsFromTDRDocs(TDRDocs,studentName,description="
         return getDGCLBulkWriteUpdateOneSettings(filter,set_on_insert_settings,push_settings);
     });
 }
+function checkTRDraftRequestReviwerReassignValid(requestReviewStatus,requestReviewerUserID,requestReviewerUserArray){
+    const ret={
+        valid:false,
+        error_msg:"",
+        page_reload:false,
+    }
+    if(requestReviewStatus!==review_status_to_index["not_reviewed"]){
+        ret.error_msg="이미 리뷰가 작성된 항목이므로 리뷰어를 재지정할 수 없습니다";
+        ret.page_reload=true;
+    }
+    else if(requestReviewerUserID.equals(requestReviewerUserArray[0]._id)){
+        ret.error_msg="이전 리뷰어와 동일한 리뷰어를 재지정하였습니다";
+    }
+    else{
+        ret.valid=true;
+    }
+    return ret;
+}
 module.exports={
     request_document_on_insert_template,
     life_data_request_document_on_update_template,
@@ -428,4 +447,5 @@ module.exports={
     getDGCLOnUpdatePushSettings,
     getDGCLBulkWriteUpdateOneSettings,
     getDGCLBulkWriteUpsertDocsFromTDRDocs,
+    checkTRDraftRequestReviwerReassignValid,
 }

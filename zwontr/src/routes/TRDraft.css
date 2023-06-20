@@ -135,9 +135,14 @@ textarea {
   margin-right: 1px;
 }
 
+.btn-padding-top-1 {
+  padding-top: 1px;
+}
+
 .RequestStatusBadge {
   height: 25px;
-  width: 5em;
+  width: -moz-fit-content;
+  width: fit-content;
   padding-left: 3px;
   padding-right: 3px;
   font-size: 15px;

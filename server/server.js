@@ -731,7 +731,7 @@ app.post("/api/getMyAlarms", loginCheck, permissionCheck(Role("manager")),async 
 
 //save review result for student users' tr draft requests
 app.post("/api/saveTRDraftRequestReview",loginCheck, permissionCheck(Role("manager")), async function (req, res) {
-  const ret_val={"success":true, "ret":null};
+  const ret_val={"success":true, "ret":null, "reviewer_reassigned":false};
   const session=db_client.startSession({
     defaultTransactionOptions: {
       readConcern: {
@@ -765,19 +765,74 @@ app.post("/api/saveTRDraftRequestReview",loginCheck, permissionCheck(Role("manag
     const user_doc=await db.collection('User').findOne({username},{session});
     if(!user_doc) throw new Error(`internal server error: wrong session error`);
     const user_oid=user_doc._id;
-    const TDRR_doc=await db.collection('TRDraftRequestReview').findOne(
-      {_id:TDRR_oid},
+    const TDRR_doc=(await db.collection('TRDraftRequestReview').aggregate([
+        {
+          $match:{
+            _id:TDRR_oid
+          }
+        },
+        {
+          $lookup: {
+            from: "TRDraftRequest",
+            let: {
+              tr_draft_request_id:"$tr_draft_request_id",
+              study_data_review_id:"$study_data_review_id",
+            },
+            pipeline:[
+              {
+                $match:{
+                  $expr:{
+                    $and:[
+                      {
+                        $eq:[
+                          "$_id",
+                          "$$tr_draft_request_id"
+                        ]
+                      },
+                      {
+                        $eq:[
+                          {
+                            "$getField":{
+                              "field": "review_id",
+                              "input": {"$last":"$study_data_list"}
+                            }
+                          },
+                          "$$study_data_review_id",
+                        ]
+                      }
+                    ]
+                  },
+                }
+              },
+            ],
+            as: "TRDraftRequest_aggregate",
+          },
+        },
+        {
+          $unwind:{
+            path:"$TRDraftRequest_aggregate",
+            preserveNullAndEmptyArrays:true,
+          }
+        }
+      ],
       {session},
-      );
+    ).toArray())[0];
     if(!TDRR_doc) throw new Error(`no such TR draft request review doc`);
     else if(!TDRR_doc.review_from.equals(user_oid)) throw new Error(`review from wrong reviewer`);
+    else if(!TDRR_doc.TRDraftRequest_aggregate){
+      ret_val.success=false;
+      ret_val.ret="다른 리뷰어로 재지정된 요청입니다";
+      ret_val.reviewer_reassigned=true;
+      return;
+    }
     const TRDraftRequest_oid=TDRR_doc.tr_draft_request_id;
 
     //check corresponding TRDraftRequest doc exists & if today TR finished(then,request review cannot be made anymore)
+    //& also check TRDRaftRequest doc's "study_data_list"'s last element is related to my review doc(situation where a reviewer for the request is changed)
     const TRDraftRequest_doc=(await db.collection('TRDraftRequest').aggregate([
       {
         $match:{
-          _id:TRDraftRequest_oid
+          _id:TRDraftRequest_oid,
         }
       },
       {
@@ -848,7 +903,7 @@ app.post("/api/saveTRDraftRequestReview",loginCheck, permissionCheck(Role("manag
           request_type:1,
           request_status:1,
           request_specific_data:1,
-          study_data: {$slice: ["$study_data_list",-1]},
+          study_data: {"$last":"$study_data_list"},
           written_to_TR:1,
           TR_aggregate:1,
         }
@@ -856,7 +911,7 @@ app.post("/api/saveTRDraftRequestReview",loginCheck, permissionCheck(Role("manag
     ],{session}).toArray())[0];
     if(!TRDraftRequest_doc) throw new Error(`no such TR draft request: DB inconsistency`);
     else if(TRDraftRequest_doc.request_status !== TRDraftRequestDataValidator.request_status_to_index["review_needed"]) throw new Error(`request not in review needed state`);
-    else if(!(TRDraftRequest_doc.study_data)[0]) throw new Error(`TR draft doc has no study data`);
+    else if(!TRDraftRequest_doc.study_data) throw new Error(`TR draft doc has no study data`);
 
     //check if the related TR is finished
     if(checkTRFinished(TRDraftRequest_doc.TR_aggregate)){
@@ -868,7 +923,7 @@ app.post("/api/saveTRDraftRequestReview",loginCheck, permissionCheck(Role("manag
     const student_oid=TRDraftRequest_doc.student_id;
     const request_date=TRDraftRequest_doc.date;
     const request_type=TRDraftRequest_doc.request_type;
-    const request_study_data=(TRDraftRequest_doc.study_data)[0];
+    const request_study_data=TRDraftRequest_doc.study_data;
     const request_specific_data=TRDraftRequest_doc.request_specific_data;
 
     //check corresponding student info & TR doc exist : this DB structure should be changed...
@@ -1121,9 +1176,7 @@ app.post("/api/getNotWrittenTRDraftRequests", loginCheck, permissionCheck(Role("
             deleted:1,
             modify_date:1,
             request_status:1,
-            study_data:{
-              $slice: ["$study_data_list",-1]
-            },
+            study_data: {"$last":"$study_data_list"},
             written_to_TR:1,
             reviewer_username:"$Reviewer_aggregate.username",
             reviewer_nickname:"$Reviewer_aggregate.nickname",
@@ -1485,6 +1538,87 @@ async function checkTRFinishedByStudentUsername(studentUsername,date_string,aggr
   return checkTRFinished(TR_doc_list[0]);
 }
 
+async function getTRDraftRequestAndReviewer(matchFilter,aggregateOption){
+  return (await db.collection('TRDraftRequest').aggregate([
+    {
+      $match:matchFilter,
+    },
+    {
+      $lookup:{
+        from: "TRDraftRequestReview",
+        let: {
+          review_id: {
+            "$getField":{
+              "field": "review_id",
+              "input": {"$last":"$study_data_list"}
+            }
+          },
+          tr_draft_request_id:"$_id",
+        },
+        pipeline:[
+          {
+            $match:{
+              $expr:{
+                $and:[
+                  {
+                    $eq:[
+                      "$tr_draft_request_id",
+                      "$$tr_draft_request_id"
+                    ]
+                  },
+                  {
+                    $eq:[
+                      "$study_data_review_id",
+                      "$$review_id"
+                    ]
+                  }
+                ]
+              },
+            }
+          },
+          {
+            $limit:1
+          },
+          {
+            $lookup: {
+              from: "User",
+              localField: "review_from",
+              foreignField: "_id",
+              as: "User_aggregate",
+            },
+          },
+          {
+            $unwind:{
+              path: "$User_aggregate"
+            }
+          },
+          {
+            $project:{
+              review_status:"$review_status",
+              review_msg:{$ifNull: ["$review_msg",""]},
+              reviewer_user_id:"$User_aggregate._id",
+              username:"$User_aggregate.username",
+              nickname:"$User_aggregate.nickname",
+            }
+          }
+        ],
+        as: "Review_aggregate",
+      }
+    },
+    {
+      $unwind:{
+        path:"$Review_aggregate",
+      }
+    },
+    {
+      $project:{
+        study_data:{"$last":"$study_data_list"},
+        Review_aggregate:"$Review_aggregate",
+      }
+    }
+  ],aggregateOption).toArray())[0];
+}
+
 app.get("/api/checkMyTodayTRFinished",loginCheck, permissionCheck(Role("student")), async function (req, res) {
   const ret_val={"success":true, "ret":null};
   try{
@@ -1522,7 +1656,15 @@ app.post("/api/saveLifeDataRequest",loginCheck, permissionCheck(Role("student"))
     const student_id=req.session.passport.user.student_id;
     const today_string=getCurrentKoreaDateYYYYMMDD();
     const current_date=getCurrentDate();
-    const {bodyCondition,sentimentCondition,goToBedTime,wakeUpTime,reviewedBy}= req.body;
+    let {
+      bodyCondition,
+      sentimentCondition,
+      goToBedTime,
+      wakeUpTime,
+      reviewedBy,
+      reviewerReassigned,
+    }= req.body;
+    reviewerReassigned=!!reviewerReassigned;
     if(!TRDraftRequestDataValidator.checkLifeDataValid(bodyCondition,sentimentCondition,goToBedTime,wakeUpTime)) throw new Error(`invalid life data`);
     else if(!TRDraftRequestDataValidator.checkReviewerUsernameArrayValid(reviewedBy)) throw new Error(`invalid reviewer array:0`);
 
@@ -1537,6 +1679,50 @@ app.post("/api/saveLifeDataRequest",loginCheck, permissionCheck(Role("student"))
     const reviewer_array_len=reviewedBy.length;
     const reviewer_user_array=await getManagerUserListInSameGroupByMyUsername(username,true,reviewedBy,{session});
     if(reviewer_user_array.length !== reviewer_array_len) throw new Error(`invalid reviewer array:1`);
+
+    //if given request is for reassigning a reviewer
+    if(reviewerReassigned){
+      const prev_life_doc= await getTRDraftRequestAndReviewer({
+        date:today_string,
+        student_id,
+        request_type:TRDraftRequestDataValidator.request_type_name_to_index["lifeData"]
+      },{session});
+      if(!prev_life_doc) throw new Error(`no such prev request or review`); //reviewer reassigned before request made
+      const review_status=prev_life_doc.Review_aggregate.review_status;
+      const reviewer_user_id=prev_life_doc.Review_aggregate.reviewer_user_id;
+      const reviewer_reassign_validity=TRDraftRequestDataValidator.checkTRDraftRequestReviwerReassignValid(review_status,reviewer_user_id,reviewer_user_array);
+      if(!reviewer_reassign_validity.valid){
+        ret_val.success=false;
+        ret_val.ret=reviewer_reassign_validity.error_msg;
+        ret_val.page_reload=reviewer_reassign_validity.page_reload;
+        return;
+      }
+
+      //here goes the reassignment of request reviewer
+      const life_doc_id=prev_life_doc._id;
+      const prev_study_data_element=prev_life_doc.study_data;
+      const prev_excuse=prev_study_data_element.excuse;
+      const prev_time_amount=prev_study_data_element.time_amount;
+      const prev_finished_state=prev_study_data_element.finished_state;
+      const study_data_review_id=new ObjectId();
+      const study_data_element=TRDraftRequestDataValidator.getStudyDataElement(prev_excuse,prev_time_amount,prev_finished_state,study_data_review_id,current_date);
+      await db.collection("TRDraftRequest").updateOne(
+        {
+          _id:life_doc_id,
+        },
+        {
+          $push:{"study_data_list":study_data_element},
+        },
+        {session}
+      );
+
+      //insert review template documents to TrDraftRequestReview collection
+      const review_document_list=TRDraftRequestDataValidator.getNewRequestReviewListByUserDocumentList(life_doc_id,study_data_review_id,reviewer_user_array,current_date);
+      await db.collection("TRDraftRequestReview").insertMany(review_document_list,{session});
+
+      await session.commitTransaction();
+      return; //!!this is necessary indeed!!
+    }
 
     //check if this request has been received before
     const prev_life_doc=await db.collection("TRDraftRequest").findOne(
@@ -1641,28 +1827,81 @@ app.post("/api/saveAssignmentStudyDataRequest",loginCheck, permissionCheck(Role(
     const student_id=req.session.passport.user.student_id;
     const today_string=getCurrentKoreaDateYYYYMMDD();
     const current_date=getCurrentDate();
-    let {excuse,timeAmount,AOSID,finishedState,reviewedBy}= req.body;
+    let {
+      excuse,
+      timeAmount,
+      AOSID,
+      finishedState,
+      reviewedBy,
+      reviewerReassigned,
+    }= req.body;
     finishedState=!!finishedState;
+    reviewerReassigned=!!reviewerReassigned;
     if(finishedState===true) excuse="";
     const AOS_objectid=new ObjectId(AOSID);
     if(!TRDraftRequestDataValidator.checkExcuseValueValid(excuse,finishedState) || !TRDraftRequestDataValidator.checkTimeStringValid(timeAmount)) throw new Error(`invalid assignment study data`);
     else if(!TRDraftRequestDataValidator.checkReviewerUsernameArrayValid(reviewedBy)) throw new Error(`invalid reviewer array:0`);
     
-    //check if todays' TR alreay finished
+    //check if todays' TR already finished
     if((await checkTRFinishedByStudentUsername(username,today_string,{session}))){
       ret_val.success=false;
       ret_val.ret="오늘자 귀가검사가 끝난 후 새로 요청을 보낼 수 없습니다";
       return;
     }
 
-    //check if AOS document exists
-    const AOS_doc= await db.collection("AssignmentOfStudent").findOne({_id:AOS_objectid},{session});
-    if(!AOS_doc) throw new Error(`no such AOS doc`);
-
     //check if reviewers in reviewer array exist
     const reviewer_array_len=reviewedBy.length;
     const reviewer_user_array=await getManagerUserListInSameGroupByMyUsername(username,true,reviewedBy,{session});
     if(reviewer_user_array.length !== reviewer_array_len) throw new Error(`invalid reviewer array:1`);
+
+    //if given request is for reassigning a reviewer
+    if(reviewerReassigned){
+      const prev_assignment_study_doc= await getTRDraftRequestAndReviewer({
+        date:today_string,
+        student_id,
+        request_type:TRDraftRequestDataValidator.request_type_name_to_index["AssignmentStudyData"],
+        "request_specific_data.AOSID":AOS_objectid
+      },{session});
+      if(!prev_assignment_study_doc) throw new Error(`no such prev request or review`); //reviewer reassigned before request made
+      const review_status=prev_assignment_study_doc.Review_aggregate.review_status;
+      const reviewer_user_id=prev_assignment_study_doc.Review_aggregate.reviewer_user_id;
+      const reviewer_reassign_validity=TRDraftRequestDataValidator.checkTRDraftRequestReviwerReassignValid(review_status,reviewer_user_id,reviewer_user_array);
+      if(!reviewer_reassign_validity.valid){
+        ret_val.success=false;
+        ret_val.ret=reviewer_reassign_validity.error_msg;
+        ret_val.page_reload=reviewer_reassign_validity.page_reload;
+        return;
+      }
+
+      //here goes the reassignment of request reviewer
+      const assignment_study_doc_id=prev_assignment_study_doc._id;
+      const prev_study_data_element=prev_assignment_study_doc.study_data;
+      const prev_excuse=prev_study_data_element.excuse;
+      const prev_time_amount=prev_study_data_element.time_amount;
+      const prev_finished_state=prev_study_data_element.finished_state;
+      const study_data_review_id=new ObjectId();
+      const study_data_element=TRDraftRequestDataValidator.getStudyDataElement(prev_excuse,prev_time_amount,prev_finished_state,study_data_review_id,current_date);
+      await db.collection("TRDraftRequest").updateOne(
+        {
+          _id:assignment_study_doc_id,
+        },
+        {
+          $push:{"study_data_list":study_data_element},
+        },
+        {session}
+      );
+
+      //insert review template documents to TrDraftRequestReview collection
+      const review_document_list=TRDraftRequestDataValidator.getNewRequestReviewListByUserDocumentList(assignment_study_doc_id,study_data_review_id,reviewer_user_array,current_date);
+      await db.collection("TRDraftRequestReview").insertMany(review_document_list,{session});
+
+      await session.commitTransaction();
+      return; //!!this is necessary indeed!!
+    }
+
+    //check if AOS document exists
+    const AOS_doc= await db.collection("AssignmentOfStudent").findOne({_id:AOS_objectid},{session});
+    if(!AOS_doc) throw new Error(`no such AOS doc`);
     
     //check if this request has been received before
     const prev_assignment_study_doc=await db.collection("TRDraftRequest").findOne(
@@ -1874,7 +2113,7 @@ app.post("/api/setLATStudyElementDeletedOnTrDraft",loginCheck, permissionCheck(R
 
 //save student request data
 app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("student")), async function (req, res) {
-  const ret_val={"success":true, "ret":null};
+  const ret_val={"success":true, "ret":null, "page_reload":false};
   const session=db_client.startSession({
     defaultTransactionOptions: {
       readConcern: {
@@ -1904,12 +2143,14 @@ app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("studen
       duplicatableSubject,
       recentPage,
       requestNew,
-      reviewedBy
+      reviewedBy,
+      reviewerReassigned,
     }= req.body;
     duplicatable=!!duplicatable;
     deleted=!!deleted;
     finishedState=!!finishedState;
     requestNew=!!requestNew;
+    reviewerReassigned=!!reviewerReassigned;
     if(finishedState===true) excuse="";
     const textbook_oid=duplicatable?null:new ObjectId(textbookID);
     const element_oid=duplicatable?new ObjectId(elementID):null;
@@ -1931,16 +2172,62 @@ app.post("/api/saveLATStudyDataRequest",loginCheck, permissionCheck(Role("studen
       return;
     }
 
+    //check if reviewers in reviewer array exist
+    const reviewer_array_len=reviewedBy.length;
+    const reviewer_user_array=await getManagerUserListInSameGroupByMyUsername(username,true,reviewedBy,{session});
+    if(reviewer_user_array.length !== reviewer_array_len) throw new Error(`invalid reviewer array:1`);
+
+    //if given request is for reassigning a reviewer
+    if(reviewerReassigned){
+      const prev_LAT_study_doc= await getTRDraftRequestAndReviewer({
+        student_id,
+        date:today_string,
+        request_type:TRDraftRequestDataValidator.request_type_name_to_index["LectureAndTextbookStudyData"],
+        "request_specific_data.textbookID":textbook_oid,
+        "request_specific_data.elementID":element_oid,
+      },{session});
+      if(!prev_LAT_study_doc) throw new Error(`no such prev request or review`); //reviewer reassigned before request made
+      const review_status=prev_LAT_study_doc.Review_aggregate.review_status;
+      const reviewer_user_id=prev_LAT_study_doc.Review_aggregate.reviewer_user_id;
+      const reviewer_reassign_validity=TRDraftRequestDataValidator.checkTRDraftRequestReviwerReassignValid(review_status,reviewer_user_id,reviewer_user_array);
+      if(!reviewer_reassign_validity.valid){
+        ret_val.success=false;
+        ret_val.ret=reviewer_reassign_validity.error_msg;
+        ret_val.page_reload=reviewer_reassign_validity.page_reload;
+        return;
+      }
+
+      //here goes the reassignment of request reviewer
+      const LAT_study_doc_id=prev_LAT_study_doc._id;
+      const prev_study_data_element=prev_LAT_study_doc.study_data;
+      const prev_excuse=prev_study_data_element.excuse;
+      const prev_time_amount=prev_study_data_element.time_amount;
+      const prev_finished_state=prev_study_data_element.finished_state;
+      const study_data_review_id=new ObjectId();
+      const study_data_element=TRDraftRequestDataValidator.getStudyDataElement(prev_excuse,prev_time_amount,prev_finished_state,study_data_review_id,current_date);
+      await db.collection("TRDraftRequest").updateOne(
+        {
+          _id:LAT_study_doc_id,
+        },
+        {
+          $push:{"study_data_list":study_data_element},
+        },
+        {session}
+      );
+
+      //insert review template documents to TrDraftRequestReview collection
+      const review_document_list=TRDraftRequestDataValidator.getNewRequestReviewListByUserDocumentList(LAT_study_doc_id,study_data_review_id,reviewer_user_array,current_date);
+      await db.collection("TRDraftRequestReview").insertMany(review_document_list,{session});
+
+      await session.commitTransaction();
+      return; //!!this is necessary indeed!!
+    }
+
     //check if textbook document exists
     if(!!textbookID){
       const textbook_doc= await db.collection("TextBook").findOne({_id:textbook_oid},{session});
       if(!textbook_doc) throw new Error(`no such Textbook`);
     }
-
-    //check if reviewers in reviewer array exist
-    const reviewer_array_len=reviewedBy.length;
-    const reviewer_user_array=await getManagerUserListInSameGroupByMyUsername(username,true,reviewedBy,{session});
-    if(reviewer_user_array.length !== reviewer_array_len) throw new Error(`invalid reviewer array:1`);
 
     const prev_LAT_study_doc= await db.collection("TRDraftRequest")
       .findOne(
@@ -2178,11 +2465,13 @@ app.post("/api/saveProgramDataRequest",loginCheck, permissionCheck(Role("student
       programName,
       programBy,
       programDescription,
-      reviewedBy
+      reviewedBy,
+      reviewerReassigned,
     }= req.body;
     deleted=!!deleted;
     finishedState=!!finishedState;
     requestNew=!!requestNew;
+    reviewerReassigned=!!reviewerReassigned;
     if(finishedState===true) excuse="";
     const element_oid= new ObjectId(elementID);
     let programBy_oid=null;
@@ -2192,12 +2481,6 @@ app.post("/api/saveProgramDataRequest",loginCheck, permissionCheck(Role("student
       !TRDraftRequestDataValidator.checkProgramByUsernameValid(programBy) ||
       !TRDraftRequestDataValidator.checkProgramDescriptionValid(programDescription)) throw new Error(`invalid program participation data`);
     else if(!TRDraftRequestDataValidator.checkReviewerUsernameArrayValid(reviewedBy)) throw new Error(`invalid reviewer array:0`);
-    else{
-      //check if program leading manager is valid
-      const managerList= await getManagerUserListInSameGroupByMyUsername(username,true,[programBy],{session});
-      programBy_oid=TRDraftRequestDataValidator.checkProgramByValid(programBy,managerList);
-      if(!programBy_oid) throw new Error(`invalid programBy value`);
-    }
 
     //check if todays' TR alreay finished
     if((await checkTRFinishedByStudentUsername(username,today_string,{session}))){
@@ -2210,6 +2493,56 @@ app.post("/api/saveProgramDataRequest",loginCheck, permissionCheck(Role("student
     const reviewer_array_len=reviewedBy.length;
     const reviewer_user_array=await getManagerUserListInSameGroupByMyUsername(username,true,reviewedBy,{session});
     if(reviewer_user_array.length !== reviewer_array_len) throw new Error(`invalid reviewer array:1`);
+
+    //if given request is for reassigning a reviewer
+    if(reviewerReassigned){
+      const prev_program_participation_doc= await getTRDraftRequestAndReviewer({
+        student_id,
+        date:today_string,
+        request_type:TRDraftRequestDataValidator.request_type_name_to_index["ProgramParticipationData"],
+        "request_specific_data.elementID":element_oid,
+      },{session});
+      if(!prev_program_participation_doc) throw new Error(`no such prev request or review`); //reviewer reassigned before request made
+      const review_status=prev_program_participation_doc.Review_aggregate.review_status;
+      const reviewer_user_id=prev_program_participation_doc.Review_aggregate.reviewer_user_id;
+      const reviewer_reassign_validity=TRDraftRequestDataValidator.checkTRDraftRequestReviwerReassignValid(review_status,reviewer_user_id,reviewer_user_array);
+      if(!reviewer_reassign_validity.valid){
+        ret_val.success=false;
+        ret_val.ret=reviewer_reassign_validity.error_msg;
+        ret_val.page_reload=reviewer_reassign_validity.page_reload;
+        return;
+      }
+
+      //here goes the reassignment of request reviewer
+      const program_participation_doc_id=prev_program_participation_doc._id;
+      const prev_study_data_element=prev_program_participation_doc.study_data;
+      const prev_excuse=prev_study_data_element.excuse;
+      const prev_time_amount=prev_study_data_element.time_amount;
+      const prev_finished_state=prev_study_data_element.finished_state;
+      const study_data_review_id=new ObjectId();
+      const study_data_element=TRDraftRequestDataValidator.getStudyDataElement(prev_excuse,prev_time_amount,prev_finished_state,study_data_review_id,current_date);
+      await db.collection("TRDraftRequest").updateOne(
+        {
+          _id:program_participation_doc_id,
+        },
+        {
+          $push:{"study_data_list":study_data_element},
+        },
+        {session}
+      );
+
+      //insert review template documents to TrDraftRequestReview collection
+      const review_document_list=TRDraftRequestDataValidator.getNewRequestReviewListByUserDocumentList(program_participation_doc_id,study_data_review_id,reviewer_user_array,current_date);
+      await db.collection("TRDraftRequestReview").insertMany(review_document_list,{session});
+
+      await session.commitTransaction();
+      return; //!!this is necessary indeed!!
+    }
+
+    //check if program leading manager is valid
+    const managerList= await getManagerUserListInSameGroupByMyUsername(username,true,[programBy],{session});
+    programBy_oid=TRDraftRequestDataValidator.checkProgramByValid(programBy,managerList);
+    if(!programBy_oid) throw new Error(`invalid programBy value`);
 
     const prev_program_participation_doc= await db.collection("TRDraftRequest")
       .findOne(
@@ -2429,12 +2762,13 @@ app.get("/api/getMyTodayTRDraftRequestsAll",loginCheck, permissionCheck(Role("st
               request_type:1,
               request_status:1,
               request_specific_data:1,
-              // study_data_list:{"$last":"$study_data_list"},
-              study_data_list:1,
+              study_data:{"$last":"$study_data_list"},
+              // study_data_list:1,
               review_status:"$Review_aggregate.review_status",
               review_msg:"$Review_aggregate.review_msg",
               review_username:'$Review_aggregate.username',
               review_nickname:'$Review_aggregate.nickname',
+              deleted:"$deleted",
             }
           },
         ]

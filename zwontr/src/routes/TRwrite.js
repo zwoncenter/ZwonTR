@@ -1845,7 +1845,7 @@ function TRwrite() {
                                     {a["description"] != "" ? (
                                       <OverlayTrigger
                                         trigger="click"
-                                        placement="right"
+                                        placement="auto-start"
                                         overlay={
                                           <Popover id="popover-basic">
                                             <Popover.Body>{a["description"]}</Popover.Body>
