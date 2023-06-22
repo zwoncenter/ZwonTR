@@ -13,7 +13,10 @@ import sensitiveInfoTerm from "../terms/sensitiveInfoAgree";
 
 const versionInfo = "1.6";
 
-function SignUpPage() {
+function SignUpPage({
+  setNowLoading,
+  setNowNotLoading,
+}) {
   let history= useHistory();
   const [groupList,setGroupList]=useState([]);
   function groupOfUserNeeded(userTypeValue){
@@ -449,6 +452,7 @@ function SignUpPage() {
                 window.alert("올바른 아이디 형식이 아닙니다");
                 return;
               }
+              setNowLoading();
               const available_check= await axios
                 .post("/api/checkUsernameAvailable",{username:userInfo.username})
                 .then((res)=>{
@@ -464,9 +468,10 @@ function SignUpPage() {
                   }
                 })
                 .catch((err)=>{
-                  window.alert("아이디 중복 여부 검사 중 오류가 발생했습니다");
+                  window.alert("아이디 중복 여부 검사 중 오류가 발생했습니다\n다시 시도해주세요");
                   return false;
                 });
+                setNowNotLoading();
               setUsernameDuplicationChecked(available_check);
             }}
           >
@@ -704,6 +709,7 @@ function SignUpPage() {
       if(!userInfoPage2OkToProceed()){
         return false;
       }
+      setNowLoading();
       await axios
         .post("/api/registerUser",getUserRegisterInfo())
         .then((res)=>{
@@ -712,6 +718,7 @@ function SignUpPage() {
           else if(!data.ret.registered) window.alert(`회원가입에 실패했습니다: ${data.ret.excuse}`);
           else{
             window.alert("회원가입이 완료되었습니다");
+            setNowNotLoading();
             history.push("/");
           }
         })

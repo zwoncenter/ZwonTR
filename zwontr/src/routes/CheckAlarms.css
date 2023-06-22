@@ -214,11 +214,22 @@
   font-size: 25px;
 }
 
-.NewRequestPromptBox {
+.NewRequestPromptBox span {
   font-family: "NanumSquareEB", sans-serif !important;
   font-size: 12px;
   font-weight: bolder;
   color: rgb(34, 156, 34);
+}
+
+.td-cell-vertical-middle {
+  vertical-align: middle;
+  text-overflow: ellipsis;
+}
+.td-cell-vertical-middle td > p {
+  width: 100%;
+}
+.td-cell-vertical-middle td > span {
+  text-overflow: ellipsis;
 }
 
 @media only screen and (max-width: 1000px) {

@@ -1372,7 +1372,7 @@ function TRedit() {
         window.location.reload();
         return [];
       });
-    console.log(`not written request data: ${JSON.stringify(not_written_request_data)}`);
+    // console.log(`not written request data: ${JSON.stringify(not_written_request_data)}`);
     setDraftRequestData(not_written_request_data);
     updateDraftOverwriteReady("draftRequest",true);
   },[paramDate]);
@@ -1381,7 +1381,7 @@ function TRedit() {
   useEffect(async ()=>{
     // console.log(`draft overwrite ready flag: ${JSON.stringify(draftOverwriteReady)}`);
     if(!checkDraftOverwriteAllReady() || draftOverwritingDone) return;
-    console.log(`draft overwrite all ready!`);
+    // console.log(`draft overwrite all ready!`);
     //do overwrite here
     //type0
     for(let i=0; i<draftRequestData.length; i++){
@@ -1394,12 +1394,14 @@ function TRedit() {
       const sentiment_condition=request_specific_data.정서컨디션;
       const wake_up_time=request_specific_data.실제기상;
       const go_to_bed_time=request_specific_data.실제취침;
+      const come_to_center_time=request_specific_data.실제등원;
       setTR((prevData)=>{
         const newTR=JSON.parse(JSON.stringify(TR));
         newTR.신체컨디션=body_condition;
         newTR.정서컨디션=sentiment_condition;
         newTR.실제기상=wake_up_time;
         newTR.실제취침=go_to_bed_time;
+        newTR.실제등원=come_to_center_time;
         return newTR;
       });
       updateDraftWritten(TDRR_id);
@@ -1469,9 +1471,9 @@ function TRedit() {
   //   console.log(`ast: ${JSON.stringify(assignmentStudyTime)}`);
   // },[assignmentStudyTime]);
 
-  useEffect(()=>{
-    console.log(`draft written: ${JSON.stringify(draftWritten)}`);
-  },[draftWritten])
+  // useEffect(()=>{
+  //   console.log(`draft written: ${JSON.stringify(draftWritten)}`);
+  // },[draftWritten])
 
   useEffect(async () => {
     // 오늘 마감인 해당 학생의 강의 과제를 가져온다 (post 방식 사용)
@@ -1710,28 +1712,16 @@ function TRedit() {
   },[thisweekGoal,thisWeekProgress]);
 
   useEffect(() => {
-    if (!isInitialMount.current) {
-      // const newTR = JSON.parse(JSON.stringify(TR));
-      // ["취침", "기상", "등원", "귀가"].forEach((a) => {
-      //   newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
-      // });
-      // newTR.학습차이 = Math.round((TR.실제학습 - TR.목표학습) * 10) / 10;
-      // newTR.센터내시간 = centerTimeDiff(newTR.실제귀가, newTR.실제등원);
-      // newTR.센터활용률 = Math.round(((newTR.프로그램시간 + newTR.실제학습) / newTR.센터내시간) * 1000) / 10;
-      // newTR.센터학습활용률 = Math.round((newTR.실제학습 / newTR.센터내시간) * 1000) / 10;
-      // setTR(newTR);
-      setTR((prevData)=>{
-        const newTR=JSON.parse(JSON.stringify(prevData));
-        ["취침", "기상", "등원", "귀가"].forEach((a) => {
-          newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
-        });
-        newTR.학습차이 = Math.round((TR.실제학습 - TR.목표학습) * 10) / 10;
-        newTR.센터내시간 = centerTimeDiff(newTR.실제귀가, newTR.실제등원);
-        newTR.센터활용률 = Math.round(((newTR.프로그램시간 + newTR.실제학습) / newTR.센터내시간) * 1000) / 10;
-        newTR.센터학습활용률 = Math.round((newTR.실제학습 / newTR.센터내시간) * 1000) / 10;
-        return newTR
+    setTR((prevData)=>{
+      const newTR=JSON.parse(JSON.stringify(prevData));
+      ["취침", "기상", "등원", "귀가"].forEach((a) => {
+        newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
       });
-    }
+      newTR.학습차이 = Math.round((TR.실제학습 - TR.목표학습) * 10) / 10;
+      newTR.센터활용률 = Math.round(((newTR.프로그램시간 + newTR.실제학습) / newTR.센터내시간) * 1000) / 10;
+      newTR.센터학습활용률 = Math.round((newTR.실제학습 / newTR.센터내시간) * 1000) / 10;
+      return newTR
+    });
   }, [
     TR.밤샘여부,
     TR.목표취침,
@@ -1746,6 +1736,17 @@ function TRedit() {
     TR.실제학습,
     TR.프로그램시간,
     TR.센터내시간,
+  ]);
+
+  useEffect(() => {
+    setTR((prevData)=>{
+      const newTR=JSON.parse(JSON.stringify(prevData));
+      newTR.센터내시간 = centerTimeDiff(newTR.실제귀가, newTR.실제등원);
+      return newTR
+    });
+  }, [
+    TR.실제등원,
+    TR.실제귀가,
   ]);
 
   useEffect(() => {
@@ -2117,8 +2118,8 @@ function TRedit() {
                           return (
                               <tr key={i}>
                                 <td>{a}</td>
-                                <td>
-                                  <TimePicker
+                                <td align="center">
+                                  {/* <TimePicker
                                       locale="sv-sv"
                                       value={TR[`목표${a}`]}
                                       openClockOnFocus={false}
@@ -2127,11 +2128,20 @@ function TRedit() {
                                       onChange={(value) => {
                                         change_depth_one(`목표${a}`, value);
                                       }}
-                                  ></TimePicker>
+                                  ></TimePicker> */}
+                                  <Form.Control
+                                    type="time"
+                                    className="TimePicker-box"
+                                    value={TR[`목표${a}`]}
+                                    disabled={true}
+                                    onChange={(value) => {
+                                      change_depth_one(`목표${a}`, value);
+                                    }}
+                                  />
                                 </td>
 
                                 <td>
-                                  <TimePicker
+                                  {/* <TimePicker
                                       className="timepicker"
                                       locale="sv-sv"
                                       value={TR[`실제${a}`]}
@@ -2141,7 +2151,16 @@ function TRedit() {
                                       onChange={(value) => {
                                         change_depth_one(`실제${a}`, value);
                                       }}
-                                  ></TimePicker>
+                                  ></TimePicker> */}
+                                  <Form.Control
+                                    type="time"
+                                    className="TimePicker-box"
+                                    value={TR[`실제${a}`]}
+                                    onChange={(e) => {
+                                      const value=e.target.value;
+                                      change_depth_one(`실제${a}`, value);
+                                    }}
+                                  />
                                 </td>
                                 <td>{차이출력(TR["밤샘여부"], TR[`${a}차이`], a)}</td>
                               </tr>
@@ -2171,7 +2190,7 @@ function TRedit() {
                     </div>
 
                     <div className="trCard">
-                      <h4><strong>수업 과제</strong></h4>
+                      <h4><strong>강의 과제</strong></h4>
                       {
                         checkLectureAssignmentExists()?
                             (

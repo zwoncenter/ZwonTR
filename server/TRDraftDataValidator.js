@@ -135,9 +135,10 @@ function checkConditionValueValid(condition_val){
     if(Number.isNaN(parsed)) return false;
     else return intBetween(parsed,1,5)
 }
-function checkLifeDataValid(bodyCondition,sentimentCondition,goToBedTime,wakeUpTime){
+function checkLifeDataValid(bodyCondition,sentimentCondition,goToBedTime,wakeUpTime,comeToCenterTime){
     return checkConditionValueValid(bodyCondition) && checkConditionValueValid(sentimentCondition)
-        && checkTimeStringValid(goToBedTime) && checkTimeStringValid(wakeUpTime);
+        && checkTimeStringValid(goToBedTime) && checkTimeStringValid(wakeUpTime)
+        && checkTimeStringValid(comeToCenterTime);
 }
 function getStudyDataElement(excuse,timeAmount,finishedState,reviewID,timestamp){
     const ret={...request_study_data_template};
@@ -155,13 +156,14 @@ function getLifeDataRequestOnInsertSettings(student_id,today_string){
     ret["request_type"]=request_type_name_to_index["lifeData"];
     return ret;
 }
-function getLifeDataRequestOnUpdateSettings(requestStatus,bodyCondition,sentimentCondition,goToBedTime,wakeUpTime,currentDate,_id=null,writtenToTR=written_to_TR_status_to_index["not_written"]){
+function getLifeDataRequestOnUpdateSettings(requestStatus,bodyCondition,sentimentCondition,goToBedTime,wakeUpTime,comeToCenterTime,currentDate,_id=null,writtenToTR=written_to_TR_status_to_index["not_written"]){
     const ret={...life_data_request_document_on_update_template};
     ret["request_status"]=requestStatus;
     ret["request_specific_data.신체컨디션"]=bodyCondition;
     ret["request_specific_data.정서컨디션"]=sentimentCondition;
     ret["request_specific_data.실제취침"]=goToBedTime;
     ret["request_specific_data.실제기상"]=wakeUpTime;
+    ret["request_specific_data.실제등원"]=comeToCenterTime;
     ret["modify_date"]=currentDate;
     ret["written_to_TR"]=writtenToTR;
     if(_id) ret._id=_id;
@@ -190,16 +192,17 @@ function getAssignmentStudyDataRequestOnUpdateSettings(requestStatus,currentDate
     if(_id) ret._id=_id;
     return ret;
 }
-function getLATStudyDataRequestOnInsertSettings(student_id,today_string,textbookID,elementID){
+function getLATStudyDataRequestOnInsertSettings(student_id,today_string,textbookID,elementID,_id=null){
     const ret={...request_document_on_insert_template};
     ret["student_id"]=student_id;
     ret["date"]=today_string;
     ret["request_type"]=request_type_name_to_index["LectureAndTextbookStudyData"];
     ret["request_specific_data.textbookID"]=textbookID;
     ret["request_specific_data.elementID"]=elementID;
+    if(_id) ret._id=_id;
     return ret;
 }
-function getLATStudyDataRequestOnUpdateSettings(requestStatus,currentDate,deleted=false,duplicatable=true,duplicatableName="",duplicatableSubject="",recentPage=0,_id=null,writtenToTR=written_to_TR_status_to_index["not_written"]){
+function getLATStudyDataRequestOnUpdateSettings(requestStatus,currentDate,deleted=false,duplicatable=true,duplicatableName="",duplicatableSubject="",recentPage=0,writtenToTR=written_to_TR_status_to_index["not_written"]){
     const ret={...assignment_study_data_request_document_on_update_template};
     ret.request_status=requestStatus;
     ret.modify_date=currentDate;
@@ -209,7 +212,6 @@ function getLATStudyDataRequestOnUpdateSettings(requestStatus,currentDate,delete
     ret["request_specific_data.duplicatable_subject"]=duplicatableSubject;
     ret["request_specific_data.recent_page"]=recentPage;
     ret["written_to_TR"]=writtenToTR;
-    if(_id) ret._id=_id;
     return ret;
 }
 function checkDuplicatableNameValid(duplicatableName){
@@ -228,15 +230,16 @@ function checkRecentPageValid(recentPageString){
     if(typeof recentPageString !=="string" || !intBetween(recentPageString.length,1,5)) return false;
     return !isNaN(parseInt(recentPageString)) || parseInt(recentPageString)<0;
 }
-function getProgramDataRequestOnInsertSettings(student_id,today_string,elementID){
+function getProgramDataRequestOnInsertSettings(student_id,today_string,elementID,_id=null){
     const ret={...request_document_on_insert_template};
     ret["student_id"]=student_id;
     ret["date"]=today_string;
     ret["request_type"]=request_type_name_to_index["ProgramParticipationData"];
     ret["request_specific_data.elementID"]=elementID;
+    if(_id) ret._id=_id;
     return ret;
 }
-function getProgramDataRequestOnUpdateSettings(requestStatus,currentDate,deleted=false,programName="",programBy=null,programDescription="",_id=null,writtenToTR=written_to_TR_status_to_index["not_written"]){
+function getProgramDataRequestOnUpdateSettings(requestStatus,currentDate,deleted=false,programName="",programBy=null,programDescription="",writtenToTR=written_to_TR_status_to_index["not_written"]){
     const ret={...assignment_study_data_request_document_on_update_template};
     ret.request_status=requestStatus;
     ret.modify_date=currentDate;
@@ -245,7 +248,6 @@ function getProgramDataRequestOnUpdateSettings(requestStatus,currentDate,deleted
     ret["request_specific_data.program_by"]=programBy;
     ret["request_specific_data.program_description"]=programDescription;
     ret["written_to_TR"]=writtenToTR
-    if(_id) ret._id=_id;
     return ret;
 }
 function checkProgramNameValid(programName){

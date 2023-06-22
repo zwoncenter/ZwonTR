@@ -238,3 +238,8 @@ td.GoalNotFinished {
 td.onHoverHighlighted:HOVER {
   background-image: linear-gradient(rgba(255, 255, 0, 0.4), rgba(255, 255, 0, 0.4));
 }
+
+.TimePicker-box {
+  width: -moz-fit-content;
+  width: fit-content;
+}

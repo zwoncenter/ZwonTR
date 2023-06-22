@@ -1344,17 +1344,16 @@ function TRwrite() {
   }, [TR.날짜]);
 
   useEffect(() => {
-    if (!isInitialMount.current) {
-      const newTR = JSON.parse(JSON.stringify(TR));
+    setTR((prevData)=>{
+      const newTR=JSON.parse(JSON.stringify(prevData));
       ["취침", "기상", "등원", "귀가"].forEach((a) => {
         newTR[`${a}차이`] = 차이계산(newTR[`목표${a}`], newTR[`실제${a}`]);
       });
       newTR.학습차이 = Math.round((TR.실제학습 - TR.목표학습) * 10) / 10;
-      newTR.센터내시간 = centerTimeDiff(newTR.실제귀가, newTR.실제등원);
       newTR.센터활용률 = Math.round(((newTR.프로그램시간 + newTR.실제학습) / newTR.센터내시간) * 1000) / 10;
       newTR.센터학습활용률 = Math.round((newTR.실제학습 / newTR.센터내시간) * 1000) / 10;
-      setTR(newTR);
-    }
+      return newTR
+    });
   }, [
     TR.밤샘여부,
     TR.목표취침,
@@ -1369,6 +1368,17 @@ function TRwrite() {
     TR.실제학습,
     TR.프로그램시간,
     TR.센터내시간,
+  ]);
+
+  useEffect(() => {
+    setTR((prevData)=>{
+      const newTR=JSON.parse(JSON.stringify(prevData));
+      newTR.센터내시간 = centerTimeDiff(newTR.실제귀가, newTR.실제등원);
+      return newTR
+    });
+  }, [
+    TR.실제등원,
+    TR.실제귀가,
   ]);
 
   useEffect(() => {
@@ -1733,8 +1743,8 @@ function TRwrite() {
                         return (
                           <tr key={i}>
                             <td>{a}</td>
-                            <td>
-                              <TimePicker
+                            <td align="center">
+                              {/* <TimePicker
                                 locale="sv-sv"
                                 value={TR[`목표${a}`]}
                                 openClockOnFocus={false}
@@ -1743,11 +1753,20 @@ function TRwrite() {
                                 onChange={(value) => {
                                   change_depth_one(`목표${a}`, value);
                                 }}
-                              ></TimePicker>
+                              ></TimePicker> */}
+                              <Form.Control
+                                type="time"
+                                className="TimePicker-box"
+                                value={TR[`목표${a}`]}
+                                disabled={true}
+                                onChange={(value) => {
+                                  change_depth_one(`목표${a}`, value);
+                                }}
+                              />
                             </td>
 
-                            <td>
-                              <TimePicker
+                            <td align="center">
+                              {/* <TimePicker
                                 className="timepicker"
                                 locale="sv-sv"
                                 value={TR[`실제${a}`]}
@@ -1757,7 +1776,16 @@ function TRwrite() {
                                 onChange={(value) => {
                                   change_depth_one(`실제${a}`, value);
                                 }}
-                              ></TimePicker>
+                              ></TimePicker> */}
+                              <Form.Control
+                                type="time"
+                                className="TimePicker-box"
+                                value={TR[`실제${a}`]}
+                                onChange={(e) => {
+                                  const value=e.target.value;
+                                  change_depth_one(`실제${a}`, value);
+                                }}
+                              />
                             </td>
                             <td>{차이출력(TR["밤샘여부"], TR[`${a}차이`], a)}</td>
                           </tr>
@@ -1787,7 +1815,7 @@ function TRwrite() {
                 </div>
 
                 <div className="trCard">
-                  <h4><strong>수업 과제</strong></h4>
+                  <h4><strong>강의 과제</strong></h4>
                     {
                       checkLectureAssignmentExists()?
                       (

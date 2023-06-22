@@ -148,6 +148,11 @@ textarea {
   font-size: 15px;
 }
 
+.TimePicker-box {
+  width: -moz-fit-content;
+  width: fit-content;
+}
+
 .program-add {
   background-color: #4B4453;
   border: 0px;

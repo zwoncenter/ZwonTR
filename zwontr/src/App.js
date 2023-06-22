@@ -4,6 +4,7 @@ import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import { AiOutlineHome } from "react-icons/ai";
 import { VscBell, VscBellDot } from "react-icons/vsc";
+import { Puff } from "react-loader-spinner";
 import axios from "axios";
 import menuarrow from "./next.png";
 
@@ -114,6 +115,32 @@ function App() {
     return checkManagerMode() && !checkCurrentPageIsCheckAlarmsPage();
   }
 
+  //reposne 로딩 중 화면 멈춤 관련 코드
+  const [isLoading,setIsLoading]= useState(false);
+  const setNowLoading= ()=>{
+    setIsLoading(true);
+  }
+  const setNowNotLoading= ()=>{
+    setIsLoading(false);
+  };
+  
+  function getLoadingPromptScreen(){
+    return isLoading?(
+      <div className="LoadingPromptContainer">
+        <Puff
+          height="80"
+          width="80"
+          radius={1}
+          color="#4fa94d"
+          ariaLabel="puff-loading"
+          wrapperStyle={{}}
+          wrapperClass=""
+          visible={true}
+        />
+      </div>
+    ):null;
+  }
+
   useEffect(async()=>{
     if(myInfoLoaded && checkManagerMode()){
       // getRequestAlarms();
@@ -221,6 +248,7 @@ function App() {
   return (
     myInfoLoaded?
     <div className="App">
+      {getLoadingPromptScreen()}
       {window.location.pathname !== "/" && window.location.pathname !== "/SignUp" ? 
       <div className="menu">
       <div className="menu-map">
@@ -402,7 +430,10 @@ function App() {
           <FirstPage/>
         </Route>
         <Route exact path="/SignUp">
-          <SignUpPage />
+          <SignUpPage
+            setNowLoading={setNowLoading}
+            setNowNotLoading={setNowNotLoading}
+          />
         </Route>
         <Route exact path="/studentList">
           <StuListpage />
@@ -464,7 +495,10 @@ function App() {
           <LectureList />
         </Route>
         <Route exact path="/Lecture/:lectureID">
-          <Lecture />
+          <Lecture 
+            setNowLoading={setNowLoading}
+            setNowNotLoading={setNowNotLoading}
+          />
         </Route>
         <Route exact path="/WeeklystudyfeedbackWrite/:ID/:feedbackDate">
           <WeeklystudyfeedbackWrite />
@@ -473,13 +507,22 @@ function App() {
           <WeeklystudyfeedbackEdit />
           </Route>
         <Route exact path="/ManageUser">
-          <ManageUser/>
+          <ManageUser
+            setNowLoading={setNowLoading}
+            setNowNotLoading={setNowNotLoading}
+          />
         </Route>
         <Route exact path="/TRDraft">
-          <TRDraft/>
+          <TRDraft 
+            setNowLoading={setNowLoading}
+            setNowNotLoading={setNowNotLoading}
+          />
         </Route>
         <Route exact path="/CheckAlarms">
-          <CheckAlarms/>
+          <CheckAlarms
+            setNowLoading={setNowLoading}
+            setNowNotLoading={setNowNotLoading}
+          />
         </Route>
         <Route exact path="/NotFound">
           <NotFound/>

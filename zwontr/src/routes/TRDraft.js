@@ -10,7 +10,10 @@ import TimePicker from "react-time-picker";
 // import { CgMailForward } from "react-icons/cg";
 import { BsFillChatSquareFill } from "react-icons/bs";
 
-function TRDraft() {
+function TRDraft({
+  setNowLoading,
+  setNowNotLoading,
+}) {
   const now = new Date(); // 현재 시간
   const utcNow = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
   const koreaTimeDiff = 9 * 60 * 60 * 1000;
@@ -348,7 +351,7 @@ function TRDraft() {
     return new_request_element;
   }
   function deleteLATRequestElement(LATRequestID){
-    console.log(`delete element: ${LATRequestID}`);
+    // console.log(`delete element: ${LATRequestID}`);
     setLATRequestStatusMap(prevLATRequestStatusMap=>{
       const [element_type,element_id]= LATRequestID.split("#");
       const newLATRequestStatusMap=JSON.parse(JSON.stringify(prevLATRequestStatusMap));
@@ -456,7 +459,7 @@ function TRDraft() {
             className="btn btn-success btn-opaque"
             onClick={async ()=>{
               const study_data= getLATStudyDataPayloadByLATRequestID(LATRequestID,true);
-              console.log(`study data payload: ${JSON.stringify(study_data)}`);
+              // console.log(`study data payload: ${JSON.stringify(study_data)}`);
               
               //check if study data for assingment valid
               const [textbookStudyValid,msg]= isTextbookStudyDataValid(study_data,LATRequestID);
@@ -474,7 +477,7 @@ function TRDraft() {
               className="btn btn-danger btn-opaque"
               onClick={()=>{
                 const study_data= getLATStudyDataPayloadByLATRequestID(LATRequestID,true); // finished state checked as true to bypass "excuse" field validity check
-                console.log(`study data payload: ${JSON.stringify(study_data)}`);
+                // console.log(`study data payload: ${JSON.stringify(study_data)}`);
                 
                 //check if study data for assingment valid
                 const [textbookStudyValid,msg]= isTextbookStudyDataValid(study_data,LATRequestID);
@@ -512,7 +515,7 @@ function TRDraft() {
           className="btn btn-secondary RequestStatusBadge btn-padding-top-1"
           onClick={()=>{
             const study_data= getLATStudyDataPayloadByLATRequestID(LATRequestID,finished_state);
-            console.log(`study data payload: ${JSON.stringify(study_data)}`);
+            // console.log(`study data payload: ${JSON.stringify(study_data)}`);
             
             //check if study data for assingment valid
             const [textbookStudyValid,msg]= isTextbookStudyDataValid(study_data,LATRequestID);
@@ -603,7 +606,7 @@ function TRDraft() {
     const textbookName=textbook_info.교재;
     const textbookSubject=textbook_info.과목;
     const study_data= getLATStudyDataPayloadByLATRequestID(LATRequestID,finishedState,reviewerReassigned);
-    console.log(`study data payload: ${JSON.stringify(study_data)}`);
+    // console.log(`study data payload: ${JSON.stringify(study_data)}`);
     // console.log(`study data: ${JSON.stringify(study_data)}`);
 
     //check if study data for assingment valid
@@ -612,6 +615,7 @@ function TRDraft() {
       window.alert(`${msg}`);
       return false;
     }
+    setNowLoading();
     const [save_successful,reset_object_id]= await axios
       .post("/api/saveLATStudyDataRequest",study_data)
       .then((res)=>{
@@ -650,6 +654,7 @@ function TRDraft() {
         "request_specific_data.request_new":false,
       });
     }
+    setNowNotLoading();
     return save_successful;
   }
 
@@ -668,12 +673,13 @@ function TRDraft() {
         window.alert(`네트워크 오류로 데이터를 불러오지 못했습니다:1`);
         window.location.reload();
       });
-    console.log(`prev request data: ${JSON.stringify(prevRequestData)}`);
+    // console.log(`prev request data: ${JSON.stringify(prevRequestData)}`);
     setMyLifeData(getLifeDataFromPrevRequestList(prevRequestData));
     setMyAssignmentStudyData(getAssignmentStudyDataMap(prevRequestData));
     setLATRequestStatusMap(getLATRequestStatusMap(prevRequestData));
+    // console.log(`prev lat data: ${JSON.stringify(getLATRequestStatusMap(prevRequestData))}`);
     setProgramRequestStatusMap(getProgramRequestStatusMap(prevRequestData));
-    console.log(`prev program request data: ${JSON.stringify(getProgramRequestStatusMap(prevRequestData))}`);
+    // console.log(`prev program request data: ${JSON.stringify(getProgramRequestStatusMap(prevRequestData))}`);
   },[]);
 
   // useEffect(()=>{
@@ -681,12 +687,14 @@ function TRDraft() {
   // },[LATRequestStatusMap]);
 
   //생활 데이터 관련 코드
+  const time_data_categories=["취침","기상","등원"];
   const [myLifeCycleAndStudyTimeGoals,setMyLifeCycleAndStudyTimeGoals]= useState(life_cycle_and_study_time_goals_template);
   const [myLifeData,setMyLifeData]= useState({
     "신체컨디션":"선택",
     "정서컨디션":"선택",
     "실제취침":null,
     "실제기상":null,
+    "실제등원":null,
     "request_status":request_status_to_index["review_needed"],
     "review_status":review_status_to_index["not_reviewed"],
     "review_username":null,
@@ -739,6 +747,7 @@ function TRDraft() {
     sentimentCondition: null,
     goToBedTime: null,
     wakeUpTime: null,
+    comeToCenterTime: null,
     reviewedBy: [],
   };
   function getLifeDataPayload(reviewerReassigned){
@@ -747,6 +756,7 @@ function TRDraft() {
       sentimentCondition: myLifeData.정서컨디션,
       goToBedTime: myLifeData.실제취침,
       wakeUpTime: myLifeData.실제기상,
+      comeToCenterTime: myLifeData.실제등원,
       reviewedBy: [requestGoesTo.goes_to],
       reviewerReassigned: reviewerReassigned,
     };
@@ -758,17 +768,19 @@ function TRDraft() {
     else if(!checkConditionValueValid(lifeData.sentimentCondition)) return [false,"올바른 정서 컨디션을 선택해주세요"];
     else if(!checkTimeStringValid(lifeData.goToBedTime)) return [false,"올바른 실제 취침 시간을 입력해주세요"];
     else if(!checkTimeStringValid(lifeData.wakeUpTime)) return [false,"올바른 실제 기상 시간을 입력해주세요"];
+    else if(!checkTimeStringValid(lifeData.comeToCenterTime)) return [false,"올바른 실제 등원 시간을 입력해주세요"];
     else return [true,""];
   }
   async function saveLifeData(reviewerReassigned=false){
     const life_data=getLifeDataPayload(reviewerReassigned);
-    console.log(`life data payload: ${JSON.stringify(life_data)}`);
+    // console.log(`life data payload: ${JSON.stringify(life_data)}`);
     const [valid,msg]=isLifeDataValid(life_data);
     if(!valid){
       window.alert(`${msg}`);
       return false;
     }
 
+    setNowLoading();
     const save_success=await axios
       .post("/api/saveLifeDataRequest",life_data)
       .then((res)=>{
@@ -791,6 +803,7 @@ function TRDraft() {
         window.alert(`네트워크 오류로 생활 정보를 저장하지 못했습니다:1`);
         return false;
       });
+    setNowNotLoading();
     return save_success;
   }
   function checkLifeDataUpdatable(){
@@ -872,6 +885,7 @@ function TRDraft() {
         return [];
       });
     setMyLifeCycleAndStudyTimeGoals(life_cycle_and_study_time_goals);
+    // console.log(`life cycle info: ${JSON.stringify(life_cycle_and_study_time_goals)}`);
   },[]);
 
   //이번주 주간 학습 계획 가져오는 코드
@@ -1075,13 +1089,14 @@ function TRDraft() {
     // const assignmnet_element=getAssignmentElementByAOSID(AOSID);
     // if(!window.confirm(`[${assignmnet_element["lectureName"]}]\n"${getDescriptionStringFromAssignment(assignmnet_element)}"\n과제에 대한 확인 요청을 보내시겠습니까?`)) return;
     const study_data=getAssignmentStudyDataPayloadByAOSID(AOSID,finishedState,reviewerReassigned);
-    console.log(`assignment study data payload: ${JSON.stringify(study_data)}`);
+    // console.log(`assignment study data payload: ${JSON.stringify(study_data)}`);
     const [assignmentStudyDataValid,msg]=isAssignmentStudyDataValid(study_data,AOSID);
     if(!assignmentStudyDataValid){
       window.alert(`${msg}`);
       return false;
     }
 
+    setNowLoading();
     const save_success=await axios
       .post("/api/saveAssignmentStudyDataRequest",study_data)
       .then((res)=>{
@@ -1104,6 +1119,7 @@ function TRDraft() {
         window.alert(`네트워크 오류로 생활 정보를 저장하지 못했습니다:1`);
         return false;
       });
+    setNowNotLoading();
     return save_success;
   }
   function checkAssignmentStudyDataUpdatableByAOSID(AOSID){
@@ -1142,7 +1158,7 @@ function TRDraft() {
               // }
 
               const study_data=getAssignmentStudyDataPayloadByAOSID(AOSID,true);
-              console.log(`assignment study data payload: ${JSON.stringify(study_data)}`);
+              // console.log(`assignment study data payload: ${JSON.stringify(study_data)}`);
               const [assignmentStudyDataValid,msg]=isAssignmentStudyDataValid(study_data,AOSID);
               if(!assignmentStudyDataValid){
                 window.alert(`${msg}`);
@@ -1167,7 +1183,7 @@ function TRDraft() {
                 // }
 
                 const study_data=getAssignmentStudyDataPayloadByAOSID(AOSID,true); //finished state set as true to bypass "excuse" field validity check
-                console.log(`assignment study data payload: ${JSON.stringify(study_data)}`);
+                // console.log(`assignment study data payload: ${JSON.stringify(study_data)}`);
                 const [assignmentStudyDataValid,msg]=isAssignmentStudyDataValid(study_data,AOSID);
                 if(!assignmentStudyDataValid){
                   window.alert(`${msg}`);
@@ -1203,7 +1219,7 @@ function TRDraft() {
           className="btn btn-secondary RequestStatusBadge btn-padding-top-1"
           onClick={()=>{
             const study_data= getAssignmentStudyDataPayloadByAOSID(AOSID,finished_state);
-            console.log(`study data payload: ${JSON.stringify(study_data)}`);
+            // console.log(`study data payload: ${JSON.stringify(study_data)}`);
             
             //check if study data for assingment valid
             const [assignmentStudyDataValid,msg]= isAssignmentStudyDataValid(study_data,AOSID);
@@ -1324,7 +1340,7 @@ function TRDraft() {
   }
   function getLATRequestIDFromOptionName(optionName,prev_table_element_request_id=""){
     const [prev_element_type,prev_element_id]= prev_table_element_request_id.split("#");
-    console.log(`prev element type: ${prev_element_type}, prev element id: ${prev_element_id}`);
+    // console.log(`prev element type: ${prev_element_type}, prev element id: ${prev_element_id}`);
     const cur_element_type=isLATTableElementNameDefault(optionName) || isLATTableElementNameDuplicatable(optionName)?"element":"textbook";
     if(cur_element_type==="textbook") return ["textbook",textbookIDMapping[optionName]].join("#");
     else return ["element",prev_element_type==="element"?prev_element_id:getNewObjectIDString()].join("#");
@@ -1470,7 +1486,7 @@ function TRDraft() {
     return new_request_element;
   }
   function insertProgramRequestElement(programRequestID,updateVal={}){
-    console.log(`insert element: ${programRequestID}`);
+    // console.log(`insert element: ${programRequestID}`);
     setProgramRequestStatusMap(prevProgramRequestStatusMap=>{
       const newProgramRequestStatusMap=JSON.parse(JSON.stringify(prevProgramRequestStatusMap));
       const program_request_element=getProgramRequestElementFromProgramRequestID(newProgramRequestStatusMap,programRequestID);
@@ -1553,7 +1569,7 @@ function TRDraft() {
             className="btn btn-success btn-opaque"
             onClick={async ()=>{
               const program_data=getProgramDataPayloadByProgramRequestID(programRequestID,true);
-              console.log(`program data payload: ${JSON.stringify(program_data)}`);
+              // console.log(`program data payload: ${JSON.stringify(program_data)}`);
 
               //check if study data for assingment valid
               const [programDataValid,msg]= isProgramDataValid(program_data,programRequestID);
@@ -1590,7 +1606,7 @@ function TRDraft() {
           className="btn btn-secondary RequestStatusBadge btn-padding-top-1"
           onClick={()=>{
             const program_data=getProgramDataPayloadByProgramRequestID(programRequestID,true);
-            console.log(`program data payload: ${JSON.stringify(program_data)}`);
+            // console.log(`program data payload: ${JSON.stringify(program_data)}`);
 
             //check if study data for assingment valid
             const [programDataValid,msg]= isProgramDataValid(program_data,programRequestID);
@@ -1713,7 +1729,7 @@ function TRDraft() {
   async function saveProgramDataByProgramRequestID(programRequestID,finishedState,reviewerReassigned=false){
     const program_element_brief=getBriefStringFromProgramRequestID(programRequestID);
     const program_data=getProgramDataPayloadByProgramRequestID(programRequestID,true,reviewerReassigned);
-    console.log(`program data payload: ${JSON.stringify(program_data)}`);
+    // console.log(`program data payload: ${JSON.stringify(program_data)}`);
 
     //check if study data for assingment valid
     const [programDataValid,msg]= isProgramDataValid(program_data,programRequestID);
@@ -1721,6 +1737,7 @@ function TRDraft() {
       window.alert(`${msg}`);
       return;
     }
+    setNowLoading();
     const [save_successful,reset_object_id]= await axios
       .post("/api/saveProgramDataRequest",program_data)
       .then((res)=>{
@@ -1754,6 +1771,7 @@ function TRDraft() {
         "request_specific_data.request_new":false,
       });
     }
+    setNowNotLoading();
     return save_successful;
   }
   function getBriefStringFromProgramRequestID(programRequestID){
@@ -1921,12 +1939,12 @@ function TRDraft() {
             window.alert("로그인이 필요합니다.");
             return history.push("/");
           } else {
-            console.log(result.data);
+            // console.log(result.data);
             window.alert(result.data);
           }
         })
         .catch((err) => {
-          console.log(err);
+          // console.log(err);
         });
 
     //page state update
@@ -2109,6 +2127,7 @@ function TRDraft() {
     const sentiment_condition_prompt=score_to_condition_name_map[sentiment_condition];
     const go_to_bed_time=life_data.goToBedTime;
     const wake_up_time=life_data.wakeUpTime;
+    const come_to_center_time=life_data.comeToCenterTime;
 
     const reviewer_reassigned=checkReviewerReassignedMode();
     
@@ -2133,6 +2152,10 @@ function TRDraft() {
           <div className="row mb-2">
             <div className="col-6">실제 기상 시간</div>
             <div className="col-6">{wake_up_time}</div>
+          </div>
+          <div className="row mb-2">
+            <div className="col-6">실제 등원 시간</div>
+            <div className="col-6">{come_to_center_time}</div>
           </div>
         </div>
 
@@ -2188,6 +2211,7 @@ function TRDraft() {
   function getAssignmentStudyModalBody(){
     const AOSID=confirmFor.extra_data[0];
     const finished_state=confirmFor.finished_state;
+    const finished_state_prompt=finished_state?"완료":"미완료";
     const assignment_element=getAssignmentElementByAOSID(confirmFor.extra_data[0]);
     const lecture_name=assignment_element.lectureName;
     const lecturer=assignment_element.manager;
@@ -2242,6 +2266,10 @@ function TRDraft() {
         </div>
 
         <div className="border-bottom border-secondary border-3 mb-5">
+          <div className="row mb-2">
+            <div className="col-3">완료 여부</div>
+            <div className="col-9">{finished_state_prompt}</div>
+          </div>
           <div className="row mb-2">
             <div className="col-3">소요 시간</div>
             <div className="col-9">{study_data_time_amount}</div>
@@ -2306,6 +2334,7 @@ function TRDraft() {
               if(save_success) {
                 updateAssignmentStudyDataByAOSID(AOSID,"request_status",request_status_to_index["review_needed"]);
                 updateAssignmentStudyDataByAOSID(AOSID,"review_username",requestGoesTo.goes_to);
+                if(!reviewer_reassigned) updateAssignmentStudyDataByAOSID(AOSID,"finished_state",finished_state);
                 closeConfirmModal();
               }
             }}
@@ -2319,6 +2348,7 @@ function TRDraft() {
     const LAT_request_id=confirmFor.extra_data[0];
     const [element_type,element_id]=LAT_request_id.split("#");
     const finished_state=confirmFor.finished_state;
+    const finished_state_prompt=finished_state?"완료":"미완료";
     const LAT_request_element=getLATRequestElementFromLATRequestID(LATRequestStatusMap,LAT_request_id);
     const request_specific_data=LAT_request_element.request_specific_data;
     const element_duplicatable=LAT_request_element.duplicatable;
@@ -2375,6 +2405,10 @@ function TRDraft() {
         </div>
 
         <div className="border-bottom border-secondary border-3 mb-5">
+          <div className="row mb-2">
+            <div className="col-3">완료 여부</div>
+            <div className="col-9">{finished_state_prompt}</div>
+          </div>
           <div className="row mb-2">
             <div className="col-3">소요 시간</div>
             <div className="col-9">{study_data_time_amount}</div>
@@ -2444,6 +2478,11 @@ function TRDraft() {
                   "request_status":request_status_to_index["review_needed"],
                   "review_username":requestGoesTo.goes_to,
                 });
+                if(!reviewer_reassigned){
+                  updateLATRequestElementByLATRequestID(LAT_request_id,{
+                    "study_data.finished_state":finished_state,
+                  });
+                }
                 closeConfirmModal();
               }
             }}
@@ -2720,9 +2759,11 @@ function TRDraft() {
                           value={myLifeData.신체컨디션}
                           disabled={!checkLifeDataUpdatable()}
                           onChange={(e) => {
-                            const newLifeData={...myLifeData};
-                            newLifeData.신체컨디션=e.target.value;
-                            setMyLifeData(newLifeData);
+                            // const newLifeData={...myLifeData};
+                            // newLifeData.신체컨디션=e.target.value;
+                            // setMyLifeData(newLifeData);
+                            const value=e.target.value;
+                            updateMyLifeData("신체컨디션",value);
                           }}
                       >
                         <option value="선택">선택</option>
@@ -2744,9 +2785,11 @@ function TRDraft() {
                           value={myLifeData.정서컨디션}
                           disabled={!checkLifeDataUpdatable()}
                           onChange={(e) => {
-                            const newLifeData={...myLifeData};
-                            newLifeData.정서컨디션=e.target.value;
-                            setMyLifeData(newLifeData);
+                            // const newLifeData={...myLifeData};
+                            // newLifeData.정서컨디션=e.target.value;
+                            // setMyLifeData(newLifeData);
+                            const value=e.target.value;
+                            updateMyLifeData("정서컨디션",value);
                           }}
                       >
                         <option value="선택">선택</option>
@@ -2767,36 +2810,31 @@ function TRDraft() {
                     </tr>
                     </thead>
                     <tbody>
-                    {["취침", "기상"].map(function (a, i) {
+                    {time_data_categories.map(function (category_name, idx) {
                       return (
-                          <tr key={i}>
-                            <td>{a}</td>
-                            <td>
-                              <TimePicker
-                                  locale="sv-sv"
-                                  value={myLifeCycleAndStudyTimeGoals[getTodayDayCategory()+a]}
-                                  openClockOnFocus={false}
-                                  clearIcon={null}
-                                  clockIcon={null}
-                                  disabled={true}
-                              ></TimePicker>
+                          <tr key={idx}>
+                            <td>{category_name}</td>
+                            <td align="center">
+                              <Form.Control
+                                type="time"
+                                className="TimePicker-box"
+                                value={myLifeCycleAndStudyTimeGoals[getTodayDayCategory()+category_name]}
+                                disabled={true}
+                              />
                             </td>
 
-                            <td>
-                              <TimePicker
-                                  className="timepicker"
-                                  locale="sv-sv"
-                                  value={myLifeData["실제"+a]}
-                                  disabled={!checkLifeDataUpdatable()}
-                                  openClockOnFocus={false}
-                                  clearIcon={null}
-                                  clockIcon={null}
-                                  onChange={(value) => {
-                                    const newLifeData={...myLifeData};
-                                    newLifeData["실제"+a]=value;
-                                    setMyLifeData(newLifeData);
-                                  }}
-                              ></TimePicker>
+                            <td align="center">
+                              <Form.Control
+                                type="time"
+                                className="TimePicker-box"
+                                value={myLifeData["실제"+category_name]}
+                                disabled={!checkLifeDataUpdatable()}
+                                onChange={(e) => {
+                                  const value=e.target.value;
+                                  const life_data_field_name="실제"+category_name;
+                                  updateMyLifeData(life_data_field_name,value);
+                                }}
+                              />
                             </td>
                           </tr>
                       );
@@ -3021,6 +3059,7 @@ function TRDraft() {
                                 const LAT_request_element=getLATRequestElementFromLATRequestID(LATRequestStatusMap,LAT_request_element_id);
                                 const request_specific_data=LAT_request_element.request_specific_data;
                                 const delete_request_payload=getTextbookStudyDataDeleteRequestPayload(request_specific_data);
+                                setNowLoading();
                                 const delete_success=await axios
                                   .post("/api/setLATStudyElementDeletedOnTrDraft",delete_request_payload)
                                   .then((res)=>{
@@ -3035,8 +3074,12 @@ function TRDraft() {
                                     window.alert(`네트워크 오류로 학습 항목 삭제에 실패했습니다:1`);
                                     return false;
                                   });
-                                if(!delete_success) return;
+                                if(!delete_success) {
+                                  setNowNotLoading();
+                                  return;
+                                }
                                 deleteLATRequestElement(LAT_request_element_id);
+                                setNowNotLoading();
                               }}
                             >
                               <FaTrash></FaTrash>
@@ -3074,7 +3117,7 @@ function TRDraft() {
                               value={textbookName}
                               disabled={!checkLATStudyDataUpdatableByLATRequestID(LAT_request_element_id)}
                               onChange={(e) => {
-                                console.log('changed');
+                                // console.log('changed');
                                 const new_table_element_name=e.target.value;
                                 const [changable,msg]=checkNewLATTableElementNameValid(new_table_element_name);
                                 if(!changable){
@@ -3249,7 +3292,8 @@ function TRDraft() {
                                 const program_request_element=getProgramRequestElementFromProgramRequestID(programRequestStatusMap,program_request_element_id);
                                 const request_specific_data=program_request_element.request_specific_data;
                                 const delete_request_payload=getProgramDataDeleteRequestPayload(request_specific_data);
-                                console.log(`program delete payload: ${JSON.stringify(delete_request_payload)}`);
+                                // console.log(`program delete payload: ${JSON.stringify(delete_request_payload)}`);
+                                setNowLoading();
                                 const delete_success=await axios
                                   .post("/api/setProgramElementDeletedOnTrDraft",delete_request_payload)
                                   .then((res)=>{
@@ -3264,8 +3308,12 @@ function TRDraft() {
                                     window.alert(`네트워크 오류로 학습 항목 삭제에 실패했습니다:1`);
                                     return false;
                                   });
-                                if(!delete_success) return;
+                                if(!delete_success) {
+                                  setNowNotLoading();
+                                  return;
+                                }
                                 deleteProgramRequestElement(program_request_element_id);
+                                setNowNotLoading();
                               }}
                           >
                             <strong><FaTrash></FaTrash></strong>

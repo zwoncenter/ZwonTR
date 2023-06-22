@@ -11,7 +11,10 @@ import {FaCheck, FaSistrix, FaSleigh, FaTrash} from "react-icons/fa"
 
 const versionInfo = "1.6";
 
-function CheckAlarms() {
+function CheckAlarms({
+  setNowLoading,
+  setNowNotLoading,
+}) {
   let history= useHistory();
   const alarm_pagination_template={
     cur_page:1,
@@ -50,10 +53,12 @@ function CheckAlarms() {
     setPagination((prevPagination)=>{
       const new_pagination=JSON.parse(JSON.stringify(prevPagination));
       const alarm_data=(new_pagination.alarms_data)[datum_index];
-      new_pagination.alarms_data[datum_index].review_status=reviewStatus;
-      new_pagination.alarms_data[datum_index].review_msg=reviewMsg;
+      alarm_data.review_status=reviewStatus;
+      alarm_data.review_msg=reviewMsg;
+      if(reviewStatus!==review_status_to_index["not_reviewed"]) alarm_data.review_timestamp=(new Date()).toISOString();
       return new_pagination;
     });
+    sortPagination();
   }
   function deletePaginationElementByTDRRID(TDRRID){
     setPagination((prevPagination)=>{
@@ -70,11 +75,25 @@ function CheckAlarms() {
       return new_pagination;
     });
   }
+  function sortPagination(){
+    setPagination((prevPagination)=>{
+      const new_pagination=JSON.parse(JSON.stringify(prevPagination));
+      const alarms_data=new_pagination.alarms_data;
+      alarms_data.sort((a,b)=>{
+        const a_reviewed=!checkRequestReviewNeeded(a.review_status);
+        const b_reviewed=!checkRequestReviewNeeded(b.review_status);
+        if(a_reviewed!==b_reviewed) return (a_reviewed && !b_reviewed)?1:-1;
+        return a.study_data.timestamp>b.study_data.timestamp?-1:a.study_data.timestamp<b.study_data.timestamp?1:0;
+      });
+      return new_pagination;
+    });
+  }
 
   async function getRequestAlarms(queryPage=1){
     const query= {
       queryPage,
     }
+    setNowLoading();
     const alarm_data_pagination=await axios
       .post("/api/getMyAlarms",query)
       .then((res)=>{
@@ -85,14 +104,16 @@ function CheckAlarms() {
       .catch((err)=>{
         window.alert(`네트워크 오류로 사용자 데이터를 불러오지 못했습니다`);
         return getAlarmsPaginationTemplate();
-      })
+      });
     //here pagenation data should be extracted
     const alarms_data=alarm_data_pagination.alarms_data;
-    if(alarms_data.length>0) alarms_data.sort((a,b)=>{
-      return a.study_data.timestamp>b.study_data.timestamp?-1:a.study_data.timestamp<b.study_data.timestamp?1:0;
-    });
-    // console.log(`alarm pagination data: ${JSON.stringify(alarm_data_pagination)}`);
+    // if(alarms_data.length>0) alarms_data.sort((a,b)=>{
+    //   return a.study_data.timestamp>b.study_data.timestamp?-1:a.study_data.timestamp<b.study_data.timestamp?1:0;
+    // });
+    // console.log(`alarms data : ${JSON.stringify(alarms_data)}`);
     setPagination(alarm_data_pagination);
+    sortPagination();
+    setNowNotLoading();
   }
 
   useEffect(async ()=>{
@@ -131,36 +152,87 @@ function CheckAlarms() {
   function getNewRequestPromptString(isNewRequest){
     return isNewRequest?"NEW":"";
   }
+  function getRequestDetailStringFromAlarmDatum(alarmDatum){
+    const detail_length_limit=30;
+    const request_type=alarmDatum.request_type;
+    const request_specific_data=alarmDatum.request_specific_data;
+    const request_type_tag=`[${getRequestTypeNameString(alarmDatum.request_type)}]`;
+    let ret="";
+    let element_detail="";
+    if(request_type===request_type_name_to_index["생활 정보"]) ret=request_type_tag;
+    else if(request_type===request_type_name_to_index["강의 과제"]){
+      const lecture_name=alarmDatum.lecture_name;
+      if("assignment_textbook_name" in alarmDatum){
+        const assignment_textbook_name=alarmDatum.assignment_textbook_name;
+        element_detail=`${assignment_textbook_name} / ${lecture_name}`;
+      }
+      else{
+        element_detail=`${lecture_name}`;
+      }
+      ret=`${request_type_tag} ${element_detail}`;
+    }
+    else if(request_type===request_type_name_to_index["수업 및 일반교재"]){
+      if("textbook_name" in alarmDatum){
+        const textbook_name=alarmDatum.textbook_name;
+        const textbook_subject=alarmDatum.textbook_subject;
+        element_detail=`${textbook_name}(${textbook_subject})`;
+      }
+      else{
+        const duplicatable_name=request_specific_data.duplicatable_name;
+        const duplicatable_subject=request_specific_data.duplicatable_subject;
+        element_detail=`${duplicatable_name} (${duplicatable_subject})`;
+      }
+      ret=`${request_type_tag} ${element_detail}`;
+    }
+    else if(request_type===request_type_name_to_index["프로그램 참여"]){
+      element_detail= request_specific_data.program_name;
+      ret=`${request_type_tag} ${element_detail}`;
+    }
+    // return ret.slice(0,30);
+    return (
+      <span>
+        <strong>{request_type_tag}</strong>
+        {element_detail?
+          <span>
+            <br/>
+              {element_detail}
+          </span>:null
+        }
+      </span>
+    )
+  }
   function getTableRowFromRequestAlarmDatum(alarm_datum,idx){
     const review_needed=checkRequestReviewNeeded(alarm_datum.review_status);
     const new_request_prompt_string=getNewRequestPromptString(review_needed);
     const student_username=alarm_datum.student_username;
     const student_DB_name=alarm_datum.student_DB_name;
     const request_timestamp_string=getRequestDateString(alarm_datum.study_data.timestamp);
-    const request_type_name=getRequestTypeNameString(alarm_datum.request_type);
+    // const request_type_name=`[${getRequestTypeNameString(alarm_datum.request_type)}]`
+    const request_detail=getRequestDetailStringFromAlarmDatum(alarm_datum);
+
+    const modal_button_prompt=review_needed?"내용 확인":"지난 응답";
+    const modal_button_variant_name=review_needed?"success":"secondary";
     return(
-      <tr key={idx}>
+      <tr key={idx} className="td-cell-vertical-middle">
         <td>
-          <p
-            className="NewRequestPromptBox"
-          >
-            {new_request_prompt_string}
+          <p className="NewRequestPromptBox">
+            <span>{new_request_prompt_string}</span>
           </p>
         </td>
-        <td><p>{student_username}</p></td>
-        <td><p>{student_DB_name}</p></td>
-        <td><p>{request_timestamp_string}</p></td>
-        <td><p>{request_type_name}</p></td>
+        <td><p><span>{student_username}</span></p></td>
+        <td><p><span>{student_DB_name}</span></p></td>
+        <td><p><span>{request_timestamp_string}</span></p></td>
+        <td><p><span>{request_detail}</span></p></td>
         <td>
           <Button
-            variant="success"
+            variant={modal_button_variant_name}
             className="button-fit-content"
-            disabled={!review_needed}
+            // disabled={!review_needed}
             onClick={async ()=>{
               openModal(modal_type_name_to_index["request_review"],idx);
             }}
           >
-            <strong>내용 확인</strong>
+            <strong>{modal_button_prompt}</strong>
           </Button>
         </td>
       </tr>
@@ -334,6 +406,8 @@ function CheckAlarms() {
     const review_needed=checkRequestReviewNeeded(review_status);
     if(review_needed) return null;
     const review_timestamp=request_alarm_datum.review_timestamp;
+    const review_timestamp_date=new Date(review_timestamp);
+    const review_timestamp_locale_string=review_timestamp_date.toLocaleString();
     const review_accepted=review_status===review_status_to_index["accepted"];
     const review_result_string=review_accepted?"승인됨":"반려됨";
     const review_msg=request_alarm_datum.review_msg;
@@ -344,7 +418,7 @@ function CheckAlarms() {
         </div>
         <div className="row mb-2">
           <div className="col-3">검토 시각</div>
-          <div className="col-9">{review_timestamp}</div>
+          <div className="col-9">{review_timestamp_locale_string}</div>
         </div>
         <div className="row mb-2">
           <div className="col-3">검토 결과</div>
@@ -386,6 +460,7 @@ function CheckAlarms() {
     const sentiment_condition_string=condition_index_to_name[sentiment_condition];
     const go_to_bed_time=request_specific_data.실제취침;
     const wake_up_time=request_specific_data.실제기상;
+    const come_to_center_time=request_specific_data.실제등원;
     return (
       <div className="border-bottom border-secondary border-3 mb-3">
         <div className="row mb-2">
@@ -403,6 +478,10 @@ function CheckAlarms() {
         <div className="row mb-2">
           <div className="col-3">기상 시간</div>
           <div className="col-9">{wake_up_time}</div>
+        </div>
+        <div className="row mb-2">
+          <div className="col-3">등원 시간</div>
+          <div className="col-9">{come_to_center_time}</div>
         </div>
       </div>
     );
@@ -512,7 +591,7 @@ function CheckAlarms() {
     return (
       <div className="border-bottom border-secondary border-3 mb-3">
         <div className="row mb-2">
-          <div className="col-3">프로그램 구분</div>
+          <div className="col-3">구분</div>
           <div className="col-9">{program_name}</div>
         </div>
         <div className="row mb-2">
@@ -652,6 +731,7 @@ function CheckAlarms() {
       window.alert(alert_msg);
       return false;
     }
+    setNowLoading();
     const [save_success,reviewer_reassigned]=await axios
       .post("/api/saveTRDraftRequestReview",reviewResultPayload)
       .then((result)=>{
@@ -678,17 +758,21 @@ function CheckAlarms() {
         return [false,false];
       });
     if(!save_success) {
+      let ret;
       if(reviewer_reassigned){
         const TDRR_ID=reviewResultPayload.TDRRID;
         deletePaginationElementByTDRRID(TDRR_ID);
-        return [false,true];
+        ret=[false,true];
       }
-      else return [false,false];
+      else ret=[false,false];
+      setNowNotLoading();
+      return ret;
     }
     //here goes a state update
     const status=reviewResultPayload.reviewStatus;
     const msg=reviewResultPayload.reviewMsg;
     updatePagination(status,msg,datum_pagination_index);
+    setNowNotLoading();
     return [true,false];
   }
   function checkReviewForCreateElement(request_alarm_datum){
@@ -876,10 +960,10 @@ function CheckAlarms() {
             <thead>
               <tr>
                 <th width="5%"></th>
-                <th width="15%">아이디</th>
-                <th width="15%">이름</th>
+                <th width="20%">아이디</th>
+                <th width="10%">이름</th>
                 <th width="20%">요청 시각</th>
-                <th width="30%">요청 유형</th>
+                <th width="30%">요청 상세</th>
                 <th width="15%">내용 확인 및<br/>승인/반려</th>
               </tr>
             </thead>
@@ -889,7 +973,7 @@ function CheckAlarms() {
             </Table>):
             getNoDataPrompt()
           }
-          </div>
+        </div>
         <div className="UserInfoBoxFooter">
           {!isThisPageEmpty()?getAlarmSearchPageNav():null}
         </div>

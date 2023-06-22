@@ -221,11 +221,25 @@
 }
 
 .NewRequestPromptBox{
-  font-family: "NanumSquareEB", sans-serif !important;
-  font-size: 12px;
-  font-weight: bolder;
-  // text-shadow: 0px 0 black, 0 1px black, 1px 0 black, 0 0px black;
-  color: rgba(34, 156, 34, 1);
+  span{
+    font-family: "NanumSquareEB", sans-serif !important;
+    font-size: 12px;
+    font-weight: bolder;
+    // text-shadow: 0px 0 black, 0 1px black, 1px 0 black, 0 0px black;
+    color: rgba(34, 156, 34, 1);
+  }
+}
+
+.td-cell-vertical-middle{
+  vertical-align: middle;
+  text-overflow: ellipsis;
+  td>p{
+    width:100%;
+  }
+  td>span {
+    // border: 1px solid red;
+    text-overflow: ellipsis;
+  }
 }
 
 @media only screen and (max-width: 1000px) {

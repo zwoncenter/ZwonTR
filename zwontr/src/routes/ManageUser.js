@@ -14,7 +14,10 @@ import sensitiveInfoTerm from "../terms/sensitiveInfoAgree";
 
 const versionInfo = "1.6";
 
-function ManageUser() {
+function ManageUser({
+  setNowLoading,
+  setNowNotLoading,
+}) {
   let history= useHistory();
   const approved_status_categories=[
     "미승인된 사용자",
@@ -96,6 +99,7 @@ function ManageUser() {
       value:status_value,
     };
     if(relatedDocumentID) query["relatedDocumentID"]=relatedDocumentID;
+    setNowLoading();
     const change_success=await axios
       .post("/api/changeUserAccountApprovedStatus",query)
       .then((res)=>{
@@ -114,6 +118,7 @@ function ManageUser() {
       updated_status.status_data[pagination_idx].approved=status_value; // this should be changed
       setPagination(updated_status);
     }
+    setNowNotLoading();
   }
   function getGroupString(groupArray){
     if(!groupArray || Object.keys(groupArray[0]).length===0) return "";
@@ -222,6 +227,7 @@ function ManageUser() {
       username:isQueryUsingUsername()?queryUsername:null,
       queryPage:queryPage
     }
+    setNowLoading();
     const status_data_pagination=await axios
       .post("/api/searchUserAccountApprovedStatus",query)
       .then((res)=>{
@@ -240,9 +246,13 @@ function ManageUser() {
     //here pagenation data should be extracted
     const status_data=status_data_pagination.status_data;
     if(status_data.length>0) status_data.sort((a,b)=>{
-      return a.signUpDate>b.signUpDate?-1:a.signUpDate<b.signUpDate?1:0;
+      if(a.signUpDate!==b.signUpDate) return a.signUpDate>b.signUpDate?-1:1;
+      if(a.userType!==b.userType) return a.userType<b.userType?-1:1;
+      if(a.nickname!==b.nickname) return a.nickname<b.nickname?-1:1;
+      return a.username<b.username?-1:a.usernmae>b.username?1:0;
     });
     setPagination(status_data_pagination);
+    setNowNotLoading();
   }
   
   // 기존 학생 정보와 계정 연동 관련 코드

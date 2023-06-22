@@ -10,7 +10,10 @@ import { FaPencilAlt, FaTimes, FaCheck, FaUndo, FaSearch } from "react-icons/fa"
 import { useAccordionButton } from "react-bootstrap/AccordionButton";
 import Card from "react-bootstrap/Card";
 
-function Lecture() {
+function Lecture({
+  setNowLoading,
+  setNowNotLoading,
+}) {
   let history = useHistory();
   const paramID = useParams()["lectureID"];
   const [managerList, setmanagerList] = useState([]);
@@ -24,50 +27,50 @@ function Lecture() {
   const today = koreaNow.toISOString().split("T")[0];
 
   // lecture 수정 관련 코드
-  const updatelecture = async (newlecture) => {
-    // 기존 lecture Load
-    const existlecture = await axios
-      .get(`/api/Lecture/${newlecture["lectureID"]}`)
-      .then((result) => {
-        if (result.data === "로그인필요") {
-          window.alert("로그인이 필요합니다.");
-          return window.push("/");
-        }
-        return result["data"];
-      })
-      .catch((err) => {
-        return window.alert(err);
-      });
+  // const updatelecture = async (newlecture) => {
+  //   // 기존 lecture Load
+  //   const existlecture = await axios
+  //     .get(`/api/Lecture/${newlecture["lectureID"]}`)
+  //     .then((result) => {
+  //       if (result.data === "로그인필요") {
+  //         window.alert("로그인이 필요합니다.");
+  //         return window.push("/");
+  //       }
+  //       return result["data"];
+  //     })
+  //     .catch((err) => {
+  //       return window.alert(err);
+  //     });
 
-    // 둘의 version이 다를 경우, 강제로 새로고침
-    if (existlecture["version"] !== newlecture["version"]) {
-      window.alert("업데이트 사항이 있어 새로고침 합니다.");
-      return window.location.replace(`/Lecture/${newlecture["lectureID"]}`);
-    }
+  //   // 둘의 version이 다를 경우, 강제로 새로고침
+  //   if (existlecture["version"] !== newlecture["version"]) {
+  //     window.alert("업데이트 사항이 있어 새로고침 합니다.");
+  //     return window.location.replace(`/Lecture/${newlecture["lectureID"]}`);
+  //   }
 
-    // 최근수정일과 version 변경
-    newlecture["lastrevise"] = today;
-    newlecture["version"] += 1;
+  //   // 최근수정일과 version 변경
+  //   newlecture["lastrevise"] = today;
+  //   newlecture["version"] += 1;
 
-    // lecture document 수정
-    axios
-      .put(`/api/Lecture`, newlecture)
-      .then(function (result) {
-        if (result.data === true) {
-          window.alert("수정되었습니다.");
-          return window.location.reload();
-        } else if (result.data === "로그인필요") {
-          window.alert("로그인이 필요합니다.");
-          return history.push("/");
-        } else {
-          console.log(result.data);
-          window.alert(result.data);
-        }
-      })
-      .catch(function (err) {
-        window.alert("저장에 실패했습니다. 개발/데이터 팀에게 문의해주세요", err);
-      });
-  };
+  //   // lecture document 수정
+  //   axios
+  //     .put(`/api/Lecture`, newlecture)
+  //     .then(function (result) {
+  //       if (result.data === true) {
+  //         window.alert("수정되었습니다.");
+  //         return window.location.reload();
+  //       } else if (result.data === "로그인필요") {
+  //         window.alert("로그인이 필요합니다.");
+  //         return history.push("/");
+  //       } else {
+  //         console.log(result.data);
+  //         window.alert(result.data);
+  //       }
+  //     })
+  //     .catch(function (err) {
+  //       window.alert("저장에 실패했습니다. 개발/데이터 팀에게 문의해주세요", err);
+  //     });
+  // };
 
   // 학생 추가 관련 코드
   const [newname, setnewname] = useState("");
@@ -94,6 +97,7 @@ function Lecture() {
         window.alert("등록되지 않은 학생입니다");
         return;
       }
+      setNowLoading();
       axios
         .post(`/api/StudentOfLecture`, { lectureID: lecture["_id"], studentID: stuDBList.filter((e, idx) => e["ID"] === newname)[0]["_id"] })
         .then((result) => {
@@ -109,6 +113,7 @@ function Lecture() {
         .catch((err) => {
           window.alert(err);
         });
+      setNowNotLoading();
       // if (lecture["studentList"].includes(newname)) {
       //   window.alert(`${newname} 학생은 이미 수강생으로 등록되어 있습니다.`);
       //   setnewname("");
@@ -180,6 +185,7 @@ function Lecture() {
       return;
     }
 
+    setNowLoading();
     axios
       .delete(`/api/StudentOfLecture/${paramID}/${deletename}`)
       .then((result) => {
@@ -193,7 +199,7 @@ function Lecture() {
       .catch((err) => {
         window.alert(`삭제에 실패했습니다. ${err}`);
       });
-
+    setNowNotLoading();
     // const newlecture = JSON.parse(JSON.stringify(lecture));
     // // studentList와 students에서 모두 삭제.
     // newlecture["studentList"].splice(newlecture["studentList"].indexOf(deletename), 1);
@@ -394,6 +400,7 @@ function Lecture() {
     //   window.alert(`${deletename}이 수강생으로 등록되어 있지 않습니다.`);
     //   return;
     // }
+    setNowLoading();
     axios
       .delete(`/api/Assignment/${assignID["assignmentID"]}`)
       .then((result) => {
@@ -407,6 +414,7 @@ function Lecture() {
       .catch((err) => {
         window.alert(`삭제에 실패했습니다. ${err}`);
       });
+    setNowNotLoading();
   };
 
   // 강의 state
@@ -451,6 +459,7 @@ function Lecture() {
   }
 
   async function updateAssignmentOfStudentState(assignmentInfo){
+    setNowLoading();
     axios
     .post(`/api/AssignmentOfStudent/`, assignmentInfo)
     .then(function (result) {
@@ -467,10 +476,11 @@ function Lecture() {
         return false;
       }
     })
+    setNowNotLoading();
     return true;
   }
 
-  useEffect(async () => {
+  useEffect(async()=>{
     const newmanagerList = await axios
       .get("/api/managerList")
       .then((result) => {
@@ -483,7 +493,9 @@ function Lecture() {
         return err;
       });
     setmanagerList(newmanagerList);
+  },[]);
 
+  useEffect(async () => {
     const newstudentDBlist = await axios
       .get("/api/studentList")
       .then((result) => {
@@ -501,6 +513,10 @@ function Lecture() {
       return +(a.이름 > b.이름) - 0.5;
     });
     setstuDBList(newstudentDBlist);
+  }, []);
+
+  useEffect(async ()=>{
+    setNowLoading();
 
     const newlecture = await axios
       .get(`/api/Lecture/${paramID}`)
@@ -519,7 +535,6 @@ function Lecture() {
     tmpassignment["lectureID"] = newlecture["_id"];
     // console.log("tmpassignment: "+JSON.stringify(tmpassignment));
     // setnewassignment(tmpassignment);
-
     //강의 수강중인 학생 명단을 StudentOfLecture를 통해 가져옴
     const newStudentOfLectureList = await axios
       .get(`/api/StudentOfLecture/${paramID}`)
@@ -557,7 +572,9 @@ function Lecture() {
     lectureAssignmentData = processAssignmentOfStudentData(lectureAssignmentData, newStudentOfLectureList);
     // console.log("lAD:"+JSON.stringify(lectureAssignmentData));
     setLectureAssignments(lectureAssignmentData);
-  }, []);
+
+    setNowNotLoading();
+  },[]);
 
   const [assignments, setAssignments] = useState([]);
   function processAssignmentData(assignmentData){
@@ -865,12 +882,13 @@ function Lecture() {
           </div>
 
           <Button className="btn-secondary program-add"
-          onClick={() => {
+          onClick={async () => {
             console.log(newassignment);
             console.log(assignstudents);
             if(assignAdd()){
               if (window.confirm("해당 학생들에게 과제를 부여하시겠습니까?")) {
-                axios
+                setNowLoading();
+                await axios
                 .post("/api/Assignment", newassignment)
                 .then(function (result) {
                   if (result.data === true) {
@@ -888,6 +906,7 @@ function Lecture() {
                   console.log("저장 실패 : ", err);
                   window.alert(err);
                 });
+                setNowNotLoading();
             }
             }
           }}
@@ -1038,6 +1057,7 @@ function Lecture() {
               console.log(selectedAssign);
               if(assignupdate()){
                 if (window.confirm("과제정보를 수정하시겠습니까?")) {
+                  setNowLoading();
                   axios
                   .put("/api/Assignment", selectedAssign)
                   .then(function (result) {
@@ -1057,6 +1077,7 @@ function Lecture() {
                     console.log("저장 실패 : ", err);
                     window.alert(err);
                   });
+                  setNowNotLoading();
               }
               }
             }}
