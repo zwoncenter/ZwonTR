@@ -736,7 +736,7 @@ app.post("/api/getMyAlarms", loginCheck, permissionCheck(Role("manager")),async 
           textbook_name:"$TextBook_aggregate.교재",
           textbook_subject:"$TextBook_aggregate.과목",
           lecture_name:"$Lecture_aggregate.lectureName",
-          lecturer:"$Lecture_aggregate.manager", // this should be change later
+          lecturer:"$Lecture_aggregate.manager", // this should be changed later
           AOSID:"$AOS_aggregate._id",
           assignment_page_range_array:"$Assignment_aggregate.pageRangeArray",
           assignment_description:'$Assignment_aggregate.description',
@@ -6056,6 +6056,95 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
     if(related_document_id){
       await setUserInfoOfRelatedDocument(user_type_string,related_document_id,current_status.user_id,current_status.role_of_user_id,session);
     }
+
+    await session.commitTransaction();
+  }
+  catch(error){
+    await session.abortTransaction();
+    ret_val["success"]=false;
+    ret_val["ret"]= `네트워크 오류로 작업을 완료하지 못했습니다`;
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret_val);
+  }
+});
+
+app.post("/api/deleteWaitingUser",loginCheck, permissionCheck(Role("admin")), async (req,res)=>{
+  const ret_val={"success":true,"ret":null};
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
+  try{
+    session.startTransaction();
+    ret_val["ret"]={
+      value:null,
+      late:false,
+    };
+    let {
+      username,
+    }= req.body;
+
+    const waiting_user_doc= (await db.collection("User").aggregate([
+      {
+        $match:{
+          username:username
+        }
+      },
+      {
+        $lookup: {
+          from: "RoleOfUser",
+          localField: "_id",
+          foreignField: "user_id",
+          as: "RoleOfUser_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$RoleOfUser_aggregate",
+        }
+      },
+      {
+        $lookup: {
+          from: "GroupOfUser",
+          localField: "_id",
+          foreignField: "user_id",
+          as: "GroupOfUser_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$GroupOfUser_aggregate",
+        }
+      },
+      {
+        $project: {
+          user_id:"$_id",
+          user_approved:"$approved",
+          rou_id:"$RoleOfUser_aggregate._id",
+          rou_activated:"$RoleOfUser_aggregate.activated",
+          gou_id:"$GroupOfUser_aggregate._id",
+          gou_activated:"$RoleOfUser_aggregate.activated",
+        },
+      },
+    ],{session}).toArray())[0];
+    if(!waiting_user_doc) {
+      ret_val.ret.late=true;
+      return;
+    }
+    else if(waiting_user_doc.user_approved || waiting_user_doc.rou_activated || waiting_user_doc.gou_activated) throw new Error(`invalid request:2`);
+    
+    await db.collection(`GroupOfUser`).deleteOne({_id:waiting_user_doc.gou_id},{session});
+    await db.collection(`RoleOfUser`).deleteOne({_id:waiting_user_doc.rou_id},{session});
+    await db.collection(`User`).deleteOne({_id:waiting_user_doc.user_id},{session});
 
     await session.commitTransaction();
   }

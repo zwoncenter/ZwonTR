@@ -70,6 +70,22 @@ function ManageUser({
     total_page_num:1,
     status_data:[],
   });
+  function updatePaginationElement(paginationElementIndex,field_name,value){
+    setPagination((prevData)=>{
+      const newData=JSON.parse(JSON.stringify(prevData));
+      const status_data=newData.status_data;
+      (status_data[paginationElementIndex])[field_name]=value;
+      return newData;
+    });
+  }
+  function deletePaginationElement(paginationElementIndex){
+    setPagination((prevData)=>{
+      const newData=JSON.parse(JSON.stringify(prevData));
+      const status_data=newData.status_data;
+      status_data.splice(paginationElementIndex,1);
+      return newData;
+    });
+  }
 
   useEffect(()=>{
     getUserAccountApprovedStatus();
@@ -114,9 +130,36 @@ function ManageUser({
         return false
       });
     if(change_success){
-      const updated_status=JSON.parse(JSON.stringify(pagination));
-      updated_status.status_data[pagination_idx].approved=status_value; // this should be changed
-      setPagination(updated_status);
+      // const updated_status=JSON.parse(JSON.stringify(pagination));
+      // updated_status.status_data[pagination_idx].approved=status_value; // this should be changed
+      // setPagination(updated_status);
+      updatePaginationElement(pagination_idx,"approved",status_value);
+    }
+    setNowNotLoading();
+  }
+  async function deleteWaitingUser(username,pagination_idx){
+    const query={
+      username,
+    };
+    setNowLoading();
+    const change_success=await axios
+      .post("/api/deleteWaitingUser",query)
+      .then((res)=>{
+        const data=res.data;
+        if(!data.success) throw new Error();
+        else if(data.ret.late) {
+          window.alert("이미 삭제된 계정 정보입니다");
+          return true;
+        }
+        window.alert("계정 정보가 삭제되었습니다");
+        return true;
+      })
+      .catch((error)=>{
+        window.alert(`네트워크 오류로 사용자 데이터를 불러오지 못했습니다`);
+        return false;
+      });
+    if(change_success){
+      deletePaginationElement(pagination_idx);
     }
     setNowNotLoading();
   }
@@ -134,6 +177,7 @@ function ManageUser({
     else return date.toLocaleDateString();
   }
   function getTableRowFromUserInfoDatum(user_info_datum,idx){
+    const action_able=!user_info_datum.approved;
     return(
       <tr key={idx}>
         <td></td>
@@ -143,24 +187,41 @@ function ManageUser({
         <td><p>{getGroupString(user_info_datum.groupOfUser)}</p></td>
         <td><p>{getSignUpDateString(user_info_datum.signUpDate)}</p></td>
         <td>
-          <Button
-            variant="success"
-            className="button-fit-content"
-            disabled={user_info_datum.approved}
-            onClick={async ()=>{
-              const username=user_info_datum.username;
-              const nickname=user_info_datum.nickname;
-              const user_type_prompt=user_type_to_user_type_prompt_map[user_info_datum.userType];
-              if(user_info_datum.userType==="student"){
-                showRelatedStudentModal(user_info_datum,idx);
-                return;
-              }
-              if(!window.confirm(`${nickname}(${username}) 사용자의 [${user_type_prompt}] 권한을 활성화 하시겠습니까?`)) return;
-              await changeUserAccountApprovedStatus(user_info_datum,true,idx);
-            }}
-          >
-            <strong>승인</strong>
-          </Button>
+          {action_able?
+            <Button
+              variant="success"
+              className="button-fit-content"
+              disabled={user_info_datum.approved}
+              onClick={async ()=>{
+                const username=user_info_datum.username;
+                const nickname=user_info_datum.nickname;
+                const user_type_prompt=user_type_to_user_type_prompt_map[user_info_datum.userType];
+                if(user_info_datum.userType==="student"){
+                  showRelatedStudentModal(user_info_datum,idx);
+                  return;
+                }
+                if(!window.confirm(`${nickname}(${username}) 사용자의 [${user_type_prompt}] 권한을 활성화 하시겠습니까?`)) return;
+                await changeUserAccountApprovedStatus(user_info_datum,true,idx);
+              }}
+            >
+              <strong>승인</strong>
+            </Button>:null
+          }
+          {action_able?
+            <Button
+              variant="warning"
+              className="button-fit-content"
+              disabled={user_info_datum.approved}
+              onClick={async ()=>{
+                const username=user_info_datum.username;
+                const nickname=user_info_datum.nickname;
+                if(!window.confirm(`${nickname}(${username}) 계정의 가입을 반려하시겠습니까?\n(해당 계정의 모든 정보가 사라집니다)`)) return;
+                await deleteWaitingUser(username,idx);
+              }}
+            >
+              <strong>반려</strong>
+            </Button>:null
+          }
         </td>
       </tr>
     );
