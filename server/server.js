@@ -169,27 +169,60 @@ passport.use(
           //     });
           //   }
           // });
+          const session=db_client.startSession({
+            defaultTransactionOptions: {
+              readConcern: {
+                level: 'snapshot'
+              },
+              writeConcern: {
+                w: 'majority'
+              },
+              readPreference: 'primary'
+            }
+          });
+          let id_error=null;
+          let id_user=false;
+          let id_options=null;
           try{
-            const user_doc=await db.collection("User").findOne({username: inputID});
-            if (!user_doc) return done(null, false, { message: "존재하지 않는 아이디 입니다." });
+            session.startTransaction();
+            const user_doc=await db.collection("User").findOne({username: inputID},{session});
+            if (!user_doc) {
+              // return done(null, false, { message: "존재하지 않는 아이디 입니다." });
+              id_options={ message: "존재하지 않는 아이디 입니다." };
+              return;
+            }
             const hashed_pw=authentificator.getHashedSync(inputPW,user_doc.salt);
             if(crypto.timingSafeEqual(Buffer.alloc(authentificator.BufferLen,hashed_pw),Buffer.alloc(authentificator.BufferLen,user_doc.password))){
-              if(!user_doc.approved) return done(null,false,{message:"아직 사용이 승인되지 않은 아이디입니다.\n관리자에게 문의해주세요."});
-              const session_count= await db.collection(process.env.SESSION_COLLECTION_NAME).count({"session.passport.user.username":inputID});
+              if(!user_doc.approved) {
+                // return done(null,false,{message:"아직 사용이 승인되지 않은 아이디입니다.\n관리자에게 문의해주세요."});
+                id_options={message:"아직 사용이 승인되지 않은 아이디입니다.\n관리자에게 문의해주세요."};
+                return;
+              }
+              const session_count= await db.collection(process.env.SESSION_COLLECTION_NAME).countDocuments({"session.passport.user.username":inputID},{session});
               if(session_count>max_session_concurrent){
-                return done(null,false,{message: "접속할 수 있는 최대 연결 수를 넘어섰습니다"});
+                // return done(null,false,{message: "접속할 수 있는 최대 연결 수를 넘어섰습니다"});
+                id_options= {message: "접속할 수 있는 최대 연결 수를 넘어섰습니다"};
+                return;
               }
               console.log("로그인 성공, ", user_doc);
               console.log(`${inputID} current session num: ${session_count}`);
-              return done(null, user_doc);
+              // return done(null, user_doc);
+              id_user=user_doc;
+              return;
             } else {
-              return done(null, false, {
-                message: "비밀번호가 일치하지 않습니다.",
-              });
+              // return done(null, false, { message: "비밀번호가 일치하지 않습니다."});
+              id_options= { message: "비밀번호가 일치하지 않습니다."};
+              return;
             }
           }
           catch(error){
-            return done(error);
+            // return done(error);
+            id_error=error;
+            return;
+          }
+          finally{
+            await session.endSession();
+            return done(id_error,id_user,id_options);
           }
         }
     )
@@ -250,7 +283,16 @@ passport.serializeUser(function (user, done) {
         throw new Error(`네트워크 오류로 로그인에 실패했습니다:1`); // this can be thrown if data inconsistency occurs
       }
     }
-    done(null,{username:user.username,nickname:user.nickname,roles:roles_arr,user_mode: user_mode,student_id:student_id}); // passport.user에 user 정보 저장
+    done(null,
+      {
+        username:user.username,
+        nickname:user.nickname,
+        roles:roles_arr,
+        user_mode: user_mode,
+        student_id:student_id,
+        user_oid:user._id,
+      }
+    ); // passport.user에 user 정보 저장
   });
 });
 
@@ -935,10 +977,47 @@ app.post("/api/saveTRDraftRequestReview",loginCheck, permissionCheck(Role("manag
         }
       },
       {
+        // $lookup: {
+        //   from: "TR",
+        //   localField: "ID",
+        //   foreignField: "ID",
+        //   as: "TR_aggregate",
+        // },
         $lookup: {
           from: "TR",
-          localField: "ID",
-          foreignField: "ID",
+          let: {
+            student_legacy_id:"$ID",
+          },
+          pipeline:[
+            {
+              $match:{
+                $expr:{
+                  $and:[
+                    {
+                      $eq:[
+                        "$날짜",
+                        today_string,
+                      ]
+                    },
+                    {
+                      $eq:[
+                        "$ID",
+                        "$$student_legacy_id"
+                      ]
+                    }
+                  ]
+                },
+              }
+            },
+            {
+              $limit:1
+            },
+            {
+              $project:{
+                날짜:1
+              }
+            }
+          ],
           as: "TR_aggregate",
         },
       },
@@ -3660,6 +3739,9 @@ app.get("/api/TR/:ID/:date", loginCheck, permissionCheck(Role("manager"),Role("a
   }
 });
 
+const TR_mid_feedback_fields=["mid_feedback_user_id","mid_feedback_nickname","mid_feedback_timestamp"];
+const TR_final_feedback_fields=["final_feedback_user_id","final_feedback_nickname","final_feedback_timestamp"];
+
 //특정 날짜 범위 내에 있는 TR들을 가져오는 URI
 app.post("/api/TRByDateRange/", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function(req,res){
   const ret_val={"success":false, "ret":null};
@@ -3712,6 +3794,9 @@ app.post("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), 
   const date_string=newTR.날짜;
   try{
     session.startTransaction();
+    const user_oid=req.session
+    const user_nickanme=req.session.passport.user.nickname;
+    const current_date=getCurrentDate();
     const tr_doc= await db.collection("TR").findOne({ID:student_legacy_id, 날짜:date_string},{session});
     if(tr_doc) throw new Error("해당 날짜에 작성된 TR이 이미 존재합니다");
     await db.collection("TR").insertOne(newTR);
