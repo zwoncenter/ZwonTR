@@ -219,6 +219,10 @@ function ManageUser({
       </div>
     )
   }
+  function checkSearchQueryValid(query){
+    //check if username is not empty
+    return !isQueryUsingUsername() || !!query.username;
+  }
   async function getUserAccountApprovedStatus(queryPage=1){
     const query= {
       approvedStatus:approved_status_map[approvedStatusCategory],
@@ -226,6 +230,10 @@ function ManageUser({
       queryAllUserType:userTypeCategory==="전체",
       username:isQueryUsingUsername()?queryUsername:null,
       queryPage:queryPage
+    }
+    if(!checkSearchQueryValid(query)){
+      window.alert(`검색할 사용자 아이디를 입력해주세요`);
+      return;
     }
     setNowLoading();
     const status_data_pagination=await axios

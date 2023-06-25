@@ -5864,7 +5864,7 @@ app.post("/api/searchUserAccountApprovedStatus", loginCheck, permissionCheck(Rol
     } 
   }
   catch(error){
-    console.log(`error: ${JSON.stringify(error)}`);
+    console.log(`error: ${error}`);
     ret_val["success"]=false;
     ret_val["ret"]= `네트워크 오류로 데이터를 불러오지 못했습니다`;
   }
