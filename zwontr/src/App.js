@@ -3,6 +3,7 @@ import { Link, Route, Switch, useLocation, Redirect, matchPath } from "react-rou
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import { AiOutlineHome } from "react-icons/ai";
+import { BsGearFill } from "react-icons/bs"
 import { VscBell, VscBellDot } from "react-icons/vsc";
 import { Puff } from "react-loader-spinner";
 import axios from "axios";
@@ -35,6 +36,7 @@ import WeeklystudyfeedbackEdit from "./routes/WeeklystudyfeedbackEdit";
 import ManageUser from "./routes/ManageUser";
 import NotFound from "./routes/NotFound";
 import TRDraft from "./routes/TRDraft";
+import MyPage from "./routes/MyPage";
 
 import checkUserPermittedToAccessPath from "./routes/route_reachable_user_modes";
 
@@ -257,27 +259,35 @@ function App() {
           <div className="userNameBox">
             <h5>{myInfo.nickname}</h5> 님 환영합니다!
             <br/>
+            <Button
+              className="userInfoButton btn-dark"
+              onClick={async ()=>{
+                history.push("/MyPage");
+              }}
+            >
+              내 정보<BsGearFill/>
+            </Button>
+            <Button
+              className="userInfoButton btn-secondary"
+              onClick={async ()=>{
+                if(window.confirm('로그아웃 하시겠습니까?')){
+                  await axios
+                    .post("/api/logout",{})
+                    .then((result)=>{
+                      setMyInfo({...myInfoTemplate});
+                      return history.push("/");
+                    })
+                    .catch((err)=>{
+                      window.alert("로그아웃에 실패했습니다\n다시 시도해주세요");
+                      console.log(`logout fail: ${err}`);
+                    });
+                }
+              }}
+            >
+              로그아웃
+            </Button>
           </div>
           :null}
-          <Button
-            className="logoutButton btn-secondary"
-            onClick={async ()=>{
-              if(window.confirm('로그아웃 하시겠습니까?')){
-                await axios
-                  .post("/api/logout",{})
-                  .then((result)=>{
-                    setMyInfo({...myInfoTemplate});
-                    return history.push("/");
-                  })
-                  .catch((err)=>{
-                    window.alert("로그아웃에 실패했습니다\n다시 시도해주세요");
-                    console.log(`logout fail: ${err}`);
-                  });
-              }
-            }}
-          >
-            로그아웃
-          </Button>
         </div>
         {/* <Button
           className="menu-map-btn btn-secondary"
@@ -522,6 +532,13 @@ function App() {
           <CheckAlarms
             setNowLoading={setNowLoading}
             setNowNotLoading={setNowNotLoading}
+          />
+        </Route>
+        <Route exact path="/MyPage">
+          <MyPage
+            setNowLoading={setNowLoading}
+            setNowNotLoading={setNowNotLoading}
+            setMyInfo={setMyInfo}
           />
         </Route>
         <Route exact path="/NotFound">

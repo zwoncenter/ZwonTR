@@ -26,6 +26,7 @@ const path_to_permitted_user_modes_map={
     "/WeeklystudyfeedbackEdit/:ID/:feedbackDate":["manager","admin"],
     "/ManageUser":["admin"],
     "/CheckAlarms":["manager"],
+    "/MyPage":["parent","student","manager","admin"],
     "/NotFound":["guest","parent","student","manager","admin"],
 };
 const path_list= Object.keys(path_to_permitted_user_modes_map);

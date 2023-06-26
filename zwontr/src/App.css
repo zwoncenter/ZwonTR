@@ -59,6 +59,12 @@ p {
 
 .userNameBox {
   margin-bottom: 20px;
+  text-align: center;
+}
+
+.userInfoButton {
+  margin-top: 10px;
+  margin-left: 5px;
 }
 
 .UtilButtonBox {

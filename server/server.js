@@ -401,7 +401,93 @@ app.get("/api/getMyInfo", async function (req, res) {
   }
   catch(error){
     ret_val["success"]=false;
-    ret_val["ret"]=`error while getting my info`;
+    ret_val["ret"]=`네트워크 오류로 내 정보를 불러오지 못했습니다`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
+//get info for my page
+app.get("/api/getMyPageInfo",loginCheck, permissionCheck(Role("parent"),Role("student"),Role("manager"),Role("admin")),async function (req, res) {
+  const ret_val={"success":true, "ret":null};
+  try{
+    const username=req.session.passport.user.username;
+    const today_string=getCurrentKoreaDateYYYYMMDD();
+    const result_data=(await db.collection("User").aggregate([
+      {
+        $match: {
+          username,
+        }
+      },
+      {
+        $lookup: {
+          from: "RoleOfUser",
+          localField: "_id",
+          foreignField: "user_id",
+          as: "ROU_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$ROU_aggregate",
+        }
+      },
+      {
+        $lookup: {
+          from: "Role",
+          localField: "ROU_aggregate.role_id",
+          foreignField: "_id",
+          as: "Role_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$Role_aggregate",
+        }
+      },
+      {
+        $lookup: {
+          from: "GroupOfUser",
+          localField: "_id",
+          foreignField: "user_id",
+          as: "GOU_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$GOU_aggregate",
+        }
+      },
+      {
+        $lookup: {
+          from: "Group",
+          localField: "GOU_aggregate.group_id",
+          foreignField: "_id",
+          as: "Group_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$Group_aggregate",
+        }
+      },
+      {
+        $project:{
+          username:"$username",
+          nickname:"$nickname",
+          role_name:"$Role_aggregate.role_name",
+          group_name:"$Group_aggregate.group_name",
+        }
+      }
+    ]).toArray())[0];
+    console.log(`result data: ${JSON.stringify(result_data)}`);
+    ret_val["ret"]=result_data;
+  }
+  catch(error){
+    console.log(`error: ${error}`);
+    ret_val["success"]=false;
+    ret_val["ret"]=`error while getting my alarms`;
   }
   finally{
     return res.json(ret_val);
