@@ -3222,10 +3222,10 @@ app.get("/api/managerList", loginCheck, permissionCheck(Role("student"),Role("ma
 
 // get user array whose roles are "manager" by 
 async function getManagerUserListInSameGroupByMyUsername(username,getUserObjectId=false,targetUsernameList=[],query_option={}){
-  const user_doc= await db.collection("User").findOne({username});
+  const user_doc= await db.collection("User").findOne({username},query_option);
   if(!user_doc) throw new Error(`invalid username argument`);
   const user_id= user_doc._id;
-  const group_of_user_doc= await db.collection("GroupOfUser").findOne({user_id});
+  const group_of_user_doc= await db.collection("GroupOfUser").findOne({user_id},query_option);
   if(!group_of_user_doc) throw new Error(`invalid function call: user with no group assigned`);
   const group_id= group_of_user_doc.group_id;
 
@@ -3324,7 +3324,7 @@ app.get("/api/managerListByStudentAccount", loginCheck, permissionCheck(Role("st
 });
 
 //get manager list from my group
-app.get("/api/managerListByMyGroup", loginCheck, permissionCheck(Role("manager")), async (req, res) => {
+app.get("/api/managerListByMyGroup", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   const ret={"success":false,"ret":null};
   try{
     const username=req.session.passport.user.username;
