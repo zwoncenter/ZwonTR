@@ -3323,6 +3323,22 @@ app.get("/api/managerListByStudentAccount", loginCheck, permissionCheck(Role("st
   }
 });
 
+//get manager list from my group
+app.get("/api/managerListByMyGroup", loginCheck, permissionCheck(Role("manager")), async (req, res) => {
+  const ret={"success":false,"ret":null};
+  try{
+    const username=req.session.passport.user.username;
+    const manager_list=await getManagerUserListInSameGroupByMyUsername(username,true);
+    ret["success"]=true; ret["ret"]=manager_list;
+  }
+  catch(e){
+    ret["ret"]="매니저 목록 데이터를 불러오는 중 오류가 발생했습니다";
+  }
+  finally{
+    return res.json(ret);
+  }
+});
+
 //get manager list from registered user accounts whose roles are designated as "manager"s
 app.post("/api/managerListByStudentLegacyID", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   const ret={"success":false,"ret":null};

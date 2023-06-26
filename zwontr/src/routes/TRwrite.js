@@ -731,7 +731,8 @@ function TRwrite() {
 
   useEffect(async ()=>{
     const id_to_nickname_list= await axios
-      .post("/api/managerListByStudentLegacyID",{studentLegacyID:paramID})
+      // .post("/api/managerListByStudentLegacyID",{studentLegacyID:paramID})
+      .get("/api/managerListByMyGroup")
       .then((result)=>{
         const data=result.data;
         if(!data.success) throw new Error(`error while getting manager list:0`);
