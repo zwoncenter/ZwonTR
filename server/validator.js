@@ -109,6 +109,12 @@ function groupOfUserNeeded(userRoleName){
     if(typeof userRoleName!=="string") return false;
     return userRoleName==="student" || userRoleName==="manager";
 }
+const suspended_date_default_string="1970-01-01";
+const suspended_date_default_value=new Date(moment(suspended_date_default_string).toJSON());
+function getSuspendedDateDefaultDate(){
+    return suspended_date_default_value;
+}
+
 module.exports={
     isUsernameValid,
     isPasswordValid,
@@ -124,4 +130,5 @@ module.exports={
     isDepartmentValid,
     isMajorValid,
     groupOfUserNeeded,
+    getSuspendedDateDefaultDate,
 };

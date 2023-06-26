@@ -294,7 +294,7 @@ function SignUpPage({
     return usernameDuplicationChecked;
   }
   function isPasswordValid(password){
-    const matched=password.match(/^(?=.*[a-z])(?=.*\d)[A-Za-z\d]{8,16}$/);
+    const matched=password.match(/^(?=.*[a-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,16}$/);
     if(matched){
       return password.length===matched[0].length;
     }
@@ -487,7 +487,7 @@ function SignUpPage({
             {"아이디 중복 여부를 확인해주세요."}
           </span>:null}
         </Row>
-        {getRowByFieldName("password","비밀번호","8~16자이며 영문 소문자, 숫자가 하나 이상 포함되어야 합니다.",isPasswordValid,"password","",16)}
+        {getRowByFieldName("password","비밀번호","8~16자이며 영문 소문자, 숫자가 하나 이상 포함되어야 합니다.(@$!%*?& 사용가능)",isPasswordValid,"password","",16)}
         {getRowByFieldName("password_confirm","비밀번호 재확인","비밀번호가 일치하지 않습니다.",isPasswordConfirmed,"password","",16)}
         {getRowByFieldName("nickname","이름","2~10자의 한글만 입력해주세요.",isNicknameValid,"text","",10)}
         <Row className="mb-3 userInfoRow">

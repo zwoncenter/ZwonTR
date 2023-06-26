@@ -193,7 +193,7 @@ passport.use(
             }
             const hashed_pw=authentificator.getHashedSync(inputPW,user_doc.salt);
             if(crypto.timingSafeEqual(Buffer.alloc(authentificator.BufferLen,hashed_pw),Buffer.alloc(authentificator.BufferLen,user_doc.password))){
-              if(!user_doc.approved) {
+              if(!user_doc.approved || user_doc.suspended) {
                 // return done(null,false,{message:"아직 사용이 승인되지 않은 아이디입니다.\n관리자에게 문의해주세요."});
                 id_options={message:"아직 사용이 승인되지 않은 아이디입니다.\n관리자에게 문의해주세요."};
                 return;
@@ -2621,7 +2621,7 @@ app.post("/api/setProgramElementDeletedOnTrDraft",loginCheck, permissionCheck(Ro
       element_oid,
       newlySaved?program_doc_id:null,
     );
-    console.log(`program doc insert settings: ${JSON.stringify(program_doc_insert_settings)}`);
+    // console.log(`program doc insert settings: ${JSON.stringify(program_doc_insert_settings)}`);
     if(newlySaved) program_doc_insert_settings["study_data_list"]=[];
     const program_doc_update_settings=TRDraftRequestDataValidator.getProgramDataRequestOnUpdateSettings(
       TRDraftRequestDataValidator.request_status_to_index["created"],
@@ -3055,6 +3055,9 @@ function getUserObjectWithRegisterInfo(register_info,salt,password_hashed,curren
     username:register_info.username,
     salt:salt,
     password:password_hashed,
+    tmp_salt:null,
+    tmp_password:null,
+    tmp_password_expiration:validator.getSuspendedDateDefaultDate(),
     email:register_info.email,
     nickname:register_info.nickname,
     create_date: current_date,
@@ -3066,6 +3069,9 @@ function getUserObjectWithRegisterInfo(register_info,salt,password_hashed,curren
     approved:false,
     approved_date:null,
     approved_by:null,
+    suspended:false,
+    suspended_change_date:null,
+    suspended_by:null,
     sns_type:null,
     sns_id:null,
     sns_connect_date:null,
@@ -3231,6 +3237,7 @@ async function getManagerUserListInSameGroupByMyUsername(username,getUserObjectI
 
   const user_match_filter={
     approved:true,
+    suspended:false, // this is necessary since "suspend" feature made
   }
   if(targetUsernameList.length>0) user_match_filter.username={"$in":targetUsernameList};
 
@@ -5841,6 +5848,7 @@ app.post("/api/searchUserAccountApprovedStatus", loginCheck, permissionCheck(Rol
     };
     let {
       approvedStatus: approved_status,
+      suspendedStatus: suspended_status,
       userType:user_type_string,
       queryAllUserType:query_all_user_type,
       username,
@@ -5848,26 +5856,45 @@ app.post("/api/searchUserAccountApprovedStatus", loginCheck, permissionCheck(Rol
     }= req.body;
     if(!userTypeQueryValid(user_type_string,query_all_user_type,username) || !Number.isInteger(queryPage) || queryPage<1) throw new Error(`invalid query`);
     approved_status=!!approved_status;
-    const user_type_index=roles.roleNameToIndex[user_type_string];
+    suspended_status=!!suspended_status;
+    const user_type_index=roles.roleNameToIndex[user_type_string];    
     const first_match_stage={
       $match:{
         approved:approved_status
       }
     }
     if(username) first_match_stage["$match"]["username"]=username;
+    if(suspended_status===true) first_match_stage["$match"]["suspended"]=true;
     
     const second_match_stage={
       $match:{
-        "RoleOfUser_aggregate.activated":approved_status,
+        // "RoleOfUser_aggregate.activated":approved_status,
+        "RoleOfUser_aggregate.activated":!approved_status?false:!suspended_status,
       }
     };
     if(!query_all_user_type && !username) second_match_stage["$match"]["Role_aggregate.role_index"]=user_type_index;
 
     const third_match_stage={
       $match:{
-        "$or":[{"GroupOfUser_aggregate.activated":{"$exists":false}},{"GroupOfUser_aggregate.activated":approved_status,}],
+        "$or":[
+          {"GroupOfUser_aggregate.activated":{"$exists":false}},
+          // {"GroupOfUser_aggregate.activated":approved_status,}
+          {"GroupOfUser_aggregate.activated":!approved_status?false:!suspended_status}
+        ],
       }
     };
+
+    let sort_criterion;
+    if(!approved_status){
+      sort_criterion={
+        signUpDate:-1,approvedDate:-1,
+      };
+    }
+    else{
+      sort_criterion={
+        suspendedChangeDate:-1,signUpDate:-1,
+      };
+    }
 
     const result_data= (await db.collection("User").aggregate([
       first_match_stage,
@@ -5934,8 +5961,11 @@ app.post("/api/searchUserAccountApprovedStatus", loginCheck, permissionCheck(Rol
           nickname: {"$first": "$nickname"},
           userType: {"$first": "$Role_aggregate.role_name"},
           signUpDate: {"$first": "$create_date"},
+          approvedDate: {"$first": "$approved_date"},
+          suspendedChangeDate: {"$first": "$suspended_change_date"},
           groupOfUser: {"$push":{group_name:"$Group_aggregate.group_name"}},
           approved: {"$first": "$approved"},
+          suspended: {"$first": "$suspended"},
         }
       },
       // {
@@ -5951,7 +5981,7 @@ app.post("/api/searchUserAccountApprovedStatus", loginCheck, permissionCheck(Rol
       {
         $facet:{
           metadata:[{$count:"total_items_num"}],
-          data:[{$sort:{created_date:-1,modify_date:-1,approved_date:-1}},{$skip:items_per_page*(queryPage-1)},{$limit:items_per_page}]
+          data:[{$sort:sort_criterion},{$skip:items_per_page*(queryPage-1)},{$limit:items_per_page}]
         }
       }
     ]).toArray())[0];
@@ -5963,7 +5993,7 @@ app.post("/api/searchUserAccountApprovedStatus", loginCheck, permissionCheck(Rol
     ret_val["ret"]["pagination"]["status_data"]=result_data.data;
     if(result_data.metadata.total_items_num>1 && result_data.data.length===0){
       ret_val["ret"]["pagination"]["pageInvalid"]=true;
-    } 
+    }
   }
   catch(error){
     console.log(`error: ${error}`);
@@ -6000,6 +6030,7 @@ async function setUserInfoOfRelatedDocument(userType,relatedDocumentID,user_id,r
   }
 }
 
+//this server endpoint used only when user account is approved
 app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role("admin")), async (req,res)=>{
   const ret_val={"success":true,"ret":null};
   const session=db_client.startSession({
@@ -6017,7 +6048,7 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
     session.startTransaction();
     ret_val["ret"]={
       value:null,
-      late:null,
+      late:false,
     };
     let {
       value:status_value,
@@ -6025,9 +6056,15 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
       username,
       relatedDocumentID:related_document_id,
     }= req.body;
+
+    const user_oid=req.session.passport.user.user_oid;
+    const current_date=getCurrentDate();
+
     if(!changeApprovedStatusQueryTypeValid(status_value,user_type_string,related_document_id)
       || !changeApprovedStatusQueryRelatedDocumentValid(user_type_string,related_document_id)) throw new Error(`invalid query`);
     const user_type_index=roles.roleNameToIndex[user_type_string];
+    status_value=!!status_value;
+    if(!status_value) throw new Error(`invalid request:0`);
 
     const result_data= await db.collection("User").aggregate([
       {
@@ -6088,30 +6125,29 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
     ],{session}).toArray();
     if(result_data.length!==1) throw new Error('invalid request');
     const current_status=result_data[0];
-    if(current_status.user_approved===status_value && current_status.role_of_user_activated===status_value){
-      ret_val["ret"]["value"]=status_value;
-      ret_val["ret"]["late"]=true;
+    // if(current_status.user_approved===status_value && current_status.role_of_user_activated===status_value){
+    //   ret_val["ret"]["value"]=status_value;
+    //   ret_val["ret"]["late"]=true;
+    //   return;
+    // }
+    // else if(current_status.user_approved===status_value || current_status.role_of_user_activated===status_value){
+    //   throw new Error(`DB inconsistency error`);
+    // }
+    if(current_status.user_approved===true && current_status.role_of_user_activated===true){
+      ret_val.ret.value=true;
+      ret_val.ret.late=true;
       return;
     }
-    else if(current_status.user_approved===status_value || current_status.role_of_user_activated===status_value){
-      throw new Error(`DB inconsistency error`);
-    }
-
-    ret_val["ret"]["value"]=status_value;
-    ret_val["ret"]["late"]=false;
-
-    const approving_admin_doc= await db.collection('User').findOne({username:req.session.passport.user.username},{session});
-    if(!approving_admin_doc) throw new Error(`invalid access from unknown`);
-    const approving_admin_id=approving_admin_doc._id;
-
-    const cur_time=getCurrentDate();
 
     await db.collection('RoleOfUserLog').insertOne(
       {
         role_of_user_id:current_status.role_of_user_id,
         role_index:current_status.role_index,
-        info_modified_date:cur_time,
-        triggered_by:approving_admin_id,
+        // info_modified_date:cur_time,
+        // triggered_by:approving_admin_id,
+        info_modified_date:current_date,
+        triggered_by:user_oid,
+        activated:true,
       },
       {session}
     );
@@ -6119,9 +6155,12 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
     await db.collection("RoleOfUser").updateOne(
       {_id:current_status.role_of_user_id},
       {$set:{
-        activated:status_value,
-        modify_date:cur_time,
-        modified_by:approving_admin_id,
+        // activated:status_value,
+        // modify_date:cur_time,
+        // modified_by:approving_admin_id,
+        activated:true,
+        modify_date:current_date,
+        modified_by:user_oid,
       }},
       {session}
     );
@@ -6129,9 +6168,13 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
     await db.collection("User").updateOne(
       {_id:current_status.user_id},
       {$set:{
-        approved:status_value,
-        approved_by:approving_admin_id,
-        approved_date:cur_time,
+        // approved:status_value,
+        // approved_by:approving_admin_id,
+        // approved_date:cur_time,
+        approved:true,
+        approved_by:user_oid,
+        approved_date:current_date,
+        suspended_change_date:current_date,
       }},
       {session}
     );
@@ -6141,15 +6184,20 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
       const group_of_user_logs=group_of_user_list.map((group_of_user,idx)=>{
         return {
           group_of_user_id:group_of_user._id,
-          info_modified_date:cur_time,
-          triggered_by:approving_admin_id,
+          // info_modified_date:cur_time,
+          // triggered_by:approving_admin_id,
+          info_modified_date:current_date,
+          triggered_by:user_oid,
+          activated:true,
         };
       });
       const group_of_user_id_list=group_of_user_list.map((group_of_user,idx)=>group_of_user._id);
       const updated_fields={
         activated:true,
-        modify_date:cur_time,
-        modified_by:approving_admin_id,
+        // modify_date:cur_time,
+        // modified_by:approving_admin_id,
+        modify_date:current_date,
+        modified_by:user_oid,
       };
       await db.collection("GroupOfUserLog").insertMany(group_of_user_logs,{ordered:true,session});
       await db.collection("GroupOfUser").updateMany({_id:{"$in":group_of_user_id_list}},{"$set":updated_fields},{session});
@@ -6157,6 +6205,193 @@ app.post("/api/changeUserAccountApprovedStatus",loginCheck, permissionCheck(Role
 
     if(related_document_id){
       await setUserInfoOfRelatedDocument(user_type_string,related_document_id,current_status.user_id,current_status.role_of_user_id,session);
+    }
+
+    await session.commitTransaction();
+  }
+  catch(error){
+    await session.abortTransaction();
+    ret_val["success"]=false;
+    ret_val["ret"]= `네트워크 오류로 작업을 완료하지 못했습니다`;
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret_val);
+  }
+});
+
+//only approved users suspended status can be chagned between suspended & not-suspended
+app.post("/api/changeUserAccountSuspendedStatus",loginCheck, permissionCheck(Role("admin")), async (req,res)=>{
+  const ret_val={"success":true,"ret":null};
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
+  try{
+    session.startTransaction();
+    ret_val["ret"]={
+      value:null,
+      late:false,
+    };
+    let {
+      username,
+      suspend,
+    }= req.body;
+    suspend=!!suspend;
+
+    const user_oid=req.session.passport.user.user_oid;
+    const current_date=getCurrentDate();
+
+    const user_doc= (await db.collection("User").aggregate([
+      {
+        $match:{
+          username,
+        }
+      },
+      {
+        $lookup: {
+          from: "RoleOfUser",
+          localField: "_id",
+          foreignField: "user_id",
+          as: "RoleOfUser_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$RoleOfUser_aggregate",
+        }
+      },
+      {
+        $lookup: {
+          from: "Role",
+          localField: "RoleOfUser_aggregate.role_id",
+          foreignField: "_id",
+          as: "Role_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$Role_aggregate",
+        }
+      },
+      {
+        $lookup: {
+          from: "GroupOfUser",
+          localField: "_id",
+          foreignField: "user_id",
+          as: "GroupOfUser_aggregate",
+        },
+      },
+      {
+        $project: {
+          user_id:"$_id",
+          username: "$username",
+          user_approved: "$approved",
+          user_suspended: "$suspended",
+          role_index: "$Role_aggregate.role_index",
+          rou_id: "$RoleOfUser_aggregate._id",
+          rou_activated: "$RoleOfUser_aggregate.activated",
+          group_of_user_list: "$GroupOfUser_aggregate",
+        },
+      },
+    ],{session}).toArray())[0];
+    if(!user_doc){
+      ret_val.ret.late=true;
+      return;
+    }
+    else if(!user_doc.user_approved) throw new Error(`invalid request:2`);
+    else if(user_doc.user_suspended===suspend){
+      ret_val.ret.late=true;
+      return;
+    }
+    const role_index=user_doc.role_index;
+    const rou_id=user_doc.rou_id;
+
+    await db.collection('RoleOfUserLog').insertOne(
+      {
+        // role_of_user_id:current_status.role_of_user_id,
+        // role_index:current_status.role_index,
+        // info_modified_date:cur_time,
+        // triggered_by:approving_admin_id,
+
+        role_of_user_id:rou_id,
+        role_index:role_index,
+        info_modified_date:current_date,
+        activated:!suspend,
+      },
+      {session}
+    );
+
+    await db.collection("RoleOfUser").updateOne(
+      // {_id:current_status.role_of_user_id},
+      {_id:rou_id},
+      {$set:{
+        // activated:status_value,
+        // modify_date:cur_time,
+        // modified_by:approving_admin_id,
+
+        activated:!suspend,
+        modify_date:current_date,
+        modified_by:user_oid,
+      }},
+      {session}
+    );
+
+    await db.collection("User").updateOne(
+      // {_id:current_status.user_id},
+      {_id:user_doc._id},
+      {$set:{
+        // approved:status_value,
+        // approved_by:approving_admin_id,
+        // approved_date:cur_time,
+
+        suspended:suspend,
+        suspended_change_date:current_date,
+        suspended_by:user_oid,
+      }},
+      {session}
+    );
+
+    const group_of_user_list=user_doc.group_of_user_list;
+    if(group_of_user_list.length>0){
+      const group_of_user_logs=group_of_user_list.map((group_of_user,idx)=>{
+        return {
+          group_of_user_id:group_of_user._id,
+          // info_modified_date:cur_time,
+          // triggered_by:approving_admin_id,
+
+          info_modified_date:current_date,
+          triggered_by:user_oid,
+          activated:!suspend,
+        };
+      });
+      const group_of_user_id_list=group_of_user_list.map((group_of_user,idx)=>group_of_user._id);
+      const updated_fields={
+        // activated:true,
+        // modify_date:cur_time,
+        // modified_by:approving_admin_id,
+
+        activated:!suspend,
+        modify_date:current_date,
+        modified_by:user_oid,
+      };
+      await db.collection("GroupOfUserLog").insertMany(group_of_user_logs,{ordered:true,session});
+      await db.collection("GroupOfUser").updateMany({_id:{"$in":group_of_user_id_list}},{"$set":updated_fields},{session});
+    }
+
+    //lastly, delete all currently logined suspended users' sessions if user now being suspended
+    if(suspend){
+      const session_username_path="session.passport.user.username";
+      const session_filter={};
+      session_filter[session_username_path]=username;
+      await db.collection(process.env.SESSION_COLLECTION_NAME).deleteMany(session_filter,{session});
     }
 
     await session.commitTransaction();

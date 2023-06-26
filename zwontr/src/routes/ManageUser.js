@@ -22,11 +22,18 @@ function ManageUser({
   const approved_status_categories=[
     "미승인된 사용자",
     "승인된 사용자",
+    "사용 중지된 사용자",
   ];
   const approved_status_map={
     "미승인된 사용자":false,
     "승인된 사용자":true,
+    "사용 중지된 사용자":true,
   }
+  const suspended_status_map={
+    "미승인된 사용자":false,
+    "승인된 사용자":false,
+    "사용 중지된 사용자":true,
+  };
   const user_type_categories=[
     "전체",
     "학생",
@@ -121,7 +128,7 @@ function ManageUser({
       .then((res)=>{
         const data=res.data;
         if(!data.success) throw new Error();
-        else if(data.ret.late) window.alert("이미 변경사항이 반영된 변경사항입니다");
+        else if(data.ret.late) window.alert("이미 반영된 변경사항입니다");
         window.alert("권한 변경사항이 저장되었습니다");
         return true;
       })
@@ -134,6 +141,33 @@ function ManageUser({
       // updated_status.status_data[pagination_idx].approved=status_value; // this should be changed
       // setPagination(updated_status);
       updatePaginationElement(pagination_idx,"approved",status_value);
+      // updatePaginationElement(pagination_idx,"suspendedChangeDate",getCurrentDateString());
+    }
+    setNowNotLoading();
+  }
+  async function changeUserAccountSuspendedStatus(user_info,suspend,pagination_idx){
+    const query={
+      username:user_info.username,
+      suspend,
+    }
+    setNowLoading();
+    const change_success=await axios
+      .post("/api/changeUserAccountSuspendedStatus",query)
+      .then((res)=>{
+        const data=res.data;
+        if(!data.success) throw new Error();
+        else if(data.ret.late) window.alert("이미 반영된 변경사항입니다");
+        window.alert("사용 권한 변경사항이 저장되었습니다");
+        return true;
+      })
+      .catch((error)=>{
+        console.log(`error: ${error}`);
+        window.alert(`네트워크 오류로 사용자 데이터를 불러오지 못했습니다`);
+        return false
+      });
+    if(change_success){
+      updatePaginationElement(pagination_idx,"suspended",suspend);
+      // updatePaginationElement(pagination_idx,"suspendedChangeDate",getCurrentDateString());
     }
     setNowNotLoading();
   }
@@ -171,57 +205,113 @@ function ManageUser({
   function checkIsDateToday(date){
     return today.getFullYear()===date.getFullYear() && today.getMonth()===date.getMonth() && today.getDate()===date.getDate();
   }
-  function getSignUpDateString(dateString){
+  function getCurrentDateString(){
+    const date=new Date();
+    return date.toISOString();
+  }
+  function getDateString(dateString){
     const date=new Date(dateString);
     if(checkIsDateToday(date)) return date.toLocaleTimeString();
-    else return date.toLocaleDateString();
+    // else return date.toLocaleDateString();
+    else return date.toLocaleString();
+  }
+  function getTableRowDateString(user_info_datum){
+    const approved=user_info_datum.approved;
+    const sign_up_date=user_info_datum.signUpDate;
+    const suspended_change_date=user_info_datum.suspendedChangeDate;
+    if(!approved) return getDateString(sign_up_date);
+    else return getDateString(suspended_change_date);
+  }
+  function getAccountPermissionButton(user_info_datum,idx){
+    const username=user_info_datum.username;
+    const nickname=user_info_datum.nickname;
+    const approved_status=user_info_datum.approved;
+    const suspended_status=user_info_datum.suspended;
+    if(!approved_status){
+      return (
+        <p>
+          <Button
+            variant="success"
+            className="button-fit-content"
+            disabled={approved_status}
+            onClick={async ()=>{
+              const user_type_prompt=user_type_to_user_type_prompt_map[user_info_datum.userType];
+              if(user_info_datum.userType==="student"){
+                showRelatedStudentModal(user_info_datum,idx);
+                return;
+              }
+              if(!window.confirm(`${nickname}(${username}) 사용자의 [${user_type_prompt}] 권한을 활성화 하시겠습니까?`)) return;
+              await changeUserAccountApprovedStatus(user_info_datum,true,idx);
+            }}
+          >
+            <strong>승인</strong>
+          </Button>
+          <Button
+            variant="warning"
+            className="button-fit-content"
+            disabled={approved_status}
+            onClick={async ()=>{
+              if(!window.confirm(`${nickname}(${username}) 계정의 가입을 반려하시겠습니까?\n(해당 계정의 모든 정보가 사라집니다)`)) return;
+              await deleteWaitingUser(username,idx);
+            }}
+          >
+            <strong>반려</strong>
+          </Button>
+        </p>
+      );
+    }
+    else if(approved_status && !suspended_status){
+      return (
+        <p>
+          <Button
+            variant="danger"
+            className="button-fit-content"
+            disabled={suspended_status}
+            onClick={async ()=>{
+              if(!window.confirm(`${nickname}(${username}) 사용자의 서비스 사용을 중지 하시겠습니까?`)) return;
+              // await changeUserAccountApprovedStatus(user_info_datum,true,idx);
+              await changeUserAccountSuspendedStatus(user_info_datum,true,idx);
+            }}
+          >
+            <strong>사용 중지</strong>
+          </Button>
+        </p>
+      );
+    }
+    else if(approved_status && suspended_status){
+      return (
+        <p>
+          <Button
+            variant="success"
+            className="button-fit-content"
+            disabled={!suspended_status}
+            onClick={async ()=>{
+              if(!window.confirm(`${nickname}(${username}) 사용자의 서비스 사용을 재승인 하시겠습니까?`)) return;
+              // await changeUserAccountApprovedStatus(user_info_datum,true,idx);
+              await changeUserAccountSuspendedStatus(user_info_datum,false,idx);
+            }}
+          >
+            <strong>사용 재승인</strong>
+          </Button>
+        </p>
+      );
+    }
   }
   function getTableRowFromUserInfoDatum(user_info_datum,idx){
-    const action_able=!user_info_datum.approved;
+    const approved_status=user_info_datum.approved;
+    const suspended_status=user_info_datum.suspended;
+    const username=user_info_datum.username;
+    const nickname=user_info_datum.nickname;
     return(
       <tr key={idx}>
         <td></td>
-        <td><p>{user_info_datum.username}</p></td>
-        <td><p>{user_info_datum.nickname}</p></td>
-        <td><p>{user_type_to_user_type_prompt_map[ user_info_datum.userType]}</p></td>
+        <td><p>{username}</p></td>
+        <td><p>{nickname}</p></td>
+        <td><p>{user_type_to_user_type_prompt_map[user_info_datum.userType]}</p></td>
         <td><p>{getGroupString(user_info_datum.groupOfUser)}</p></td>
-        <td><p>{getSignUpDateString(user_info_datum.signUpDate)}</p></td>
+        <td><p>{getTableRowDateString(user_info_datum)}</p></td>
         <td>
-          {action_able?
-            <Button
-              variant="success"
-              className="button-fit-content"
-              disabled={user_info_datum.approved}
-              onClick={async ()=>{
-                const username=user_info_datum.username;
-                const nickname=user_info_datum.nickname;
-                const user_type_prompt=user_type_to_user_type_prompt_map[user_info_datum.userType];
-                if(user_info_datum.userType==="student"){
-                  showRelatedStudentModal(user_info_datum,idx);
-                  return;
-                }
-                if(!window.confirm(`${nickname}(${username}) 사용자의 [${user_type_prompt}] 권한을 활성화 하시겠습니까?`)) return;
-                await changeUserAccountApprovedStatus(user_info_datum,true,idx);
-              }}
-            >
-              <strong>승인</strong>
-            </Button>:null
-          }
-          {action_able?
-            <Button
-              variant="warning"
-              className="button-fit-content"
-              disabled={user_info_datum.approved}
-              onClick={async ()=>{
-                const username=user_info_datum.username;
-                const nickname=user_info_datum.nickname;
-                if(!window.confirm(`${nickname}(${username}) 계정의 가입을 반려하시겠습니까?\n(해당 계정의 모든 정보가 사라집니다)`)) return;
-                await deleteWaitingUser(username,idx);
-              }}
-            >
-              <strong>반려</strong>
-            </Button>:null
-          }
+          {getAccountPermissionButton(user_info_datum,idx)}
         </td>
       </tr>
     );
@@ -280,13 +370,61 @@ function ManageUser({
       </div>
     )
   }
+  const [tableDateColumnPrompt,setTableDateColumnPrompt]=useState(getTableDateColumnPrompt());
+  const [tableActionColumnPrompt,setTableActionColumnPrompt]=useState(getTableActionColumnPrompt());
+  function updateTableColumnNames(){
+    setTableDateColumnPrompt(getTableDateColumnPrompt());
+    setTableActionColumnPrompt(getTableActionColumnPrompt());
+  }
+  function getTableDateColumnPrompt(){
+    if(approvedStatusCategory===approved_status_categories[0]){ //not approved users
+      return "회원가입 날짜";
+    }
+    else if(approvedStatusCategory===approved_status_categories[1]){ // approved users
+      return <span>사용승인(재개)<br/>날짜</span>
+    }
+    else if(approvedStatusCategory===approved_status_categories[2]){ // suspended users
+      return "사용중지 날짜"
+    } 
+  }
+  function getTableActionColumnPrompt(){
+    if(approvedStatusCategory===approved_status_categories[0]){ //not approved users
+      return "사용 승인";
+    }
+    else if(approvedStatusCategory===approved_status_categories[1]){ // approved users
+      return "사용 중지"
+    }
+    else if(approvedStatusCategory===approved_status_categories[2]){ // suspended users
+      return "사용 재개"
+    } 
+  }
   function checkSearchQueryValid(query){
     //check if username is not empty
     return !isQueryUsingUsername() || !!query.username;
   }
+  function getUserAccountApprovedStatusSortFunction(){
+    if(approvedStatusCategory===approved_status_categories[0]){
+      return (a,b)=>{
+        if(a.signUpDate!==b.signUpDate) return a.signUpDate>b.signUpDate?-1:1;
+        if(a.userType!==b.userType) return a.userType<b.userType?-1:1;
+        if(a.nickname!==b.nickname) return a.nickname<b.nickname?-1:1;
+        return a.username<b.username?-1:a.usernmae>b.username?1:0;
+      };
+    }
+    else if(approvedStatusCategory===approved_status_categories[1] ||
+      approvedStatusCategory===approved_status_categories[2]){
+      return (a,b)=>{
+        if(a.suspendedChangeDate!==b.suspendedChangeDate) return a.suspendedChangeDate>b.suspendedChangeDate?-1:1;
+        if(a.userType!==b.userType) return a.userType<b.userType?-1:1;
+        if(a.nickname!==b.nickname) return a.nickname<b.nickname?-1:1;
+        return a.username<b.username?-1:a.usernmae>b.username?1:0;
+      };
+    }
+  }
   async function getUserAccountApprovedStatus(queryPage=1){
     const query= {
       approvedStatus:approved_status_map[approvedStatusCategory],
+      suspendedStatus:suspended_status_map[approvedStatusCategory],
       userType:user_prompt_to_user_type_map[userTypeCategory],
       queryAllUserType:userTypeCategory==="전체",
       username:isQueryUsingUsername()?queryUsername:null,
@@ -312,15 +450,18 @@ function ManageUser({
           status_data:[]
         };
       })
-    //here pagenation data should be extracted
+    //here pagination data should be extracted
     const status_data=status_data_pagination.status_data;
-    if(status_data.length>0) status_data.sort((a,b)=>{
-      if(a.signUpDate!==b.signUpDate) return a.signUpDate>b.signUpDate?-1:1;
-      if(a.userType!==b.userType) return a.userType<b.userType?-1:1;
-      if(a.nickname!==b.nickname) return a.nickname<b.nickname?-1:1;
-      return a.username<b.username?-1:a.usernmae>b.username?1:0;
-    });
+    // if(status_data.length>0) status_data.sort((a,b)=>{
+    //   if(a.signUpDate!==b.signUpDate) return a.signUpDate>b.signUpDate?-1:1;
+    //   if(a.userType!==b.userType) return a.userType<b.userType?-1:1;
+    //   if(a.nickname!==b.nickname) return a.nickname<b.nickname?-1:1;
+    //   return a.username<b.username?-1:a.usernmae>b.username?1:0;
+    // });
+    const sort_function=getUserAccountApprovedStatusSortFunction();
+    status_data.sort(sort_function);
     setPagination(status_data_pagination);
+    updateTableColumnNames();
     setNowNotLoading();
   }
   
@@ -531,8 +672,8 @@ function ManageUser({
                 <th width="15%">이름</th>
                 <th width="10%">사용자<br/>유형</th>
                 <th width="15%">소속</th>
-                <th width="20%">회원가입 날짜</th>
-                <th width="20%">사용 승인</th>
+                <th width="20%">{tableDateColumnPrompt}</th>
+                <th width="20%">{tableActionColumnPrompt}</th>
               </tr>
             </thead>
             <tbody>
