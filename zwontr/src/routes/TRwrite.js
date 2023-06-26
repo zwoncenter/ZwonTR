@@ -729,6 +729,27 @@ function TRwrite() {
   // Write code
   const isInitialMount = useRef(true);
 
+  useEffect(async ()=>{
+    const id_to_nickname_list= await axios
+      .post("/api/managerListByStudentLegacyID",{studentLegacyID:paramID})
+      .then((result)=>{
+        const data=result.data;
+        if(!data.success) throw new Error(`error while getting manager list:0`);
+        return data.ret;
+      })
+      .catch((err)=>{
+        console.log(`err: ${err}`);
+        window.alert(`네트워크 오류로 데이터를 불러오지 못했습니다:1`);
+        window.location.reload();
+      });
+    const itn_map={reverse:{}};
+    id_to_nickname_list.forEach((e,idx)=>{
+      itn_map[e.username]=e.nickname;
+      itn_map.reverse[e.nickname]=e.username;
+    });
+    setmanagerList(id_to_nickname_list.map(e=>e.nickname));
+  },[]);
+
   useEffect(async () => {
     // console.log(typeof TR)
     // console.log(TR)
@@ -769,18 +790,18 @@ function TRwrite() {
       setlectureList(newlectureList);
     }
 
-    const newmanagerList = await axios
-      .get("/api/managerList")
-      .then((result) => {
-        const data=result.data;
-          if(data.success===true) return data.ret;
-          else throw new Error(data.ret);
-          // return result["data"];
-      })
-      .catch((err) => {
-        return err;
-      });
-    setmanagerList(newmanagerList);
+    // const newmanagerList = await axios
+    //   .get("/api/managerList")
+    //   .then((result) => {
+    //     const data=result.data;
+    //       if(data.success===true) return data.ret;
+    //       else throw new Error(data.ret);
+    //       // return result["data"];
+    //   })
+    //   .catch((err) => {
+    //     return err;
+    //   });
+    // setmanagerList(newmanagerList);
 
     const newTR = JSON.parse(JSON.stringify(TR));
     newstuDB.진행중교재.map(function (a, i) {

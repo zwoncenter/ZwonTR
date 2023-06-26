@@ -1563,44 +1563,44 @@ function TRedit() {
   }, [paramDate]);
 
   //get manager in same group with student legacy ID
-  // useEffect(async ()=>{
-  //   const id_to_nickname_list= await axios
-  //     .post("/api/managerListByStudentLegacyID",{studentLegacyID:paramID})
-  //     .then((result)=>{
-  //       const data=result.data;
-  //       if(!data.success) throw new Error(`error while getting manager list:0`);
-  //       return data.ret;
-  //     })
-  //     .catch((err)=>{
-  //       console.log(`err: ${err}`);
-  //       window.alert(`네트워크 오류로 데이터를 불러오지 못했습니다:1`);
-  //       window.location.reload();
-  //     });
-  //   const itn_map={reverse:{}};
-  //   id_to_nickname_list.forEach((e,idx)=>{
-  //     itn_map[e.username]=e.nickname;
-  //     itn_map.reverse[e.nickname]=e.username;
-  //   });
-  //   setUsernameToUserNickname(itn_map);
-  //   setmanagerList(id_to_nickname_list.map(e=>e.nickname));
-  //   updateDraftOverwriteReady("managerList",true);
-  // },[]);
+  useEffect(async ()=>{
+    const id_to_nickname_list= await axios
+      .post("/api/managerListByStudentLegacyID",{studentLegacyID:paramID})
+      .then((result)=>{
+        const data=result.data;
+        if(!data.success) throw new Error(`error while getting manager list:0`);
+        return data.ret;
+      })
+      .catch((err)=>{
+        console.log(`err: ${err}`);
+        window.alert(`네트워크 오류로 데이터를 불러오지 못했습니다:1`);
+        window.location.reload();
+      });
+    const itn_map={reverse:{}};
+    id_to_nickname_list.forEach((e,idx)=>{
+      itn_map[e.username]=e.nickname;
+      itn_map.reverse[e.nickname]=e.username;
+    });
+    setUsernameToUserNickname(itn_map);
+    setmanagerList(id_to_nickname_list.map(e=>e.nickname));
+    updateDraftOverwriteReady("managerList",true);
+  },[]);
 
   //get maanger list from single document with all manager list
-  useEffect(async ()=>{
-    const newmanagerList = await axios
-      .get("/api/managerList")
-      .then((result) => {
-        const data=result.data;
-          if(data.success===true) return data.ret;
-          else throw new Error(data.ret);
-          // return result["data"];
-      })
-      .catch((err) => {
-        return err;
-      });
-    setmanagerList(newmanagerList);
-  },[]);
+  // useEffect(async ()=>{
+  //   const newmanagerList = await axios
+  //     .get("/api/managerList")
+  //     .then((result) => {
+  //       const data=result.data;
+  //         if(data.success===true) return data.ret;
+  //         else throw new Error(data.ret);
+  //         // return result["data"];
+  //     })
+  //     .catch((err) => {
+  //       return err;
+  //     });
+  //   setmanagerList(newmanagerList);
+  // },[]);
 
   //하나의 변수(paramDate)를 지켜보면서 load 해오는 데이터 코드가 너무 많아서 useEffect 하나 더 만듦(thread사용 등의 이유로 속도 올리기 위함)
   useEffect(async()=>{
