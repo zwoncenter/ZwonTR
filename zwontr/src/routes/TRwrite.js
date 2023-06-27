@@ -512,23 +512,24 @@ function TRwrite() {
   };
 
   function 입력확인() {
+    const mid_feedback_written=!!TR.중간피드백;
+    const final_feedback_written=!!TR.매니저피드백;
     if (!TR.날짜) {
       window.alert("일간하루 날짜가 입력되지 않았습니다.");
       return false;
     }
-    if (!TR.중간매니저 && !TR.작성매니저) {
-      window.alert("중간 혹은 귀가 작성매니저 중 하나는 선택되어야합니다.");
-      return false;
-    }
-    if (TR.중간피드백 && !TR.중간매니저) {
-      window.alert("중간피드백 작성매니저가 선택되지 않았습니다.");
-      return false;
-    }
-    if (TR.매니저피드백 && !TR.작성매니저) {
-      window.alert("귀가피드백 작성매니저가 선택되지 않았습니다.");
-      return false;
-    }
-
+    // if (!TR.중간매니저 && !TR.작성매니저) {
+    //   window.alert("중간 혹은 귀가 작성매니저 중 하나는 선택되어야합니다.");
+    //   return false;
+    // }
+    // if (TR.중간피드백 && !TR.중간매니저) {
+    //   window.alert("중간피드백 작성매니저가 선택되지 않았습니다.");
+    //   return false;
+    // }
+    // if (TR.매니저피드백 && !TR.작성매니저) {
+    //   window.alert("귀가피드백 작성매니저가 선택되지 않았습니다.");
+    //   return false;
+    // }
     if (TR.결석여부 !== false) {
       if (TR.결석여부 === true && TR.결석사유.length === 0) {
         window.alert("미등원 사유가 선택되지 않았습니다.");
@@ -537,17 +538,20 @@ function TRwrite() {
       return true;
     }
 
-    if (TR.작성매니저 && !TR.신체컨디션) {
+    // if (TR.작성매니저 && !TR.신체컨디션) {
+    if (final_feedback_written && !TR.신체컨디션) {
       window.alert("신체컨디션이 선택되지 않았습니다.");
       return false;
     }
 
-    if (TR.작성매니저 && !TR.정서컨디션) {
+    // if (TR.작성매니저 && !TR.정서컨디션) {
+    if (final_feedback_written && !TR.정서컨디션) {
       window.alert("정서컨디션이 선택되지 않았습니다.");
       return false;
     }
 
-    if (TR.작성매니저 && TR.학습) {
+    // if (TR.작성매니저 && TR.학습) {
+    if (final_feedback_written && TR.학습) {
       let validStudyCount=0;
       for (let i = 0; i < TR.학습.length; i++) {
         if(checkTextBookOfAssignment(TR.학습[i].교재)) continue;
@@ -576,10 +580,6 @@ function TRwrite() {
         //   );
         //   return false;
         // }
-        // if (TR.학습[i].최근진도 >= parseInt(newstuDB["진행중교재"][i]["총교재량"].match(/\d+/))) {
-        //   window.alert("")
-        //   return false;
-        // }
       }
     }
     if (isNaN(TR.실제학습)) {
@@ -596,18 +596,20 @@ function TRwrite() {
       for (let lecture of lectureList) {
         for (let assignID of lecture["students"][paramID]["진행중과제"]) {
           if (today === lecture["assignments"][assignID]["과제기한"]) {
-            if (window.confirm(`${lecture["assignments"][assignID]["과제내용"]}(이)가 오늘까지 입니다. 저장을 진행하시겠습니까?`) === false) return false
+            if (window.confirm(`${lecture["assignments"][assignID]["과제내용"]}(이)가 오늘까지 입니다. 저장을 진행하시겠습니까?`) === false) return false;
           }
         }
       }
     }
-    
-    if (TR.작성매니저 && TR.매니저피드백.length < 40) {
-      window.alert("귀가 피드백은 최소 40자 이상 입력되어야 합니다.")
+
+    // if (TR.작성매니저 && TR.매니저피드백.length < 40) {
+    if (final_feedback_written && TR.매니저피드백.length < 40) {
+      window.alert("귀가 피드백은 최소 40자 이상 입력되어야 합니다.");
       return false;
     }
 
-    if(TR.작성매니저 && TR.매니저피드백){ // 마감피드백 저장 전에
+    // if(TR.작성매니저 && TR.매니저피드백){ // 마감피드백 저장 전에
+    if(final_feedback_written && TR.매니저피드백){ // 마감피드백 저장 전에
       if(!checkStudyTimeOfFinishedLectureAssignment()){// 완료처리 하였으나 학습시간 입력 안한 강의과제 있는지 확인
         window.alert("완료 처리 되었으나 학습 시간이 입력되지 않은 강의 과제가 있습니다");
         return false;
@@ -2570,7 +2572,7 @@ function TRwrite() {
                 </h5>
               </div>
               <div>
-                <Form.Select
+                {/* <Form.Select
                   size="sm"
                   className="feedback-sub"
                   value={TR.중간매니저}
@@ -2588,7 +2590,7 @@ function TRwrite() {
                         );
                       })
                     : null}
-                </Form.Select>
+                </Form.Select> */}
               </div>
             </div>
             <Accordion>
@@ -2616,7 +2618,7 @@ function TRwrite() {
                 </h5>
               </div>
               <div>
-                <Form.Select
+                {/* <Form.Select
                   size="sm"
                   className="feedback-sub"
                   value={TR.작성매니저}
@@ -2634,7 +2636,7 @@ function TRwrite() {
                         );
                       })
                     : null}
-                </Form.Select>
+                </Form.Select> */}
               </div>
             </div>
             <Accordion>

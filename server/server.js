@@ -1365,6 +1365,62 @@ app.post("/api/getNotWrittenTRDraftRequests", loginCheck, permissionCheck(Role("
   }
 });
 
+//student user this week study board link
+app.get("/api/getStudentThisWeekStudyBoardLink",loginCheck, permissionCheck(Role("student")), async function (req, res) {
+  const ret_val={"success":true, "ret":null};
+  try{
+    const group_doc= (await db.collection("User").aggregate(
+      [
+        {
+          $match: {
+            username:req.session.passport.user.username,
+          }
+        },
+        {
+          $lookup: {
+            from: "GroupOfUser",
+            localField: "_id",
+            foreignField: "user_id",
+            as: "GOU_aggregate",
+          },
+        },
+        { 
+          $unwind: {
+            path:"$GOU_aggregate",
+          }
+        },
+        {
+          $lookup: {
+            from: "Group",
+            localField: "GOU_aggregate.group_id",
+            foreignField: "_id",
+            as: "Group_aggregate",
+          },
+        },
+        { 
+          $unwind: {
+            path:"$Group_aggregate",
+          }
+        },
+        {
+          $project: {
+            _id:0,
+            link:"$Group_aggregate.student_this_week_study_board_link",
+          },
+        },
+      ]).toArray())[0];
+    if(!group_doc) throw new Error(`invalid request`);
+    ret_val["ret"]=group_doc.link;
+  }
+  catch(error){
+    ret_val["success"]=false;
+    ret_val["ret"]=`error while getting my this week goal board link`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
 //student user life cycle and study time goals
 app.get("/api/getMyLifeCycleAndStudyTimeGoals", loginCheck, permissionCheck(Role("student")), async function (req, res) {
   const ret_val={"success":true, "ret":null};
@@ -1632,7 +1688,7 @@ app.get("/api/getMyCurrentAssignments", loginCheck, permissionCheck(Role("studen
 
 function checkTRFinished(TRDoc){
   if(!TRDoc) return false;
-  return !!TRDoc.작성매니저 && TRDoc.작성매니저!=="선택";
+  return !!TRDoc.매니저피드백;
 }
 
 async function checkTRFinishedByStudentUsername(studentUsername,date_string,aggregateOption={}){
@@ -3903,11 +3959,22 @@ app.post("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), 
   const date_string=newTR.날짜;
   try{
     session.startTransaction();
-    const user_oid=req.session
+    const user_oid=req.session.passport.user.user_oid;
     const user_nickanme=req.session.passport.user.nickname;
     const current_date=getCurrentDate();
     const tr_doc= await db.collection("TR").findOne({ID:student_legacy_id, 날짜:date_string},{session});
     if(tr_doc) throw new Error("해당 날짜에 작성된 TR이 이미 존재합니다");
+
+    //write my user nickname to tr and record when it is
+    newTR.중간매니저=user_nickanme;
+    newTR.mid_feedback_user_oid=user_oid;
+    newTR.mid_feedback_date=current_date;
+    if(checkTRFinished(newTR)){
+      newTR.작성매니저=user_nickanme;
+      newTR.final_feedback_user_oid=user_oid;
+      newTR.final_feedback_date=current_date;
+    }
+
     await db.collection("TR").insertOne(newTR);
 
     await session.commitTransaction();
@@ -3971,6 +4038,10 @@ app.put("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), a
   try{
     session.startTransaction();
 
+    const user_nickanme=req.session.passport.user.nickname;
+    const user_oid=req.session.passport.user.user_oid;
+    const current_date=getCurrentDate();
+
     delete newTR._id;
     const student_legacy_id=newTR.ID;
     const date_string=newTR.날짜;
@@ -3986,6 +4057,22 @@ app.put("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), a
       for(let i=0; i<TDRIDList.length; i++){
         TDRIDList[i]=new ObjectId(TDRIDList[i]);
       }
+    }
+
+    //check mid feedback & final feedback changed and write relevant manager info to TR doc
+    const mid_feedback_changed=!!newTR.midFeedbackChanged;
+    delete newTR.midFeedbackChanged;
+    const final_feedback_changed=!!newTR.finalFeedbackChanged;
+    delete newTR.finalFeedbackChanged;
+    if(mid_feedback_changed){
+      newTR.중간매니저=user_nickanme;
+      newTR.mid_feedback_user_oid=user_oid;
+      newTR.mid_feedback_date=current_date;
+    }
+    if(final_feedback_changed){
+      newTR.작성매니저=user_nickanme;
+      newTR.final_feedback_user_oid=user_oid;
+      newTR.final_feedback_date=current_date;
     }
 
     const tr_doc= await db.collection("TR").findOne({ID:student_legacy_id, 날짜:date_string},{session});
@@ -4017,6 +4104,56 @@ app.put("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), a
               ],
               deleted:false,
               date:date_string,
+            }
+          },
+          {
+            $lookup: {
+              from: "TRDraftRequestReview",
+              let: {
+                review_id: {
+                  "$getField":{
+                    "field": "review_id",
+                    "input": {"$last":"$study_data_list"}
+                  }
+                },
+                tr_draft_request_id:"$_id",
+              },
+              pipeline:[
+                {
+                  $match:{
+                    $expr:{
+                      $and:[
+                        {
+                          $eq:[
+                            "$tr_draft_request_id",
+                            "$$tr_draft_request_id"
+                          ]
+                        },
+                        {
+                          $eq:[
+                            "$study_data_review_id",
+                            "$$review_id"
+                          ]
+                        }
+                      ]
+                    },
+                  }
+                },
+                {
+                  $limit:1
+                },
+                {
+                  $project:{
+                    reviewer_user_oid:"$review_from",
+                  }
+                }
+              ],
+              as: "Reviewer_aggregate",
+            },
+          },
+          {
+            $unwind: {
+              path:"$Reviewer_aggregate",
             }
           },
           {
@@ -4058,6 +4195,7 @@ app.put("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), a
               written_to_TR:1,
               AOSTextbookID: {$ifNull: ["$Assignment_aggregate.textbookID",""]},
               study_data: {"$last":"$study_data_list"},
+              reviewer_user_oid:"$Reviewer_aggregate.reviewer_user_oid",
             }
           }
         ],
@@ -4148,6 +4286,7 @@ app.post("/api/DailyGoalCheckLog", loginCheck, permissionCheck(Role("manager"),R
   });
   try{
     session.startTransaction();
+    const user_oid=req.session.passport.user.user_oid;
     //여기에 transaction으로 assignment인 경우에 state change도 해줘야됨
     const logData= req.body;
     const textbookID= logData["textbookID"]?new ObjectId(logData["textbookID"]):""; // should do validity check?
@@ -4195,7 +4334,8 @@ app.post("/api/DailyGoalCheckLog", loginCheck, permissionCheck(Role("manager"),R
           },
           $push:{
             "finishedStateList":finishedState,
-            "excuseList":excuse
+            "excuseList":excuse,
+            "checkedByList":user_oid,
           }
         },
         {"upsert":true,session}

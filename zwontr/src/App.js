@@ -4,6 +4,7 @@ import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import { AiOutlineHome } from "react-icons/ai";
 import { BsGearFill } from "react-icons/bs"
+import { MdChecklist } from "react-icons/md";
 import { VscBell, VscBellDot } from "react-icons/vsc";
 import { Puff } from "react-loader-spinner";
 import axios from "axios";
@@ -193,6 +194,66 @@ function App() {
   }
   function checkStudentMode(){
     return myInfo.user_mode==="student";
+  }
+
+  //student this week goals check link
+  const student_goal_link_template={
+    link:null,
+    loaded:false,
+  }
+  function getStudentGoalLinkTemplate(){
+    return {...student_goal_link_template};
+  }
+  const [studentGoalLink,setStudentGoalLink]= useState(getStudentGoalLinkTemplate());
+  function updateStudentGoalLink(field_name,value){
+    setStudentGoalLink((prevData)=>{
+      const newData={...prevData};
+      newData[field_name]=value;
+      return newData;
+    });
+  }
+  useEffect(async()=>{
+    if(checkStudentMode() && !studentGoalLink.loaded){
+      //here the link getting request goes... TBD
+      const link=await axios
+        .get("/api/getStudentThisWeekStudyBoardLink")
+        .then((res)=>{
+          const data=res.data;
+          const success=data.success;
+          const error_prompt=data.ret;
+          if(!success){
+            console.log(`err  ${error_prompt}`);
+            throw new Error(`err while getting goal board link`);
+          }
+          const link=data.ret;
+          return link;
+        })
+        .catch((err)=>{
+          console.log(`this week goal board load failed`);
+          return null;
+        })
+      updateStudentGoalLink("link",link);
+      updateStudentGoalLink("loaded",true);
+    }
+  },[myInfo.user_mode]);
+
+  function getStudentThisWeekGoalsLinkButton(){
+    if(checkStudentMode()){
+      const link=studentGoalLink.link;
+      if(!link) return null;
+      return (
+        <Button
+          variant="dark"
+          // href={studentGoalLink.link}
+          onClick={()=>{
+            window.open(link);
+          }}
+        >
+          <MdChecklist/>
+        </Button>
+      );
+    }
+    return null;
   }
 
   const navBarMenus=[
@@ -396,6 +457,7 @@ function App() {
       }
       {window.location.pathname!=="/"?
         <div className="UtilButtonBox">
+          {getStudentThisWeekGoalsLinkButton()}
           {checkAlarmsButtonNeeded()?
             <Button
               variant={getAlarmsButtonVariant()}

@@ -338,10 +338,11 @@ function getDGCLOnInsertSettings(date,studentID,studentName,AOSID,textbookID,AOS
     ret.description=description;
     return ret;
 }
-function getDGCLOnUpdatePushSettings(finishedState,excuse){
+function getDGCLOnUpdatePushSettings(finishedState,excuse,checkedBYOID){
     const ret={...DGCL_on_update_push_template};
     ret.finishedStateList=finishedState
     ret.excuseList=finishedState?"":excuse;
+    ret.checkedByList=checkedBYOID;
     return ret;
 }
 function getDGCLFilter(date,studentID,AOSID,textbookID){
@@ -374,9 +375,10 @@ function getDGCLBulkWriteUpsertDocsFromTDRDocs(TDRDocs,studentName,description="
         const textbookID=doc.request_type===request_type_name_to_index["LectureAndTextbookStudyData"]?doc.request_specific_data.textbookID:"";
         const finished_state=doc.study_data.finished_state;
         const excuse=doc.study_data.excuse;
+        const reviewer_user_oid=doc.reviewer_user_oid;
         const filter=getDGCLFilter(date,student_id,AOSID,textbookID);
         const set_on_insert_settings=getDGCLOnInsertSettings(date,student_id,studentName,AOSID,textbookID,AOSTextbookID,description);
-        const push_settings=getDGCLOnUpdatePushSettings(finished_state,excuse);
+        const push_settings=getDGCLOnUpdatePushSettings(finished_state,excuse,reviewer_user_oid);
         return getDGCLBulkWriteUpdateOneSettings(filter,set_on_insert_settings,push_settings);
     });
 }

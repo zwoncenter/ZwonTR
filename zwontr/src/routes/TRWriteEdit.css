@@ -172,6 +172,11 @@ textarea {
   margin-bottom: auto;
 }
 
+.FeedbackManagerInfo {
+  font-family: "NanumSquare" !important;
+  font-size: 0.8em;
+}
+
 .TRWriteCheck {
   text-align: left;
   margin-top: 5%;

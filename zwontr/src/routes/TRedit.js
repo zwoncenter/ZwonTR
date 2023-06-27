@@ -187,7 +187,81 @@ function TRedit() {
     중간피드백: "",
     매니저피드백: "",
     큐브책: [],
+
+    mid_feedback_date:null,
+    final_feedback_date:null,
   });
+  const TR_original_feedback_template={
+    중간피드백:"",
+    매니저피드백:"",
+  }
+  function getTROriginalFeedbackTemplate(){
+    return {...TR_original_feedback_template};
+  }
+  const [TROriginalFeedback,setTROriginalFeedback]=useState(getTROriginalFeedbackTemplate());
+  function updateTROriginalFeedback(fieldName,value){
+    setTROriginalFeedback((prevData)=>{
+      const newData={...prevData};
+      newData[fieldName]=value;
+      return newData;
+    });
+  }
+  function checkMidFeedbackChanged(){
+    return TROriginalFeedback.중간피드백!==TR.중간피드백;
+  }
+  function checkFinalFeedbackChanged(){
+    return TROriginalFeedback.매니저피드백!==TR.매니저피드백;
+  }
+  function checkDateToday(date){
+    const today_date=new Date(paramDate);
+    return date.getUTCFullYear()===today_date.getUTCFullYear() &&
+      date.getUTCMonth()===today_date.getUTCMonth() &&
+      date.getUTCDate()=== today_date.getUTCDate();
+  }
+  function getFeedbackDateString(dateString){
+    const date=new Date(dateString);
+    if(checkDateToday(date)) return date.toLocaleTimeString();
+    else return date.toLocaleDateString();
+  }
+  function getMidFeedbackManagerInfo(){
+    if(!TR.중간매니저) return null;
+    const mid_feedback_nickname=TR.중간매니저;
+    const mid_feedback_date=TR.mid_feedback_date;
+    return (
+      <div align="right">
+        <div className="FeedbackManagerInfo">
+          <span>
+            {`마지막 작성: ${mid_feedback_nickname}`}
+            {/* <br/> */}
+            {mid_feedback_date?
+              `, ${getFeedbackDateString(mid_feedback_date)}`
+              :null
+            }
+          </span>
+        </div>
+      </div>
+    );
+  }
+  function getFinalFeedbackManagerInfo(){
+    if(!TR.작성매니저) return null;
+    const final_feedback_nickname=TR.작성매니저;
+    const final_feedback_date=TR.final_feedback_date;
+    return (
+      <div align="right">
+        <div className="FeedbackManagerInfo">
+          <span>
+            {`마지막 작성: ${final_feedback_nickname}`}
+            {/* <br/> */}
+            {final_feedback_date?
+              `, ${getFeedbackDateString(final_feedback_date)}`
+              :null
+            }
+          </span>
+        </div>
+      </div>
+    );
+  } 
+  
 
   function checkTRAssignmentStudyTimeEmpty(){
     return Object.keys(TR.강의과제학습).length==0;
@@ -523,22 +597,24 @@ function TRedit() {
   };
 
   function 입력확인() {
+    const mid_feedback_written=!!TR.중간피드백;
+    const final_feedback_written=!!TR.매니저피드백;
     if (!TR.날짜) {
       window.alert("일간하루 날짜가 입력되지 않았습니다.");
       return false;
     }
-    if (!TR.중간매니저 && !TR.작성매니저) {
-      window.alert("중간 혹은 귀가 작성매니저 중 하나는 선택되어야합니다.");
-      return false;
-    }
-    if (TR.중간피드백 && !TR.중간매니저) {
-      window.alert("중간피드백 작성매니저가 선택되지 않았습니다.");
-      return false;
-    }
-    if (TR.매니저피드백 && !TR.작성매니저) {
-      window.alert("귀가피드백 작성매니저가 선택되지 않았습니다.");
-      return false;
-    }
+    // if (!TR.중간매니저 && !TR.작성매니저) {
+    //   window.alert("중간 혹은 귀가 작성매니저 중 하나는 선택되어야합니다.");
+    //   return false;
+    // }
+    // if (TR.중간피드백 && !TR.중간매니저) {
+    //   window.alert("중간피드백 작성매니저가 선택되지 않았습니다.");
+    //   return false;
+    // }
+    // if (TR.매니저피드백 && !TR.작성매니저) {
+    //   window.alert("귀가피드백 작성매니저가 선택되지 않았습니다.");
+    //   return false;
+    // }
     if (TR.결석여부 !== false) {
       if (TR.결석여부 === true && TR.결석사유.length === 0) {
         window.alert("미등원 사유가 선택되지 않았습니다.");
@@ -547,17 +623,20 @@ function TRedit() {
       return true;
     }
 
-    if (TR.작성매니저 && !TR.신체컨디션) {
+    // if (TR.작성매니저 && !TR.신체컨디션) {
+    if (final_feedback_written && !TR.신체컨디션) {
       window.alert("신체컨디션이 선택되지 않았습니다.");
       return false;
     }
 
-    if (TR.작성매니저 && !TR.정서컨디션) {
+    // if (TR.작성매니저 && !TR.정서컨디션) {
+    if (final_feedback_written && !TR.정서컨디션) {
       window.alert("정서컨디션이 선택되지 않았습니다.");
       return false;
     }
 
-    if (TR.작성매니저 && TR.학습) {
+    // if (TR.작성매니저 && TR.학습) {
+    if (final_feedback_written && TR.학습) {
       let validStudyCount=0;
       for (let i = 0; i < TR.학습.length; i++) {
         if(checkTextBookOfAssignment(TR.학습[i].교재)) continue;
@@ -608,12 +687,14 @@ function TRedit() {
       }
     }
 
-    if (TR.작성매니저 && TR.매니저피드백.length < 40) {
+    // if (TR.작성매니저 && TR.매니저피드백.length < 40) {
+    if (final_feedback_written && TR.매니저피드백.length < 40) {
       window.alert("귀가 피드백은 최소 40자 이상 입력되어야 합니다.");
       return false;
     }
 
-    if(TR.작성매니저 && TR.매니저피드백){ // 마감피드백 저장 전에
+    // if(TR.작성매니저 && TR.매니저피드백){ // 마감피드백 저장 전에
+    if(final_feedback_written && TR.매니저피드백){ // 마감피드백 저장 전에
       if(!checkStudyTimeOfFinishedLectureAssignment()){// 완료처리 하였으나 학습시간 입력 안한 강의과제 있는지 확인
         window.alert("완료 처리 되었으나 학습 시간이 입력되지 않은 강의 과제가 있습니다");
         return false;
@@ -1541,6 +1622,8 @@ function TRedit() {
           return err;
         });
     await setTR(newTR);
+    updateTROriginalFeedback("중간피드백",newTR.중간피드백);
+    updateTROriginalFeedback("매니저피드백",newTR.매니저피드백);
     updateDraftOverwriteReady("TR",true);
     if(checkTRAssignmentStudyTimeEmpty()) {
       // console.log(`no ast breakpoint`);
@@ -2977,7 +3060,7 @@ function TRedit() {
                   </h5>
                 </div>
                 <div>
-                  <Form.Select
+                  {/* <Form.Select
                       size="sm"
                       className="feedback-sub"
                       value={TR.중간매니저}
@@ -2995,9 +3078,13 @@ function TRedit() {
                           );
                         })
                         : null}
-                  </Form.Select>
+                  </Form.Select> */}
+                  
                 </div>
+                <br/>
+                
               </div>
+              {getMidFeedbackManagerInfo()}
 
               <Accordion>
                 <Accordion.Item eventKey="0">
@@ -3024,7 +3111,7 @@ function TRedit() {
                   </h5>
                 </div>
                 <div>
-                  <Form.Select
+                  {/* <Form.Select
                       size="sm"
                       className="feedback-sub"
                       value={TR.작성매니저}
@@ -3042,9 +3129,10 @@ function TRedit() {
                           );
                         })
                         : null}
-                  </Form.Select>
+                  </Form.Select> */}
                 </div>
               </div>
+              {getFinalFeedbackManagerInfo()}
               <Accordion>
                 <Accordion.Item eventKey="0">
                   <Accordion.Header>
@@ -3166,6 +3254,10 @@ function TRedit() {
                             const postedTR = JSON.parse(JSON.stringify(TR));
                             postedTR["강의과제학습"] = assignmentStudyTime; //TR 객체의 강의 과제 학습 시간 관련 state를 state로부터 업데이트하여 post: 더 나은 방법 찾아봐야: react state update queue 써야
                             postedTR["TDRIDList"] = getWrittenTDRIDList();
+
+                            //mid feedback, final feeback changed flag
+                            postedTR["midFeedbackChanged"]=checkMidFeedbackChanged();
+                            postedTR["finalFeedbackChanged"]=checkFinalFeedbackChanged();
 
                             await axios
                                 .put("/api/TR", postedTR)
