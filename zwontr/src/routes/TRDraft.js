@@ -211,6 +211,7 @@ function TRDraft({
       ret=prevRequest.request_specific_data;
       ret.request_status=prevRequest.request_status;
       ret.review_status=prevRequest.review_status;
+      ret.review_username=prevRequest.review_username;
       ret.review_msg=prevRequest.review_msg;
       no_prev_request=false;
       break;
