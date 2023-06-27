@@ -24,6 +24,14 @@ function TRedit() {
   let paramID = useParams()["ID"];
   let paramDate = useParams()["date"];
   const [managerList, setmanagerList] = useState([]);
+  function checkManagerSuspendedByNickname(nickname){
+    if(!nickname || nickname==="선택") return false;
+    for(let i=0; i<managerList.length; i++){
+      const cur_manager_nickname=managerList[i];
+      if(cur_manager_nickname===nickname) return false;
+    }
+    return true;
+  }
   const [stuDB, setstuDB] = useState({
     ID: "",
     이름: "",
@@ -2618,6 +2626,9 @@ function TRedit() {
                         </thead>
                         <tbody>
                         {TR.프로그램.map(function (a, i) {
+                          const manager_nickname=a.매니저;
+                          const manager_suspended=checkManagerSuspendedByNickname(manager_nickname);
+                          
                           return (
                               <tr key={i}>
                                 <td>
@@ -2664,22 +2675,30 @@ function TRedit() {
                                   </Form.Select>
                                 </td>
                                 <td>
-                                  <Form.Select
+                                  {!manager_suspended?
+                                    <Form.Select
                                       size="sm"
                                       value={a.매니저}
                                       onChange={(e) => {
                                         change_depth_three("프로그램", i, "매니저", e.target.value);
                                       }}
-                                  >
-                                    <option value="선택">선택</option>
-                                    {managerList.map(function (b, j) {
-                                      return (
-                                          <option value={b} key={j}>
-                                            {b}
-                                          </option>
-                                      );
-                                    })}
-                                  </Form.Select>
+                                    >
+                                      <option value="선택">선택</option>
+                                      {managerList.map(function (b, j) {
+                                        return (
+                                            <option value={b} key={j}>
+                                              {b}
+                                            </option>
+                                        );
+                                      })}
+                                    </Form.Select>:
+                                    <input
+                                      type="text"
+                                      value={manager_nickname}
+                                      disabled={manager_suspended}
+                                      className="inputText"
+                                    />
+                                  }
                                 </td>
                                 <td>
                                   <TimePicker
