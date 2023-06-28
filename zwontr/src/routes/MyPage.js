@@ -792,9 +792,192 @@ function MyPage({
   //     </Modal.Body>
   //   );
   // }
+  const modal_status_template={
+    show:false,
+    for:null,
+  };
+  function getModalStatusTemplate(){
+    return {...modal_status_template};
+  }
+
+  const [modalStatus,setModalStatus]=useState(getModalStatusTemplate());
+  function updateModalStatus(fieldName,value){
+    setModalStatus((prevData)=>{
+      const newData={...prevData};
+      newData[fieldName]=value;
+      return newData;
+    });
+  }
+  const openModal=(modalFor)=>{
+    updateModalStatus("show",true);
+    updateModalStatus("for",modalFor);
+  }
+  const closeModal=()=>{
+    destroyModalData();
+    setModalStatus(getModalStatusTemplate());
+  }
+  const password_change_data_template={
+    "current_password":"",
+    "new_password":"",
+    "new_password_confirm":"",
+  }
+  function getPasswordChangeDataTemplate(){
+    return {...password_change_data_template};
+  }
+  const [passwordChangeData,setPasswordChangeData]= useState(getPasswordChangeDataTemplate());
+  function updatePasswordChangeData(fieldName,value,validity_check_function){
+    setPasswordChangeData((prevData)=>{
+      const newData={...prevData};
+      newData[fieldName]=value;
+      return newData;
+    });
+  }
+  const password_change_data_checked_map_template={
+    "current_password":false,
+    "new_password":false,
+    "new_password_confirm":false,
+  }
+  function getPasswordChangeDataCheckedMapTemplate(){
+    return {...password_change_data_checked_map_template};
+  }
+  const [passwordChangeDataCheckedMap,setPasswordChangeDataCheckedMap]= useState(getPasswordChangeDataCheckedMapTemplate());
+  function updatePasswordChangeDataCheckedMap(fieldName,value){
+    setPasswordChangeDataCheckedMap((prevData)=>{
+      const newData={...prevData};
+      newData[fieldName]=value;
+      return newData;
+    });
+  }
+  const password_change_data_valid_map_template={
+    "current_password":false,
+    "new_password":false,
+    "new_password_confirm":false,
+  }
+  function getPasswordChangeDataValidMapTemplate(){
+    return {...password_change_data_valid_map_template};
+  }
+  const [passwordChangeDataValidMap,setPasswordChangeDataValidMap]= useState(getPasswordChangeDataValidMapTemplate());
+  function updatePasswordChangeDataValidMap(fieldName,value){
+    setPasswordChangeDataValidMap((prevData)=>{
+      const newData={...prevData};
+      newData[fieldName]=value;
+      return newData;
+    });
+  }
+  
+  function getPasswordChangeModalTitle(){
+    return "비밀번호 변경";
+  }
+  function getModalTitle(){
+    if(modalStatus.for==="password_change") return getPasswordChangeModalTitle();
+    else return null;
+  }
+  function isPasswordValid(password){
+    const matched=password.match(/^(?=.*[a-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,16}$/);
+    if(matched){
+      return password.length===matched[0].length;
+    }
+    else return false;
+  }
+  function isPasswordConfirmed(password_confirm){
+    return passwordChangeData.new_password===password_confirm;
+  }
+  function isPasswordChangeDataValid(){
+    return isPasswordValid(passwordChangeData.current_password) &&
+      isPasswordValid(passwordChangeData.new_password) &&
+      isPasswordConfirmed(passwordChangeData.new_password_confirm);
+  }
+  function isPasswordChangeDataFieldCheckedAndInvalid(field_name){
+    return passwordChangeDataCheckedMap[field_name] && !passwordChangeDataValidMap[field_name];
+  }
+  function getPasswordChangeModalRowByFieldName(field_name,field_prompt,invalid_feedback,validity_check_function,input_type,placeholder,maxlength){
+    return (
+      <div className="border-bottom border-secondary border-3 mb-5">
+        <div className="row mb-2">
+          <div className="col-4">
+            <label for={field_name} className="userInfoInputLabel">
+              <strong>{field_prompt}</strong>
+            </label>
+          </div>
+          <div className="col-8">
+            <input
+              type={input_type}
+              id={field_name}
+              className="userInfoInputBox mb-1"
+              value={passwordChangeData[field_name]}
+              placeholder={placeholder}
+              maxlength={maxlength}
+              onChange={(e)=>{
+                // updateUserInfoByFieldName(field_name,e.target.value,validity_check_function);
+                console.log(`event: ${JSON.stringify(e)}`)
+                const value=e.target.value;
+                updatePasswordChangeData(field_name,value,validity_check_function);
+                updatePasswordChangeDataValidMap(field_name,validity_check_function(value));
+                updatePasswordChangeDataCheckedMap(field_name,true);
+              }}
+            />
+          </div>
+        </div>
+        {isPasswordChangeDataFieldCheckedAndInvalid(field_name)?
+          <span className="userInfoFeedbackInvalid">
+            {invalid_feedback}
+          </span>:null}
+      </div>
+    )
+  };
+  function getPasswordChangeModalBody(){
+    return (
+      <Modal.Body className="text-center">
+        {getPasswordChangeModalRowByFieldName("current_password","현재 비밀번호 입력","",isPasswordValid,"password","임시비밀번호 입력 가능",16)}
+        {getPasswordChangeModalRowByFieldName("new_password","새 비밀번호 입력","8~16자이며 영문 소문자, 숫자가 하나 이상 포함되어야 합니다.(@$!%*?& 사용가능)",isPasswordValid,"password","",16)}
+        {getPasswordChangeModalRowByFieldName("new_password_confirm","새 비밀번호 재입력","비밀번호가 일치하지 않습니다.",isPasswordConfirmed,"password","",16)}
+
+        <Button
+            className="btn-success"
+            onClick={async ()=>{
+              // if(!checkReviewerUsernameValid(requestGoesTo.goes_to)){
+              //   window.alert(`확인 요청에 대한 리뷰어가 지정되지 않았습니다`);
+              //   return;
+              // }
+              // else if(!window.confirm(window_confirm_prompt)) return;
+              // const save_success= await saveLifeData(reviewer_reassigned);
+              // if(save_success) {
+              //   updateMyLifeData("request_status",request_status_to_index["review_needed"]);
+              //   updateMyLifeData("review_username",requestGoesTo.goes_to);
+              //   closeConfirmModal();
+              // }
+            }}
+            type="button">
+          <strong>비밀번호 변경</strong>
+        </Button>
+      </Modal.Body>
+    );
+  }
+  function getModalBody(){
+    if(modalStatus.for==="password_change") return getPasswordChangeModalBody();
+    else return null;
+  }
+  function destroyPasswordChangeData(){
+    setPasswordChangeData(getPasswordChangeDataTemplate());
+    setPasswordChangeDataValidMap(getPasswordChangeDataValidMapTemplate());
+    setPasswordChangeDataCheckedMap(getPasswordChangeDataCheckedMapTemplate());
+  }
+  function destroyModalData(){
+    if(modalStatus.for==="password_change") destroyPasswordChangeData();
+    else return;
+  }
+
+  const role_name_to_prompt_map={
+    "student":"학생",
+    "manager":"직원",
+    "parent":"학부모",
+    "admin":"관리자",
+  }
+  
   const my_page_info_template={
     username:"",
     nickname:"",
+    role_name:"",
     group_name:"",
   };
   function getMyPageInfoTemplate(){
@@ -806,7 +989,7 @@ function MyPage({
       .get("/api/getMyPageInfo")
       .then((res)=>{
         const data=res.data;
-        console.log(`data: ${JSON.stringify(data)}`);
+        // console.log(`data: ${JSON.stringify(data)}`);
         const success=data.success;
         const err_prompt=data.ret;
         if(!success) throw new Error(err_prompt);
@@ -816,17 +999,66 @@ function MyPage({
         window.alert(err);
         return getMyPageInfoTemplate();
       });
-    console.log(`my page info: ${JSON.stringify(my_page_info)}`);
+    // console.log(`my page info: ${JSON.stringify(my_page_info)}`);
     setMyPageInfo(my_page_info);
   },[]);
+  function getMyPageInfoRow(title,content){
+    return (
+      <div className="row mb-5 mx-5 border-bottom border-dark border-5">
+        <div className="col-6">
+          {/* <strong> */}
+            {title}
+          {/* </strong> */}
+        </div>
+        <div className="col-6">
+          {/* <strong> */}
+            {content}
+          {/* </strong> */}
+        </div>
+      </div>
+    );
+  }
+  
+  function getPasswordChangeRow(){
+    return (
+      <div className="row mb-5 mx-5 border-bottom border-dark border-5">
+        <div className="col-6">
+          {"비밀번호"}
+        </div>
+        <div className="col-6">
+          <Button
+            variant="dark"
+            onClick={()=>{
+              openModal("password_change");
+            }}
+          >
+            변경하기
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  function getMyPageInfoBox(){
+    const username=myPageInfo.username;
+    const nickname=myPageInfo.nickname;
+    const group_name=myPageInfo.group_name;
+    return(
+      <div>
+        {getMyPageInfoRow("아이디",username)}
+        {getMyPageInfoRow("이름",nickname)}
+        {getMyPageInfoRow("소속",group_name)}
+        {getPasswordChangeRow()}
+      </div>
+    );
+  }
   return (
     <div className="main-background text-center">
-      {/* <Modal show={modalShowStatus} onHide={closeModal}>
+      <Modal show={modalStatus.show} onHide={closeModal}>
           <Modal.Header closeButton>
             <Modal.Title>{getModalTitle()}</Modal.Title>
           </Modal.Header>
           {getModalBody()}
-      </Modal> */}
+      </Modal>
       <div className="headerBox">
         <h1>
           <strong>내 정보</strong>
@@ -835,7 +1067,7 @@ function MyPage({
       </div>
       <div className="UserInfoSearchBox">
         <div className="UserInfoBoxBody">
-          
+          {/* {getMyPageInfoBox()} */}
         </div>
         <div className="UserInfoBoxFooter">
         </div>

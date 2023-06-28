@@ -481,7 +481,6 @@ app.get("/api/getMyPageInfo",loginCheck, permissionCheck(Role("parent"),Role("st
         }
       }
     ]).toArray())[0];
-    console.log(`result data: ${JSON.stringify(result_data)}`);
     ret_val["ret"]=result_data;
   }
   catch(error){
@@ -6447,6 +6446,7 @@ app.post("/api/changeUserAccountSuspendedStatus",loginCheck, permissionCheck(Rol
       return;
     }
     else if(!user_doc.user_approved) throw new Error(`invalid request:2`);
+    else if(user_doc.role_index===roles.roleNameToIndex["admin"]) throw new Error(`invalid request:3`);
     else if(user_doc.user_suspended===suspend){
       ret_val.ret.late=true;
       return;

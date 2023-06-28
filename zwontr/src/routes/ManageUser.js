@@ -223,10 +223,12 @@ function ManageUser({
     else return getDateString(suspended_change_date);
   }
   function getAccountPermissionButton(user_info_datum,idx){
+    // console.log(`user info datum: ${JSON.stringify(user_info_datum)}`);
     const username=user_info_datum.username;
     const nickname=user_info_datum.nickname;
     const approved_status=user_info_datum.approved;
     const suspended_status=user_info_datum.suspended;
+    const user_type=user_info_datum.userType;
     if(!approved_status){
       return (
         <p>
@@ -261,6 +263,7 @@ function ManageUser({
       );
     }
     else if(approved_status && !suspended_status){
+      if(user_type==="admin") return null; //if user is admin no user suspend button
       return (
         <p>
           <Button
