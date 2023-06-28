@@ -3,7 +3,7 @@ import { Link, Route, Switch, useLocation, Redirect, matchPath } from "react-rou
 import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import { AiOutlineHome } from "react-icons/ai";
-import { BsGearFill } from "react-icons/bs"
+import { BsGearFill } from "react-icons/bs";
 import { MdChecklist } from "react-icons/md";
 import { VscBell, VscBellDot } from "react-icons/vsc";
 import { Puff } from "react-loader-spinner";

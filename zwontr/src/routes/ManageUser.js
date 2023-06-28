@@ -7,7 +7,8 @@ import Loginpage from "./LoginModal";
 import { TbBulb, TbBuilding } from "react-icons/tb";
 import { RiParentLine } from "react-icons/ri";
 import { MdNavigateBefore, MdNavigateNext } from "react-icons/md";
-import {FaCheck, FaSistrix, FaTrash} from "react-icons/fa"
+import {FaCheck, FaSistrix, FaSleigh, FaTrash} from "react-icons/fa"
+import { BsGearFill } from "react-icons/bs"
 import privateInfoTerm from "../terms/privateInfoAgree";
 import identifyingInfoTerm from "../terms/identifyingInfoAgree";
 import sensitiveInfoTerm from "../terms/sensitiveInfoAgree";
@@ -239,7 +240,8 @@ function ManageUser({
             onClick={async ()=>{
               const user_type_prompt=user_type_to_user_type_prompt_map[user_info_datum.userType];
               if(user_info_datum.userType==="student"){
-                showRelatedStudentModal(user_info_datum,idx);
+                openModal("student_register");
+                prepareDataForStudentRegisterModal(user_info_datum,idx);
                 return;
               }
               if(!window.confirm(`${nickname}(${username}) 사용자의 [${user_type_prompt}] 권한을 활성화 하시겠습니까?`)) return;
@@ -277,6 +279,17 @@ function ManageUser({
             }}
           >
             <strong>사용 중지</strong>
+          </Button>
+          <Button
+            variant="secondary"
+            className="button-fit-content"
+            disabled={suspended_status}
+            onClick={async ()=>{
+              openModal("tmp_password");
+              setTmpPasswordUserTableIndex(idx);
+            }}
+          >
+            <BsGearFill/>
           </Button>
         </p>
       );
@@ -467,6 +480,196 @@ function ManageUser({
     updateTableColumnNames();
     setNowNotLoading();
   }
+
+  //modal of this page
+  const modal_status_template={
+    show:false,
+    for:null,
+  };
+  function getModalStatusTemplate(){
+    return {...modal_status_template};
+  }
+
+  const [modalStatus,setModalStatus]=useState(getModalStatusTemplate());
+  function updateModalStatus(fieldName,value){
+    setModalStatus((prevData)=>{
+      const newData={...prevData};
+      newData[fieldName]=value;
+      return newData;
+    });
+  }
+  const openModal=(modalFor)=>{
+    updateModalStatus("show",true);
+    updateModalStatus("for",modalFor);
+  }
+  const closeModal=()=>{
+    destroyModalData();
+    setModalStatus(getModalStatusTemplate());
+  }
+  function destroyModalData(){
+    if(modalStatus.for==="student_register") hideRelatedStudentModal();
+    else if(modalStatus.for==="tmp_password") destroyTmpPasswordData();
+    else return;
+  }
+  function getStudentRegisterModalTitle(){
+    return (
+      <span>
+        계정과 연결될 기존 학생 정보를<br/>선택해주세요
+      </span>
+    );
+  }
+  function getTmpPasswordModalTitle(){
+    return (
+      <span>
+        임시비밀번호 발급
+      </span>
+    );
+  }
+  function getModalTitle(){
+    if(modalStatus.for==="student_register") return getStudentRegisterModalTitle();
+    else if(modalStatus.for==="tmp_password") return getTmpPasswordModalTitle();
+    else return null;
+  }
+
+  function getStudentRegisterModalBody(){
+    if(!studentInfoMapLoaded) return null;
+    return (
+      <Modal.Body className="text-center RelatedStudentInfoBox">
+        <div className="row mb-5 CandidateStudentUserBox border-3 border-bottom">
+          <strong>계정 정보</strong><br/>
+          <p className="mb-1">
+            아이디: {candidateStudentUserInfo.username}<br/>
+            이름: {candidateStudentUserInfo.nickname}
+          </p>
+        </div>
+        <div className="row mb-5 CandidateStudentUserBox border-3 border-bottom">
+          <Form className="mb-2">
+            <Form.Label htmlFor="RelatedStudentSelection"><strong>계정 연관 학생</strong></Form.Label>
+            <Form.Select
+              id="RelatedStudentSelection mb-2"
+              value={selectedRelatedStudentID}
+              onChange={(e)=>{
+                setSelectedRelatedStudentID(e.target.value);
+              }}
+            >
+              {
+                Object.keys(studentInfoMap).map((student_id,sidx)=>{
+                  return(
+                    <option value={student_id} key={sidx}>
+                      {getStudentFingerprintFromStudentInfo(studentInfoMap[student_id])}
+                    </option>
+                  );
+                })
+              }
+            </Form.Select>
+          </Form>
+        </div>
+        <Button
+            className="btn-success mb-3"
+            onClick={async ()=>{
+              const username=candidateStudentUserInfo.username;
+              const nickname=candidateStudentUserInfo.nickname;
+              const user_type_prompt=user_type_to_user_type_prompt_map[candidateStudentUserInfo.userType];
+              let confirm_message=`${nickname}(${username}) 사용자의 [${user_type_prompt}] 권한을 활성화하고\n`;
+              confirm_message+=`해당 계정을 [${getStudentFingerprintFromStudentInfo(studentInfoMap[selectedRelatedStudentID])}]\n학생 정보와 연동하시겠습니까?`
+              if(!window.confirm(confirm_message)) return;
+              await changeUserAccountApprovedStatus(candidateStudentUserInfo,true,candidateStudentUserInfoTableIndex,selectedRelatedStudentID);
+              // hideRelatedStudentModal();
+              closeModal();
+            }}
+            type="button">
+          <strong>정보 연동 및 계정 승인</strong>
+        </Button>
+        <br/>
+        <Button
+            className="btn-secondary"
+            onClick={async ()=>{
+              // hideRelatedStudentModal();
+              closeModal();
+            }}
+            type="button">
+          <strong>취소</strong>
+        </Button>
+      </Modal.Body>
+    );
+  }
+  function getLocaleDateString(dateString){
+    const date=new Date(dateString);
+    return date.toLocaleString();
+  }
+  function checkTmpPasswordExpired(dateString){
+    const expiration_date=new Date(dateString);
+    const now= new Date();
+    return expiration_date<now;
+  }
+  function getTmpPasswordModalBody(){
+    const user_info_datum=pagination.status_data[tmpPasswordUserTableIndex];
+    
+    if(!user_info_datum) return null;
+    const username=user_info_datum.username;
+    const nickname=user_info_datum.nickname;
+    const user_type=user_info_datum.userType;
+    const user_type_prompt=user_type_to_user_type_prompt_map[user_type];
+    const tmp_password=user_info_datum.tmp_password;
+    return (
+      <Modal.Body className="text-center RelatedStudentInfoBox">
+        <div className="border-bottom border-secondary border-3 mb-2">
+          <div className="row mb-2">
+            <div className="col-4">
+              아이디
+            </div>
+            <div className="col-8">
+              {username}
+            </div>
+          </div>
+        </div>
+        <div className="border-bottom border-secondary border-3 mb-2">
+          <div className="row mb-2">
+            <div className="col-4">
+              이름
+            </div>
+            <div className="col-8">
+              {nickname}
+            </div>
+          </div>
+        </div>
+        <div className="border-bottom border-secondary border-3 mb-2">
+          <div className="row mb-2">
+            <div className="col-4">
+              사용자 유형
+            </div>
+            <div className="col-8">
+              {user_type_prompt}
+            </div>
+          </div>
+        </div>
+        <Button
+            className="btn-success mb-3"
+            onClick={async ()=>{
+              if(!window.confirm(`${nickname}(${username}) 사용자의 임시비밀번호를 발급하시겠습니까?`)) return;
+              await getTmpPassword(user_info_datum,tmpPasswordUserTableIndex);
+            }}
+            type="button">
+          <strong>새 임시 비밀번호 발급</strong>
+        </Button>
+        <p>{tmp_password}</p>
+        <br/>
+        <Button
+            className="btn-secondary"
+            onClick={async ()=>{
+              closeModal();
+            }}
+            type="button">
+          <strong>취소</strong>
+        </Button>
+      </Modal.Body>
+    );
+  }
+  function getModalBody(){
+    if(modalStatus.for==="student_register") return getStudentRegisterModalBody();
+    else if(modalStatus.for==="tmp_password") return getTmpPasswordModalBody();
+    else return null;
+  }
   
   // 기존 학생 정보와 계정 연동 관련 코드
   const [relatedStudentModal,setRelatedStudentModal]= useState(false);
@@ -480,7 +683,7 @@ function ManageUser({
     return [student_info_datum.이름, student_info_datum.생년월일, student_info_datum.연락처].join(" / ");
   }
 
-  const showRelatedStudentModal= async(user_info_datum,user_table_index)=>{
+  const prepareDataForStudentRegisterModal= async(user_info_datum,user_table_index)=>{
     if(!studentInfoMapLoaded){
       window.alert("아직 학생 정보가 로드되지 않았습니다.\n같은 문제가 지속될 경우 새로고침 후 다시 시도해주세요.");
       return;
@@ -498,7 +701,7 @@ function ManageUser({
       }
     }
     setSelectedRelatedStudentID(recommended_student_info._id);
-    setRelatedStudentModal(true);
+    // setRelatedStudentModal(true);
     setCandidateStudentUserInfo(user_info_datum);
     setCandidateStudentUserInfoTableIndex(user_table_index);
   };
@@ -527,69 +730,76 @@ function ManageUser({
       setStudentInfoMapLoaded(true);
     }
   },[]);
+
+  // 임시 비밀번호 발급 관련 코드
+  const [tmpPasswordUserTableIndex,setTmpPasswordUserTableIndex]=useState(0);
+  function destroyTmpPasswordData(){
+    return;
+  }
+  async function makeTmpPasswordExpired(user_info_datum,idx){
+    const payload={
+      username:user_info_datum.username,
+    };
+    setNowLoading();
+    const success= await axios
+      .post("/api/makeTmpPasswordExpired",payload)
+      .then((res)=>{
+        const data=res.data;
+        const success=data.success;
+        const err_prompt=data.ret;
+        if(!success){
+          window.alert(`${err_prompt}`);
+          return false;
+        }
+        return true;
+      })
+      .catch((err)=>{
+        window.alert(`네트워크 오류로 임시비밀번호를 만료시키는 데 실패했습니다`);
+        return false;
+      });
+    if(success){
+      //update pagination info goes here
+      const default_expiration_date_string=(new Date('1970-01-01')).toISOString();
+      updatePaginationElement(idx,"tmpPasswordExpiration",default_expiration_date_string);
+    }
+    setNowNotLoading();
+  }
+
+  async function getTmpPassword(user_info_datum,idx){
+    const payload={
+      username:user_info_datum.username,
+    }
+    const [success,tmp_password]= await axios
+      .post("/api/getTmpPassword",payload)
+      .then((res)=>{
+        const data=res.data;
+        const success=data.success;
+        const err_prompt=data.ret;
+        if(!success){
+          window.alert(`${err_prompt}`);
+          return [false,""];
+        }
+        return [true,data.ret];
+      })
+      .catch((err)=>{
+        window.alert(`네트워크 오류로 임시비밀번호를 만드는 데 실패했습니다`);
+        return [false,""];
+      });
+    if(success){
+      //update pagination info goes here
+      updatePaginationElement(idx,"tmp_password",tmp_password);
+    }
+    setNowNotLoading();
+  }
   
   return (
     <div className="main-background text-center">
-      <Modal show={relatedStudentModal} onHide={hideRelatedStudentModal}>
+      <Modal show={modalStatus.show} onHide={closeModal}>
           <Modal.Header closeButton>
-            <Modal.Title className="RelatedStudentInfoBoxTitle">계정과 연결될 기존 학생 정보를<br/>선택해주세요</Modal.Title>
+            <Modal.Title className="RelatedStudentInfoBoxTitle">{getModalTitle()}</Modal.Title>
           </Modal.Header>
-          {studentInfoMapLoaded?<Modal.Body className="text-center RelatedStudentInfoBox">
-            <div className="row mb-5 CandidateStudentUserBox border-3 border-bottom">
-              <strong>계정 정보</strong><br/>
-              <p className="mb-1">
-                아이디: {candidateStudentUserInfo.username}<br/>
-                이름: {candidateStudentUserInfo.nickname}
-              </p>
-            </div>
-            <div className="row mb-5 CandidateStudentUserBox border-3 border-bottom">
-              <Form className="mb-2">
-                <Form.Label htmlFor="RelatedStudentSelection"><strong>계정 연관 학생</strong></Form.Label>
-                <Form.Select
-                  id="RelatedStudentSelection mb-2"
-                  value={selectedRelatedStudentID}
-                  onChange={(e)=>{
-                    setSelectedRelatedStudentID(e.target.value);
-                  }}
-                >
-                  {
-                    Object.keys(studentInfoMap).map((student_id,sidx)=>{
-                      return(
-                        <option value={student_id} key={sidx}>
-                          {getStudentFingerprintFromStudentInfo(studentInfoMap[student_id])}
-                        </option>
-                      );
-                    })
-                  }
-                </Form.Select>
-              </Form>
-            </div>
-            <Button
-                className="btn-success mb-3"
-                onClick={async ()=>{
-                  const username=candidateStudentUserInfo.username;
-                  const nickname=candidateStudentUserInfo.nickname;
-                  const user_type_prompt=user_type_to_user_type_prompt_map[candidateStudentUserInfo.userType];
-                  let confirm_message=`${nickname}(${username}) 사용자의 [${user_type_prompt}] 권한을 활성화하고\n`;
-                  confirm_message+=`해당 계정을 [${getStudentFingerprintFromStudentInfo(studentInfoMap[selectedRelatedStudentID])}]\n학생 정보와 연동하시겠습니까?`
-                  if(!window.confirm(confirm_message)) return;
-                  await changeUserAccountApprovedStatus(candidateStudentUserInfo,true,candidateStudentUserInfoTableIndex,selectedRelatedStudentID);
-                  hideRelatedStudentModal();
-                }}
-                type="button">
-              <strong>정보 연동 및 계정 승인</strong>
-            </Button>
-            <br/>
-            <Button
-                className="btn-secondary"
-                onClick={async ()=>{
-                  hideRelatedStudentModal();
-                }}
-                type="button">
-              <strong>취소</strong>
-            </Button>
-          </Modal.Body>:null}
-        </Modal>
+          {getModalBody()}
+      </Modal>
       <div className="headerBox">
         <h1>
           <strong>사용자 관리</strong>

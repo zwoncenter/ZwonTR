@@ -816,51 +816,32 @@ function MyPage({
     destroyModalData();
     setModalStatus(getModalStatusTemplate());
   }
-  const password_change_data_template={
-    "current_password":"",
-    "new_password":"",
-    "new_password_confirm":"",
-  }
+  const password_change_data_field_list=[
+    "current_password",
+    "new_password",
+    "new_password_confirm",
+  ];
+  const password_change_data_map_template={
+    value:"",
+    checked:false,
+    valid:false,
+  };
+  
   function getPasswordChangeDataTemplate(){
-    return {...password_change_data_template};
+    const ret={};
+    password_change_data_field_list.forEach((field_name,idx)=>{
+      ret[field_name]={...password_change_data_map_template};
+    });
+    return ret;
   }
   const [passwordChangeData,setPasswordChangeData]= useState(getPasswordChangeDataTemplate());
   function updatePasswordChangeData(fieldName,value,validity_check_function){
     setPasswordChangeData((prevData)=>{
       const newData={...prevData};
-      newData[fieldName]=value;
-      return newData;
-    });
-  }
-  const password_change_data_checked_map_template={
-    "current_password":false,
-    "new_password":false,
-    "new_password_confirm":false,
-  }
-  function getPasswordChangeDataCheckedMapTemplate(){
-    return {...password_change_data_checked_map_template};
-  }
-  const [passwordChangeDataCheckedMap,setPasswordChangeDataCheckedMap]= useState(getPasswordChangeDataCheckedMapTemplate());
-  function updatePasswordChangeDataCheckedMap(fieldName,value){
-    setPasswordChangeDataCheckedMap((prevData)=>{
-      const newData={...prevData};
-      newData[fieldName]=value;
-      return newData;
-    });
-  }
-  const password_change_data_valid_map_template={
-    "current_password":false,
-    "new_password":false,
-    "new_password_confirm":false,
-  }
-  function getPasswordChangeDataValidMapTemplate(){
-    return {...password_change_data_valid_map_template};
-  }
-  const [passwordChangeDataValidMap,setPasswordChangeDataValidMap]= useState(getPasswordChangeDataValidMapTemplate());
-  function updatePasswordChangeDataValidMap(fieldName,value){
-    setPasswordChangeDataValidMap((prevData)=>{
-      const newData={...prevData};
-      newData[fieldName]=value;
+      const data_map=newData[fieldName];
+      data_map.value=value;
+      data_map.checked=true;
+      data_map.valid=validity_check_function(value);
       return newData;
     });
   }
@@ -879,18 +860,31 @@ function MyPage({
     }
     else return false;
   }
+  function getCurrentNewPasswordInput(){
+    const data_map=passwordChangeData["new_password"];
+    return data_map.value;
+  }
   function isPasswordConfirmed(password_confirm){
-    return passwordChangeData.new_password===password_confirm;
+    return getCurrentNewPasswordInput()===password_confirm;
   }
   function isPasswordChangeDataValid(){
-    return isPasswordValid(passwordChangeData.current_password) &&
-      isPasswordValid(passwordChangeData.new_password) &&
-      isPasswordConfirmed(passwordChangeData.new_password_confirm);
+    const current_password=passwordChangeData.current_password.value;
+    const new_password=passwordChangeData.new_password.value;
+    const new_password_confirm=passwordChangeData.new_password_confirm.value;
+    if(!isPasswordValid(current_password)) return [false,"현재 비밀번호가 올바른 형태가 아닙니다"];
+    else if(!isPasswordValid(new_password)) return [false,"새 비밀번호가 올바른 형태가 아닙니다"];
+    else if(!isPasswordConfirmed(new_password_confirm)) return [false,"입력한 새 비밀번호가 일치하지 않습니다"];
+    else return [true,""];
   }
   function isPasswordChangeDataFieldCheckedAndInvalid(field_name){
-    return passwordChangeDataCheckedMap[field_name] && !passwordChangeDataValidMap[field_name];
+    const data_map=passwordChangeData[field_name];
+    const input_checked=data_map.checked;
+    const input_valid=data_map.valid;
+    return input_checked && !input_valid;
   }
   function getPasswordChangeModalRowByFieldName(field_name,field_prompt,invalid_feedback,validity_check_function,input_type,placeholder,maxlength){
+    const data_map=passwordChangeData[field_name];
+    const input_value=data_map.value;
     return (
       <div className="border-bottom border-secondary border-3 mb-5">
         <div className="row mb-2">
@@ -904,16 +898,12 @@ function MyPage({
               type={input_type}
               id={field_name}
               className="userInfoInputBox mb-1"
-              value={passwordChangeData[field_name]}
+              value={input_value}
               placeholder={placeholder}
               maxlength={maxlength}
               onChange={(e)=>{
-                // updateUserInfoByFieldName(field_name,e.target.value,validity_check_function);
-                console.log(`event: ${JSON.stringify(e)}`)
                 const value=e.target.value;
                 updatePasswordChangeData(field_name,value,validity_check_function);
-                updatePasswordChangeDataValidMap(field_name,validity_check_function(value));
-                updatePasswordChangeDataCheckedMap(field_name,true);
               }}
             />
           </div>
@@ -923,8 +913,48 @@ function MyPage({
             {invalid_feedback}
           </span>:null}
       </div>
-    )
+    );
+  }
+  
+  const password_change_data_payload_template={
+    currentPassword:"",
+    newPassword:"",
   };
+  function getPasswordChangeDataPayloadTemplate(){
+    return {...password_change_data_payload_template};
+  }
+  function getPasswordChangeDataPayload(){
+    const ret=getPasswordChangeDataPayloadTemplate();
+    ret.currentPassword=passwordChangeData.current_password.value;
+    ret.newPassword=passwordChangeData.new_password.value;
+    return ret;
+  }
+  async function changePassword(){
+    const paylaod=getPasswordChangeDataPayload();
+    setNowLoading();
+    const success=await axios
+      .post("/api/changePassword",paylaod)
+      .then((res)=>{
+        const data=res.data;
+        const success=data.success;
+        const err_prompt=data.ret;
+        if(!success){
+          window.alert(`${err_prompt}`);
+          return false;
+        }
+        window.alert(`비밀번호 변경에 성공했습니다\n다음 로그인부터 새 비밀번호로\n로그인해주세요`);
+        return true;
+      })
+      .catch((err)=>{
+        window.alert(`네트워크 오류로 비밀번호 변경에 실패했습니다:1\n다시시도해주세요`);
+        return false;
+      });
+    setNowNotLoading();
+    return success;
+  }
+  // useEffect(()=>{
+  //   console.log(`password change data: ${JSON.stringify(passwordChangeData)}`);
+  // },[passwordChangeData]);
   function getPasswordChangeModalBody(){
     return (
       <Modal.Body className="text-center">
@@ -935,17 +965,13 @@ function MyPage({
         <Button
             className="btn-success"
             onClick={async ()=>{
-              // if(!checkReviewerUsernameValid(requestGoesTo.goes_to)){
-              //   window.alert(`확인 요청에 대한 리뷰어가 지정되지 않았습니다`);
-              //   return;
-              // }
-              // else if(!window.confirm(window_confirm_prompt)) return;
-              // const save_success= await saveLifeData(reviewer_reassigned);
-              // if(save_success) {
-              //   updateMyLifeData("request_status",request_status_to_index["review_needed"]);
-              //   updateMyLifeData("review_username",requestGoesTo.goes_to);
-              //   closeConfirmModal();
-              // }
+              const [password_change_data_valid,msg]=isPasswordChangeDataValid();
+              if(!password_change_data_valid){
+                window.alert(msg);
+                return;
+              }
+              const success=await changePassword();
+              if(success) closeModal();
             }}
             type="button">
           <strong>비밀번호 변경</strong>
@@ -959,8 +985,6 @@ function MyPage({
   }
   function destroyPasswordChangeData(){
     setPasswordChangeData(getPasswordChangeDataTemplate());
-    setPasswordChangeDataValidMap(getPasswordChangeDataValidMapTemplate());
-    setPasswordChangeDataCheckedMap(getPasswordChangeDataCheckedMapTemplate());
   }
   function destroyModalData(){
     if(modalStatus.for==="password_change") destroyPasswordChangeData();
@@ -985,6 +1009,7 @@ function MyPage({
   }
   const [myPageInfo,setMyPageInfo]=useState(getMyPageInfoTemplate());
   useEffect(async()=>{
+    setNowLoading();
     const my_page_info=await axios
       .get("/api/getMyPageInfo")
       .then((res)=>{
@@ -1001,6 +1026,7 @@ function MyPage({
       });
     // console.log(`my page info: ${JSON.stringify(my_page_info)}`);
     setMyPageInfo(my_page_info);
+    setNowNotLoading();
   },[]);
   function getMyPageInfoRow(title,content){
     return (
@@ -1067,7 +1093,7 @@ function MyPage({
       </div>
       <div className="UserInfoSearchBox">
         <div className="UserInfoBoxBody">
-          {/* {getMyPageInfoBox()} */}
+          {getMyPageInfoBox()}
         </div>
         <div className="UserInfoBoxFooter">
         </div>

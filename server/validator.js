@@ -114,6 +114,9 @@ const suspended_date_default_value=new Date(moment(suspended_date_default_string
 function getSuspendedDateDefaultDate(){
     return suspended_date_default_value;
 }
+function getFarFutureDate(yearInc=100){
+    return moment().add(yearInc,'y').toDate();
+}
 
 module.exports={
     isUsernameValid,
@@ -131,4 +134,5 @@ module.exports={
     isMajorValid,
     groupOfUserNeeded,
     getSuspendedDateDefaultDate,
+    getFarFutureDate,
 };

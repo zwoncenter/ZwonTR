@@ -129,6 +129,110 @@ app.post("/api/logout", loginCheck, function(req,res,next){
   });
 });
 
+app.post("/api/changePassword", loginCheck, async function(req,res){
+  const ret_val={"success":true, "ret":null};
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
+  try{
+    session.startTransaction();
+    let {
+      currentPassword,
+      newPassword,
+    }= req.body;
+    if(!validator.isPasswordValid(currentPassword) || !validator.isPasswordValid(newPassword)) throw new Error(`invalid request:0`);
+    const user_oid=req.session.passport.user.user_oid;
+    const user_doc=await db.collection('User').findOne({_id:user_oid},{session});
+    if(!user_doc) throw new Error(`invalid request:1`);
+    const [password_ok,otp_used]=authentificator.checkPassword(user_doc,currentPassword,false);
+    if(!password_ok){
+      ret_val.success=false;
+      ret_val.ret=`현재 비밀번호가 일치하지 않습니다`;
+      return;
+    }
+    const [salt,password_hashed]=authentificator.makeHashedSync(newPassword);
+    await db.collection('User').updateOne(
+      {_id:user_oid},
+      {
+        $set:{
+          salt,
+          password:password_hashed,
+          tmp_password:null,
+        }
+      },
+      {session}
+    );
+
+    await session.commitTransaction();
+  }
+  catch(error){
+    console.log(`error: ${error}`);
+    await session.abortTransaction();
+    ret_val.success=false;
+    ret_val.ret=`네트워크 오류로 비밀번호 변경에 실패했습니다:0`;
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret_val);
+  }
+});
+
+app.post("/api/getTmpPassword", loginCheck, permissionCheck(Role("admin")), async function(req,res){
+  const ret_val={"success":true, "ret":null};
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
+  try{
+    session.startTransaction();
+    let {
+      username,
+    }= req.body;
+    const user_doc=await db.collection('User').findOne({username,},{session});
+    if(!user_doc) throw new Error(`invalid request:0`);
+    const [tmp_password_raw,salt,tmp_password_hashed]=authentificator.getTmpPassword();
+    const tmp_password_expiration=validator.getFarFutureDate();
+    await db.collection('User').updateOne(
+      {_id:user_doc._id},
+      {
+        $set:{
+          tmp_salt:salt,
+          tmp_password:tmp_password_hashed,
+          tmp_password_expiration,
+        }
+      },
+      {session},
+    );
+    await session.commitTransaction();
+    ret_val.ret=tmp_password_raw;
+  }
+  catch(error){
+    console.log(`error: ${error}`);
+    await session.abortTransaction();
+    ret_val.success=false;
+    ret_val.ret=`네트워크 오류로 임시 비밀번호 발급에 실패했습니다:0`;
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret_val);
+  }
+});
+
 const max_session_concurrent= parseInt(process.env.MAX_SESSION_CONCURRENT);
 
 // ID와 PW를 검사해주는 코드.
@@ -191,8 +295,10 @@ passport.use(
               id_options={ message: "존재하지 않는 아이디 입니다." };
               return;
             }
-            const hashed_pw=authentificator.getHashedSync(inputPW,user_doc.salt);
-            if(crypto.timingSafeEqual(Buffer.alloc(authentificator.BufferLen,hashed_pw),Buffer.alloc(authentificator.BufferLen,user_doc.password))){
+            // const hashed_pw=authentificator.getHashedSync(inputPW,user_doc.salt);
+            // if(crypto.timingSafeEqual(Buffer.alloc(authentificator.BufferLen,hashed_pw),Buffer.alloc(authentificator.BufferLen,user_doc.password))){
+            const [login_ok,otp_used]=authentificator.checkPassword(user_doc,inputPW);
+            if(login_ok){
               if(!user_doc.approved || user_doc.suspended) {
                 // return done(null,false,{message:"아직 사용이 승인되지 않은 아이디입니다.\n관리자에게 문의해주세요."});
                 id_options={message:"아직 사용이 승인되지 않은 아이디입니다.\n관리자에게 문의해주세요."};
@@ -204,6 +310,22 @@ passport.use(
                 id_options= {message: "접속할 수 있는 최대 연결 수를 넘어섰습니다"};
                 return;
               }
+
+              //here update tmp password expiration date as expired
+              if(otp_used){
+                console.log(`login breakpoint`);
+                await db.collection('User').updateOne(
+                  {_id:user_doc._id},
+                  {
+                    $set:{
+                      tmp_password_expiration:validator.getSuspendedDateDefaultDate(),
+                    }
+                  },
+                  {session}
+                );
+              }
+              await session.commitTransaction();
+              
               console.log("로그인 성공, ", user_doc);
               console.log(`${inputID} current session num: ${session_count}`);
               // return done(null, user_doc);
