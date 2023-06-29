@@ -769,6 +769,7 @@ function ManageUser({
     const payload={
       username:user_info_datum.username,
     }
+    setNowLoading();
     const [success,tmp_password]= await axios
       .post("/api/getTmpPassword",payload)
       .then((res)=>{
