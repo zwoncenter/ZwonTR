@@ -385,19 +385,19 @@ function StuListpage() {
     // console.log(existstickynote);
   });
 
-  useEffect(async () => {
-    const existstickynote = await axios
-      .get("/api/stickynote")
-      .then((result) => {
-        // console.log("result.data: ",result.data);
-        return result.data;
-      })
-      .catch((err) => {
-        return err;
-      });
-      // console.log("checknote",existstickynote);
-    setstickynoteValue(existstickynote);
-  }, []);
+  // useEffect(async () => {
+  //   const existstickynote = await axios
+  //     .get("/api/stickynote")
+  //     .then((result) => {
+  //       // console.log("result.data: ",result.data);
+  //       return result.data;
+  //     })
+  //     .catch((err) => {
+  //       return err;
+  //     });
+  //     // console.log("checknote",existstickynote);
+  //   setstickynoteValue(existstickynote);
+  // }, []);
   // console.log(stickynoteValue);
 
   return (

@@ -356,18 +356,32 @@ passport.serializeUser(function (user, done) {
   process.nextTick(async ()=>{
     let roles_arr=[];
     let user_mode="";
+    let role_oid=null;
+    let group_oid=null;
     try{
-      const role_of_user=await db.collection("RoleOfUser").aggregate([
+      const user_info_doc=await db.collection("User").aggregate([
         {
           $match:{
-            user_id:user._id,
-            activated:true,
+            _id:user._id
+          }
+        },
+        {
+          $lookup: {
+            from: "RoleOfUser",
+            localField: "_id",
+            foreignField: "user_id",
+            as: "RoleOfUser_aggregate",
           },
+        },
+        { 
+          $unwind: {
+            path:"$RoleOfUser_aggregate",
+          }
         },
         {
           $lookup: {
             from: "Role",
-            localField: "role_id",
+            localField: "RoleOfUser_aggregate.role_id",
             foreignField: "_id",
             as: "Role_aggregate",
           },
@@ -375,17 +389,46 @@ passport.serializeUser(function (user, done) {
         { 
           $unwind: {
             path:"$Role_aggregate",
-            preserveNullAndEmptyArrays:true,
+          }
+        },
+        {
+          $lookup: {
+            from: "GroupOfUser",
+            localField: "_id",
+            foreignField: "user_id",
+            as: "GroupOfUser_aggregate",
+          },
+        },
+        { 
+          $unwind: {
+            path:"$GroupOfUser_aggregate",
+          }
+        },
+        {
+          $lookup: {
+            from: "Group",
+            localField: "GroupOfUser_aggregate.group_id",
+            foreignField: "_id",
+            as: "Group_aggregate",
+          },
+        },
+        { 
+          $unwind: {
+            path:"$Group_aggregate",
           }
         },
         {
           $project: {
             role_index: "$Role_aggregate.role_index",
             role_name: "$Role_aggregate.role_name",
+            role_id: "$Role_aggregate._id",
+            group_id: "$Group_aggregate._id",
           },
         }
       ]).sort({role_index:1}).toArray();
-      roles_arr=role_of_user.map((r,ridx)=>r["role_index"]);
+      roles_arr=user_info_doc.map((r,ridx)=>r["role_index"]);
+      role_oid=(user_info_doc[0]).role_id;
+      group_oid=(user_info_doc[0]).group_id;
     }
     catch(error){
       // console.log(`error while get user role info: ${error}`);
@@ -413,6 +456,8 @@ passport.serializeUser(function (user, done) {
         user_mode: user_mode,
         student_id:student_id,
         user_oid:user._id,
+        role_oid:role_oid,
+        group_oid:group_oid,
       }
     ); // passport.user에 user 정보 저장
   });
@@ -3369,7 +3414,17 @@ app.get("/api/studentList", loginCheck, permissionCheck(Role("manager"),Role("ad
 app.get("/api/ActiveStudentList", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   const ret_val={"success":false, "ret":null};
   try{
-    const acitve_student_list= await db.collection("StudentDB").find({"graduated":false,"$or":[{"deleted":{"$exists":false}},{"deleted":false}]}).toArray();
+    const group_oid=req.session.passport.user.group_oid;
+    const acitve_student_list= await db.collection("StudentDB").find(
+      {
+        "graduated":false,
+        "$or":[
+          {"deleted":{"$exists":false}},
+          {"deleted":false}
+        ],
+        "group_id":group_oid,
+      }
+    ).toArray();
     ret_val["success"]=true;
     ret_val["ret"]=acitve_student_list;
   }
@@ -3613,6 +3668,8 @@ app.post("/api/StudentDB", loginCheck, permissionCheck(Role("manager"),Role("adm
   });
   try{
     session.startTransaction();
+    const user_oid=req.session.passport.user.user_oid;
+    const group_oid=req.session.passport.user.group_oid;
     let student_legacy_id=newDB.ID;
     const prev_same_legacy_id_list=(await db.collection('StudentDB').find(
       {
@@ -3628,6 +3685,7 @@ app.post("/api/StudentDB", loginCheck, permissionCheck(Role("manager"),Role("adm
       student_legacy_id+=getRandomDigitString();
     }
     newDB.ID=student_legacy_id;
+    newDB.group_id=group_oid;
     await db.collection("StudentDB").insertOne(newDB,{session});
     await db.collection("StudentDB_Log").insertOne(newDB,{session});
     ret["success"]=true;
@@ -3795,6 +3853,7 @@ app.put("/api/StudentDB", loginCheck, permissionCheck(Role("manager"),Role("admi
   //this delete code is too dirty but...
   delete newstuDB["rou_id"];
   delete newstuDB["user_id"];
+  delete newstuDB["group_id"];
 
   const findID = newstuDB["ID"];
 
@@ -3993,7 +4052,57 @@ app.get("/api/TRlist/:date", loginCheck, permissionCheck(Role("manager"),Role("a
 
   const ret={"success":false,"ret":null};
   try{
-    const ret_data= await db.collection("TR").find({날짜: paramDate}).toArray();
+    const group_oid=req.session.passport.user.group_oid;
+    // const ret_data= await db.collection("TR").find({날짜: paramDate}).toArray();
+    const ret_data= await db.collection('TR').aggregate([
+      {
+        $match:{
+          날짜:paramDate,
+          // 날짜:"2023-06-27",
+        }
+      },
+      {
+        $lookup: {
+          from: "StudentDB",
+          let: {
+            legacy_id:"$ID",
+          },
+          pipeline:[
+            {
+              $match:{
+                $expr:{
+                  $and:[
+                    {
+                      $eq:[
+                        "$group_id",
+                        group_oid
+                      ]
+                    },
+                    {
+                      $eq:[
+                        "$ID",
+                        "$$legacy_id"
+                      ]
+                    }
+                  ]
+                },
+              }
+            },
+            {
+              $project:{
+                student_legacy_id:"$ID",
+              }
+            }
+          ],
+          as: "Student_aggregate",
+        },
+      },
+      {
+        $unwind: {
+          path:"$Student_aggregate",
+        }
+      },
+    ]).toArray();
     ret["success"]=true; ret["ret"]=ret_data;
   }
   catch(e){
@@ -4016,7 +4125,56 @@ app.get("/api/TR/:ID", loginCheck, permissionCheck(Role("manager"),Role("admin")
   //     });
   const ret={"success":false,"ret":null};
   try{
-    const ret_data= await db.collection("TR").find({ID:student_legacy_id}).toArray();
+    const group_oid=req.session.passport.user.group_oid;
+    // const ret_data= await db.collection("TR").find({ID:student_legacy_id,group_id:group_oid}).toArray();
+    const ret_data= await db.collection('TR').aggregate([
+      {
+        $match:{
+          ID:student_legacy_id,
+        }
+      },
+      {
+        $lookup: {
+          from: "StudentDB",
+          let: {
+            legacy_id:"$ID",
+          },
+          pipeline:[
+            {
+              $match:{
+                $expr:{
+                  $and:[
+                    {
+                      $eq:[
+                        "$group_id",
+                        group_oid
+                      ]
+                    },
+                    {
+                      $eq:[
+                        "$ID",
+                        "$$legacy_id",
+                      ]
+                    }
+                  ]
+                },
+              }
+            },
+            {
+              $project:{
+                student_legacy_id:"$ID",
+              }
+            }
+          ],
+          as: "Student_aggregate",
+        },
+      },
+      {
+        $unwind: {
+          path:"$Student_aggregate",
+        }
+      },
+    ]).toArray();
     ret["success"]=true; ret["ret"]=ret_data;
   }
   catch(e){
@@ -4038,7 +4196,58 @@ app.get("/api/TR/:ID/:date", loginCheck, permissionCheck(Role("manager"),Role("a
   // });
   const ret={"success":false,"ret":null};
   try{
-    const tr_doc= await db.collection("TR").findOne({ID:student_legacy_id, 날짜:date_string});
+    const group_oid=req.session.passport.user.group_oid;
+    // const tr_doc= await db.collection("TR").findOne({ID:student_legacy_id, 날짜:date_string});
+    const tr_doc= (await db.collection('TR').aggregate([
+      {
+        $match:{
+          ID:student_legacy_id,
+          날짜:date_string,
+        }
+      },
+      {
+        $lookup: {
+          from: "StudentDB",
+          let: {
+            legacy_id:"$ID",
+          },
+          pipeline:[
+            {
+              $match:{
+                $expr:{
+                  $and:[
+                    {
+                      $eq:[
+                        "$group_id",
+                        group_oid
+                      ]
+                    },
+                    {
+                      $eq:[
+                        "$ID",
+                        "$$legacy_id",
+                      ]
+                    }
+                  ]
+                },
+              }
+            },
+            {
+              $project:{
+                student_legacy_id:"$ID",
+              }
+            }
+          ],
+          as: "Student_aggregate",
+        },
+      },
+      {
+        $unwind: {
+          path:"$Student_aggregate",
+        }
+      },
+    ]).toArray())[0];
+    // if(!tr_doc) throw new Error("조건에 맞는 TR이 존재하지 않습니다");
     if(!tr_doc) throw new Error("조건에 맞는 TR이 존재하지 않습니다");
     ret["success"]=true; ret["ret"]=tr_doc;
   }
