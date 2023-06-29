@@ -3565,6 +3565,16 @@ app.post("/api/managerListByStudentLegacyID", loginCheck, permissionCheck(Role("
   }
 });
 
+function getRandomInt(max=10) {
+  return Math.floor(Math.random() * max);
+}
+
+function getRandomDigitString(length=2){
+  let ret="";
+  for(let i=0; i<length; i++) ret+=getRandomInt().toString();
+  return ret;
+}
+
 // StudentDB에 새로운 stuDB 추가 요청
 app.post("/api/StudentDB", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   const newDB = req.body;
@@ -3603,6 +3613,21 @@ app.post("/api/StudentDB", loginCheck, permissionCheck(Role("manager"),Role("adm
   });
   try{
     session.startTransaction();
+    let student_legacy_id=newDB.ID;
+    const prev_same_legacy_id_list=(await db.collection('StudentDB').find(
+      {
+        ID:{
+          $regex:student_legacy_id,
+        }
+      },
+      {session}
+    ).toArray()).map((e,idx)=>e.ID);
+    const prev_same_legacy_id_set=new Set(prev_same_legacy_id_list);
+    if(prev_same_legacy_id_set.size>0) student_legacy_id+="_"+getRandomDigitString();
+    while(prev_same_legacy_id_set.has(student_legacy_id)){
+      student_legacy_id+=getRandomDigitString();
+    }
+    newDB.ID=student_legacy_id;
     await db.collection("StudentDB").insertOne(newDB,{session});
     await db.collection("StudentDB_Log").insertOne(newDB,{session});
     ret["success"]=true;

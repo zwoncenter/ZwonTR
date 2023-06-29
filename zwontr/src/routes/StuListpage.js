@@ -137,16 +137,17 @@ function StuListpage() {
 
   // 첫 로딩 시, studentDBlist/todayTRlist업데이트
   useEffect(async () => {
-    const existstickynote = await axios
-      .get("/api/stickynote")
-      .then((result) => {
-        // console.log(result.data);
-        return result.data;
-      })
-      .catch((err) => {
-        return err;
-      });
-    setstickynoteValue(existstickynote);
+    //sticky note feature deactivated
+    // const existstickynote = await axios
+    //   .get("/api/stickynote")
+    //   .then((result) => {
+    //     // console.log(result.data);
+    //     return result.data;
+    //   })
+    //   .catch((err) => {
+    //     return err;
+    //   });
+    // setstickynoteValue(existstickynote);
 
 
     // :: legacy code to get student list
