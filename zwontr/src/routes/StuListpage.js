@@ -13,7 +13,11 @@ import StickyNote from "./StickyNote";
 // sticky note 관련 함수를 export
 
 
-function StuListpage() {
+function StuListpage(
+  {
+    groupName,
+  }
+) {
   let history = useHistory();
   // const param = useParams();
   // 날짜 관련 코드
@@ -400,6 +404,10 @@ function StuListpage() {
   // }, []);
   // console.log(stickynoteValue);
 
+  function getPageTitle(){
+    return `${groupName} 학생 목록`;
+  }
+
   return (
     <div className="stuList-background">
       {stickyNoteList}
@@ -418,7 +426,7 @@ function StuListpage() {
           </p>
         </div>
         <h2>
-          <strong>지원센터 학생 목록</strong>
+          <strong>{getPageTitle()}</strong>
         </h2>
         {buylist.length !== 0 ? (
           <Card className={openlist ? "TextbookCard openlist" : "TextbookCard"}>

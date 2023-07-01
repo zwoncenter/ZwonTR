@@ -164,7 +164,7 @@ function LectureList() {
           window.alert("로그인이 필요합니다.");
           return history.push("/");
         } else {
-          console.log(result.data);
+          // console.log(result.data);
           window.alert(result.data);
         }
       })
@@ -182,7 +182,7 @@ function LectureList() {
   const lectureTextbookModalOpen = async (lecture) => {
     setTextbookRevisedLectureID(lecture["_id"]);
     setTextbookRevisedLegacyLectureID(lecture["lectureID"]);
-    console.log("trllid:"+lecture["lectureID"]);
+    // console.log("trllid:"+lecture["lectureID"]);
     setLectureTextbookModal(true);
     //here we get textbooks of specific lecture to be revised
     const newExistlectureTextbookList = await axios
@@ -234,7 +234,7 @@ function LectureList() {
           window.alert("로그인이 필요합니다.");
           return history.push("/");
         } else {
-          console.log(result.data);
+          // console.log(result.data);
           window.alert(result.data);
         }
       })
@@ -285,7 +285,7 @@ function LectureList() {
       // 학생DB에 수강중강의가 있는지, 수강중강의에 해당 lectureID가 존재하는지부터 확인해야하긴 함.
 
       await stuDB["수강중강의"].splice(stuDB["수강중강의"].indexOf(lecture["lectureID"]), 1); // "수강중강의" of StudentDB document deprecated
-      console.log(stuDB["수강중강의"]);
+      // console.log(stuDB["수강중강의"]);
       axios
         .put("/api/StudentDB", stuDB)
         .then(function (result) {
@@ -473,7 +473,7 @@ function LectureList() {
                 newlecture["textbookIDArray"]=selected.map((element,idx)=>{
                   return element["_id"];
                 });
-                console.log("new lecture: "+JSON.stringify(newlecture));
+                // console.log("new lecture: "+JSON.stringify(newlecture));
                 setlecture(newlecture);
               }}
               options={textBookList}
@@ -676,7 +676,7 @@ function LectureList() {
               id="select_lecture_textbook"
               multiple
               onChange={(selected)=>{
-                console.log("altl: "+JSON.stringify([...selected]));
+                // console.log("altl: "+JSON.stringify([...selected]));
                 setAddedLectureTextbookList([...selected]);
               }}
               options={textBookList}
@@ -691,7 +691,7 @@ function LectureList() {
             variant="secondary"
             onClick={() => {
               // reviseLecture();
-              console.log("new books: "+JSON.stringify(addedLectureTextbookList));
+              // console.log("new books: "+JSON.stringify(addedLectureTextbookList));
               addTextbooksToLecture();
             }}
           >

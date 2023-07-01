@@ -358,6 +358,7 @@ passport.serializeUser(function (user, done) {
     let user_mode="";
     let role_oid=null;
     let group_oid=null;
+    let group_name="";
     try{
       const user_info_doc=await db.collection("User").aggregate([
         {
@@ -423,12 +424,14 @@ passport.serializeUser(function (user, done) {
             role_name: "$Role_aggregate.role_name",
             role_id: "$Role_aggregate._id",
             group_id: "$Group_aggregate._id",
+            group_name: "$Group_aggregate.group_name",
           },
         }
       ]).sort({role_index:1}).toArray();
       roles_arr=user_info_doc.map((r,ridx)=>r["role_index"]);
       role_oid=(user_info_doc[0]).role_id;
       group_oid=(user_info_doc[0]).group_id;
+      group_name=(user_info_doc[0]).group_name;
     }
     catch(error){
       // console.log(`error while get user role info: ${error}`);
@@ -458,6 +461,7 @@ passport.serializeUser(function (user, done) {
         user_oid:user._id,
         role_oid:role_oid,
         group_oid:group_oid,
+        group_name:group_name,
       }
     ); // passport.user에 user 정보 저장
   });
@@ -564,6 +568,7 @@ app.get("/api/getMyInfo", async function (req, res) {
       ret_val["ret"].username=req.session.passport.user.username;
       ret_val["ret"].nickname=req.session.passport.user.nickname;
       ret_val["ret"].user_mode=req.session.passport.user.user_mode;
+      ret_val["ret"].group_name=req.session.passport.user.group_name;
     }
   }
   catch(error){
@@ -1797,7 +1802,8 @@ app.get("/api/getMyCurrentAssignments", loginCheck, permissionCheck(Role("studen
         {
           $match: {
             "Assignment_aggregate.duedate":today_string,
-            "$or":[{"Assignment_aggregate.hiddenOnLecturePage":{"$exists":false}},{"Assignment_aggregate.hiddenOnLecturePage":false}]
+            // "$or":[{"Assignment_aggregate.hiddenOnLecturePage":{"$exists":false}},{"Assignment_aggregate.hiddenOnLecturePage":false}]
+            "Assignment_aggregate.hiddenOnLecturePage":{"$ne":true}
           }
         },
         {
@@ -3399,7 +3405,8 @@ app.get("/api/studentList", loginCheck, permissionCheck(Role("manager"),Role("ad
   //     });
   let ret=null;
   try{
-    const student_list= await db.collection("StudentDB").find({"$or":[{"deleted":{"$exists":false}},{"deleted":false}]}).toArray();
+    // const student_list= await db.collection("StudentDB").find({"$or":[{"deleted":{"$exists":false}},{"deleted":false}]}).toArray();
+    const student_list= await db.collection("StudentDB").find({deleted:{$ne:true}}).toArray();
     ret=student_list;
   }
   catch(error){
@@ -3418,10 +3425,11 @@ app.get("/api/ActiveStudentList", loginCheck, permissionCheck(Role("manager"),Ro
     const acitve_student_list= await db.collection("StudentDB").find(
       {
         "graduated":false,
-        "$or":[
-          {"deleted":{"$exists":false}},
-          {"deleted":false}
-        ],
+        // "$or":[
+        //   {"deleted":{"$exists":false}},
+        //   {"deleted":false}
+        // ],
+        "deleted":{$ne:true},
         "group_id":group_oid,
       }
     ).toArray();
@@ -3671,20 +3679,36 @@ app.post("/api/StudentDB", loginCheck, permissionCheck(Role("manager"),Role("adm
     const user_oid=req.session.passport.user.user_oid;
     const group_oid=req.session.passport.user.group_oid;
     let student_legacy_id=newDB.ID;
-    const prev_same_legacy_id_list=(await db.collection('StudentDB').find(
+    const student_name=newDB.이름;
+    const birth_date=newDB.생년월일;
+    // const prev_same_legacy_id_list=(await db.collection('StudentDB').find(
+    //   {
+    //     ID:{
+    //       $regex:student_legacy_id,
+    //     }
+    //   },
+    //   {session}
+    // ).toArray()).map((e,idx)=>e.ID);
+    // const prev_same_legacy_id_set=new Set(prev_same_legacy_id_list);
+    // if(prev_same_legacy_id_set.size>0) student_legacy_id+="_"+getRandomDigitString();
+    // while(prev_same_legacy_id_set.has(student_legacy_id)){
+    //   student_legacy_id+=getRandomDigitString();
+    // }
+    const same_legacy_id_count= await db.collection('StudentDB').countDocuments(
       {
-        ID:{
-          $regex:student_legacy_id,
-        }
+        이름:{
+          $regex:student_name,
+        },
+        생년월일:birth_date,
       },
       {session}
-    ).toArray()).map((e,idx)=>e.ID);
-    const prev_same_legacy_id_set=new Set(prev_same_legacy_id_list);
-    if(prev_same_legacy_id_set.size>0) student_legacy_id+="_"+getRandomDigitString();
-    while(prev_same_legacy_id_set.has(student_legacy_id)){
-      student_legacy_id+=getRandomDigitString();
+    );
+    if(same_legacy_id_count>0){
+      const new_student_name=newDB.이름+(same_legacy_id_count+1).toString();
+      newDB.이름=new_student_name;
+      const birth_date_YYMMDD=(newDB.ID.split("_"))[1];
+      newDB.ID=[new_student_name,birth_date_YYMMDD].join("_");
     }
-    newDB.ID=student_legacy_id;
     newDB.group_id=group_oid;
     await db.collection("StudentDB").insertOne(newDB,{session});
     await db.collection("StudentDB_Log").insertOne(newDB,{session});
@@ -3692,6 +3716,7 @@ app.post("/api/StudentDB", loginCheck, permissionCheck(Role("manager"),Role("adm
     await session.commitTransaction();
   }
   catch(e){
+    console.log(`error: ${e}`);
     await session.abortTransaction();
     ret["ret"]="학생 데이터 등록 중 오류가 발생했습니다";
   }
@@ -3716,6 +3741,9 @@ app.get("/api/StudentDB/:ID", loginCheck, permissionCheck(Role("manager"),Role("
   const ret={"success":false,"ret":null};
   try{
     const student_doc= await db.collection("StudentDB").findOne({ID:student_legacy_id});
+    delete student_doc["user_id"];
+    delete student_doc["rou_id"];
+    delete student_doc["group_id"];
     if(!student_doc) throw new Error("no such student");
     ret["success"]=true; ret["ret"]=student_doc;
   }
@@ -5110,7 +5138,14 @@ app.get("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin
   // let resp={날짜:"",textbookList:null};
   const ret={"success":false,"ret":null};
   try{
-    const all_textbook_list=await db.collection("TextBook").find().toArray();
+    const group_oid=req.session.passport.user.group_oid;
+    let all_textbook_list=await db.collection("TextBook").find({
+      group_id:group_oid,
+    }).toArray();
+    all_textbook_list=all_textbook_list.map((doc,idx)=>{
+      delete doc["group_id"];
+      return doc;
+    });
     // resp["textbookList"]=all_textbook_list;
     ret["success"]=true; ret["ret"]=all_textbook_list;
   }catch (e) {
@@ -5132,7 +5167,7 @@ app.get("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin
   //     });
 });
 
-app.put("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
+app.put("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   //const newTextbook = req.body;
   //const findID = ObjectId("62b815e210c04d831adf2f5b");
   let edittedTextbook = req.body;
@@ -5147,6 +5182,7 @@ app.put("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin
   }
 
   delete edittedTextbook["_id"];
+  delete edittedTextbook["group_id"]; // this is dirty but...
 
   // db.collection("TextBook").findOne({ _id:findID }, (err, result) => {
   //   if (err) {
@@ -5157,35 +5193,131 @@ app.put("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin
   //   }
 
   // });
-  db.collection("TextBook").updateOne({ _id: findID }, { $set: edittedTextbook }, function (err, result) {
-    if (err) {
-      return res.send("/api/Textbook/edit - updateOne Error : ", err3);
-    }
-    console.log("터미널에 표시 : 교재 수정 완료");
-    if (result.matchedCount == 0) {
-      return res.send("해당 교재가 등록되어 있지 않습니다.");
-    } else {
-      return res.send(true);
+  // db.collection("TextBook").updateOne({ _id: findID }, { $set: edittedTextbook }, function (err, result) {
+  //   if (err) {
+  //     return res.send("/api/Textbook/edit - updateOne Error : ", err3);
+  //   }
+  //   console.log("터미널에 표시 : 교재 수정 완료");
+  //   if (result.matchedCount == 0) {
+  //     return res.send("해당 교재가 등록되어 있지 않습니다.");
+  //   } else {
+  //     return res.send(true);
+  //   }
+  // });
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
     }
   });
+  let ret_val=null;
+  try{
+    session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
+    const textbook_doc=await db.collection('TextBook').findOne(
+      {
+        _id:findID,
+        group_id:group_oid,
+      },
+      {session}
+    );
+    if(!textbook_doc) throw new Error(`invalid request:0`);
+    await db.collection('TextBook').updateOne(
+      {
+        _id:findID,
+        group_id:group_oid,
+      },
+      {
+        $set:edittedTextbook,
+      },
+      {session}
+    )
+    await session.commitTransaction();
+    ret_val=true;
+  }
+  catch (err){
+    console.log(`${err}`);
+    await session.abortTransaction();
+    ret_val=`해당 교재가 등록되어 있지 않습니다`;
+  }
+  finally{
+    await session.endSession();
+    return res.send(ret_val);
+  }
 });
 
-app.post("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
+app.post("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   const newTextbook = req.body;
-  db.collection("TextBook").findOne({ 교재: newTextbook["교재"] }, (err, result) => {
-    if (err) {
-      return res.send(`/api/TextBook - findOne Error : ${err}`);
+  // db.collection("TextBook").findOne({ 교재: newTextbook["교재"] }, (err, result) => {
+  //   if (err) {
+  //     return res.send(`/api/TextBook - findOne Error : ${err}`);
+  //   }
+  //   if (result !== null) {
+  //     return res.send(`findOne result is not null. 중복되는 이름의 교재가 존재합니다.`);
+  //   }
+  //   db.collection("TextBook").insertOne(newTextbook, (err2, result2) => {
+  //     if (err2) {
+  //       return res.send(`/api/TextBook - insertOne Error : ${err2}`);
+  //     }
+  //     return res.send(true);
+  //   });
+  // });
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
     }
-    if (result !== null) {
-      return res.send(`findOne result is not null. 중복되는 이름의 교재가 존재합니다.`);
-    }
-    db.collection("TextBook").insertOne(newTextbook, (err2, result2) => {
-      if (err2) {
-        return res.send(`/api/TextBook - insertOne Error : ${err2}`);
-      }
-      return res.send(true);
-    });
   });
+  let ret_val=null;
+  try{
+    session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
+    const textbook_name=newTextbook.교재;
+    const textbook_doc=await db.collection('TextBook').findOne(
+      {
+        교재:textbook_name,
+        group_id:group_oid,
+        deleted:{$ne:true}
+      },
+      {session}
+    );
+    if(textbook_doc) throw new Error(`textbook already exists`);
+    newTextbook.group_id=group_oid;
+    newTextbook.deleted=false;
+    newTextbook.deleted_date=null;
+    // await db.collection('TextBook').insertOne(newTextbook,{session});
+    await db.collection('TextBook').updateOne(
+      {
+        교재:textbook_name,
+        group_oid
+      },
+      {
+        $set:newTextbook
+      },
+      {upsert:true,session}
+    )
+    await session.commitTransaction();
+    ret_val=true;
+  }
+  catch (err){
+    console.log(`${err}`);
+    await session.abortTransaction();
+    ret_val=`중복되는 이름의 교재가 존재합니다`;
+  }
+  finally{
+    await session.endSession();
+    return res.send(ret_val);
+  }
 });
 
 app.delete("/api/Textbook/:_id", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
@@ -5196,25 +5328,95 @@ app.delete("/api/Textbook/:_id", loginCheck, permissionCheck(Role("manager"),Rol
     return res.send(`invalid access`);
   }
 
-  let ret_val;
+  let ret_val=null;
 
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
   try{
-    const related_lecture_docs= await db.collection("TextbookOfLecture").find({textbookID:findID}).toArray();
+    session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
+    const current_date=getCurrentDate();
+    // const related_lecture_docs= await db.collection("TextbookOfLecture").find({textbookID:findID}).toArray();
+    const related_lecture_docs= (await db.collection('TextbookOfLecture').aggregate([
+      {
+        $match:{
+          textbookID:findID,
+        }
+      },
+      {
+        $lookup: {
+          from: "Lecture",
+          localField: "lectureID",
+          foreignField: "_id",
+          as: "Lecture_aggregate",
+        },
+      },
+      {
+        $unwind: {
+          path:"$Lecture_aggregate" ,
+        }
+      },
+      {
+        $match:{
+          "Lecture_aggregate.finished":{
+            $ne:true,
+          }
+        }
+      }
+    ],{session}).toArray());
     if(related_lecture_docs.length>0){
-      return res.send(`해당 교재가 강의에 사용중이므로 삭제할 수 없습니다.`);
+      // return res.send(`해당 교재가 강의에 사용중이므로 삭제할 수 없습니다.`);
+      throw new Error(`해당 교재가 강의에 사용중이므로 삭제할 수 없습니다.`);
     }
-    const del_result= await db.collection("TextBook").deleteOne({_id:findID});
-    if(del_result.deletedCount == 0){
-      ret_val="해당 교재가 등록되어 있지 않습니다";
-    }
-    else{
-      ret_val=true;
-    }
+
+    const textbook_doc=await db.collection('TextBook').findOne(
+      {
+        _id:findID,
+        group_id:group_oid,
+      },
+      {session}
+    );
+    if(!textbook_doc) throw new Error(`해당 교재가 등록되어 있지 않습니다`);
+
+    // const del_result= await db.collection("TextBook").deleteOne({_id:findID});
+    await db.collection('TextBook').updateOne(
+      {
+        _id:findID,
+      },
+      {
+        $set:{
+          deleted:true,
+          deleted_date:current_date,
+        }
+      },
+      {session}
+    );
+
+    // if(del_result.deletedCount == 0){
+    //   ret_val="해당 교재가 등록되어 있지 않습니다";
+    // }
+    // else{
+    //   ret_val=true;
+    // }
+    await session.commitTransaction();
+    ret_val=true;
   }
   catch(error){
-    ret_val=`Error: ${error}`;
+    console.log(`error: ${error}`);
+    await session.abortTransaction();
+    ret_val=`${error}`;
   }
   finally{
+    await session.endSession();
     return res.send(ret_val);
   }
 
@@ -5234,6 +5436,7 @@ app.delete("/api/Textbook/:_id", loginCheck, permissionCheck(Role("manager"),Rol
 app.get(`/api/TextbookInProgressOfStudent/:studentLegacyID`, loginCheck, permissionCheck(Role("manager"),Role("admin")), async(req,res)=>{
   const ret={"success":false,"ret":null};
   try{
+    const group_oid=req.session.passport.user.group_oid;
     const studentLegacyID = decodeURIComponent(req.params.studentLegacyID);
     const student_doc= await db.collection("StudentDB").findOne({"ID":studentLegacyID});
     if(!student_doc) throw new Error("there is no such student");
@@ -5244,7 +5447,18 @@ app.get(`/api/TextbookInProgressOfStudent/:studentLegacyID`, loginCheck, permiss
     }
     const textbookList= student_doc["진행중교재"].map((e)=>e["교재"]); // this structure of mongodb document is problematic
 
-    const data= await db.collection("TextBook").find({"교재":{"$in":textbookList}}).project({"_id":1,"교재":1}).toArray();
+    const data= await db.collection("TextBook")
+      .find(
+        {
+          "교재":{"$in":textbookList},
+          group_id:group_oid
+        }
+      ).project(
+        {
+          "_id":1,
+          "교재":1
+        }
+      ).toArray();
     ret["success"]=true; ret["ret"]=data;
   }
   catch(error){
@@ -5261,8 +5475,20 @@ app.post("/api/getTextbookIDsByTextbookName", loginCheck, permissionCheck(Role("
   let ret_val;
   let success;
   try{
+    const group_oid=req.session.passport.user.group_oid;
     const nameList=Array.isArray(nameData['textbookNames'])?nameData["textbookNames"]:[];
-    ret_val= await db.collection("TextBook").find({"교재":{"$in":nameList}}).project({"_id":1,"교재":1}).toArray();
+    ret_val= await db.collection("TextBook")
+      .find(
+        {
+          "교재":{"$in":nameList},
+          group_id:group_oid,
+        }
+      ).project(
+        {
+          "_id":1,
+          "교재":1
+        }
+      ).toArray();
     success=true;
   }
   catch(error){
@@ -5314,7 +5540,8 @@ app.get("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin"
   //     });
   let ret=null;
   try{
-    ret= await db.collection("Lecture").find({"$or":[{"finished":{"$exists":false}},{"finished":false}]}).toArray();
+    // ret= await db.collection("Lecture").find({"$or":[{"finished":{"$exists":false}},{"finished":false}]}).toArray();
+    ret= await db.collection("Lecture").find({finished:{$ne:true}}).toArray();
   }
   catch(error){
     ret= `error while getting not finished lecture list`
@@ -5342,15 +5569,38 @@ app.post("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin
   let ret_val=null;
   try{
     session.startTransaction();
-    const exist_lecture_document= await db.collection('Lecture').findOne({lectureID: newLecture["ID"]},{session});
-    if(exist_lecture_document) throw new Error("중복되는 강의가 존재합니다.");
+    const user_oid=req.session.passport.user.user_oid;
+    const group_oid=req.session.passport.user.group_oid;
+    let lecture_name=newLecture.lectureName;
+    const manager_name=newLecture.manager;
+    // const exist_lecture_document= await db.collection('Lecture').findOne({lectureID: newLecture["ID"]},{session});
+    const same_name_lecture_count=await db.collection('Lecture').countDocuments(
+      {
+        lectureName:{
+          $regex:lecture_name,
+        },
+      },
+      {session}
+    );
+    // if(exist_lecture_document) throw new Error("중복되는 강의가 존재합니다.");
+    if(same_name_lecture_count>0){
+      lecture_name=lecture_name+(same_name_lecture_count+1).toString();
+      const tmp_string_arr=newLecture.lectureID.split("_");
+      tmp_string_arr[0]=lecture_name;
+      newLecture.lectureName=lecture_name;
+      newLecture.lectureID=tmp_string_arr.join("_");
+    }
     const textbookID_list = newLecture["textbookIDArray"].map((textbookID)=>new ObjectId(textbookID));
     delete newLecture["textbookIDArray"];
     const new_lecture_id=new ObjectId();
     newLecture["_id"]=new_lecture_id;
+    newLecture["lecture_by"]=user_oid;
+    newLecture["group_id"]=group_oid;
     await db.collection('Lecture').insertOne(newLecture,{session});
-    const textbookOfLecture_list = textbookID_list.map((textbookID)=>{return {lectureID:new_lecture_id,textbookID:textbookID}});
-    await db.collection("TextbookOfLecture").insertMany(textbookOfLecture_list,{session});
+    if(textbookID_list.length>0){
+      const textbookOfLecture_list = textbookID_list.map((textbookID)=>{return {lectureID:new_lecture_id,textbookID:textbookID}});
+      await db.collection("TextbookOfLecture").insertMany(textbookOfLecture_list,{session});
+    }
     await session.commitTransaction();
     ret_val=true;
     // return res.send(true);
@@ -5441,6 +5691,11 @@ app.get("/api/TextbookOfLecture/:lectureid", loginCheck, permissionCheck(Role("m
       },
       { $unwind: "$TextbookOfLecture_aggregate" },
       {
+        $match:{
+          "TextbookOfLecture_aggregate.deleted":{$ne:true},
+        }
+      },
+      {
         $lookup: {
           from: "TextBook",
           localField: "TextbookOfLecture_aggregate.textbookID",
@@ -5472,50 +5727,50 @@ app.get("/api/TextbookOfLecture/:lectureid", loginCheck, permissionCheck(Role("m
     return res.json(ret);
   }
   //aggregate(join) query
-  db.collection("Lecture")
-      .aggregate([
-        { $match: { lectureID: paramID } },
-        {
-          $lookup: {
-            from: "TextbookOfLecture",
-            localField: "_id",
-            foreignField: "lectureID",
-            as: "TextbookOfLecture_aggregate",
-          },
-        },
-        { $unwind: "$TextbookOfLecture_aggregate" },
-        {
-          $lookup: {
-            from: "TextBook",
-            localField: "TextbookOfLecture_aggregate.textbookID",
-            foreignField: "_id",
-            as: "TextBook_aggregate",
-          },
-        },
-        { $unwind: "$TextBook_aggregate" },
-        {
-          $addFields: {
-            textbookID: "$TextBook_aggregate._id",
-            textbookName: "$TextBook_aggregate.교재",
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            textbookID: 1,
-            textbookName: 1,
-          },
-        },
-      ])
-      .toArray((err, result) => {
-        if (err) {
-          return res.send(`/api/TextbookOfLecture - find Error ${err}`);
-        }
-        return res.json(result);
-      });
+  // db.collection("Lecture")
+  //     .aggregate([
+  //       { $match: { lectureID: paramID } },
+  //       {
+  //         $lookup: {
+  //           from: "TextbookOfLecture",
+  //           localField: "_id",
+  //           foreignField: "lectureID",
+  //           as: "TextbookOfLecture_aggregate",
+  //         },
+  //       },
+  //       { $unwind: "$TextbookOfLecture_aggregate" },
+  //       {
+  //         $lookup: {
+  //           from: "TextBook",
+  //           localField: "TextbookOfLecture_aggregate.textbookID",
+  //           foreignField: "_id",
+  //           as: "TextBook_aggregate",
+  //         },
+  //       },
+  //       { $unwind: "$TextBook_aggregate" },
+  //       {
+  //         $addFields: {
+  //           textbookID: "$TextBook_aggregate._id",
+  //           textbookName: "$TextBook_aggregate.교재",
+  //         },
+  //       },
+  //       {
+  //         $project: {
+  //           _id: 0,
+  //           textbookID: 1,
+  //           textbookName: 1,
+  //         },
+  //       },
+  //     ])
+  //     .toArray((err, result) => {
+  //       if (err) {
+  //         return res.send(`/api/TextbookOfLecture - find Error ${err}`);
+  //       }
+  //       return res.json(result);
+  //     });
 });
 
-app.post("/api/TextbookOfLecture", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
+app.post("/api/TextbookOfLecture", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   let lectureID, newTextbookList;
   try {
     lectureID = new ObjectId(req.body.lectureID);
@@ -5524,35 +5779,122 @@ app.post("/api/TextbookOfLecture", loginCheck, permissionCheck(Role("manager"),R
     return res.send(`invalid access`);
   }
 
-  db.collection("TextbookOfLecture")
-      .find({
-        lectureID: lectureID,
-        textbookID: {
-          $in: newTextbookList,
-        },
-      })
-      .toArray((err, result) => {
-        if (err) {
-          return res.send(`/api/TextbookOfLecture - Error ${err}`);
-        }
-        if (result.length > 0) {
-          return res.send(`이미 등록된 교재가 포함되어있습니다.`);
-        }
+  // db.collection("TextbookOfLecture")
+  //     .find({
+  //       lectureID: lectureID,
+  //       textbookID: {
+  //         $in: newTextbookList,
+  //       },
+  //     })
+  //     .toArray((err, result) => {
+  //       if (err) {
+  //         return res.send(`/api/TextbookOfLecture - Error ${err}`);
+  //       }
+  //       if (result.length > 0) {
+  //         return res.send(`이미 등록된 교재가 포함되어있습니다.`);
+  //       }
 
-        try {
-          db.collection("TextbookOfLecture").insertMany(
-              newTextbookList.map((textbookID) => {
-                return {
-                  lectureID: lectureID,
-                  textbookID: textbookID,
-                };
-              })
-          );
-          return res.send(true);
-        } catch (e) {
-          return res.send(`/api/TextbookOfLecture - Error ${e}`);
+  //       try {
+  //         db.collection("TextbookOfLecture").insertMany(
+  //             newTextbookList.map((textbookID) => {
+  //               return {
+  //                 lectureID: lectureID,
+  //                 textbookID: textbookID,
+  //               };
+  //             })
+  //         );
+  //         return res.send(true);
+  //       } catch (e) {
+  //         return res.send(`/api/TextbookOfLecture - Error ${e}`);
+  //       }
+  //     });
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
+  let ret_val=true;
+  try{
+    session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
+    const textbook_doc_list=await db.collection('TextbookOfLecture').aggregate([
+        {
+          $match:{
+            _id:{
+              $in: newTextbookList,
+            },
+            deleted:{$ne:true}
+          }
+        },
+        {
+          $lookup: {
+            from: "TextBook",
+            localField: "textbookID",
+            foreignField: "_id",
+            as: "TextBook_aggregate",
+          },
+        },
+        {
+          $unwind: {
+            path:"$TextBook_aggregate" 
+          },
+        },
+        {
+          $match:{
+            "TextBook_aggregate.group_id":group_oid,
+          }
         }
-      });
+      ],
+      {session}
+    ).toArray();
+    if(textbook_doc_list.length>0) throw new Error(`invalid request:0`);
+    const textbook_of_lecture_doc_filters=newTextbookList.map((textbookID,idx)=>{
+      return {
+        lectureID,
+        textbookID,
+      }
+    });
+    const textbook_of_lecture_bulkwrite_ops=textbook_of_lecture_doc_filters.map((filter,idx)=>{
+      const ret= {
+        updateOne:{
+            filter,
+            update:{
+                $setOnInsert:filter,
+                $set:{
+                  deleted:false,
+                }
+            },
+            upsert:true,
+        }
+      };
+      return ret;
+    });
+    const bulkWrite_result= await db.collection('TextbookOfLecture').bulkWrite(
+      textbook_of_lecture_bulkwrite_ops,
+      {ordered:false,session},
+    );
+    if(bulkWrite_result.hasWriteErrors()){
+      // console.log(`error occurred while bulk write`);
+      throw new Error(`error occurred while bulk write`);
+    }
+
+    await session.commitTransaction();
+    ret_val=true;
+  }
+  catch (err) {
+    await session.abortTransaction();
+    ret_val=`이미 등록된 교재가 포함되어있습니다`;
+  }
+  finally {
+    await session.endSession();
+    return res.send(ret_val);
+  }
 });
 
 app.delete("/api/TextbookOfLecture/:lectureID/:textbookID", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
@@ -5563,23 +5905,71 @@ app.delete("/api/TextbookOfLecture/:lectureID/:textbookID", loginCheck, permissi
   } catch (err) {
     return res.send(`invalid access`);
   }
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
+  let ret_val=true;
   try{
+    session.startTransaction();
     // console.log("lid:"+legacyLectureID);
     // console.log("tid:"+textbookID);
 
-    const lectureDocument=await db.collection("Lecture").findOne({lectureID:legacyLectureID});
+    const group_oid=req.session.passport.user.group_oid;
+    const current_date=getCurrentDate();
+
+    const lectureDocument=await db.collection("Lecture").findOne({lectureID:legacyLectureID},{session});
     if(!lectureDocument) return res.send(`invalid access`);
     lectureID=lectureDocument["_id"];
     // console.log("lec doc:",lectureDocument);
     // return res.send("서버 점검중");
-    const relatedAssignment = await db.collection("Assignment").findOne({ lectureID: lectureID, textbookID: textbookID });
-    if (relatedAssignment) return res.send("현재 과제에 사용중인 교재입니다.");
-    const result = await db.collection("TextbookOfLecture").deleteOne({ lectureID: lectureID, textbookID: textbookID });
-    if (result.deletedCount == 1) return res.send(true);
-    else return res.send(`/api/TextbookOfLecture/ - Error`);
-  } catch (err) {
-    return res.send(`/api/TextbookOfLecture/ - Error ${err}`);
+    const relatedAssignment = await db.collection("Assignment").findOne(
+      {
+        lectureID: lectureID,
+        textbookID: textbookID,
+        hiddenOnLecturePage: {$ne:true},
+      },
+      {session}
+    );
+    // if (relatedAssignment) return res.send("현재 과제에 사용중인 교재입니다.");
+    if(relatedAssignment) throw new Error(`현재 과제에 사용중인 교재입니다`);
+    // const result = await db.collection("TextbookOfLecture").deleteOne({ lectureID: lectureID, textbookID: textbookID },{session});
+    // if (result.deletedCount == 1) return res.send(true);
+    // else return res.send(`/api/TextbookOfLecture/ - Error`);
+    await db.collection('TextbookOfLecture').updateOne(
+      {
+        textbookID,
+        lectureID,
+      },
+      {
+        $set:{
+          deleted:true,
+          deleted_date:current_date,
+        }
+      },
+      {session}
+    );
+    ret_val=true;
+    await session.commitTransaction();
   }
+  catch (err) {
+    await session.abortTransaction();
+    // return res.send(`/api/TextbookOfLecture/ - Error ${err}`);
+    // ret_val=`/api/TextbookOfLecture/ - Error ${err}`;
+    ret_val=`${err}`;
+  }
+  finally {
+    await session.endSession();
+    return res.send(ret_val);
+  }
+
 });
 
 // 강의로 수강생 검색매칭 relation
@@ -5921,10 +6311,11 @@ app.get("/api/StudentOfLecture/:lectureID", loginCheck, permissionCheck(Role("ma
         { $unwind: "$studentDB_aggregate" },
         {
           $match:{
-            "$or":[
-              {"studentDB_aggregate.deleted":{"$exists":false}},
-              {"studentDB_aggregate.deleted":false}
-            ]
+            // "$or":[
+            //   {"studentDB_aggregate.deleted":{"$exists":false}},
+            //   {"studentDB_aggregate.deleted":false}
+            // ]
+            "studentDB_aggregate.deleted":{"$ne":true}
           }
         },
         {

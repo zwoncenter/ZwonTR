@@ -66,9 +66,14 @@ function App() {
     username:"",
     nickname:"",
     user_mode:"guest",
+    group_name:"",
   }
   const [myInfo,setMyInfo]= useState({...myInfoTemplate});
   const [myInfoLoaded,setMyInfoLoaded]=useState(false);
+
+  function getMyGroupName(){
+    return myInfo.group_name;
+  }
   
   useEffect(async()=>{
     // console.log(`path: ${window.location.pathname}`);
@@ -508,7 +513,9 @@ function App() {
           />
         </Route>
         <Route exact path="/studentList">
-          <StuListpage />
+          <StuListpage 
+            groupName={getMyGroupName()}
+          />
         </Route>
         <Route exact path="/studentAdd">
           <StudentAdd />
