@@ -592,15 +592,15 @@ function TRwrite() {
       return false;
     }
 
-    if ("수강중강의" in stuDB) {
-      for (let lecture of lectureList) {
-        for (let assignID of lecture["students"][paramID]["진행중과제"]) {
-          if (today === lecture["assignments"][assignID]["과제기한"]) {
-            if (window.confirm(`${lecture["assignments"][assignID]["과제내용"]}(이)가 오늘까지 입니다. 저장을 진행하시겠습니까?`) === false) return false;
-          }
-        }
-      }
-    }
+    // if ("수강중강의" in stuDB) {
+    //   for (let lecture of lectureList) {
+    //     for (let assignID of lecture["students"][paramID]["진행중과제"]) {
+    //       if (today === lecture["assignments"][assignID]["과제기한"]) {
+    //         if (window.confirm(`${lecture["assignments"][assignID]["과제내용"]}(이)가 오늘까지 입니다. 저장을 진행하시겠습니까?`) === false) return false;
+    //       }
+    //     }
+    //   }
+    // }
 
     // if (TR.작성매니저 && TR.매니저피드백.length < 40) {
     if (final_feedback_written && TR.매니저피드백.length < 40) {
@@ -773,25 +773,27 @@ function TRwrite() {
       });
     setstuDB(newstuDB);
 
-    if ("수강중강의" in newstuDB) { //this is too slow: should be fixed later
-      const newlectureList = [];
-      for (let lectureID of newstuDB["수강중강의"]) {
-        let newlecture = await axios
-          .get(`/api/Lecture/${lectureID}`)
-          .then((result) => {
-            if (result.data === "로그인필요") {
-              window.alert("로그인이 필요합니다.");
-              return window.push("/");
-            }
-            return result["data"];
-          })
-          .catch((err) => {
-            return window.alert(err);
-          });
-        newlectureList.push(newlecture);
-      }
-      setlectureList(newlectureList);
-    }
+    // console.log(`수강중 강의 :${newstuDB["수강중강의"]}`)
+    // if ("수강중강의" in newstuDB) { //this is too slow: should be fixed later
+    //   const newlectureList = [];
+    //   for (let lectureID of newstuDB["수강중강의"]) {
+    //     let newlecture = await axios
+    //       .get(`/api/Lecture/${lectureID}`)
+    //       .then((result) => {
+    //         if (result.data === "로그인필요") {
+    //           window.alert("로그인이 필요합니다.");
+    //           return window.push("/");
+    //         }
+    //         return result["data"];
+    //       })
+    //       .catch((err) => {
+    //         return window.alert(err);
+    //       });
+    //     newlectureList.push(newlecture);
+    //   }
+    //   console.log(`newlecturelist: ${JSON.stringify(newlectureList)}`);
+    //   setlectureList(newlectureList);
+    // }
 
     // const newmanagerList = await axios
     //   .get("/api/managerList")

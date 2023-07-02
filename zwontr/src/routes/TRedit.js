@@ -677,15 +677,15 @@ function TRedit() {
       return false;
     }
 
-    if ("수강중강의" in stuDB) {
-      for (let lecture of lectureList) {
-        for (let assignID of lecture["students"][paramID]["진행중과제"]) {
-          if (today === lecture["assignments"][assignID]["과제기한"]) {
-            if (window.confirm(`${lecture["assignments"][assignID]["과제내용"]}(이)가 오늘까지 입니다. 저장을 진행하시겠습니까?`) === false) return false;
-          }
-        }
-      }
-    }
+    // if ("수강중강의" in stuDB) {
+    //   for (let lecture of lectureList) {
+    //     for (let assignID of lecture["students"][paramID]["진행중과제"]) {
+    //       if (today === lecture["assignments"][assignID]["과제기한"]) {
+    //         if (window.confirm(`${lecture["assignments"][assignID]["과제내용"]}(이)가 오늘까지 입니다. 저장을 진행하시겠습니까?`) === false) return false;
+    //       }
+    //     }
+    //   }
+    // }
 
     // if (TR.작성매니저 && TR.매니저피드백.length < 40) {
     if (final_feedback_written && TR.매니저피드백.length < 40) {

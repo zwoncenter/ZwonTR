@@ -275,7 +275,9 @@ function checkReviewerUsernameValid(reviewer_username){
     return typeof reviewer_username==="string";
 }
 function checkReviewerUsernameArrayValid(reviewer_array){
-    if(!Array.isArray(reviewer_array) || reviewer_array.length>reviewer_array_max_len) return false;
+    if(!Array.isArray(reviewer_array) ||
+        reviewer_array.length===0 ||
+        reviewer_array.length>reviewer_array_max_len) return false;
     for(let i=0; i<reviewer_array.length; i++){
         const reviewer_username=reviewer_array[i];
         if(!checkReviewerUsernameValid(reviewer_username)) return false;

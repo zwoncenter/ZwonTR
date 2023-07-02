@@ -84,7 +84,7 @@ function Lecture({
   };
 
   const studentAdd = async () => {
-    if (!newname.match(/[ㄱ-ㅎ가-힣]+_[0-9]{6}/)) {
+    if (!newname.match(/[ㄱ-ㅎ가-힣0-9]+_[0-9]{6}/)) {
       window.alert("입력된 값이 ID 형식이 아닙니다. (이름_생년월일)");
       return;
     }
@@ -169,11 +169,11 @@ function Lecture({
 
   // 학생 삭제 관련 코드
   const studentDelete = async (deletename) => {
-    if (!deletename.match(/[ㄱ-ㅎ가-힣]+_[0-9]{6}/)) {
+    if (!deletename.match(/[ㄱ-ㅎ가-힣0-9]+_[0-9]{6}/)) {
       window.alert("입력된 값이 ID 형식이 아닙니다. (이름_생년월일)");
       return;
     }
-    if (!window.confirm(`${deletename}을 수강생에서 삭제하시겠습니까? \n해당 학생의 진행중과제/완료된과제가 전부 영구히 삭제됩니다.`)) {
+    if (!window.confirm(`${deletename}을 수강생에서 삭제하시겠습니까? \n해당 학생의 진행중과제/완료된과제가 전부 삭제됩니다.`)) {
       return;
     }
     // if (!lecture["studentList"].includes(deletename)) {
@@ -497,9 +497,21 @@ function Lecture({
 
   useEffect(async () => {
     const newstudentDBlist = await axios
-      .get("/api/studentList")
+      // .get("/api/studentList")
+      .get("/api/ActiveStudentList")
       .then((result) => {
-        return result.data;
+        // return result.data;
+        if(result.data==="로그인필요"){
+          window.alert("로그인이 필요합니다.");
+          return history.push("/");
+        }
+        else if(result.data["ret"] && result.data["success"]){
+          return result.data["ret"];
+        }
+        else{
+          window.alert(result.data["ret"]);
+          window.location.reload();
+        }
       })
       .catch((err) => {
         return err;

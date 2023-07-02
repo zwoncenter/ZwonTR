@@ -95,13 +95,25 @@ function WeeklymeetingWrite() {
 
 
     const newstudentDBlist = await axios
-      .get("/api/studentList")
+      // .get("/api/studentList")
+      .get("/api/ActiveStudentList")
       .then((result) => {
-        if (result.data === "로그인필요") {
+        // if (result.data === "로그인필요") {
+        //   window.alert("로그인이 필요합니다.");
+        //   return history.push("/");
+        // }
+        // return result.data;
+        if(result.data==="로그인필요"){
           window.alert("로그인이 필요합니다.");
           return history.push("/");
         }
-        return result.data;
+        else if(result.data["ret"] && result.data["success"]){
+          return result.data["ret"];
+        }
+        else{
+          window.alert(result.data["ret"]);
+          window.location.reload();
+        }
       })
       .catch((err) => {
         return err;
@@ -147,7 +159,7 @@ function WeeklymeetingWrite() {
 
   useEffect(async () => {
       const temporal2 = {};
-      console.log(stuDBList);
+      // console.log(stuDBList);
       stuDBList.map(
         (element) =>
           (temporal2[element["ID"]] = {
@@ -413,7 +425,7 @@ function WeeklymeetingWrite() {
       <Button
         className="btn-commit btn-save"
         onClick={() => {
-          console.log(lastmonth);
+          // console.log(lastmonth);
           if (window.confirm("주간결산 내용을 저장하시겠습니까?")) {
             axios
               .post(`/api/Weeklymeeting/${paramDate}`, {
@@ -428,7 +440,7 @@ function WeeklymeetingWrite() {
                   window.alert("로그인이 필요합니다.");
                   return history.push("/");
                 } else {
-                  console.log(result.data);
+                  // console.log(result.data);
                   window.alert(result.data);
                 }
               })

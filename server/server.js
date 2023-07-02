@@ -913,6 +913,11 @@ app.post("/api/getMyAlarms", loginCheck, permissionCheck(Role("manager")),async 
         }
       },
       {
+        $match:{
+          "AOS_aggregate.deleted":{$ne:true},
+        }
+      },
+      {
         $unwind:{
           path:"$AOS_aggregate",
           preserveNullAndEmptyArrays:true,
@@ -1784,6 +1789,11 @@ app.get("/api/getMyCurrentAssignments", loginCheck, permissionCheck(Role("studen
         { 
           $unwind: {
             path:"$AOS_aggregate",
+          }
+        },
+        {
+          $match:{
+            "AOS_aggregate.deleted":{$ne:true},
           }
         },
         {
@@ -3258,6 +3268,8 @@ app.get("/api/groupList", async (req, res) => {
   }
 });
 
+//here may the retreive endpoint for acitve group list come
+
 app.post("/api/checkUsernameAvailable", async function(req,res){
   const ret_val={"success":true, "ret":null};
   try{
@@ -3403,17 +3415,23 @@ app.get("/api/studentList", loginCheck, permissionCheck(Role("manager"),Role("ad
   //       console.log("api/studentList - find result length   :", result.length);
   //       res.json(result);
   //     });
-  let ret=null;
+  // let ret=null;
+  let ret_val={success:true,ret:null};
   try{
+    const group_oid=req.session.passport.user.group_oid;
     // const student_list= await db.collection("StudentDB").find({"$or":[{"deleted":{"$exists":false}},{"deleted":false}]}).toArray();
-    const student_list= await db.collection("StudentDB").find({deleted:{$ne:true}}).toArray();
-    ret=student_list;
+    const student_list= await db.collection("StudentDB").find({deleted:{$ne:true},group_id:group_oid}).toArray();
+    // ret=student_list;
+    ret_val.ret=student_list;
   }
   catch(error){
-    ret=`error while getting student list`;
+    // ret=`error while getting student list`;
+    ret_val.success=false;
+    ret_val.ret=`error while getting student list`;
   }
   finally{
-    return res.json(ret);
+    // return res.json(ret);
+    return res.json(ret_val);
   }
 });
 
@@ -3455,8 +3473,12 @@ app.get("/api/managerList", loginCheck, permissionCheck(Role("student"),Role("ma
   //     });
   const ret={"success":false,"ret":null};
   try{
-    const ret_data= await db.collection("Manager").find().toArray();
-    ret["success"]=true; ret["ret"]=ret_data[0]["매니저"];
+    const username=req.session.passport.user.username;
+    const group_oid=req.session.passport.user.group_oid;
+    // const ret_data= await db.collection("Manager").find().toArray();
+    // ret["success"]=true; ret["ret"]=ret_data[0]["매니저"];
+    const my_group_manager_user_list=await getManagerUserListInSameGroupByMyUsername(username);
+    ret.success=true; ret.ret=my_group_manager_user_list.map((doc,idx)=>doc.nickname);
   }
   catch(e){
     ret["ret"]="매니저 목록 데이터를 불러오는 중 오류가 발생했습니다";
@@ -3740,7 +3762,8 @@ app.get("/api/StudentDB/:ID", loginCheck, permissionCheck(Role("manager"),Role("
   // });
   const ret={"success":false,"ret":null};
   try{
-    const student_doc= await db.collection("StudentDB").findOne({ID:student_legacy_id});
+    const group_oid=req.session.passport.user.group_oid;
+    const student_doc= await db.collection("StudentDB").findOne({ID:student_legacy_id,group_id:group_oid});
     delete student_doc["user_id"];
     delete student_doc["rou_id"];
     delete student_doc["group_id"];
@@ -3890,10 +3913,10 @@ app.put("/api/StudentDB", loginCheck, permissionCheck(Role("manager"),Role("admi
   let existingTextbook;
 
   try {
-
     session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
     // findOne에는 toArray() 쓰면 안됨
-    let studentDB_result = await db.collection(`StudentDB`).findOne({ID: findID},{session});
+    let studentDB_result = await db.collection(`StudentDB`).findOne({ID: findID, group_id:group_oid},{session});
     if(!studentDB_result) throw new Error("등록되지 않은 학생입니다");
 
     /** 업데이트되기 전 학생교재 **/
@@ -4036,7 +4059,8 @@ app.delete("/api/StudentDB/:ID", loginCheck, permissionCheck(Role("manager"),Rol
   // });
   let ret=null;
   try{
-    const update_result= await db.collection("StudentDB").updateOne({ID: paramID},{$set:{deleted:true}});
+    const group_oid=req.session.passport.user.group_oid;
+    const update_result= await db.collection("StudentDB").updateOne({ID: paramID,group_id:group_oid,deleted:{$ne:true}},{$set:{deleted:true}});
     if(update_result.acknowledged!==true) return res.send('error while updating student info 0');
     ret=true;
   }
@@ -4052,8 +4076,9 @@ app.delete("/api/StudentDB/:ID", loginCheck, permissionCheck(Role("manager"),Rol
 app.post("/api/DoGraduate/", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   const ret_val={"success":false,"ret":null};
   try{
+    const group_oid=req.session.passport.user.group_oid;
     const student_legacy_id = req.body["studentLegacyID"];
-    await db.collection("StudentDB").updateOne({"ID":student_legacy_id},{"$set":{"graduated":true,"graduated_date":getCurrentKoreaDateYYYYMMDD()}});
+    await db.collection("StudentDB").updateOne({"ID":student_legacy_id,group_id:group_oid},{"$set":{"graduated":true,"graduated_date":getCurrentKoreaDateYYYYMMDD()}});
     ret_val["success"]=true;
     ret_val["ret"]="successfully graduated";
   }
@@ -4065,6 +4090,63 @@ app.post("/api/DoGraduate/", loginCheck, permissionCheck(Role("manager"),Role("a
   }
 
 });
+
+async function getTRListByMyGroup(matchFilter,groupOID,queryOption={}){
+  matchFilter.deleted={$ne:true};
+  const tr_doc_list= await db.collection("TR").aggregate([
+    {
+      $match:matchFilter,
+    },
+    {
+      $lookup: {
+        from: "StudentDB",
+        let: {
+          legacy_id:"$ID",
+        },
+        pipeline:[
+          {
+            $match:{
+              $expr:{
+                $and:[
+                  {
+                    $eq:[
+                      "$group_id",
+                      groupOID,
+                    ]
+                  },
+                  {
+                    $eq:[
+                      "$ID",
+                      "$$legacy_id"
+                    ]
+                  }
+                ]
+              },
+            }
+          },
+          {
+            $project:{
+              student_legacy_id:"$ID",
+            }
+          }
+        ],
+        as: "Student_aggregate",
+      },
+    },
+    {
+      $unwind: {
+        path:"$Student_aggregate",
+      }
+    },
+  ],queryOption).toArray();
+  const ret=tr_doc_list.map((doc,idx)=>{
+    delete doc["deleted"];
+    delete doc["deleted_date"];
+    delete doc["Student_aggregate"];
+    return doc;
+  });
+  return ret;
+}
 
 // collection 중 TR의 해당 날짜의 Document find 및 전송
 app.get("/api/TRlist/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
@@ -4082,55 +4164,9 @@ app.get("/api/TRlist/:date", loginCheck, permissionCheck(Role("manager"),Role("a
   try{
     const group_oid=req.session.passport.user.group_oid;
     // const ret_data= await db.collection("TR").find({날짜: paramDate}).toArray();
-    const ret_data= await db.collection('TR').aggregate([
-      {
-        $match:{
-          날짜:paramDate,
-          // 날짜:"2023-06-27",
-        }
-      },
-      {
-        $lookup: {
-          from: "StudentDB",
-          let: {
-            legacy_id:"$ID",
-          },
-          pipeline:[
-            {
-              $match:{
-                $expr:{
-                  $and:[
-                    {
-                      $eq:[
-                        "$group_id",
-                        group_oid
-                      ]
-                    },
-                    {
-                      $eq:[
-                        "$ID",
-                        "$$legacy_id"
-                      ]
-                    }
-                  ]
-                },
-              }
-            },
-            {
-              $project:{
-                student_legacy_id:"$ID",
-              }
-            }
-          ],
-          as: "Student_aggregate",
-        },
-      },
-      {
-        $unwind: {
-          path:"$Student_aggregate",
-        }
-      },
-    ]).toArray();
+    const ret_data= await getTRListByMyGroup({
+      날짜:paramDate,
+    },group_oid);
     ret["success"]=true; ret["ret"]=ret_data;
   }
   catch(e){
@@ -4155,54 +4191,9 @@ app.get("/api/TR/:ID", loginCheck, permissionCheck(Role("manager"),Role("admin")
   try{
     const group_oid=req.session.passport.user.group_oid;
     // const ret_data= await db.collection("TR").find({ID:student_legacy_id,group_id:group_oid}).toArray();
-    const ret_data= await db.collection('TR').aggregate([
-      {
-        $match:{
-          ID:student_legacy_id,
-        }
-      },
-      {
-        $lookup: {
-          from: "StudentDB",
-          let: {
-            legacy_id:"$ID",
-          },
-          pipeline:[
-            {
-              $match:{
-                $expr:{
-                  $and:[
-                    {
-                      $eq:[
-                        "$group_id",
-                        group_oid
-                      ]
-                    },
-                    {
-                      $eq:[
-                        "$ID",
-                        "$$legacy_id",
-                      ]
-                    }
-                  ]
-                },
-              }
-            },
-            {
-              $project:{
-                student_legacy_id:"$ID",
-              }
-            }
-          ],
-          as: "Student_aggregate",
-        },
-      },
-      {
-        $unwind: {
-          path:"$Student_aggregate",
-        }
-      },
-    ]).toArray();
+    const ret_data= await getTRListByMyGroup({
+      ID:student_legacy_id,
+    },group_oid);
     ret["success"]=true; ret["ret"]=ret_data;
   }
   catch(e){
@@ -4226,55 +4217,10 @@ app.get("/api/TR/:ID/:date", loginCheck, permissionCheck(Role("manager"),Role("a
   try{
     const group_oid=req.session.passport.user.group_oid;
     // const tr_doc= await db.collection("TR").findOne({ID:student_legacy_id, 날짜:date_string});
-    const tr_doc= (await db.collection('TR').aggregate([
-      {
-        $match:{
-          ID:student_legacy_id,
-          날짜:date_string,
-        }
-      },
-      {
-        $lookup: {
-          from: "StudentDB",
-          let: {
-            legacy_id:"$ID",
-          },
-          pipeline:[
-            {
-              $match:{
-                $expr:{
-                  $and:[
-                    {
-                      $eq:[
-                        "$group_id",
-                        group_oid
-                      ]
-                    },
-                    {
-                      $eq:[
-                        "$ID",
-                        "$$legacy_id",
-                      ]
-                    }
-                  ]
-                },
-              }
-            },
-            {
-              $project:{
-                student_legacy_id:"$ID",
-              }
-            }
-          ],
-          as: "Student_aggregate",
-        },
-      },
-      {
-        $unwind: {
-          path:"$Student_aggregate",
-        }
-      },
-    ]).toArray())[0];
+    const tr_doc= (await getTRListByMyGroup({
+      ID:student_legacy_id,
+      날짜:date_string,
+    },group_oid))[0];
     // if(!tr_doc) throw new Error("조건에 맞는 TR이 존재하지 않습니다");
     if(!tr_doc) throw new Error("조건에 맞는 TR이 존재하지 않습니다");
     ret["success"]=true; ret["ret"]=tr_doc;
@@ -4294,10 +4240,15 @@ const TR_final_feedback_fields=["final_feedback_user_id","final_feedback_nicknam
 app.post("/api/TRByDateRange/", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function(req,res){
   const ret_val={"success":false, "ret":null};
   try{
+    const group_oid=req.session.passport.user.group_oid;
     const student_legacy_id= req.body["studentLegacyID"];
     const from_date= req.body["fromDate"];
     const to_date= req.body["toDate"];
-    const tr_list= await db.collection("TR").find({ID:student_legacy_id,날짜: {"$gt":from_date, "$lte":to_date}}).toArray();
+    // const tr_list= await db.collection("TR").find({ID:student_legacy_id,날짜: {"$gt":from_date, "$lte":to_date}}).toArray();
+    const tr_list= (await getTRListByMyGroup({
+      ID:student_legacy_id,
+      날짜:{"$gt":from_date, "$lte":to_date},
+    },group_oid));
     ret_val["success"]=true; ret_val["ret"]=tr_list;
   }
   catch(error){
@@ -4342,10 +4293,17 @@ app.post("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), 
   const date_string=newTR.날짜;
   try{
     session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
     const user_oid=req.session.passport.user.user_oid;
     const user_nickanme=req.session.passport.user.nickname;
     const current_date=getCurrentDate();
-    const tr_doc= await db.collection("TR").findOne({ID:student_legacy_id, 날짜:date_string},{session});
+    const student_doc= await db.collection('StudentDB').findOne({ID:student_legacy_id, group_id:group_oid},{session});
+    if(!student_doc) throw new Error("존재하지 않는 학생에 대한 요청입니다");
+    // const tr_doc= await db.collection("TR").findOne({ID:student_legacy_id, 날짜:date_string},{session});
+    const tr_doc=(await getTRListByMyGroup({
+      ID:student_legacy_id,
+      날짜:date_string,
+    },group_oid,{session}))[0];
     if(tr_doc) throw new Error("해당 날짜에 작성된 TR이 이미 존재합니다");
 
     //write my user nickname to tr and record when it is
@@ -4358,7 +4316,11 @@ app.post("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), 
       newTR.final_feedback_date=current_date;
     }
 
-    await db.collection("TR").insertOne(newTR);
+    //set deleted flag as false
+    newTR.deleted=false;
+    newTR.deleted_date=current_date;
+
+    await db.collection("TR").insertOne(newTR,{session});
 
     await session.commitTransaction();
     ret["success"]=true;
@@ -4421,6 +4383,7 @@ app.put("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), a
   try{
     session.startTransaction();
 
+    const group_oid=req.session.passport.user.group_oid;
     const user_nickanme=req.session.passport.user.nickname;
     const user_oid=req.session.passport.user.user_oid;
     const current_date=getCurrentDate();
@@ -4429,7 +4392,7 @@ app.put("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), a
     const student_legacy_id=newTR.ID;
     const date_string=newTR.날짜;
     //check if student doc exists
-    const student_doc=await db.collection(`StudentDB`).findOne({ID:student_legacy_id});
+    const student_doc=await db.collection(`StudentDB`).findOne({ID:student_legacy_id, group_id:group_oid},{session});
     if(!student_doc) throw new Error(`no such student`);
     const student_oid=student_doc._id;
     const student_name=student_doc.이름;
@@ -4458,7 +4421,11 @@ app.put("/api/TR", loginCheck, permissionCheck(Role("manager"),Role("admin")), a
       newTR.final_feedback_date=current_date;
     }
 
-    const tr_doc= await db.collection("TR").findOne({ID:student_legacy_id, 날짜:date_string},{session});
+    // const tr_doc= await db.collection("TR").findOne({ID:student_legacy_id, 날짜:date_string},{session});
+    const tr_doc=(await getTRListByMyGroup({
+      ID:student_legacy_id,
+      날짜:date_string,
+    },group_oid,{session}))[0];
     if(!tr_doc) throw new Error("해당 날짜에 저장된 TR이 없습니다");
     if(tr_doc && !tr_doc._id.equals(findID)) throw new Error("해당 날짜에 작성된 다른 TR이 이미 존재합니다");
     await db.collection("TR").updateOne({_id:findID},{ $set: newTR },{session});
@@ -4640,16 +4607,50 @@ app.delete("/api/TR/:id", loginCheck, permissionCheck(Role("manager"),Role("admi
   //   return res.send(false);
   // });
 
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
   const ret={"success":false,"ret":null};
   try{
-    const delete_result= await db.collection("TR").deleteOne({_id:trID});
-    if(delete_result.deletedCount == 0) throw new Error("작성된 TR이 없습니다");
+    session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
+    const current_date=getCurrentDate();
+    const target_tr_doc= (await getTRListByMyGroup({
+      _id:trID,
+      deleted:{$ne:true},
+    },group_oid,{session}))[0];
+    // const delete_result= await db.collection("TR").deleteOne({_id:trID},{session});
+    // if(delete_result.deletedCount == 0) throw new Error("작성된 TR이 없습니다");
+    if(!target_tr_doc) throw new Error("작성된 TR이 없습니다");
+    await db.collection('TR').updateOne(
+      {
+        _id:target_tr_doc._id
+      },
+      {
+        $set:{
+          deleted:true,
+          deleted_date:current_date,
+        }
+      },
+      {session}
+    )
+    await session.commitTransaction();
     ret["success"]=true;
   }
   catch(e){
+    await session.abortTransaction();
     ret["ret"]=`해당 날짜의 학생 TR 데이터 삭제하는 중 오류가 발생했습니다: ${e}`;
   }
   finally{
+    await session.endSession();
     return res.json(ret);
   }
 });
@@ -4746,6 +4747,7 @@ app.post("/api/DailyGoalCheckLog", loginCheck, permissionCheck(Role("manager"),R
 app.post("/api/DailyGoalCheckLogByDateRange", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   const ret={"success":false,"ret":null};
   try{
+    const group_oid=req.session.passport.user.group_oid;
     //check date validity
     const from_date= getValidDateString(decodeURIComponent(req.body.fromDate));
     const to_date= getValidDateString(decodeURIComponent(req.body.toDate));
@@ -4753,7 +4755,7 @@ app.post("/api/DailyGoalCheckLogByDateRange", loginCheck, permissionCheck(Role("
     
     //check whether student registered 
     const student_legacy_id= decodeURIComponent(req.body.studentLegacyID);
-    const student_doc= await db.collection("StudentDB").findOne({ID:student_legacy_id});
+    const student_doc= await db.collection("StudentDB").findOne({ID:student_legacy_id,group_id:group_oid});
     if(student_doc===null) throw new Error("no such student");
     const student_id= student_doc["_id"];
     
@@ -4916,38 +4918,76 @@ function getUpdatePathFromNewCloseMeetingFeedback(feedbackData){
 
 app.post("/api/SaveClosemeetingFeedback", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   const closemeeting_feedback_data = req.body;
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
   const ret={"success":false,"ret":null};
   try{
+    session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
     const date_string=closemeeting_feedback_data["dateString"];
     //date string validity check
     if(getValidDateString(date_string)===null) throw new Error("입력된 날짜가 올바르지 않습니다");
     const new_feedback_data=closemeeting_feedback_data["updatedFeedback"];
+    const update_one_set_settings=getUpdatePathFromNewCloseMeetingFeedback(new_feedback_data);
+    update_one_set_settings.deleted=false;
+    update_one_set_settings.deleted_date=null;
     await db.collection("Closemeeting").updateOne(
-      {날짜:date_string},
-      {$set:getUpdatePathFromNewCloseMeetingFeedback(new_feedback_data)},
-      {"upsert":true}
+      {
+        날짜:date_string,
+        group_id:group_oid,
+        deleted:{$ne:true},
+      },
+      {$set:update_one_set_settings},
+      {"upsert":true,session}
       );
+      await session.commitTransaction();
     ret["success"]=true; ret["ret"]=student_doc;
   }
   catch(e){
+    await session.abortTransaction();
     ret["ret"]=`마감회의 피드백 저장 중 오류가 발생했습니다: ${e}`;
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret);
+  }
+});
+
+app.get("/api/Closemeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
+  const paramDate = decodeURIComponent(req.params.date);
+  // db.collection("Closemeeting").findOne({ 날짜: paramDate }, function (err, result) {
+  //   if (err) {
+  //     return console.log("/api/Closemeeting/:date - findOne Error : ", err);
+  //   }
+  //   return res.json(result);
+  // });
+  let ret;
+  try{
+    const group_oid=req.session.passport.user.group_oid;
+    const close_meeting_doc=await db.collection('Closemeeting').findOne({날짜:paramDate,group_id:group_oid,deleted:{$ne:true}});
+    delete close_meeting_doc["group_id"];
+    delete close_meeting_doc["deleted"];
+    delete close_meeting_doc["deleted_date"];
+    ret=close_meeting_doc;
+  }
+  catch{
+    ret=`해당 일자의 마감회의를 불러오지 못했습니다`;
   }
   finally{
     return res.json(ret);
   }
 });
 
-app.get("/api/Closemeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
-  const paramDate = decodeURIComponent(req.params.date);
-  db.collection("Closemeeting").findOne({ 날짜: paramDate }, function (err, result) {
-    if (err) {
-      return console.log("/api/Closemeeting/:date - findOne Error : ", err);
-    }
-    return res.json(result);
-  });
-});
-
-app.put("/api/Closemeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
+app.put("/api/Closemeeting/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   const paramDate = decodeURIComponent(req.params.date);
   const newClosemeeting = req.body;
   let findID;
@@ -4958,31 +4998,74 @@ app.put("/api/Closemeeting/:date", loginCheck, permissionCheck(Role("manager"),R
   }
 
   delete newClosemeeting._id;
-  db.collection("Closemeeting").findOne({ 날짜: paramDate }, function (err, result) {
-    if (err) {
-      return res.send(`/api/Closemeeting/:date - findOne Error : `, err);
+  // db.collection("Closemeeting").findOne({ 날짜: paramDate }, function (err, result) {
+  //   if (err) {
+  //     return res.send(`/api/Closemeeting/:date - findOne Error : `, err);
+  //   }
+  //   if (result !== null && !result._id.equals(findID)) {
+  //     return res.send("중복되는 날짜의 마감회의가 존재합니다.");
+  //   }
+  //   db.collection(`Closemeeting`).findOne({ _id: findID }, function (err2, result2) {
+  //     if (err2) {
+  //       return res.send(`/api/Closemeeting/:date - findOne Error : `, err2);
+  //     }
+  //     if (result2 === null) {
+  //       return res.send("일치하는 _id의 마감회의를 찾지 못했습니다. 개발 / 데이터팀에 문의해주세요");
+  //     }
+  //     db.collection("Closemeeting").updateOne({ _id: findID }, { $set: newClosemeeting }, function (err3, result3) {
+  //       if (err3) {
+  //         return res.send(err3);
+  //       }
+  //       return res.send(true);
+  //     });
+  //   });
+  // });
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
     }
-    if (result !== null && !result._id.equals(findID)) {
-      return res.send("중복되는 날짜의 마감회의가 존재합니다.");
-    }
-    db.collection(`Closemeeting`).findOne({ _id: findID }, function (err2, result2) {
-      if (err2) {
-        return res.send(`/api/Closemeeting/:date - findOne Error : `, err2);
-      }
-      if (result2 === null) {
-        return res.send("일치하는 _id의 마감회의를 찾지 못했습니다. 개발 / 데이터팀에 문의해주세요");
-      }
-      db.collection("Closemeeting").updateOne({ _id: findID }, { $set: newClosemeeting }, function (err3, result3) {
-        if (err3) {
-          return res.send(err3);
-        }
-        return res.send(true);
-      });
-    });
   });
+  let ret;
+  try{
+    session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
+    const close_meeting_doc= await db.collection('Closemeeting').findOne({_id:findID,group_id:group_oid,deleted:{$ne:true}},{session});
+    if(!close_meeting_doc) throw new Error(`invalid request:0`);
+    delete newClosemeeting["group_id"];
+    delete newClosemeeting["deleted"];
+    delete newClosemeeting["deleted_date"];
+    await db.collection('Closemeeting').updateOne(
+      {
+        _id:findID,
+        group_id:group_oid,
+        deleted:{$ne:true}
+      },
+      {
+        $set:newClosemeeting
+      },
+      {session}
+    );
+    
+    await session.commitTransaction();
+    ret=true;
+  }
+  catch(error){
+    await session.abortTransaction();
+    ret="일치하는 마감회의를 찾지 못했습니다";
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret);
+  }
 });
 
-app.delete("/api/Closemeeting/:id", loginCheck, permissionCheck(Role("manager"),Role("admin")), function (req, res) {
+app.delete("/api/Closemeeting/:id", loginCheck, permissionCheck(Role("manager"),Role("admin")), async function (req, res) {
   let ClosemeetingID;
   try {
     ClosemeetingID = new ObjectId(req.params.id);
@@ -4990,17 +5073,61 @@ app.delete("/api/Closemeeting/:id", loginCheck, permissionCheck(Role("manager"),
     return res.send(`invalid access`);
   }
 
-  console.log("마감회의 삭제 시도 :", ClosemeetingID);
-  db.collection("Closemeeting").deleteOne({ _id: ClosemeetingID }, (err, result) => {
-    if (err) {
-      return res.send("/api/Closemeeting/delete/:id - deleteOne error : ", err);
+  // console.log("마감회의 삭제 시도 :", ClosemeetingID);
+  // db.collection("Closemeeting").deleteOne({ _id: ClosemeetingID }, (err, result) => {
+  //   if (err) {
+  //     return res.send("/api/Closemeeting/delete/:id - deleteOne error : ", err);
+  //   }
+  //   if (result.deletedCount === 1) {
+  //     // console.log("마감회의 삭제 완료 : ", result);
+  //     return res.send(true);
+  //   }
+  //   return res.send(false);
+  // });
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
     }
-    if (result.deletedCount === 1) {
-      console.log("마감회의 삭제 완료 : ", result);
-      return res.send(true);
-    }
-    return res.send(false);
   });
+  let ret;
+  try{
+    session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
+    const current_date=getCurrentDate();
+    const close_meeting_doc= await db.collection('Closemeeting').findOne({_id:findID,group_id:group_oid,deleted:{$ne:true}},{session});
+    if(!close_meeting_doc) throw new Error(`invalid request:0`);
+    await db.collection('Closemeeting').updateOne(
+      {
+        _id:findID,
+        group_id:group_oid,
+        deleted:{$ne:true},
+      },
+      {
+        $set:{
+          deleted:true,
+          deleted_date:current_date,
+        }
+      },
+      {session}
+    );
+    
+    await session.commitTransaction();
+    ret=true;
+  }
+  catch(error){
+    await session.abortTransaction();
+    ret="일치하는 마감회의를 찾지 못했습니다";
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret);
+  }
 });
 
 // Middle Meeting
@@ -5141,9 +5268,12 @@ app.get("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin
     const group_oid=req.session.passport.user.group_oid;
     let all_textbook_list=await db.collection("TextBook").find({
       group_id:group_oid,
+      deleted:{$ne:true},
     }).toArray();
     all_textbook_list=all_textbook_list.map((doc,idx)=>{
       delete doc["group_id"];
+      delete doc["deleted"];
+      delete doc["deleted_date"];
       return doc;
     });
     // resp["textbookList"]=all_textbook_list;
@@ -5183,6 +5313,8 @@ app.put("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin
 
   delete edittedTextbook["_id"];
   delete edittedTextbook["group_id"]; // this is dirty but...
+  delete doc["deleted"];
+  delete doc["deleted_date"];
 
   // db.collection("TextBook").findOne({ _id:findID }, (err, result) => {
   //   if (err) {
@@ -5223,6 +5355,7 @@ app.put("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin
       {
         _id:findID,
         group_id:group_oid,
+        deleted:{$ne:true},
       },
       {session}
     );
@@ -5231,6 +5364,7 @@ app.put("/api/Textbook", loginCheck, permissionCheck(Role("manager"),Role("admin
       {
         _id:findID,
         group_id:group_oid,
+        deleted:{$ne:true},
       },
       {
         $set:edittedTextbook,
@@ -5350,6 +5484,7 @@ app.delete("/api/Textbook/:_id", loginCheck, permissionCheck(Role("manager"),Rol
       {
         $match:{
           textbookID:findID,
+          deleted:{$ne:true},
         }
       },
       {
@@ -5382,6 +5517,7 @@ app.delete("/api/Textbook/:_id", loginCheck, permissionCheck(Role("manager"),Rol
       {
         _id:findID,
         group_id:group_oid,
+        deleted:{$ne:true},
       },
       {session}
     );
@@ -5438,7 +5574,12 @@ app.get(`/api/TextbookInProgressOfStudent/:studentLegacyID`, loginCheck, permiss
   try{
     const group_oid=req.session.passport.user.group_oid;
     const studentLegacyID = decodeURIComponent(req.params.studentLegacyID);
-    const student_doc= await db.collection("StudentDB").findOne({"ID":studentLegacyID});
+    const student_doc= await db.collection("StudentDB").findOne(
+      {
+        ID:studentLegacyID,
+        group_id:group_oid,
+      }
+    );
     if(!student_doc) throw new Error("there is no such student");
     const student_id= student_doc["_id"];
 
@@ -5504,13 +5645,14 @@ app.post("/api/getTextbookIDsByTextbookName", loginCheck, permissionCheck(Role("
 app.get("/api/SavedDailyGoalCheckLogData/:studentLegacyID/:date", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   const ret={"success":false,"ret":null};
   try{
+    const group_oid=req.session.passport.user.group_oid;
     //date validity check
     const date=getValidDateString(decodeURIComponent(req.params.date));
     if(date===null) throw new Error("invalid date");
 
     //student validity check
     const studentLegacyID = decodeURIComponent(req.params.studentLegacyID);
-    const student_doc= await db.collection("StudentDB").findOne({"ID":studentLegacyID});
+    const student_doc= await db.collection("StudentDB").findOne({"ID":studentLegacyID, group_id:group_oid});
     if(!student_doc) throw new Error("there is no such student");
     const student_id= student_doc["_id"];
 
@@ -5540,8 +5682,16 @@ app.get("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin"
   //     });
   let ret=null;
   try{
+    const group_oid=req.session.passport.user.group_oid;
     // ret= await db.collection("Lecture").find({"$or":[{"finished":{"$exists":false}},{"finished":false}]}).toArray();
-    ret= await db.collection("Lecture").find({finished:{$ne:true}}).toArray();
+    // ret= await db.collection("Lecture").find({finished:{$ne:true}}).toArray();
+    let lecture_doc_list=await db.collection("Lecture").find({finished:{$ne:true},group_id:group_oid}).toArray();
+    lecture_doc_list=lecture_doc_list.map((doc,idx)=>{
+      delete doc["lecture_by"];
+      delete doc["group_id"];
+      return doc;
+    });
+    ret=lecture_doc_list;
   }
   catch(error){
     ret= `error while getting not finished lecture list`
@@ -5596,6 +5746,8 @@ app.post("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin
     newLecture["_id"]=new_lecture_id;
     newLecture["lecture_by"]=user_oid;
     newLecture["group_id"]=group_oid;
+    newLecture["finished"]=false;
+    newLecture["finished_date"]=null;
     await db.collection('Lecture').insertOne(newLecture,{session});
     if(textbookID_list.length>0){
       const textbookOfLecture_list = textbookID_list.map((textbookID)=>{return {lectureID:new_lecture_id,textbookID:textbookID}});
@@ -5616,17 +5768,32 @@ app.post("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin
   }
 });
 
-app.get("/api/Lecture/:lectureid", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
+app.get("/api/Lecture/:lectureid", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   const paramID = decodeURIComponent(req.params.lectureid);
-  db.collection("Lecture").findOne({ lectureID: paramID }, (err, result) => {
-    if (err) {
-      return res.send(`/api/Lecture/${paramID} - findOne Error : ${err}`);
-    }
-    return res.json(result);
-  });
+  // db.collection("Lecture").findOne({ lectureID: paramID }, (err, result) => {
+  //   if (err) {
+  //     return res.send(`/api/Lecture/${paramID} - findOne Error : ${err}`);
+  //   }
+  //   return res.json(result);
+  // });
+  let ret;
+  try{
+    const group_oid=req.session.passport.user.group_oid;
+    const lecture_doc=await db.collection('Lecture').findOne({lectureID: paramID,group_id:group_oid,finished:{$ne:true}});
+    if(!lecture_doc) throw new Error(`invalid rquest:0`);
+    delete lecture_doc["lecture_by"];
+    delete lecture_doc["group_id"];
+    ret=lecture_doc;
+  }
+  catch(error){
+    ret=`해당 강의 정보를 불러오지 못했습니다`;
+  }
+  finally{
+    return res.json(ret);
+  }
 });
 
-app.put("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
+app.put("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   const newLecture = req.body;
   let findID;
   try {
@@ -5636,15 +5803,57 @@ app.put("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin"
   }
 
   delete newLecture["_id"];
-  db.collection("Lecture").updateOne({ _id: findID }, { $set: newLecture }, (err, result) => {
-    if (err) {
-      return res.send(`/api/Lecture - updateOne Error : ${err}`);
+  delete newLecture["lecture_by"];
+  delete newLecture["group_id"];
+  // db.collection("Lecture").updateOne({ _id: findID }, { $set: newLecture }, (err, result) => {
+  //   if (err) {
+  //     return res.send(`/api/Lecture - updateOne Error : ${err}`);
+  //   }
+  //   return res.send(true);
+  // });
+  let ret;
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
     }
-    return res.send(true);
   });
+  try{
+    session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
+    const lecture_doc=await db.collection('Lecture').findOne({_id:findID,finished:{$ne:true},group_id:group_oid},{session});
+    if(!lecture_doc) throw new Error(`invalid request:0`);
+    await db.collection('Lecture').updateOne(
+      {
+        _id:findID,
+        finished:{$ne:true},
+        group_id:group_oid,
+      },
+      {
+        $set:newLecture
+      },
+      {session}
+    );
+    await session.commitTransaction();
+    ret=true;
+  }
+  catch(error){
+    console.log(`error: ${error}`);
+    await session.abortTransaction();
+    ret=`강의 정보 수정에 실패했습니다`;
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret);
+  }
 });
 
-app.delete("/api/Lecture/:lectureid", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
+app.delete("/api/Lecture/:lectureid", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => { //deprecdated: this endpoint should not be used
   const paramID = decodeURIComponent(req.params.lectureid);
   db.collection("Lecture").deleteOne({ lectureID: paramID }, (err, result) => {
     if (err) {
@@ -5657,18 +5866,50 @@ app.delete("/api/Lecture/:lectureid", loginCheck, permissionCheck(Role("manager"
 app.post("/api/finishLecture",loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
   const ret={"success":false,"ret":null};
   let legacy_lecture_id=req.body.lectureID;
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
   try{
-    const update_result= await db.collection("Lecture").updateOne({lectureID:legacy_lecture_id},{$set:{finished:true, finished_date:getCurrentKoreaDateYYYYMMDD()}});
+    session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
+    const lecture_doc=await db.collection('Lecture').findOne({lectureID:legacy_lecture_id,finished:{$ne:true},group_id:group_oid},{session});
+    if(!lecture_doc) throw new Error(`invalid request:0`);
+    const update_result= await db.collection("Lecture").updateOne(
+      {
+        lectureID:legacy_lecture_id,
+        finished:{$ne:true},
+        group_id:group_oid,
+      },
+      {
+        $set:{
+          finished:true,
+          finished_date:getCurrentKoreaDateYYYYMMDD()
+        }
+      },
+      {session}
+    );
     if(update_result.acknowledged!==true){
-      ret["ret"]=`강의 완료 처리 중 에러가 발생했습니다 0`;
+      // ret["ret"]=`강의 완료 처리 중 에러가 발생했습니다 0`;
+      throw new Error(`강의 완료 처리 중 에러가 발생했습니다 0`);
       return;
     }
+    await session.commitTransaction();
     ret["success"]=true;
   }
   catch(error){
+    await session.abortTransaction();
     ret["ret"]=`강의 완료 처리 중 에러가 발생했습니다 1`;
   }
   finally{
+    await session.endSession();
     return res.json(ret);
   }
 });
@@ -5678,9 +5919,15 @@ app.get("/api/TextbookOfLecture/:lectureid", loginCheck, permissionCheck(Role("m
   const paramID = decodeURIComponent(req.params.lectureid);
   const ret={"success":false,"ret":null};
   try{
-    const ret_data= await db.collection("Lecture")
+    const group_oid=req.session.passport.user.group_oid;
+    let ret_data= await db.collection("Lecture")
     .aggregate([
-      { $match: { lectureID: paramID } },
+      {
+        $match: {
+          lectureID: paramID,
+          group_id:group_oid,
+        }
+      },
       {
         $lookup: {
           from: "TextbookOfLecture",
@@ -5868,6 +6115,7 @@ app.post("/api/TextbookOfLecture", loginCheck, permissionCheck(Role("manager"),R
                 $setOnInsert:filter,
                 $set:{
                   deleted:false,
+                  deleted_date:null,
                 }
             },
             upsert:true,
@@ -5925,7 +6173,7 @@ app.delete("/api/TextbookOfLecture/:lectureID/:textbookID", loginCheck, permissi
     const group_oid=req.session.passport.user.group_oid;
     const current_date=getCurrentDate();
 
-    const lectureDocument=await db.collection("Lecture").findOne({lectureID:legacyLectureID},{session});
+    const lectureDocument=await db.collection("Lecture").findOne({lectureID:legacyLectureID,finished:{$ne:true},group_id:group_oid},{session});
     if(!lectureDocument) return res.send(`invalid access`);
     lectureID=lectureDocument["_id"];
     // console.log("lec doc:",lectureDocument);
@@ -5947,6 +6195,7 @@ app.delete("/api/TextbookOfLecture/:lectureID/:textbookID", loginCheck, permissi
       {
         textbookID,
         lectureID,
+        deleted:{$ne:true},
       },
       {
         $set:{
@@ -5973,64 +6222,178 @@ app.delete("/api/TextbookOfLecture/:lectureID/:textbookID", loginCheck, permissi
 });
 
 // 강의로 수강생 검색매칭 relation
-app.get("/api/StudentOfLecture", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
-  db.collection("StudentOfLecture")
-      .find()
-      .toArray((err, result) => {
-        if (err) {
-          return res.send(`/api/StudentOfLecture - find Error ${err}`);
+app.get("/api/StudentOfLecture", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
+  // db.collection("StudentOfLecture")
+  //     .find()
+  //     .toArray((err, result) => {
+  //       if (err) {
+  //         return res.send(`/api/StudentOfLecture - find Error ${err}`);
+  //       }
+  //       return res.json(result);
+  //     });
+  let ret;
+  try{
+    const group_oid=req.session.passport.user.group_oid;
+    const student_of_lecture_list=await db.collection('StudentOfLecture').aggregate([
+      {
+        $lookup: {
+          from: "StudentDB",
+          let: {
+            student_id:"$studentID",
+          },
+          pipeline:[
+            {
+              $match:{
+                $expr:{
+                  $and:[
+                    {
+                      $eq:[
+                        "$group_id",
+                        group_oid,
+                      ]
+                    },
+                    {
+                      $eq:[
+                        "$_id",
+                        "$$student_id"
+                      ]
+                    }
+                  ]
+                },
+              }
+            },
+            {
+              $project:{
+                student_legacy_id:"$ID",
+              }
+            }
+          ],
+          as: "Student_aggregate",
+        },
+      },
+      {
+        $unwind: {
+          path:"$Student_aggregate",
         }
-        return res.json(result);
-      });
+      },
+    ]).toArray();
+    ret=student_of_lecture_list.map((doc,idx)=>{
+      delete doc["Student_aggregate"];
+      delete doc["deleted"];
+      delete doc["deleted_date"];
+      return doc;
+    });
+  }
+  catch(error){
+    ret=`수강생 정보를 가져오는데 실패했습니다`;
+  }
+  finally{
+    return res.json(ret);
+  }
 });
 
 // 강의에 따른 과제 검색매칭 relation
-app.get("/api/Assignment/:lectureid", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
+app.get("/api/Assignment/:lectureid", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   const paramID = decodeURIComponent(req.params.lectureid);
-  db.collection("Lecture")
-      .aggregate([
-        { $match: { lectureID: paramID } },
-        {
-          $lookup: {
-            from: "Assignment",
-            localField: "_id",
-            foreignField: "lectureID",
-            as: "Assignment_aggregate",
-          },
-        },
-        { $unwind: "$Assignment_aggregate" },
-        {
-          $addFields: {
-            assignmentID: "$Assignment_aggregate._id",
-            textbookID: "$Assignment_aggregate.textbookID",
-            pageRangeArray: "$Assignment_aggregate.pageRangeArray",
-            description: "$Assignment_aggregate.description",
-            duedate: "$Assignment_aggregate.duedate",
-            startdate: "$Assignment_aggregate.startdate",
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            assignmentID: 1,
-            textbookID: 1,
-            pageRangeArray: 1,
-            description: 1,
-            duedate: 1,
-            startdate: 1,
-            hiddenOnLecturePage: {$ifNull: ["$Assignment_aggregate.hiddenOnLecturePage",false]} // flag: lecture 페이지에서 과제 보여줄지 여부
-          },
-        },
-      ])
-      .toArray((err, result) => {
-        if (err) {
-          return res.send(`/api/StudentOfLecture - find Error ${err}`);
+  // db.collection("Lecture")
+  //     .aggregate([
+  //       { $match: { lectureID: paramID } },
+  //       {
+  //         $lookup: {
+  //           from: "Assignment",
+  //           localField: "_id",
+  //           foreignField: "lectureID",
+  //           as: "Assignment_aggregate",
+  //         },
+  //       },
+  //       { $unwind: "$Assignment_aggregate" },
+  //       {
+  //         $addFields: {
+  //           assignmentID: "$Assignment_aggregate._id",
+  //           textbookID: "$Assignment_aggregate.textbookID",
+  //           pageRangeArray: "$Assignment_aggregate.pageRangeArray",
+  //           description: "$Assignment_aggregate.description",
+  //           duedate: "$Assignment_aggregate.duedate",
+  //           startdate: "$Assignment_aggregate.startdate",
+  //         },
+  //       },
+  //       {
+  //         $project: {
+  //           _id: 0,
+  //           assignmentID: 1,
+  //           textbookID: 1,
+  //           pageRangeArray: 1,
+  //           description: 1,
+  //           duedate: 1,
+  //           startdate: 1,
+  //           hiddenOnLecturePage: {$ifNull: ["$Assignment_aggregate.hiddenOnLecturePage",false]} // flag: lecture 페이지에서 과제 보여줄지 여부
+  //         },
+  //       },
+  //     ])
+  //     .toArray((err, result) => {
+  //       if (err) {
+  //         return res.send(`/api/StudentOfLecture - find Error ${err}`);
+  //       }
+  //       return res.json(result);
+  //     });
+  let ret;
+  try{
+    const group_oid=req.session.passport.user.group_oid;
+    const assignment_doc_list=await db.collection('Lecture').aggregate([
+      {
+        $match: {
+          lectureID: paramID,
+          group_id:group_oid,
         }
-        return res.json(result);
-      });
+      },
+      {
+        $lookup: {
+          from: "Assignment",
+          localField: "_id",
+          foreignField: "lectureID",
+          as: "Assignment_aggregate",
+        },
+      },
+      { $unwind: "$Assignment_aggregate" },
+      {
+        $match:{
+          "Assignment_aggregate.hiddenOnLecturePage":{$ne:true},
+        }
+      },
+      // {
+      //   $addFields: {
+      //     assignmentID: "$Assignment_aggregate._id",
+      //     textbookID: "$Assignment_aggregate.textbookID",
+      //     pageRangeArray: "$Assignment_aggregate.pageRangeArray",
+      //     description: "$Assignment_aggregate.description",
+      //     duedate: "$Assignment_aggregate.duedate",
+      //     startdate: "$Assignment_aggregate.startdate",
+      //   },
+      // },
+      {
+        $project: {
+          _id: 0,
+          assignmentID: "$Assignment_aggregate._id",
+          textbookID: "$Assignment_aggregate.textbookID",
+          pageRangeArray: "$Assignment_aggregate.pageRangeArray",
+          description: "$Assignment_aggregate.description",
+          duedate: "$Assignment_aggregate.duedate",
+          startdate: "$Assignment_aggregate.startdate",
+          hiddenOnLecturePage: {$ifNull: ["$Assignment_aggregate.hiddenOnLecturePage",false]} // flag: lecture 페이지에서 과제 보여줄지 여부
+        },
+      },
+    ]).toArray();
+    ret=assignment_doc_list;
+  }
+  catch(error){
+    ret=`강의 과제 정보를 가져오는데 실패했습니다`;
+  }
+  finally{
+    return res.json(ret);
+  }
 });
 
-app.put("/api/Assignment", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
+app.put("/api/Assignment", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   const newAssignment = req.body;
   let findID;
   try{
@@ -6047,12 +6410,75 @@ app.put("/api/Assignment", loginCheck, permissionCheck(Role("manager"),Role("adm
     return res.send(`invalid access:  ${error}`);
   }
   delete newAssignment["assignmentID"];
-  db.collection("Assignment").updateOne({ _id: findID }, { $set: newAssignment }, (err, result) => {
-    if (err) {
-      return res.send(`/api/Assignment - updateOne Error : ${err}`);
+  delete newAssignment["deleted"];
+  // delete newAssignment["hiddenOnLecturePage"];
+  // db.collection("Assignment").updateOne({ _id: findID }, { $set: newAssignment }, (err, result) => {
+  //   if (err) {
+  //     return res.send(`/api/Assignment - updateOne Error : ${err}`);
+  //   }
+  //   return res.send(true);
+  // });
+  let ret;
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
     }
-    return res.send(true);
   });
+  try{
+    session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
+    const assignment_doc=await db.collection('Assignment').aggregate([
+      {
+        $match:{
+          _id:findID,
+          hiddenOnLecturePage:{$ne:true},
+        }
+      },
+      {
+        $lookup: {
+          from: "Lecture",
+          localField: "lectureID",
+          foreignField: "_id",
+          as: "Lecture_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$Lecture_aggregate"
+        }
+      },
+      {
+        $match:{
+          "Lecture_aggregate.finished":{$ne:true},
+          "Lecture_aggregate.group_id":group_oid,
+        }
+      },
+    ],{session});
+    if(!assignment_doc) throw new Error(`invalid request:0`);
+    await db.collection('Assignment').updateOne(
+      {_id:findID},
+      {
+        $set:newAssignment
+      },
+      {session},
+    )
+    await session.commitTransaction();
+    ret=true;
+  }
+  catch(error){
+    await session.abortTransaction();
+    ret=`강의 과제를 수정하는데 실패했습니다`;
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret);
+  }
 });
 
 app.post("/api/Assignment", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
@@ -6071,6 +6497,7 @@ app.post("/api/Assignment", loginCheck, permissionCheck(Role("manager"),Role("ad
   });
   let ret_val=null;
   try{
+    const group_oid=req.session.passport.user.group_oid;
     session.startTransaction();
     const studentGotAssign_list = newAssign["studentList"];
     delete newAssign["studentList"];
@@ -6083,7 +6510,7 @@ app.post("/api/Assignment", loginCheck, permissionCheck(Role("manager"),Role("ad
     else {
       throw new Error("invalid textbook Id");
     }
-    const lecture_doc= await db.collection("Lecture").findOne({_id:lect_id},{session}); // to check if there is such lecture document in mongodb
+    const lecture_doc= await db.collection("Lecture").findOne({_id:lect_id,finished:{$ne:true},group_id:group_oid},{session}); // to check if there is such lecture document in mongodb
     const textbook_doc= await db.collection("TextBook").findOne({_id:textbook_id},{session}); // to check if there is such textbook document in mongodb
     if(!lecture_doc){
       throw new Error("등록된 강의가 없습니다");
@@ -6097,7 +6524,10 @@ app.post("/api/Assignment", loginCheck, permissionCheck(Role("manager"),Role("ad
       assignmentID:new_assignment_id,
       studentID: new ObjectId(element),
       finished: false,
-      finished_date: ""}});
+      finished_date: "",
+      deleted:false,
+      deleted_date:null,
+    }});
     await db.collection("AssignmentOfStudent").insertMany(AssignmentOfStudent_list,{session});
     await session.commitTransaction();
     ret_val=true;
@@ -6138,9 +6568,39 @@ app.delete("/api/Assignment/:AssignID", loginCheck, permissionCheck(Role("manage
   let ret_val=null;
   try{
     session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
+    const current_date=getCurrentDate();
     // await db.collection('Assignment').deleteOne({_id: assignID},{session});
     // await db.collection('AssignmentOfStudent').deleteMany({assignmentID:assignID},{session});
+    const lecture_doc=(await db.collection('Assignment').aggregate([
+      {
+        $match:{
+          _id:assignID,
+          hiddenOnLecturePage:{$ne:true},
+        },
+      },
+      {
+        $lookup: {
+          from: "Lecture",
+          localField: "lectureID",
+          foreignField: "_id",
+          as: "Lecture_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$Lecture_aggregate"
+        }
+      },
+      {
+        $match:{
+          "Lecture_aggregate.group_id":group_oid,
+        }
+      }
+    ],{session}).toArray())[0];
+    if(!lecture_doc) throw new Error(`강의 과제 삭제에 실패했습니다`);
     await db.collection('Assignment').updateOne({_id:assignID},{ $set: {"hiddenOnLecturePage":true} },{session});
+    await db.collection('AssignmentOfStudent').updateMany({assignmentID:assignID},{$set:{deleted:true,deleted_date:current_date}},{session});
     // throw new Error(`error on purpose!`);
     await session.commitTransaction();
     ret_val=true;
@@ -6165,9 +6625,15 @@ app.get("/api/LectureAssignment/:lectureid",loginCheck, permissionCheck(Role("ma
   const paramID = decodeURIComponent(req.params.lectureid);
   let ret_val;
   try{
+    const group_oid=req.session.passport.user.group_oid;
     ret_val=
         await db.collection("Lecture").aggregate([
-          { $match: { lectureID: paramID } },
+          {
+            $match:{
+              lectureID: paramID,
+              group_id:group_oid,
+            }
+          },
           {
             $lookup: {
               from: "Assignment",
@@ -6196,6 +6662,11 @@ app.get("/api/LectureAssignment/:lectureid",loginCheck, permissionCheck(Role("ma
             },
           },
           { $unwind: "$Assignment_Of_Student_aggregate" },
+          {
+            $match:{
+              "Assignment_Of_Student_aggregate.deleted":{$ne:true},
+            }
+          },
           {
             $addFields: {
               AssignmentOfStudentID: "$Assignment_Of_Student_aggregate._id",
@@ -6271,83 +6742,216 @@ app.post(`/api/AssignmentOfStudent/`, loginCheck, permissionCheck(Role("manager"
   }
   const finished=req.body["finished"],finished_date=req.body["finished_date"];
   let ret_val;
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
   try{
-    await db.collection("AssignmentOfStudent").findOneAndUpdate({_id:assignmentOfStudentID},{$set:{"finished":finished,"finished_date":finished_date}});
+    session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
+    const assignment_of_student_doc=(await db.collection('AssignmentOfStudent').aggregate([
+      {
+        $match:{
+          _id:assignmentOfStudentID,
+          deleted:{$ne:true},
+        }
+      },
+      {
+        $lookup: {
+          from: "Assignment",
+          localField: "assignmentID",
+          foreignField: "_id",
+          as: "Assignment_aggregate",
+        },
+      },
+      {
+        $unwind:{
+          path:"$Assignment_aggregate",
+        },
+      },
+      {
+        $match:{
+          "Assignment_aggregate.hiddenOnLecturePage":{$ne:true},
+        }
+      },
+      {
+        $lookup: {
+          from: "Lecture",
+          localField: "Assignment_aggregate.lectureID",
+          foreignField: "_id",
+          as: "Lecture_aggregate",
+        },
+      },
+      {
+        $unwind:{
+          path:"$Lecture_aggregate",
+        },
+      },
+      {
+        $match:{
+          "Lecture_aggregate.group_id":group_oid,
+          "Lecture_aggregate.deleted":{$ne:true},
+        }
+      },
+    ],{session}).toArray())[0];
+    if(!assignment_of_student_doc) throw new Error(`강의 과제 완료 여부 변경에 실패했습니다`);
+    await db.collection("AssignmentOfStudent").findOneAndUpdate({_id:assignmentOfStudentID,deleted:{$ne:true}},{$set:{"finished":finished,"finished_date":finished_date}},{session});
+    await session.commitTransaction();
     ret_val=true;
   }
   catch(error){
+    console.log(`error: ${error}`);
+    await session.abortTransaction();
     ret_val=`Error ${error}`;
   }
   finally{
+    await session.endSession();
     return res.send(ret_val);
   }
 });
 
 //개별 강의 페이지에서 lecture ID를 받아 aggregate(join)를 통해 강의 수강중인 학생 반환
-app.get("/api/StudentOfLecture/:lectureID", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
+app.get("/api/StudentOfLecture/:lectureID", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   const paramID = decodeURIComponent(req.params.lectureID);
 
   //aggregate(join) query
-  db.collection("Lecture")
-      .aggregate([
-        { $match: { lectureID: paramID } },
-        {
-          $lookup: {
-            from: "StudentOfLecture",
-            localField: "_id",
-            foreignField: "lectureID",
-            as: "StudentOfLecture_aggregate",
-          },
-        },
-        { $unwind: "$StudentOfLecture_aggregate" },
-        {
-          $lookup: {
-            from: "StudentDB",
-            localField: "StudentOfLecture_aggregate.studentID",
-            foreignField: "_id",
-            as: "studentDB_aggregate",
-          },
-        },
-        { $unwind: "$studentDB_aggregate" },
-        {
-          $match:{
-            // "$or":[
-            //   {"studentDB_aggregate.deleted":{"$exists":false}},
-            //   {"studentDB_aggregate.deleted":false}
-            // ]
-            "studentDB_aggregate.deleted":{"$ne":true}
-          }
-        },
-        {
-          $addFields: {
-            _sid: "$studentDB_aggregate._id",
-            studentID: "$studentDB_aggregate.ID",
-            studentName: "$studentDB_aggregate.이름",
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            _sid: 1,
-            studentID: 1,
-            studentName: 1,
-          },
-        },
-      ])
-      .toArray((err, result) => {
-        if (err) {
-          return res.send(`/api/StudentOfLecture - find Error ${err}`);
+  // db.collection("Lecture")
+  //     .aggregate([
+  //       { $match: { lectureID: paramID } },
+  //       {
+  //         $lookup: {
+  //           from: "StudentOfLecture",
+  //           localField: "_id",
+  //           foreignField: "lectureID",
+  //           as: "StudentOfLecture_aggregate",
+  //         },
+  //       },
+  //       { $unwind: "$StudentOfLecture_aggregate" },
+  //       {
+  //         $lookup: {
+  //           from: "StudentDB",
+  //           localField: "StudentOfLecture_aggregate.studentID",
+  //           foreignField: "_id",
+  //           as: "studentDB_aggregate",
+  //         },
+  //       },
+  //       { $unwind: "$studentDB_aggregate" },
+  //       {
+  //         $match:{
+  //           // "$or":[
+  //           //   {"studentDB_aggregate.deleted":{"$exists":false}},
+  //           //   {"studentDB_aggregate.deleted":false}
+  //           // ]
+  //           "studentDB_aggregate.deleted":{"$ne":true}
+  //         }
+  //       },
+  //       {
+  //         $addFields: {
+  //           _sid: "$studentDB_aggregate._id",
+  //           studentID: "$studentDB_aggregate.ID",
+  //           studentName: "$studentDB_aggregate.이름",
+  //         },
+  //       },
+  //       {
+  //         $project: {
+  //           _id: 0,
+  //           _sid: 1,
+  //           studentID: 1,
+  //           studentName: 1,
+  //         },
+  //       },
+  //     ])
+  //     .toArray((err, result) => {
+  //       if (err) {
+  //         return res.send(`/api/StudentOfLecture - find Error ${err}`);
+  //       }
+  //       return res.json(result);
+  //     });
+  let ret;
+  try{
+    const group_oid=req.session.passport.user.group_oid;
+    const student_of_lecture_list=await db.collection('Lecture').aggregate([
+      {
+        $match: {
+          lectureID: paramID,
+          group_id:group_oid,
         }
-        return res.json(result);
-      });
+      },
+      {
+        $lookup: {
+          from: "StudentOfLecture",
+          localField: "_id",
+          foreignField: "lectureID",
+          as: "StudentOfLecture_aggregate",
+        },
+      },
+      { $unwind: "$StudentOfLecture_aggregate" },
+      {
+        $match:{
+          "StudentOfLecture_aggregate.deleted":{"$ne":true}
+        }
+      },
+      {
+        $lookup: {
+          from: "StudentDB",
+          localField: "StudentOfLecture_aggregate.studentID",
+          foreignField: "_id",
+          as: "studentDB_aggregate",
+        },
+      },
+      { $unwind: "$studentDB_aggregate" },
+      {
+        $match:{
+          // "$or":[
+          //   {"studentDB_aggregate.deleted":{"$exists":false}},
+          //   {"studentDB_aggregate.deleted":false}
+          // ]
+          "studentDB_aggregate.deleted":{"$ne":true}
+        }
+      },
+      {
+        $addFields: {
+          _sid: "$studentDB_aggregate._id",
+          studentID: "$studentDB_aggregate.ID",
+          studentName: "$studentDB_aggregate.이름",
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          _sid: 1,
+          studentID: 1,
+          studentName: 1,
+        },
+      },
+    ]).toArray();
+    ret=student_of_lecture_list.map((doc,idx)=>{
+      delete doc["deleted"];
+      delete doc["deleted_date"];
+      return doc;
+    });
+  }
+  catch(error){
+    ret=`강의를 수강중인 학생 목록을 가져오는데 실패했습니다`;
+  }
+  finally{
+    return res.json(ret);
+  }
 });
 
-app.post("/api/StudentOfLecture", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
+app.post("/api/StudentOfLecture", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   let lectureID, studentID, newStudentOfLecture;
   try {
     lectureID = new ObjectId(req.body["lectureID"]);
     studentID = new ObjectId(req.body["studentID"]);
-    newStudentOfLecture = { lectureID: ObjectId(req.body["lectureID"]), studentID: ObjectId(req.body["studentID"]) };
+    newStudentOfLecture = { lectureID, studentID };
   } catch (err) {
     return res.send(`invalid access`);
   }
@@ -6359,33 +6963,104 @@ app.post("/api/StudentOfLecture", loginCheck, permissionCheck(Role("manager"),Ro
   if (!("lectureID" in req.body) || !("studentID" in req.body)) {
     return res.send(`StudentOfLecture: 잘못된 요청입니다.`);
   }
-  //실제 등록된 학생의 id인지 검사
-  db.collection("StudentDB").findOne({ _id: studentID }, (err, result) => {
-    if (err || result === null) {
-      return res.send(`/api/StudentOfLecture - findOne Error : ${err}`);
+  // //실제 등록된 학생의 id인지 검사
+  // db.collection("StudentDB").findOne({ _id: studentID }, (err, result) => {
+  //   if (err || result === null) {
+  //     return res.send(`/api/StudentOfLecture - findOne Error : ${err}`);
+  //   }
+  //   //실제 등록된 강의의 id인지 검사
+  //   db.collection("Lecture").findOne({ _id: lectureID }, (err2, result2) => {
+  //     if (err2 || result2 === null) {
+  //       return res.send(`/api/StudentOfLecture - findOne Error2 : ${err2}`);
+  //     }
+  //     //이미 강의에 등록되어있는 학생인지 검사
+  //     db.collection("StudentOfLecture").findOne(newStudentOfLecture, (err3, result3) => {
+  //       if (err3) {
+  //         return res.send(`/api/StudentOfLecture - findOne Error3 : ${err3}`);
+  //       }
+  //       if (result3 !== null) {
+  //         return res.send(`이미 강의에 등록되어있는 학생입니다`);
+  //       }
+  //       db.collection("StudentOfLecture").insertOne(newStudentOfLecture, (err4, result4) => {
+  //         if (err4) {
+  //           return res.send(`/api/StudentOfLecture - insertOne Error : ${err4}`);
+  //         }
+  //         return res.send(true);
+  //       });
+  //     });
+  //   });
+  // });
+  let ret;
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
     }
-    //실제 등록된 강의의 id인지 검사
-    db.collection("Lecture").findOne({ _id: lectureID }, (err2, result2) => {
-      if (err2 || result2 === null) {
-        return res.send(`/api/StudentOfLecture - findOne Error2 : ${err2}`);
-      }
-      //이미 강의에 등록되어있는 학생인지 검사
-      db.collection("StudentOfLecture").findOne(newStudentOfLecture, (err3, result3) => {
-        if (err3) {
-          return res.send(`/api/StudentOfLecture - findOne Error3 : ${err3}`);
-        }
-        if (result3 !== null) {
-          return res.send(`이미 강의에 등록되어있는 학생입니다`);
-        }
-        db.collection("StudentOfLecture").insertOne(newStudentOfLecture, (err4, result4) => {
-          if (err4) {
-            return res.send(`/api/StudentOfLecture - insertOne Error : ${err4}`);
-          }
-          return res.send(true);
-        });
-      });
-    });
   });
+  try{
+    session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
+    const student_doc=await db.collection('StudentDB').findOne(
+      {
+        _id:studentID,
+        graduated:{$ne:true},
+        deleted:{$ne:true},
+        group_id:group_oid,
+      },
+      {session}
+    );
+    if(!student_doc) throw new Error(`강의에 추가할 수 없는 학생입니다`);
+    const lecture_doc=await db.collection('Lecture').findOne(
+      {
+        _id:lectureID,
+        finished:{$ne:true},
+        group_id:group_oid,
+      },
+      {session}
+    );
+    if(!lecture_doc) throw new Error(`올바른 강의가 아닙니다`);
+    const student_of_lecture_doc=await db.collection('StudentOfLecture').findOne(
+      {
+        lectureID,
+        studentID,
+        deleted:{$ne:true},
+      },
+      {session},
+    )
+    if(student_of_lecture_doc) throw new Error(`이미 강의에 등록된 학생입니다`);
+    await db.collection('StudentOfLecture').updateOne(
+      {
+        studentID,
+        lectureID,
+      },
+      {
+        $setOnInsert:{
+          studentID,
+          lectureID,
+        },
+        $set:{
+          deleted:false,
+          deleted_date:null,
+        }
+      },
+      {upsert:true,session}
+    );
+    await session.commitTransaction();
+    ret=true;
+  }
+  catch(error){
+    await session.abortTransaction();
+    ret=`${error}`;
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret);
+  }
 });
 
 app.delete("/api/StudentOfLecture/:lectureID/:studentID", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req,res)=>{
@@ -6405,11 +7080,38 @@ app.delete("/api/StudentOfLecture/:lectureID/:studentID", loginCheck, permission
   let ret_val=null;
   try{
     session.startTransaction();
-    const target_lecture= await db.collection('Lecture').findOne({lectureID:lectureID},{session});
-    const target_student= await db.collection('StudentDB').findOne({ID:studentID},{session});
+    const group_oid=req.session.passport.user.group_oid;
+    const current_date=getCurrentDate();
+    const target_lecture= await db.collection('Lecture').findOne({lectureID:lectureID, group_id:group_oid},{session});
+    const target_student= await db.collection('StudentDB').findOne({ID:studentID, group_id:group_oid},{session});
+    if(!target_lecture || !target_student) throw new Error(`강의 혹은 학생 정보가 올바르지 않습니다`);
+    const student_of_lecture_doc=await db.collection('StudentOfLecture').findOne(
+      {
+        studentID:target_student._id,
+        lectureID:target_lecture._id,
+        deleted:{$ne:true},
+      },
+      {session}
+    );
+    if(!student_of_lecture_doc) throw new Error(`강의에 등록되지 않은 학생입니다`);
     const target_assignment_ids= await db.collection('Assignment').find({lectureID:target_lecture["_id"]},{session}).toArray();
-    await db.collection('StudentOfLecture').deleteOne({lectureID:target_lecture["_id"],studentID:target_student["_id"]},{session});
-    await db.collection('AssignmentOfStudent').deleteMany({assignmentID:{$in:target_assignment_ids.map((e)=>e["_id"])},studentID:target_student["_id"]},{session})
+    // await db.collection('StudentOfLecture').deleteOne({lectureID:target_lecture["_id"],studentID:target_student["_id"]},{session});
+    // await db.collection('AssignmentOfStudent').deleteMany({assignmentID:{$in:target_assignment_ids.map((e)=>e["_id"])},studentID:target_student["_id"]},{session})
+    await db.collection('StudentOfLecture').updateOne({_id:student_of_lecture_doc._id},{$set:{deleted:true,deleted_date:current_date}},{session});
+    await db.collection('AssignmentOfStudent').updateMany(
+      {
+        assignmentID:{$in:target_assignment_ids.map((e)=>e["_id"])},
+        studentID:target_student._id,
+        deleted:{$ne:true},
+      },
+      {
+        $set:{
+          deleted:true,
+          deleted_date:current_date,
+        }
+      },
+      {session},
+    );
     await session.commitTransaction();
     ret_val=true;
     // return res.send(true);
@@ -6498,59 +7200,200 @@ app.delete("/api/Weeklymeeting/:date", loginCheck, permissionCheck(Role("manager
 });
 
 // Weeklystudyfeedback 관련 코드
-app.post("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
+app.post("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   const newWeeklystudyfeedback = req.body;
   const paramDate = decodeURIComponent(req.params.feedbackDate);
   const ID = decodeURIComponent(req.params.ID);
-  db.collection("WeeklyStudyfeedback").findOne({ 학생ID: ID, 피드백일: paramDate }, (err, result) => {
-    if (err) {
-      return res.send(`/api/Weeklystudyfeedback - findOne Error : ${err}`);
+  // db.collection("WeeklyStudyfeedback").findOne({ 학생ID: ID, 피드백일: paramDate }, (err, result) => {
+  //   if (err) {
+  //     return res.send(`/api/Weeklystudyfeedback - findOne Error : ${err}`);
+  //   }
+  //   if (result !== null) {
+  //     return res.send(`findOne result is not null. 중복되는 피드백 페이지가 존재합니다.`);
+  //   }
+  //   db.collection("WeeklyStudyfeedback").insertOne(newWeeklystudyfeedback, (err2, result2) => {
+  //     if (err2) {
+  //       return res.send(`/api/Weeklystudyfeedback - insertOne Error : ${err2}`);
+  //     }
+  //     return res.send(true);
+  //   });
+  // });
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
     }
-    if (result !== null) {
-      return res.send(`findOne result is not null. 중복되는 피드백 페이지가 존재합니다.`);
-    }
-    db.collection("WeeklyStudyfeedback").insertOne(newWeeklystudyfeedback, (err2, result2) => {
-      if (err2) {
-        return res.send(`/api/Weeklystudyfeedback - insertOne Error : ${err2}`);
-      }
-      return res.send(true);
-    });
   });
+  let ret;
+  try{
+    session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
+    const student_doc=await db.collection('StudentDB').findOne({ID,group_id:group_oid,deleted:{$ne:true},graduated:{$ne:true}},{session});
+    if(!student_doc) throw new Error(`invalid request:0`);
+    const prev_weekly_study_feedback_doc= await db.collection('WeeklyStudyfeedback').findOne({학생ID: ID, 피드백일: paramDate},{session});
+    if(prev_weekly_study_feedback_doc) throw new Error(`invalid request:1`);
+    newWeeklystudyfeedback.deleted=false;
+    newWeeklystudyfeedback.deleted_date=null;
+    await db.collection('WeeklyStudyfeedback').updateOne(
+      {학생ID: ID, 피드백일: paramDate,deleted:{$ne:true}},
+      {$set:newWeeklystudyfeedback},
+      {upsert:true,session}
+    );
+    await session.commitTransaction();
+    ret=true;
+  }
+  catch(error){
+    await session.abortTransaction();
+    ret=`주간 학습 계획을 저장하는데 실패했습니다`;
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret);
+  }
 });
 
-app.get("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
+app.get("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   const paramDate = decodeURIComponent(req.params.feedbackDate);
   const ID = decodeURIComponent(req.params.ID);
-  db.collection("WeeklyStudyfeedback").findOne({ 학생ID: ID, 피드백일: paramDate }, (err, result) => {
-    if (err) {
-      return res.send(`/api/Weeklystudyfeedback/${ID}/${paramDate} - findOne Error : ${err}`);
+  // db.collection("WeeklyStudyfeedback").findOne({ 학생ID: ID, 피드백일: paramDate }, (err, result) => {
+  //   if (err) {
+  //     return res.send(`/api/Weeklystudyfeedback/${ID}/${paramDate} - findOne Error : ${err}`);
+  //   }
+  //   return res.json(result);
+  // });
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
     }
-    return res.json(result);
   });
+  let ret;
+  try{
+    session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
+    const student_doc=await db.collection('StudentDB').findOne({ID,group_id:group_oid,deleted:{$ne:true},graduated:{$ne:true}},{session});
+    if(!student_doc) throw new Error(`invalid request:0`);
+    const weekly_study_feedback_doc= await db.collection('WeeklyStudyfeedback').findOne({학생ID: ID, 피드백일: paramDate, deleted:{$ne:true}},{session});
+    if(!weekly_study_feedback_doc) throw new Error(`invalid request:1`);
+    delete weekly_study_feedback_doc["deleted"];
+    delete weekly_study_feedback_doc["deleted_date"];
+    ret=weekly_study_feedback_doc;
+    await session.commitTransaction();
+  }
+  catch(error){
+    await session.abortTransaction();
+    // ret=`주간 학습 계획을 불러오는데 실패했습니다`; // null value returned when there is no document
+    ret=null;
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret);
+  }
 });
 
-app.put("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
+app.put("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   const newWeeklystudyfeedback = req.body;
   const paramDate = decodeURIComponent(req.params.feedbackDate);
   const ID = decodeURIComponent(req.params.ID);
   delete newWeeklystudyfeedback["_id"];
-  db.collection("WeeklyStudyfeedback").updateOne({ 학생ID: ID, 피드백일: paramDate }, { $set: newWeeklystudyfeedback }, (err, result) => {
-    if (err) {
-      return res.send(`/api/Weeklystudyfeedback - updateOne Error : ${err}`);
+  delete newWeeklystudyfeedback["deleted"];
+  delete newWeeklystudyfeedback["deleted_date"];
+  // db.collection("WeeklyStudyfeedback").updateOne({ 학생ID: ID, 피드백일: paramDate }, { $set: newWeeklystudyfeedback }, (err, result) => {
+  //   if (err) {
+  //     return res.send(`/api/Weeklystudyfeedback - updateOne Error : ${err}`);
+  //   }
+  //   return res.send(true);
+  // });
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
     }
-    return res.send(true);
   });
+  let ret;
+  try{
+    session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
+    const student_doc=await db.collection('StudentDB').findOne({ID,group_id:group_oid},{session});
+    if(!student_doc) throw new Error(`invalid request:0`);
+    const weekly_study_feedback_doc= await db.collection('WeeklyStudyfeedback').findOne({학생ID: ID, 피드백일: paramDate, deleted:{$ne:true}},{session});
+    if(!weekly_study_feedback_doc) throw new Error(`invalid request:1`);
+    await db.collection('WeeklyStudyfeedback').updateOne({학생ID: ID, 피드백일: paramDate, deleted:{$ne:true}},{$set:newWeeklystudyfeedback},{session});
+
+    await session.commitTransaction();
+    ret=true;
+  }
+  catch(error){
+    await session.abortTransaction();
+    ret=`주간 학습 계획을 수정하는데 실패했습니다`;
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret);
+  }
 });
 
-app.delete("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionCheck(Role("manager"),Role("admin")), (req, res) => {
+app.delete("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionCheck(Role("manager"),Role("admin")), async (req, res) => {
   const paramDate = decodeURIComponent(req.params.feedbackDate);
   const ID = decodeURIComponent(req.params.ID);
-  db.collection("WeeklyStudyfeedback").deleteOne({ 학생ID: ID, 피드백일: paramDate }, (err, result) => {
-    if (err) {
-      return res.send(`/api/Weeklystudyfeedback/${ID}/${paramDate} - deleteOne Error : ${err}`);
+  // db.collection("WeeklyStudyfeedback").deleteOne({ 학생ID: ID, 피드백일: paramDate }, (err, result) => {
+  //   if (err) {
+  //     return res.send(`/api/Weeklystudyfeedback/${ID}/${paramDate} - deleteOne Error : ${err}`);
+  //   }
+  //   return res.send(true);
+  // });
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
     }
-    return res.send(true);
   });
+  let ret;
+  try{
+    session.startTransaction();
+    const group_oid=req.session.passport.user.group_oid;
+    const current_date=getCurrentDate();
+    const student_doc=await db.collection('StudentDB').findOne({ID,group_id:group_oid},{session});
+    if(!student_doc) throw new Error(`invalid request:0`);
+    const weekly_study_feedback_doc= await db.collection('WeeklyStudyfeedback').findOne({학생ID: ID, 피드백일: paramDate, deleted:{$ne:true}},{session});
+    if(!weekly_study_feedback_doc) throw new Error(`invalid request:1`);
+    await db.collection('WeeklyStudyfeedback').updateOne(
+      {학생ID: ID, 피드백일: paramDate, deleted:{$ne:true}},
+      {$set:{deleted:true,deleted_date:current_date}},
+      {session}
+    );
+
+    await session.commitTransaction();
+    ret=true;
+  }
+  catch(error){
+    await session.abortTransaction();
+    ret=`주간 학습 계획을 수정하는데 실패했습니다`;
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret);
+  }
 });
 
 // weeklyStudyFeedback 페이지에 표시되는 이번주 강의 과제를 찾아주는 코드
@@ -6565,7 +7408,9 @@ app.post("/api/ThisWeekAssignment/", loginCheck, permissionCheck(Role("manager")
   const this_sunday_date=request_arguments["thisSundayDate"];
   let ret_val;
   try{
-    const target_student_doc= await db.collection("StudentDB").findOne({"ID":student_legacy_id});
+    const group_oid=req.session.passport.user.group_oid;
+    const target_student_doc= await db.collection("StudentDB").findOne({"ID":student_legacy_id,group_id:group_oid});
+    if(!target_student_doc) throw new Error(`invalid request:0`);
     const target_student_id= target_student_doc["_id"];
     ret_val= await db.collection("Assignment")
         .aggregate([
@@ -6579,7 +7424,12 @@ app.post("/api/ThisWeekAssignment/", loginCheck, permissionCheck(Role("manager")
             },
           },
           { $unwind: "$AssignmentOfStudent_agg" },
-          { $match: { "AssignmentOfStudent_agg.studentID":target_student_id } },
+          { 
+            $match: {
+              "AssignmentOfStudent_agg.studentID":target_student_id,
+              "AssignmentOfStudent_agg.deleted":false,
+            }
+          },
           {
             $lookup: {
               from: "Lecture",
@@ -6640,7 +7490,9 @@ app.post("/api/StudentTodayAssignment/", loginCheck, permissionCheck(Role("manag
   // console.log(today_date);
   let ret_val;
   try{
-    const target_student_doc= await db.collection("StudentDB").findOne({"ID":student_legacy_id});
+    const group_oid=req.session.passport.user.group_oid;
+    const target_student_doc= await db.collection("StudentDB").findOne({"ID":student_legacy_id,group_id:group_oid});
+    if(!target_student_doc) throw new Error(`invalid request:1`);
     const target_student_id= target_student_doc["_id"];
     ret_val= await db.collection("Assignment")
         .aggregate([
@@ -6654,7 +7506,12 @@ app.post("/api/StudentTodayAssignment/", loginCheck, permissionCheck(Role("manag
             },
           },
           { $unwind: "$AssignmentOfStudent_agg" },
-          { $match: { "AssignmentOfStudent_agg.studentID":target_student_id } },
+          {
+            $match: {
+              "AssignmentOfStudent_agg.studentID":target_student_id,
+              "AssignmentOfStudent_agg.deleted":{$ne:true},
+            }
+          },
           {
             $lookup: {
               from: "Lecture",
