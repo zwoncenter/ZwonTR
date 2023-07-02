@@ -77,6 +77,7 @@ function ClosemeetingEdit() {
         return err;
       });
     // setobjectid(document["_id"]);
+    // console.log(`prev feedback data: ${JSON.stringify(document)}`);
     
     if(document) {
       setcloseFeedback(processCloseMeetingFeedbackData(document["closeFeedback"]));

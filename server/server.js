@@ -4980,7 +4980,8 @@ app.get("/api/Closemeeting/:date", loginCheck, permissionCheck(Role("manager"),R
     ret=close_meeting_doc;
   }
   catch{
-    ret=`해당 일자의 마감회의를 불러오지 못했습니다`;
+    // ret=`해당 일자의 마감회의를 불러오지 못했습니다`;
+    ret=null; // this should be null value if there was no prev document
   }
   finally{
     return res.json(ret);
