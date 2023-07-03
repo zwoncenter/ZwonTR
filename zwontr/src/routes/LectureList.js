@@ -10,7 +10,11 @@ import "./Lecture.css";
 import 'react-bootstrap-typeahead/css/Typeahead.css';
 import { FaPencilAlt, FaTimes } from "react-icons/fa";
 
-function LectureList() {
+function LectureList({
+  setNowLoading,
+  setNowNotLoading,
+  myInfo,
+}) {
   let history = useHistory();
   
   // 날짜 관련 코드
@@ -40,10 +44,16 @@ function LectureList() {
       return;
     }
 
-    if (lecture["manager"] === "") {
-      window.alert("담당 매니저가 선택되지 않았습니다.");
+    // if (lecture["manager"] === "") {
+    //   window.alert("담당 매니저가 선택되지 않았습니다.");
+    //   return;
+    // }
+
+    if(!lecture["lectureID"]){
+      window.alert("네트워크 오류로 강의 추가에 실패했습니다\n새로고침 후 다시 시도해주세요");
       return;
     }
+
     if (lecture["startday"] === "") {
       window.alert("강의시작일이 입력되지 않았습니다.");
       return;
@@ -194,11 +204,13 @@ function LectureList() {
           return window.push("/");
         }
         else if(data["success"]===true) return data.ret;
-        else if("ret" in data) throw new Error(data.ret);
+        else if(data.ret) throw new Error(data.ret);
         throw new Error("강의에서 사용중인 교재를 불러오는 중 오류가 발생했습니다:client");
       })
       .catch((err) => {
-        return err;
+        // return err;
+        console.log(`err: ${err}`);
+        return [];
       });
     setExistlectureTextbookList(newExistlectureTextbookList);
   };
@@ -427,11 +439,11 @@ function LectureList() {
                 }
                 const newlecture = {...lecture};
                 newlecture["lectureName"] = e.target.value;
-                if (newlecture["lectureName"] !== "" && newlecture["manager"] !== "" && newlecture["startday"] !== "") {
+                if (newlecture["lectureName"] !== "" && myInfo.nickname !== "" && newlecture["startday"] !== "") {
                   newlecture["lectureID"] =
                     newlecture["lectureName"] +
                     "_" +
-                    newlecture["manager"] +
+                    myInfo.nickname +
                     "_" +
                     newlecture["startday"].slice(2, 4) +
                     newlecture["startday"].slice(5, 7) +
@@ -480,7 +492,7 @@ function LectureList() {
               labelKey="교재"
             />
           </InputGroup>
-          <InputGroup className="mb-3">
+          {/* <InputGroup className="mb-3">
             <InputGroup.Text>매니저(강사)</InputGroup.Text>
             <Form.Select
               onChange={(e) => {
@@ -508,6 +520,14 @@ function LectureList() {
                 );
               })}
             </Form.Select>
+          </InputGroup> */}
+          <InputGroup className="mb-3">
+            <InputGroup.Text>매니저(강사)</InputGroup.Text>
+            <Form.Control
+              placeholder="강의명을 입력해주세요"
+              value={myInfo.nickname}
+              disabled={true}
+            />
           </InputGroup>
 
           <InputGroup className="mb-3">
@@ -518,11 +538,11 @@ function LectureList() {
               onChange={(e) => {
                 const newlecture = {...lecture};
                 newlecture["startday"] = e.target.value;
-                if (newlecture["lectureName"] !== "" && newlecture["manager"] !== "" && newlecture["startday"] !== "") {
+                if (newlecture["lectureName"] !== "" && myInfo.nickname !== "" && newlecture["startday"] !== "") {
                   newlecture["lectureID"] =
                     newlecture["lectureName"] +
                     "_" +
-                    newlecture["manager"] +
+                    myInfo.nickname +
                     "_" +
                     newlecture["startday"].slice(2, 4) +
                     newlecture["startday"].slice(5, 7) +
@@ -556,6 +576,7 @@ function LectureList() {
             <InputGroup.Text>강의명</InputGroup.Text>
             <Form.Control
               value={existlecture["lectureName"]}
+              disabled={true}
               onChange={(e) => {
                 const regExp = /[#?\/\\%]/gi;
                 if (regExp.test(e.target.value)) {
@@ -619,7 +640,7 @@ function LectureList() {
               labelKey="교재"
             />
           </InputGroup>} */}
-          <InputGroup className="mb-3">
+          {/* <InputGroup className="mb-3">
             <InputGroup.Text>매니저(강사)</InputGroup.Text>
             <Form.Select
               value={existlecture["manager"]}
@@ -638,6 +659,24 @@ function LectureList() {
                 );
               })}
             </Form.Select>
+          </InputGroup> */}
+          <InputGroup className="mb-3">
+            <InputGroup.Text>강의명</InputGroup.Text>
+            <Form.Control
+              value={existlecture["manager"]}
+              disabled={true}
+              // onChange={(e) => {
+              //   const regExp = /[#?\/\\%]/gi;
+              //   if (regExp.test(e.target.value)) {
+              //     alert("#,?,\\ /는 입력하실수 없습니다.");
+              //     e.target.value = e.target.value.substring(0, e.target.value.length - 1);
+              //     return;
+              //   }
+              //   const newlecture = {...existlecture};
+              //   newlecture["lectureName"] = e.target.value;
+              //   setexistlecture(newlecture);
+              // }}
+            />
           </InputGroup>
 
           <InputGroup className="mb-3">

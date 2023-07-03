@@ -609,7 +609,11 @@ function App() {
           <WeeklymeetingEdit />
           </Route>
         <Route exact path="/Lecture">
-          <LectureList />
+          <LectureList
+            setNowLoading={setNowLoading}
+            setNowNotLoading={setNowNotLoading}
+            myInfo={myInfo}
+          />
         </Route>
         <Route exact path="/Lecture/:lectureID">
           <Lecture 

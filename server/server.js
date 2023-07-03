@@ -5731,10 +5731,28 @@ app.get("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin"
     const group_oid=req.session.passport.user.group_oid;
     // ret= await db.collection("Lecture").find({"$or":[{"finished":{"$exists":false}},{"finished":false}]}).toArray();
     // ret= await db.collection("Lecture").find({finished:{$ne:true}}).toArray();
-    let lecture_doc_list=await db.collection("Lecture").find({finished:{$ne:true},group_id:group_oid}).toArray();
+    let lecture_doc_list=await db.collection("Lecture").aggregate([
+      {
+        $match:{
+          finished:{$ne:true},
+          group_id:group_oid
+        }
+      },
+      {
+        $lookup: {
+          from: "User",
+          localField: "lecture_by",
+          foreignField: "_id",
+          as: "User_aggregate",
+        },
+      },
+      { $unwind: "$User_aggregate" },
+    ]).toArray();
     lecture_doc_list=lecture_doc_list.map((doc,idx)=>{
       delete doc["lecture_by"];
       delete doc["group_id"];
+      doc["lecture_by_username"]=doc.User_aggregate.username;
+      delete doc["User_aggregate"];
       return doc;
     });
     ret=lecture_doc_list;
@@ -5751,6 +5769,7 @@ app.post("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin
   //이 코드 부분에서 강의 추가 시 강의에서 사용하는 교재를 TextbookOfLecture에 추가하도록 수정 필요
   //>>transaction사용: (insertone>Lecture, insertMany>TextbookOfLecture)
   const newLecture = req.body;
+  delete newLecture["manager"];
   const session=db_client.startSession({
     defaultTransactionOptions: {
       readConcern: {
@@ -5766,9 +5785,9 @@ app.post("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin
   try{
     session.startTransaction();
     const user_oid=req.session.passport.user.user_oid;
+    const user_nickname=req.session.passport.user.nickname;
     const group_oid=req.session.passport.user.group_oid;
     let lecture_name=newLecture.lectureName;
-    const manager_name=newLecture.manager;
     // const exist_lecture_document= await db.collection('Lecture').findOne({lectureID: newLecture["ID"]},{session});
     const same_name_lecture_count=await db.collection('Lecture').countDocuments(
       {
@@ -5794,6 +5813,7 @@ app.post("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin
     newLecture["group_id"]=group_oid;
     newLecture["finished"]=false;
     newLecture["finished_date"]=null;
+    newLecture["manager"]=user_nickname;
     await db.collection('Lecture').insertOne(newLecture,{session});
     if(textbookID_list.length>0){
       const textbookOfLecture_list = textbookID_list.map((textbookID)=>{return {lectureID:new_lecture_id,textbookID:textbookID}});
@@ -5825,10 +5845,30 @@ app.get("/api/Lecture/:lectureid", loginCheck, permissionCheck(Role("manager"),R
   let ret;
   try{
     const group_oid=req.session.passport.user.group_oid;
-    const lecture_doc=await db.collection('Lecture').findOne({lectureID: paramID,group_id:group_oid,finished:{$ne:true}});
+    // const lecture_doc=await db.collection('Lecture').findOne({lectureID: paramID,group_id:group_oid,finished:{$ne:true}});
+    const lecture_doc=(await db.collection("Lecture").aggregate([
+      {
+        $match:{
+          lectureID: paramID,
+          group_id:group_oid,
+          finished:{$ne:true}
+        }
+      },
+      {
+        $lookup: {
+          from: "User",
+          localField: "lecture_by",
+          foreignField: "_id",
+          as: "User_aggregate",
+        },
+      },
+      { $unwind: "$User_aggregate" },
+    ]).toArray())[0];
     if(!lecture_doc) throw new Error(`invalid rquest:0`);
+    lecture_doc["lecture_by_username"]=lecture_doc.User_aggregate.username;
     delete lecture_doc["lecture_by"];
     delete lecture_doc["group_id"];
+    delete lecture_doc["User_aggregate"];
     ret=lecture_doc;
   }
   catch(error){
@@ -5851,6 +5891,8 @@ app.put("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin"
   delete newLecture["_id"];
   delete newLecture["lecture_by"];
   delete newLecture["group_id"];
+  delete newLecture["lectureName"];
+  delete newLecture["lectureID"];
   // db.collection("Lecture").updateOne({ _id: findID }, { $set: newLecture }, (err, result) => {
   //   if (err) {
   //     return res.send(`/api/Lecture - updateOne Error : ${err}`);
@@ -5871,8 +5913,9 @@ app.put("/api/Lecture", loginCheck, permissionCheck(Role("manager"),Role("admin"
   });
   try{
     session.startTransaction();
+    const user_oid=req.session.passport.user.user_oid;
     const group_oid=req.session.passport.user.group_oid;
-    const lecture_doc=await db.collection('Lecture').findOne({_id:findID,finished:{$ne:true},group_id:group_oid},{session});
+    const lecture_doc=await db.collection('Lecture').findOne({_id:findID,finished:{$ne:true},group_id:group_oid,lecture_by:user_oid},{session});
     if(!lecture_doc) throw new Error(`invalid request:0`);
     await db.collection('Lecture').updateOne(
       {
@@ -5925,8 +5968,9 @@ app.post("/api/finishLecture",loginCheck, permissionCheck(Role("manager"),Role("
   });
   try{
     session.startTransaction();
+    const user_oid=req.session.passport.user.user_oid;
     const group_oid=req.session.passport.user.group_oid;
-    const lecture_doc=await db.collection('Lecture').findOne({lectureID:legacy_lecture_id,finished:{$ne:true},group_id:group_oid},{session});
+    const lecture_doc=await db.collection('Lecture').findOne({lectureID:legacy_lecture_id,finished:{$ne:true},group_id:group_oid,lecture_by:user_oid},{session});
     if(!lecture_doc) throw new Error(`invalid request:0`);
     const update_result= await db.collection("Lecture").updateOne(
       {
@@ -5965,6 +6009,7 @@ app.get("/api/TextbookOfLecture/:lectureid", loginCheck, permissionCheck(Role("m
   const paramID = decodeURIComponent(req.params.lectureid);
   const ret={"success":false,"ret":null};
   try{
+    const user_oid=req.session.passport.user.user_oid;
     const group_oid=req.session.passport.user.group_oid;
     let ret_data= await db.collection("Lecture")
     .aggregate([
@@ -6014,6 +6059,7 @@ app.get("/api/TextbookOfLecture/:lectureid", loginCheck, permissionCheck(Role("m
     ret["success"]=true; ret["ret"]= ret_data;
   }
   catch(e){
+    console.log(`error ${e}`);
     ret["ret"]="강의에서 사용중인 교재를 불러오는 중에 오류가 발생했습니다";
   }
   finally{
@@ -6115,7 +6161,10 @@ app.post("/api/TextbookOfLecture", loginCheck, permissionCheck(Role("manager"),R
   let ret_val=true;
   try{
     session.startTransaction();
+    const user_oid=req.session.passport.user.user_oid;
     const group_oid=req.session.passport.user.group_oid;
+    const lecture_doc= await db.collection('Lecture').findOne({_id:lectureID,lecture_by:user_oid,finished:{$ne:true}},{session});
+    if(!lecture_doc) throw new Error(`invalid request:0`);
     const textbook_doc_list=await db.collection('TextbookOfLecture').aggregate([
         {
           $match:{
@@ -6216,11 +6265,12 @@ app.delete("/api/TextbookOfLecture/:lectureID/:textbookID", loginCheck, permissi
     // console.log("lid:"+legacyLectureID);
     // console.log("tid:"+textbookID);
 
+    const user_oid=req.session.passport.user.user_oid;
     const group_oid=req.session.passport.user.group_oid;
     const current_date=getCurrentDate();
 
-    const lectureDocument=await db.collection("Lecture").findOne({lectureID:legacyLectureID,finished:{$ne:true},group_id:group_oid},{session});
-    if(!lectureDocument) return res.send(`invalid access`);
+    const lectureDocument=await db.collection("Lecture").findOne({lectureID:legacyLectureID,finished:{$ne:true},group_id:group_oid,lecture_by:user_oid},{session});
+    if(!lectureDocument) throw new Error(`invalid access`);
     lectureID=lectureDocument["_id"];
     // console.log("lec doc:",lectureDocument);
     // return res.send("서버 점검중");
@@ -6478,6 +6528,7 @@ app.put("/api/Assignment", loginCheck, permissionCheck(Role("manager"),Role("adm
   });
   try{
     session.startTransaction();
+    const user_oid=req.session.passport.user.user_oid;
     const group_oid=req.session.passport.user.group_oid;
     const assignment_doc=await db.collection('Assignment').aggregate([
       {
@@ -6503,6 +6554,7 @@ app.put("/api/Assignment", loginCheck, permissionCheck(Role("manager"),Role("adm
         $match:{
           "Lecture_aggregate.finished":{$ne:true},
           "Lecture_aggregate.group_id":group_oid,
+          "Lecture_aggregate.lecture_by":user_oid,
         }
       },
     ],{session});
@@ -6543,6 +6595,7 @@ app.post("/api/Assignment", loginCheck, permissionCheck(Role("manager"),Role("ad
   });
   let ret_val=null;
   try{
+    const user_oid=req.session.passport.user.user_oid;
     const group_oid=req.session.passport.user.group_oid;
     session.startTransaction();
     const studentGotAssign_list = newAssign["studentList"];
@@ -6556,7 +6609,7 @@ app.post("/api/Assignment", loginCheck, permissionCheck(Role("manager"),Role("ad
     else {
       throw new Error("invalid textbook Id");
     }
-    const lecture_doc= await db.collection("Lecture").findOne({_id:lect_id,finished:{$ne:true},group_id:group_oid},{session}); // to check if there is such lecture document in mongodb
+    const lecture_doc= await db.collection("Lecture").findOne({_id:lect_id,finished:{$ne:true},group_id:group_oid,lecture_by:user_oid},{session}); // to check if there is such lecture document in mongodb
     const textbook_doc= await db.collection("TextBook").findOne({_id:textbook_id},{session}); // to check if there is such textbook document in mongodb
     if(!lecture_doc){
       throw new Error("등록된 강의가 없습니다");
@@ -6614,6 +6667,7 @@ app.delete("/api/Assignment/:AssignID", loginCheck, permissionCheck(Role("manage
   let ret_val=null;
   try{
     session.startTransaction();
+    const user_oid=req.session.passport.user.user_oid;
     const group_oid=req.session.passport.user.group_oid;
     const current_date=getCurrentDate();
     // await db.collection('Assignment').deleteOne({_id: assignID},{session});
@@ -6641,6 +6695,7 @@ app.delete("/api/Assignment/:AssignID", loginCheck, permissionCheck(Role("manage
       {
         $match:{
           "Lecture_aggregate.group_id":group_oid,
+          "Lecture_aggregate.lecture_by":user_oid,
         }
       }
     ],{session}).toArray())[0];
@@ -7050,6 +7105,7 @@ app.post("/api/StudentOfLecture", loginCheck, permissionCheck(Role("manager"),Ro
   });
   try{
     session.startTransaction();
+    const user_oid=req.session.passport.user.user_oid;
     const group_oid=req.session.passport.user.group_oid;
     const student_doc=await db.collection('StudentDB').findOne(
       {
@@ -7066,6 +7122,7 @@ app.post("/api/StudentOfLecture", loginCheck, permissionCheck(Role("manager"),Ro
         _id:lectureID,
         finished:{$ne:true},
         group_id:group_oid,
+        lecture_by:user_oid,
       },
       {session}
     );
@@ -7126,9 +7183,10 @@ app.delete("/api/StudentOfLecture/:lectureID/:studentID", loginCheck, permission
   let ret_val=null;
   try{
     session.startTransaction();
+    const user_oid=req.session.passport.user.user_oid;
     const group_oid=req.session.passport.user.group_oid;
     const current_date=getCurrentDate();
-    const target_lecture= await db.collection('Lecture').findOne({lectureID:lectureID, group_id:group_oid},{session});
+    const target_lecture= await db.collection('Lecture').findOne({lectureID:lectureID, group_id:group_oid,lecture_by:user_oid},{session});
     const target_student= await db.collection('StudentDB').findOne({ID:studentID, group_id:group_oid},{session});
     if(!target_lecture || !target_student) throw new Error(`강의 혹은 학생 정보가 올바르지 않습니다`);
     const student_of_lecture_doc=await db.collection('StudentOfLecture').findOne(
