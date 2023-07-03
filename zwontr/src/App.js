@@ -262,29 +262,65 @@ function App() {
     return null;
   }
 
-  const navBarMenus=[
-    ["/studentList",()=>history.push("/studentList"),"학생관리"],
-    [`/Weeklymeeting/Write/${thisMonday}`,() => {
-      axios
-        .get(`/api/Weeklymeeting/${thisMonday}`)
-        .then((result) => { 
-          // console.log(result);
-          if (result["data"] === null) {
-            history.push(`/Weeklymeeting/Write/${thisMonday}`);
-          } else {
-            history.push(`/Weeklymeeting/Edit/${thisMonday}`);
-          }
-        })
-        .catch((err) => {
-          console.log(err);
-        })},"주간 결산"],
-    [`/Closemeeting/${today}`,()=>history.push(`/Closemeeting/${today}`),"마감 회의"],
-    ["/Textbook",()=>history.push("/Textbook"),"교재관리"],
-    ["/Dashboard",() =>history.push("/Dashboard"),"대시보드"],
-    ["/Lecture",()=>history.push("/Lecture"),"강의관리"],
-    ["/ManageUser",()=> history.push("/ManageUser"),"사용자 관리"],
-    ["/ManageGroup",()=> history.push("/ManageGroup"),"소속 관리"],
-  ];
+  // const navBarMenus=[
+  //   ["/studentList",()=>history.push("/studentList"),"학생관리"],
+  //   [`/Weeklymeeting/Write/${thisMonday}`,() => {
+  //     axios
+  //       .get(`/api/Weeklymeeting/${thisMonday}`)
+  //       .then((result) => { 
+  //         // console.log(result);
+  //         if (result["data"] === null) {
+  //           history.push(`/Weeklymeeting/Write/${thisMonday}`);
+  //         } else {
+  //           history.push(`/Weeklymeeting/Edit/${thisMonday}`);
+  //         }
+  //       })
+  //       .catch((err) => {
+  //         console.log(err);
+  //       })},"주간 결산"],
+  //   [`/Closemeeting/${today}`,()=>history.push(`/Closemeeting/${today}`),"마감 회의"],
+  //   ["/Textbook",()=>history.push("/Textbook"),"교재관리"],
+  //   ["/Dashboard",() =>history.push("/Dashboard"),"대시보드"],
+  //   ["/Lecture",()=>history.push("/Lecture"),"강의관리"],
+  //   ["/ManageUser",()=> history.push("/ManageUser"),"사용자 관리"],
+  //   ["/ManageGroup",()=> history.push("/ManageGroup"),"소속 관리"],
+  // ];
+
+  function getNavBarMenus(){
+    if(myInfo.group_name==="ZwonCenterQ"){
+      return [
+        ["/studentList",()=>history.push("/studentList"),"학생관리"],
+        [`/Weeklymeeting/Write/${thisMonday}`,() => {
+          axios
+            .get(`/api/Weeklymeeting/${thisMonday}`)
+            .then((result) => { 
+              // console.log(result);
+              if (result["data"] === null) {
+                history.push(`/Weeklymeeting/Write/${thisMonday}`);
+              } else {
+                history.push(`/Weeklymeeting/Edit/${thisMonday}`);
+              }
+            })
+            .catch((err) => {
+              console.log(err);
+            })},"주간 결산"],
+        [`/Closemeeting/${today}`,()=>history.push(`/Closemeeting/${today}`),"마감 회의"],
+        ["/Textbook",()=>history.push("/Textbook"),"교재관리"],
+        ["/Dashboard",() =>history.push("/Dashboard"),"대시보드"],
+        ["/Lecture",()=>history.push("/Lecture"),"강의관리"],
+        ["/ManageUser",()=> history.push("/ManageUser"),"사용자 관리"],
+        ["/ManageGroup",()=> history.push("/ManageGroup"),"소속 관리"],
+      ];
+    }
+    else{
+      return [
+        ["/studentList",()=>history.push("/studentList"),"학생관리"],
+        [`/Closemeeting/${today}`,()=>history.push(`/Closemeeting/${today}`),"마감 회의"],
+        ["/Textbook",()=>history.push("/Textbook"),"교재관리"],
+        ["/Lecture",()=>history.push("/Lecture"),"강의관리"],
+      ];
+    }
+  }
 
   function getNavBarButtonIfValid(path,onclick_callback,prompt,idx){
     if(!checkUserPermittedToAccessPath(path,myInfo.user_mode)) return false;
@@ -454,7 +490,7 @@ function App() {
               <strong>사용자 관리</strong>
             </h5>
           </Button>:null} */}
-          {navBarMenus.map((menu_data,idx)=>getNavBarButtonIfValid(menu_data[0],menu_data[1],menu_data[2],idx))}
+          {getNavBarMenus().map((menu_data,idx)=>getNavBarButtonIfValid(menu_data[0],menu_data[1],menu_data[2],idx))}
       </div>
       <div className="menuArrow">
         <img src={menuarrow} alt="menuarrow" />
