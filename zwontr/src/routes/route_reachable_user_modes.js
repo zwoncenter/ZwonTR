@@ -25,6 +25,7 @@ const path_to_permitted_user_modes_map={
     "/WeeklystudyfeedbackWrite/:ID/:feedbackDate":["manager","admin"],
     "/WeeklystudyfeedbackEdit/:ID/:feedbackDate":["manager","admin"],
     "/ManageUser":["admin"],
+    "/ManageGroup":["admin"],
     "/CheckAlarms":["manager"],
     "/MyPage":["parent","student","manager","admin"],
     "/NotFound":["guest","parent","student","manager","admin"],

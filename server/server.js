@@ -3257,7 +3257,7 @@ app.get("/api/getMyTodayTRDraftRequestsAll",loginCheck, permissionCheck(Role("st
 app.get("/api/groupList", async (req, res) => {
   const ret={"success":false,"ret":null};
   try{
-    const group_list= await db.collection("Group").find({group_name:{"$exists":true}}).project({_id:0}).toArray();
+    const group_list= await db.collection("Group").find({group_name:{"$exists":true},activated:true}).project({_id:0}).toArray();
     ret["success"]=true; ret["ret"]=group_list;
   }
   catch(e){
@@ -3451,6 +3451,51 @@ app.get("/api/ActiveStudentList", loginCheck, permissionCheck(Role("manager"),Ro
         "group_id":group_oid,
       }
     ).toArray();
+    ret_val["success"]=true;
+    ret_val["ret"]=acitve_student_list;
+  }
+  catch(error){
+    ret_val["ret"]=`error ${error}`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
+// StudentDB의 모든 Document 중 graduated: false인 document만 찾는 코드
+app.get("/api/ActiveStudentListFromAllGroup", loginCheck, permissionCheck(Role("admin")), async (req,res)=>{
+  const ret_val={"success":false, "ret":null};
+  try{
+    const acitve_student_list= await db.collection("StudentDB").aggregate([
+      {
+        $match:{
+          "graduated":false,
+          "deleted":{$ne:true},
+        },
+      },
+      {
+        $lookup: {
+          from: "Group",
+          localField: "group_id",
+          foreignField: "_id",
+          as: "Group_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$Group_aggregate",
+        }
+      },
+      {
+        $project:{
+          ID:1,
+          이름:1,
+          연락처:1,
+          생년월일:1,
+          groupName:"$Group_aggregate.group_name",
+        }
+      }
+    ]).toArray();
     ret_val["success"]=true;
     ret_val["ret"]=acitve_student_list;
   }
@@ -7592,6 +7637,14 @@ function userTypeQueryValid(userType,queryAllUserType,username){
   else return roles.RoleNameValidCheck(userType);
 }
 
+function groupNameValid(groupName){
+  return typeof groupName === "string" && groupName;
+}
+
+function linkValid(link){
+  return typeof link === "string";
+}
+
 const items_per_page=parseInt(process.env.SHOWN_MANAGED_USER_PER_PAGE);
 const alarm_items_per_page=parseInt(process.env.SHOWN_ALARM_PER_PAGE);
 
@@ -8251,6 +8304,219 @@ app.post("/api/deleteWaitingUser",loginCheck, permissionCheck(Role("admin")), as
     await session.abortTransaction();
     ret_val["success"]=false;
     ret_val["ret"]= `네트워크 오류로 작업을 완료하지 못했습니다`;
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret_val);
+  }
+});
+
+const group_status_category_to_index_map={
+  "all":0,
+  "using":1,
+  "suspended":2,
+  "byGroupName":3,
+}
+
+// get status of user accounts
+app.post("/api/searchGroupStatus", loginCheck, permissionCheck(Role("admin")), async (req,res)=>{
+  const ret_val={"success":true,"ret":null};
+  try{
+    ret_val["ret"]={
+      pagination:{
+        cur_page:1,
+        total_page_num:1,
+        status_data:[],
+        pageInvalid:false,
+      },
+    };
+    let {
+      activatedCategoryIndex:activated_category_index,
+      groupName:group_name,
+      queryPage
+    }= req.body;
+    if(!Number.isInteger(activated_category_index) || 0>activated_category_index || 3<activated_category_index) throw new Error(`invalid request:0`);
+    else if(activated_category_index===3 && !groupNameValid(group_name)) throw new Error(`invalid request:1`)
+    else if(!Number.isInteger(queryPage) || queryPage<1) throw new Error(`invalid request:2`);
+    const first_match_stage={
+      $match:{
+      }
+    }
+    if(activated_category_index===1) first_match_stage["$match"]["activated"]=true;
+    else if(activated_category_index===2) first_match_stage["$match"]["activated"]=false;
+    else if(activated_category_index===3) first_match_stage["$match"]["group_name"]={$regex:group_name};
+    const sort_criterion={
+      // created_date:-1,
+      modify_date:-1,
+    };
+
+    const result_data= (await db.collection("Group").aggregate([
+      first_match_stage,
+      {
+        $group: {
+          _id: {_id: "$_id"},
+          group_name: {"$first": "$group_name"},
+          student_this_week_study_board_link: {"$first": "$student_this_week_study_board_link"},
+          activated: {"$first": "$activated"},
+          modify_date: {"$first": "$modify_date"},
+        }
+      },
+      {
+        $facet:{
+          metadata:[{$count:"total_items_num"}],
+          data:[{$sort:sort_criterion},{$skip:items_per_page*(queryPage-1)},{$limit:items_per_page}]
+        }
+      }
+    ]).toArray())[0];
+    if(result_data.metadata.length===0) return; // no matching data
+    const item_count=(result_data.metadata)[0].total_items_num;
+    const total_page_num= Math.ceil(item_count/items_per_page);
+    ret_val["ret"]["pagination"]["cur_page"]=queryPage;
+    ret_val["ret"]["pagination"]["total_page_num"]=total_page_num;
+    ret_val["ret"]["pagination"]["status_data"]=result_data.data;
+    if(result_data.metadata.total_items_num>1 && result_data.data.length===0){
+      ret_val["ret"]["pagination"]["pageInvalid"]=true;
+    }
+  }
+  catch(error){
+    console.log(`error: ${error}`);
+    ret_val["success"]=false;
+    ret_val["ret"]= `네트워크 오류로 데이터를 불러오지 못했습니다`;
+  }
+  finally{
+    return res.json(ret_val);
+  }
+});
+
+function getRegisterGroupDocument(groupName,modifyDate){
+  return {
+    group_name:groupName,
+    student_this_week_study_board_link:"",
+    activated:true,
+    modify_date:modifyDate,
+  }
+}
+
+// register new group
+app.post("/api/registerGroup", loginCheck, permissionCheck(Role("admin")), async (req,res)=>{
+  const ret_val={"success":true,"ret":null};
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
+  try{
+    session.startTransaction();
+    const current_date=getCurrentDate();
+    let {
+      groupName:group_name,
+    }= req.body;
+    if(!groupNameValid(group_name) || group_name.length<2 || group_name.length>25) throw new Error(`invalid request:0`);
+    const prev_group_doc=await db.collection('Group').findOne({group_name},{session});
+    if(prev_group_doc){
+      ret_val.success=false;
+      ret_val.ret=`이미 등록된 소속명입니다`;
+      return;
+    }
+    const register_group_doc=getRegisterGroupDocument(group_name,current_date);
+    await db.collection('Group').insertOne(register_group_doc,{session});
+    
+    await session.commitTransaction();
+  }
+  catch(error){
+    await session.abortTransaction();
+    console.log(`error: ${error}`);
+    ret_val["success"]=false;
+    ret_val["ret"]= `네트워크 오류로 데이터를 불러오지 못했습니다`;
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret_val);
+  }
+});
+
+// change group activated status
+app.post("/api/changeGroupStatus", loginCheck, permissionCheck(Role("admin")), async (req,res)=>{
+  const ret_val={"success":true,"ret":null};
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
+  try{
+    session.startTransaction();
+    const current_date=getCurrentDate();
+    let {
+      groupName:group_name,
+      activatedStatus:activated_status,
+    }= req.body;
+    activated_status=!!activated_status
+    if(!groupNameValid(group_name)) throw new Error(`invalid request:0`);
+    const prev_group_doc=await db.collection('Group').findOne({group_name},{session});
+    if(!prev_group_doc) throw new Error(`invalid request:1`);
+    const prev_group_doc_id=prev_group_doc._id;
+    await db.collection('Group').updateOne({_id:prev_group_doc_id},{$set:{activated:activated_status,modify_date:current_date}},{session});
+    
+    await session.commitTransaction();
+  }
+  catch(error){
+    await session.abortTransaction();
+    console.log(`error: ${error}`);
+    ret_val["success"]=false;
+    ret_val["ret"]= `네트워크 오류로 데이터를 불러오지 못했습니다`;
+  }
+  finally{
+    await session.endSession();
+    return res.json(ret_val);
+  }
+});
+
+// change group activated status
+app.post("/api/editGroupInfo", loginCheck, permissionCheck(Role("admin")), async (req,res)=>{
+  const ret_val={"success":true,"ret":null};
+  const session=db_client.startSession({
+    defaultTransactionOptions: {
+      readConcern: {
+        level: 'snapshot'
+      },
+      writeConcern: {
+        w: 'majority'
+      },
+      readPreference: 'primary'
+    }
+  });
+  try{
+    session.startTransaction();
+    const current_date=getCurrentDate();
+    let {
+      groupName:group_name,
+      link,
+    }= req.body;
+    if(!groupNameValid(group_name) || !linkValid(link)) throw new Error(`invalid request:0`);
+    const prev_group_doc=await db.collection('Group').findOne({group_name},{session});
+    if(!prev_group_doc) throw new Error(`invalid request:1`);
+    const prev_group_doc_id=prev_group_doc._id;
+    await db.collection('Group').updateOne({_id:prev_group_doc_id},{$set:{student_this_week_study_board_link:link,modify_date:current_date}},{session});
+    
+    await session.commitTransaction();
+  }
+  catch(error){
+    await session.abortTransaction();
+    console.log(`error: ${error}`);
+    ret_val["success"]=false;
+    ret_val["ret"]= `네트워크 오류로 데이터를 불러오지 못했습니다`;
   }
   finally{
     await session.endSession();

@@ -35,6 +35,7 @@ import LectureList from "./routes/LectureList";
 import WeeklystudyfeedbackWrite from "./routes/WeeklystudyfeedbackWrite";
 import WeeklystudyfeedbackEdit from "./routes/WeeklystudyfeedbackEdit";
 import ManageUser from "./routes/ManageUser";
+import ManageGroup from "./routes/ManageGroup";
 import NotFound from "./routes/NotFound";
 import TRDraft from "./routes/TRDraft";
 import MyPage from "./routes/MyPage";
@@ -282,6 +283,7 @@ function App() {
     ["/Dashboard",() =>history.push("/Dashboard"),"대시보드"],
     ["/Lecture",()=>history.push("/Lecture"),"강의관리"],
     ["/ManageUser",()=> history.push("/ManageUser"),"사용자 관리"],
+    ["/ManageGroup",()=> history.push("/ManageGroup"),"소속 관리"],
   ];
 
   function getNavBarButtonIfValid(path,onclick_callback,prompt,idx){
@@ -587,6 +589,12 @@ function App() {
           </Route>
         <Route exact path="/ManageUser">
           <ManageUser
+            setNowLoading={setNowLoading}
+            setNowNotLoading={setNowNotLoading}
+          />
+        </Route>
+        <Route exact path="/ManageGroup">
+          <ManageGroup
             setNowLoading={setNowLoading}
             setNowNotLoading={setNowNotLoading}
           />

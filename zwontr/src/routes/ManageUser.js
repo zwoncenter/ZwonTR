@@ -12,6 +12,7 @@ import { BsGearFill } from "react-icons/bs"
 import privateInfoTerm from "../terms/privateInfoAgree";
 import identifyingInfoTerm from "../terms/identifyingInfoAgree";
 import sensitiveInfoTerm from "../terms/sensitiveInfoAgree";
+import { getgroups } from "process";
 
 const versionInfo = "1.6";
 
@@ -230,6 +231,10 @@ function ManageUser({
     const approved_status=user_info_datum.approved;
     const suspended_status=user_info_datum.suspended;
     const user_type=user_info_datum.userType;
+    const group_name=getGroupString(user_info_datum.groupOfUser);
+    const student_info_map=studentInfoMap[group_name]?studentInfoMap[group_name]:{};
+    const student_id_list=Object.keys(student_info_map);
+    // console.log(`student info map: ${JSON.stringify(student_info_map)}`);
     if(!approved_status){
       return (
         <p>
@@ -240,8 +245,10 @@ function ManageUser({
             onClick={async ()=>{
               const user_type_prompt=user_type_to_user_type_prompt_map[user_info_datum.userType];
               if(user_info_datum.userType==="student"){
-                openModal("student_register");
                 prepareDataForStudentRegisterModal(user_info_datum,idx);
+                setCurrentStudentInfoMap(student_info_map);
+                setSelectedRelatedStudentID(student_id_list[0]);
+                openModal("student_register");
                 return;
               }
               if(!window.confirm(`${nickname}(${username}) 사용자의 [${user_type_prompt}] 권한을 활성화 하시겠습니까?`)) return;
@@ -318,13 +325,15 @@ function ManageUser({
     const suspended_status=user_info_datum.suspended;
     const username=user_info_datum.username;
     const nickname=user_info_datum.nickname;
+    const group_name=getGroupString(user_info_datum.groupOfUser);
+    // console.log(`group name: ${group_name}`);
     return(
       <tr key={idx}>
         <td></td>
         <td><p>{username}</p></td>
         <td><p>{nickname}</p></td>
         <td><p>{user_type_to_user_type_prompt_map[user_info_datum.userType]}</p></td>
-        <td><p>{getGroupString(user_info_datum.groupOfUser)}</p></td>
+        <td><p>{group_name}</p></td>
         <td><p>{getTableRowDateString(user_info_datum)}</p></td>
         <td>
           {getAccountPermissionButton(user_info_datum,idx)}
@@ -553,10 +562,10 @@ function ManageUser({
               }}
             >
               {
-                Object.keys(studentInfoMap).map((student_id,sidx)=>{
+                Object.keys(currentStudentInfoMap).map((student_id,sidx)=>{
                   return(
                     <option value={student_id} key={sidx}>
-                      {getStudentFingerprintFromStudentInfo(studentInfoMap[student_id])}
+                      {getStudentFingerprintFromStudentInfo(currentStudentInfoMap[student_id])}
                     </option>
                   );
                 })
@@ -571,7 +580,7 @@ function ManageUser({
               const nickname=candidateStudentUserInfo.nickname;
               const user_type_prompt=user_type_to_user_type_prompt_map[candidateStudentUserInfo.userType];
               let confirm_message=`${nickname}(${username}) 사용자의 [${user_type_prompt}] 권한을 활성화하고\n`;
-              confirm_message+=`해당 계정을 [${getStudentFingerprintFromStudentInfo(studentInfoMap[selectedRelatedStudentID])}]\n학생 정보와 연동하시겠습니까?`
+              confirm_message+=`해당 계정을 [${getStudentFingerprintFromStudentInfo(currentStudentInfoMap[selectedRelatedStudentID])}]\n학생 정보와 연동하시겠습니까?`
               if(!window.confirm(confirm_message)) return;
               await changeUserAccountApprovedStatus(candidateStudentUserInfo,true,candidateStudentUserInfoTableIndex,selectedRelatedStudentID);
               // hideRelatedStudentModal();
@@ -674,6 +683,7 @@ function ManageUser({
   // 기존 학생 정보와 계정 연동 관련 코드
   const [relatedStudentModal,setRelatedStudentModal]= useState(false);
   const [studentInfoMap, setStudentInfoMap]= useState({});
+  const [currentStudentInfoMap,setCurrentStudentInfoMap]=useState({});
   const [studentInfoMapLoaded,setStudentInfoMapLoaded]= useState(false);
   const [selectedRelatedStudentID,setSelectedRelatedStudentID]= useState({});
   const [candidateStudentUserInfo,setCandidateStudentUserInfo]= useState({});
@@ -707,11 +717,12 @@ function ManageUser({
   };
   const hideRelatedStudentModal= async()=>{
     setRelatedStudentModal(false);
+    setCurrentStudentInfoMap({});
   }
 
   useEffect(async ()=>{
     const active_student_list=await axios
-      .get("/api/ActiveStudentList")
+      .get("/api/ActiveStudentListFromAllGroup")
       .then((res)=>{
         const data=res.data;
         if(!data.success) return [];
@@ -723,10 +734,12 @@ function ManageUser({
     if(active_student_list.length>0){
       const info_map={};
       active_student_list.forEach((e,idx)=>{
-        info_map[e._id]=e;
-      })
+        const group_name=e.groupName;
+        if(!info_map[group_name]) info_map[group_name]={};
+        info_map[group_name][e._id]=e;
+      });
       setStudentInfoMap(info_map);
-      setSelectedRelatedStudentID(active_student_list[0]._id);
+      setSelectedRelatedStudentID(null);
       setStudentInfoMapLoaded(true);
     }
   },[]);
