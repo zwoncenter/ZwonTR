@@ -43,6 +43,7 @@ function ManageUser({
     "직원",
     "관리자",
     "아이디로 검색",
+    "소속으로 검색",
   ];
   const user_prompt_to_user_type_map={
     "전체":null,
@@ -51,6 +52,7 @@ function ManageUser({
     "직원":"manager",
     "관리자":"admin",
     "아이디로 검색":null,
+    "소속으로 검색":null,
   };
   const user_type_to_user_type_prompt_map={
     "student":"학생",
@@ -60,6 +62,9 @@ function ManageUser({
   }
   function isQueryUsingUsername(){
     return userTypeCategory==="아이디로 검색";
+  }
+  function isQueryUsingGroupName(){
+    return userTypeCategory==="소속으로 검색";
   }
   const [approvedStatusCategory,setApprovedStatusCategory]= useState(approved_status_categories[0]);
   const [userTypeCategory,setUserTypeCategory]= useState(user_type_categories[0]);
@@ -105,6 +110,17 @@ function ManageUser({
   }
   function isUsernameFormControlDisabled(){
     return userTypeCategory!=="아이디로 검색";
+  }
+  function isGroupNameFormControlDisabled(){
+    return userTypeCategory!=="소속으로 검색";
+  }
+  function isSearchBoxDisabled(){
+    return isUsernameFormControlDisabled() && isGroupNameFormControlDisabled();
+  }
+  function getSearchBoxPlaceHolder(){
+    if(userTypeCategory==="아이디로 검색") return "조회할 사용자 아이디를 입력해주세요";
+    else if(userTypeCategory==="소속으로 검색") return "조회할 소속명을 입력해주세요";
+    else return "";
   }
   function getNoDataPrompt(){
     return (
@@ -425,7 +441,17 @@ function ManageUser({
   }
   function checkSearchQueryValid(query){
     //check if username is not empty
-    return !isQueryUsingUsername() || !!query.username;
+    if(userTypeCategory==="아이디로 검색") {
+      const valid= !isQueryUsingUsername() || !!query.username;
+      const msg=`검색할 아이디를 입력해주세요`;
+      return [valid,msg];
+    }
+    else if(userTypeCategory==="소속으로 검색") {
+      const valid=!isQueryUsingGroupName() || !!query.groupName;
+      const msg=`검색할 소속명을 입력해주세요`;
+      return [valid,msg];
+    }
+    else return [true,``];
   }
   function getUserAccountApprovedStatusSortFunction(){
     if(approvedStatusCategory===approved_status_categories[0]){
@@ -453,10 +479,12 @@ function ManageUser({
       userType:user_prompt_to_user_type_map[userTypeCategory],
       queryAllUserType:userTypeCategory==="전체",
       username:isQueryUsingUsername()?queryUsername:null,
-      queryPage:queryPage
+      groupName:isQueryUsingGroupName()?queryUsername:null,
+      queryPage:queryPage,
     }
-    if(!checkSearchQueryValid(query)){
-      window.alert(`검색할 사용자 아이디를 입력해주세요`);
+    const [valid,msg]= checkSearchQueryValid(query);
+    if(!valid){
+      window.alert(`${msg}`);
       return;
     }
     setNowLoading();
@@ -862,8 +890,8 @@ function ManageUser({
           </div>
           <div className="col-sm-5 mb-2">
             <FormControl
-              disabled={isUsernameFormControlDisabled()}
-              placeholder={isUsernameFormControlDisabled()?"":"조회할 사용자 아이디를 입력해주세요"}
+              disabled={isSearchBoxDisabled()}
+              placeholder={getSearchBoxPlaceHolder()}
               value={queryUsername}
               maxLength={25}
               onChange={(e) => {

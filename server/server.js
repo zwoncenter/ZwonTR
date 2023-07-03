@@ -7632,8 +7632,8 @@ app.post("/api/StudentTodayAssignment/", loginCheck, permissionCheck(Role("manag
   }
 });
 
-function userTypeQueryValid(userType,queryAllUserType,username){
-  if(!userType) return queryAllUserType || ((typeof username)==="string" && username);
+function userTypeQueryValid(userType,queryAllUserType,username,groupName){
+  if(!userType) return queryAllUserType || ((typeof username)==="string" && username) || ((typeof groupName)==="string" && groupName);
   else return roles.RoleNameValidCheck(userType);
 }
 
@@ -7666,9 +7666,10 @@ app.post("/api/searchUserAccountApprovedStatus", loginCheck, permissionCheck(Rol
       userType:user_type_string,
       queryAllUserType:query_all_user_type,
       username,
+      groupName,
       queryPage,
     }= req.body;
-    if(!userTypeQueryValid(user_type_string,query_all_user_type,username) || !Number.isInteger(queryPage) || queryPage<1) throw new Error(`invalid query`);
+    if(!userTypeQueryValid(user_type_string,query_all_user_type,username,groupName) || !Number.isInteger(queryPage) || queryPage<1) throw new Error(`invalid query`);
     approved_status=!!approved_status;
     suspended_status=!!suspended_status;
     const user_type_index=roles.roleNameToIndex[user_type_string];    
@@ -7686,7 +7687,7 @@ app.post("/api/searchUserAccountApprovedStatus", loginCheck, permissionCheck(Rol
         "RoleOfUser_aggregate.activated":!approved_status?false:!suspended_status,
       }
     };
-    if(!query_all_user_type && !username) second_match_stage["$match"]["Role_aggregate.role_index"]=user_type_index;
+    if(!query_all_user_type && !username && !groupName) second_match_stage["$match"]["Role_aggregate.role_index"]=user_type_index;
 
     const third_match_stage={
       $match:{
@@ -7697,6 +7698,13 @@ app.post("/api/searchUserAccountApprovedStatus", loginCheck, permissionCheck(Rol
         ],
       }
     };
+
+    const fourth_match_stage={
+      $match:{
+
+      }
+    };
+    if(groupName) fourth_match_stage["$match"]["Group_aggregate.group_name"]=groupName;
 
     let sort_criterion;
     if(!approved_status){
@@ -7768,6 +7776,7 @@ app.post("/api/searchUserAccountApprovedStatus", loginCheck, permissionCheck(Rol
           preserveNullAndEmptyArrays:true,
         }
       },
+      fourth_match_stage,
       {
         $group: {
           _id: {_id: "$_id"},
