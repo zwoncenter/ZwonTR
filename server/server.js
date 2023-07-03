@@ -7487,7 +7487,8 @@ app.post("/api/StudentTodayAssignment/", loginCheck, permissionCheck(Role("manag
     return res.json([]);
   }
   const student_legacy_id=request_arguments["studentID"];
-  const today_date=request_arguments["today_date"];
+  const today_date=request_arguments["today_date"]; // tr page uri parameter date string
+  const today_string=getCurrentKoreaDateYYYYMMDD(); // server current time date string
   // console.log(today_date);
   let ret_val;
   try{
@@ -7510,7 +7511,7 @@ app.post("/api/StudentTodayAssignment/", loginCheck, permissionCheck(Role("manag
           {
             $match: {
               "AssignmentOfStudent_agg.studentID":target_student_id,
-              "AssignmentOfStudent_agg.deleted":{$ne:true},
+              // "AssignmentOfStudent_agg.deleted":{$ne:true},
             }
           },
           {
@@ -7541,6 +7542,22 @@ app.post("/api/StudentTodayAssignment/", loginCheck, permissionCheck(Role("manag
               AOSID: "$AssignmentOfStudent_agg._id",
               AOSTextbookID: "$TextBook_agg._id"
             },
+          },
+          { //this stage get last assignment before today
+            $match: {
+              "$or":[
+                {
+                  duedate:{
+                    $lt:today_string,
+                  }
+                },
+                {
+                  "AssignmentOfStudent_agg.deleted":{
+                    $ne:true
+                  }
+                },
+              ],
+            }
           },
           {
             $project: {
