@@ -3427,7 +3427,7 @@ app.get("/api/studentList", loginCheck, permissionCheck(Role("manager"),Role("ad
   catch(error){
     // ret=`error while getting student list`;
     ret_val.success=false;
-    ret_val.ret=`error while getting student list`;
+    ret_val.ret=`학생 명단을 가져오는데 실패했습니다`;
   }
   finally{
     // return res.json(ret);

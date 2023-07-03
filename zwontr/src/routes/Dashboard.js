@@ -85,7 +85,15 @@ function Dashboard() {
     const newstudentDBlist = await axios
       .get("/api/studentList")
       .then((result) => {
-        return result.data;
+        // return result.data;
+        const data=result.data;
+        const success=data.success;
+        const error_prompt=data.ret;
+        if(!success) {
+          window.alert(`${error_prompt}`);
+          return [];
+        }
+        return data.ret;
       })
       .catch((err) => {
         return err;
