@@ -3367,7 +3367,7 @@ app.post("/api/registerUser", async function(req,res){
     const group_designated=validator.groupOfUserNeeded(register_info.userType);
     let group_doc=null;
     if(group_designated){
-      group_doc= await db.collection("Group").findOne({"group_name":register_info.groupOfUser});
+      group_doc= await db.collection("Group").findOne({"group_name":register_info.groupOfUser},{session});
       if(!group_doc) throw new Error("no such group name");
     }
 
@@ -3376,16 +3376,16 @@ app.post("/api/registerUser", async function(req,res){
     const user_info=getUserObjectWithRegisterInfo(register_info,salt,password_hashed,current_date);
     const user_id= new ObjectId();
     user_info["_id"]=user_id;
-    await db.collection("User").insertOne(user_info);
+    await db.collection("User").insertOne(user_info,{session});
 
-    const role_doc=await db.collection("Role").findOne({role_index:roles.roleNameToIndex[register_info.userType]});
+    const role_doc=await db.collection("Role").findOne({role_index:roles.roleNameToIndex[register_info.userType]},{session});
     const role_id= role_doc._id;
 
-    await db.collection("RoleOfUser").insertOne({user_id:user_id,role_id:role_id,modify_date:current_date,activated:false});
+    await db.collection("RoleOfUser").insertOne({user_id:user_id,role_id:role_id,modify_date:current_date,activated:false},{session});
 
     if(group_designated) {
       const group_id=group_doc._id;
-      await db.collection("GroupOfUser").insertOne({user_id:user_id,group_id:group_id,modify_date:current_date,activated:false});
+      await db.collection("GroupOfUser").insertOne({user_id:user_id,group_id:group_id,modify_date:current_date,activated:false},{session});
     }
 
     ret_val["ret"]["registered"]=true;
@@ -5146,11 +5146,11 @@ app.delete("/api/Closemeeting/:id", loginCheck, permissionCheck(Role("manager"),
     session.startTransaction();
     const group_oid=req.session.passport.user.group_oid;
     const current_date=getCurrentDate();
-    const close_meeting_doc= await db.collection('Closemeeting').findOne({_id:findID,group_id:group_oid,deleted:{$ne:true}},{session});
+    const close_meeting_doc= await db.collection('Closemeeting').findOne({_id:ClosemeetingID,group_id:group_oid,deleted:{$ne:true}},{session});
     if(!close_meeting_doc) throw new Error(`invalid request:0`);
     await db.collection('Closemeeting').updateOne(
       {
-        _id:findID,
+        _id:ClosemeetingID,
         group_id:group_oid,
         deleted:{$ne:true},
       },
