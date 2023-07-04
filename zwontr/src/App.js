@@ -83,7 +83,8 @@ function App() {
       // console.log(`matchpath result: ${checkUserPermittedToAccessPath(window.location.pathname,myInfo.user_mode)}`);
       // console.log(`myinfo: ${JSON.stringify(myInfo)}`);
       if(!checkUserPermittedToAccessPath(window.location.pathname,myInfo.user_mode)){
-        history.push("/NotFound");
+        // history.push("/NotFound");
+        history.push(getDefaultPathByUserMode(myInfo.user_mode));
       }
       else if(window.location.pathname==="/" && myInfo.user_mode!=="guest"){ // 로그인된 상태에서 사용자가 "/" path로 접근 시 기본 페이지로 이동
         // window.location.replace(getDefaultPathByUserMode(myInfo.user_mode)); // too slow
