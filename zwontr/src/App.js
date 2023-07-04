@@ -619,6 +619,7 @@ function App() {
           <Lecture 
             setNowLoading={setNowLoading}
             setNowNotLoading={setNowNotLoading}
+            myInfo={myInfo}
           />
         </Route>
         <Route exact path="/WeeklystudyfeedbackWrite/:ID/:feedbackDate">

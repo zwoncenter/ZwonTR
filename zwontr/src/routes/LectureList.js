@@ -164,6 +164,7 @@ function LectureList({
     }
 
     if (!window.confirm("강의를 수정하시겠습니까?")) return;
+    setNowLoading();
     axios
       .put("/api/Lecture", existlecture)
       .then((result) => {
@@ -181,6 +182,7 @@ function LectureList({
       .catch((err) => {
         return window.alert("수정에 실패했습니다", err);
       });
+    setNowNotLoading();
   };
 
   // 강의에 사용되는 교재 수정 관련 코드
@@ -188,10 +190,18 @@ function LectureList({
   const [existlectureTextbookList,setExistlectureTextbookList] = useState([]); // textbooks of exist lecture
   const [addedLectureTextbookList,setAddedLectureTextbookList] = useState([]); // textbooks that will be newly registered
   const [textbookRevisedLectureID,setTextbookRevisedLectureID] = useState("");
+  const lecture_datum_template={
+    "lecture_by_username":"",
+  }
+  function getLectrueDatumTemplate(){
+    return {...lecture_datum_template};
+  }
+  const [textbookRevisedLectureDatum,setTextbookRevisedLectureDatum]= useState(getLectrueDatumTemplate());
   const [textbookRevisedLegacyLectureID,setTextbookRevisedLegacyLectureID] = useState("");
   const lectureTextbookModalOpen = async (lecture) => {
     setTextbookRevisedLectureID(lecture["_id"]);
     setTextbookRevisedLegacyLectureID(lecture["lectureID"]);
+    setTextbookRevisedLectureDatum(lecture);
     // console.log("trllid:"+lecture["lectureID"]);
     setLectureTextbookModal(true);
     //here we get textbooks of specific lecture to be revised
@@ -330,7 +340,8 @@ function LectureList({
 
   // 강의 완료처리 관련 코드
   const finishLecture = async (lecture)=>{
-    if (!window.confirm(`${lecture["lectureName"]} 강의를 완료처리하시겠습니까? \n(강의가 DB에서 삭제되지 않습니다)`)) return;
+    // if (!window.confirm(`${lecture["lectureName"]} 강의를 완료처리하시겠습니까? \n(강의가 DB에서 삭제되지 않습니다)`)) return;
+    if (!window.confirm(`${lecture["lectureName"]} 강의를 완료처리하시겠습니까?`)) return;
     axios
       .post(`/api/finishLecture`,{lectureID:lecture["lectureID"]})
       .then((result)=>{
@@ -391,8 +402,12 @@ function LectureList({
 
   // 강의리스트를 매니저 이름별로 groupby
   const groupedlectureList = groupBy(lectureList,(element)=>{
-    return element.manager
+    return element.manager;
   });
+  // console.log(`grouped lecture list: ${JSON.stringify(groupedlectureList)}`);
+  function checkMyLecture(lectureDatum){
+    return myInfo.username===lectureDatum.lecture_by_username;
+  }
 
   // 강의-학생 relation 불러오기
   const [studentOfLecture, setstudentOfLecture] = useState([]);
@@ -726,6 +741,7 @@ function LectureList({
             />
           </InputGroup>
           <Button
+            disabled={!checkMyLecture(textbookRevisedLectureDatum)}
             className="mb-3 btn-edit"
             variant="secondary"
             onClick={() => {
@@ -750,6 +766,7 @@ function LectureList({
                 </Col>
                 <Col xs={3}>
                   <Button
+                    disabled={!checkMyLecture(textbookRevisedLectureDatum)}
                     className="textbookDeleteBtn btn-del"
                     variant="danger"
                     onClick={()=>{
@@ -848,6 +865,7 @@ function LectureList({
                     <Card.Text className="lectureSubject">{lecture["subject"]}</Card.Text>
                     <div className="text-end">
                     <Button
+                    disabled={!checkMyLecture(lecture)}
                     onClick={(e) => {
                       e.stopPropagation();
                       reviseModalOpen(lecture);
@@ -869,6 +887,7 @@ function LectureList({
                     <strong>교재</strong>
                   </Button>
                   <Button
+                    disabled={!checkMyLecture(lecture)}
                     className="lectureEditingBtn btn-cancel me-1"
                     variant="secondary"
                     onClick={(e) => {

@@ -13,6 +13,7 @@ import Card from "react-bootstrap/Card";
 function Lecture({
   setNowLoading,
   setNowNotLoading,
+  myInfo,
 }) {
   let history = useHistory();
   const paramID = useParams()["lectureID"];
@@ -430,6 +431,43 @@ function Lecture({
     assignKey: 0,
   });
 
+  function checkMyLecture(){
+    return myInfo.username===lecture.lecture_by_username;
+  }
+
+  function getAssignmentEditButton(assignmentID){
+    if(!checkMyLecture()) return null;
+    return (
+      <div>
+        <Button
+          className="lectureEditingBtn btn-edit me-1"
+          variant="secondary"
+          onClick={() => {
+            // console.log(assignments);
+            // setselectedAssign(assignID);
+            // if (selectedAssign&&selectedAssign['pageRangeArray'].length==0){
+            //  let selectedAssign = {...selectedAssign};
+            //  selectedAssign['pageRangeArray'] = [[]];
+            //  setselectedAssign(selectedAssign);
+            // }
+            assignupdatemodalOpen(assignmentID);
+          }}
+        >
+          <strong>수정</strong>
+        </Button>
+        <Button
+          className="lectureEditingBtn btn-cancel m-auto"
+          variant="secondary"
+          onClick={() => {
+            assignDelete(assignmentID);
+          }}
+        >
+          <strong>삭제</strong>
+        </Button>
+      </div>
+    )
+  }
+
   // 강의 듣는 학생 과제 관련 코드
   const [lectureAssignments,setLectureAssignments] = useState([]);
   function processAssignmentOfStudentData(assignmentOfStudentData, studentOfLectureList){
@@ -670,7 +708,8 @@ function Lecture({
 
   // 과제 아코디언 UI 관련 코드
   function CustomToggle({ children, eventKey }) {
-    const decoratedOnClick = useAccordionButton(eventKey, () => console.log("totally custom!"));
+    // const decoratedOnClick = useAccordionButton(eventKey, () => console.log("totally custom!"));
+    const decoratedOnClick = useAccordionButton(eventKey, () => null);
 
     return (
       <button type="button" style={{ backgroundColor: "pink" }} onClick={decoratedOnClick}>
@@ -1104,13 +1143,14 @@ function Lecture({
 
       <div className="row">
         <Button
+          disabled={!checkMyLecture()}
           variant="dark"
           className="btn-edit w-90 m-3"
           onClick={() => {
             namemodalOpen();
           }}
         >
-          + 학생 추가 +
+          {checkMyLecture()?"+ 학생 추가 +":"다른 강사의 강의 페이지를 열람중입니다"}
         </Button>
         {/* {<Button
           variant="dark"
@@ -1378,28 +1418,30 @@ function Lecture({
                                 })
                                 :null}
                                 <p>{assignment["description"]}</p>
-                                <Button
-                                  className="lectureEditingBtn btn-edit w-100"
-                                  onClick={() => {
-                                    if (!window.confirm("과제를 완료 처리하시겠습니까?")) {
-                                      return;
-                                    }
-                                    const assignmentInfo={assignmentOfStudentID:assignment["AssignmentOfStudentID"],finished:true,finished_date:today}
-                                    if(!updateAssignmentOfStudentState(assignmentInfo)){
-                                      window.location.reload();
-                                    }
-                                    const newLectureAssignments = JSON.parse(JSON.stringify(lectureAssignments));
-                                    const newAssignmentData = {...assignment};
-                                    newAssignmentData["finished"]=true;
-                                    newAssignmentData["finished_date"]=today;
-                                    newLectureAssignments[studentName]["ongoing"].splice(aidx,1);
-                                    newLectureAssignments[studentName]["finished"].push(newAssignmentData);
-                                    newLectureAssignments[studentName]["finished"].sort((a,b)=>a["duedate"]<b["duedate"]?-1:1);
-                                    setLectureAssignments(newLectureAssignments);
-                                  }}
-                                >
-                                  완료처리
-                                </Button>
+                                {checkMyLecture()?
+                                  <Button
+                                    className="lectureEditingBtn btn-edit w-100"
+                                    onClick={() => {
+                                      if (!window.confirm("과제를 완료 처리하시겠습니까?")) {
+                                        return;
+                                      }
+                                      const assignmentInfo={assignmentOfStudentID:assignment["AssignmentOfStudentID"],finished:true,finished_date:today}
+                                      if(!updateAssignmentOfStudentState(assignmentInfo)){
+                                        window.location.reload();
+                                      }
+                                      const newLectureAssignments = JSON.parse(JSON.stringify(lectureAssignments));
+                                      const newAssignmentData = {...assignment};
+                                      newAssignmentData["finished"]=true;
+                                      newAssignmentData["finished_date"]=today;
+                                      newLectureAssignments[studentName]["ongoing"].splice(aidx,1);
+                                      newLectureAssignments[studentName]["finished"].push(newAssignmentData);
+                                      newLectureAssignments[studentName]["finished"].sort((a,b)=>a["duedate"]<b["duedate"]?-1:1);
+                                      setLectureAssignments(newLectureAssignments);
+                                    }}
+                                  >
+                                    완료처리
+                                  </Button>:null
+                                }
                               </div>
                             );
                           })}
@@ -1430,28 +1472,30 @@ function Lecture({
                                 })
                                 :null}
                                 <p>{assignment["description"]}</p>
-                                <Button
-                                  className="lectureEditingBtn btn-cancel w-100"
-                                  onClick={() => {
-                                    if (!window.confirm("과제를 완료해제 처리하시겠습니까? \n기록된 완료날짜가 삭제됩니다.")) {
-                                      return;
-                                    }
-                                    const assignmentInfo={assignmentOfStudentID:assignment["AssignmentOfStudentID"],finished:false,finished_date:""}
-                                    if(!updateAssignmentOfStudentState(assignmentInfo)){
-                                      window.location.reload();
-                                    }
-                                    const newLectureAssignments = JSON.parse(JSON.stringify(lectureAssignments));
-                                    const newAssignmentData = {...assignment};
-                                    newAssignmentData["finished"]=false;
-                                    newAssignmentData["finished_date"]="";
-                                    newLectureAssignments[studentName]["finished"].splice(aidx,1);
-                                    newLectureAssignments[studentName]["ongoing"].push(newAssignmentData);
-                                    newLectureAssignments[studentName]["ongoing"].sort((a,b)=>a["duedate"]<b["duedate"]?-1:1);
-                                    setLectureAssignments(newLectureAssignments);
-                                  }}
-                                >
-                                  완료해제처리
-                                </Button>
+                                {checkMyLecture()?
+                                  <Button
+                                    className="lectureEditingBtn btn-cancel w-100"
+                                    onClick={() => {
+                                      if (!window.confirm("과제를 완료해제 처리하시겠습니까? \n기록된 완료날짜가 삭제됩니다.")) {
+                                        return;
+                                      }
+                                      const assignmentInfo={assignmentOfStudentID:assignment["AssignmentOfStudentID"],finished:false,finished_date:""}
+                                      if(!updateAssignmentOfStudentState(assignmentInfo)){
+                                        window.location.reload();
+                                      }
+                                      const newLectureAssignments = JSON.parse(JSON.stringify(lectureAssignments));
+                                      const newAssignmentData = {...assignment};
+                                      newAssignmentData["finished"]=false;
+                                      newAssignmentData["finished_date"]="";
+                                      newLectureAssignments[studentName]["finished"].splice(aidx,1);
+                                      newLectureAssignments[studentName]["ongoing"].push(newAssignmentData);
+                                      newLectureAssignments[studentName]["ongoing"].sort((a,b)=>a["duedate"]<b["duedate"]?-1:1);
+                                      setLectureAssignments(newLectureAssignments);
+                                    }}
+                                  >
+                                    완료해제처리
+                                  </Button>:null
+                                }
                               </div>
                             );
                           })}
@@ -1460,15 +1504,17 @@ function Lecture({
                     </Card>
                   </Accordion>
                   <div className="text-end rightbelow">
-                    <Button
-                      onClick={() => {
-                        studentDelete(lectureAssignments[studentName]["studentID"]);
-                      }}
-                      variant="danger"
-                      className="lectureEditingBtn btn-cancel m-auto"
-                    >
-                      삭제
-                    </Button>
+                    {checkMyLecture()?
+                      <Button
+                        onClick={() => {
+                          studentDelete(lectureAssignments[studentName]["studentID"]);
+                        }}
+                        variant="danger"
+                        className="lectureEditingBtn btn-cancel m-auto"
+                      >
+                        삭제
+                      </Button>:null
+                    }
                   </div>
                 </div>
               );
@@ -1560,13 +1606,14 @@ function Lecture({
         <div className="col-md-4">
           <div className="assignmentContainer">
             <Button
+              disabled={!checkMyLecture()}
               variant="dark"
               className="btn-add w-100 mb-2"
               onClick={() => {
                 assignmodalOpen();
               }}
             >
-              <strong>+ 과제 추가 +</strong>
+              <strong>{checkMyLecture()?"+ 과제 추가 +":"과제 목록"}</strong>
             </Button>
             {assignments
               .sort(function (a, b) {
@@ -1585,33 +1632,7 @@ function Lecture({
                       {assignID["description"]}
                     </p>
                     <p>{assignID["duedate"]} 까지</p>
-                    <div>
-                      <Button
-                        className="lectureEditingBtn btn-edit me-1"
-                        variant="secondary"
-                        onClick={() => {
-                          // console.log(assignments);
-                          // setselectedAssign(assignID);
-                          // if (selectedAssign&&selectedAssign['pageRangeArray'].length==0){
-                          //  let selectedAssign = {...selectedAssign};
-                          //  selectedAssign['pageRangeArray'] = [[]];
-                          //  setselectedAssign(selectedAssign);
-                          // }
-                          assignupdatemodalOpen(assignID);
-                        }}
-                      >
-                        <strong>수정</strong>
-                      </Button>
-                      <Button
-                        className="lectureEditingBtn btn-cancel m-auto"
-                        variant="secondary"
-                        onClick={() => {
-                          assignDelete(assignID);
-                        }}
-                      >
-                        <strong>삭제</strong>
-                      </Button>
-                    </div>
+                    {getAssignmentEditButton(assignID)}
                   </ListGroup.Item>
                 );
               })}
