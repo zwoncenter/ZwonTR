@@ -3498,7 +3498,7 @@ app.get("/api/ActiveStudentList", loginCheck, permissionCheck(Role("manager"),Ro
 });
 
 // StudentDB의 모든 Document 중 graduated: false인 document만 찾는 코드
-app.get("/api/ActiveStudentListFromAllGroup", loginCheck, permissionCheck(Role("admin")), async (req,res)=>{
+app.get("/api/ActiveStudentListFromAllGroupNotAssigned", loginCheck, permissionCheck(Role("admin")), async (req,res)=>{
   const ret_val={"success":false, "ret":null};
   try{
     const acitve_student_list= await db.collection("StudentDB").aggregate([
@@ -3506,6 +3506,8 @@ app.get("/api/ActiveStudentListFromAllGroup", loginCheck, permissionCheck(Role("
         $match:{
           "graduated":false,
           "deleted":{$ne:true},
+          "user_id":{$exists:false},
+          "rou_id":{$exists:false},
         },
       },
       {

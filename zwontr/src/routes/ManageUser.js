@@ -160,6 +160,10 @@ function ManageUser({
       // setPagination(updated_status);
       updatePaginationElement(pagination_idx,"approved",status_value);
       updatePaginationElement(pagination_idx,"suspendedChangeDate",getCurrentDateString());
+      if(user_info.userType==="student"){
+        const group_name=getGroupString(user_info.groupOfUser);
+        deleteStudentInfoMapElement(group_name,selectedRelatedStudentID);
+      }
     }
     setNowNotLoading();
   }
@@ -721,6 +725,15 @@ function ManageUser({
   const [candidateStudentUserInfo,setCandidateStudentUserInfo]= useState({});
   const [candidateStudentUserInfoTableIndex,setCandidateStudentUserInfoTableIndex]= useState(null);
 
+  function deleteStudentInfoMapElement(groupName,studentID){
+    setStudentInfoMap((prevData)=>{
+      const newData=JSON.parse(JSON.stringify(prevData));
+      const cur_group_info_map=newData[groupName];
+      delete cur_group_info_map[studentID];
+      return newData;
+    });
+  }
+
   function getStudentFingerprintFromStudentInfo(student_info_datum){
     return [student_info_datum.이름, student_info_datum.생년월일, student_info_datum.연락처].join(" / ");
   }
@@ -754,7 +767,7 @@ function ManageUser({
 
   useEffect(async ()=>{
     const active_student_list=await axios
-      .get("/api/ActiveStudentListFromAllGroup")
+      .get("/api/ActiveStudentListFromAllGroupNotAssigned")
       .then((res)=>{
         const data=res.data;
         if(!data.success) return [];
