@@ -7929,12 +7929,11 @@ function changeApprovedStatusQueryTypeValid(status_value,userType,relatedDocumen
 }
 
 async function changeApprovedStatusQueryRelatedDocumentValid(userType,relatedDocumentID,session){
-  if(!relatedDocumentID) return true;
-  else if(userType==="student"){
+  if(userType==="student"){
     const related_doc=await db.collection('StudentDB').findOne({_id:relatedDocumentID},{session});
     return !!related_doc;
   }
-  else return false;
+  else return true;
 }
 
 async function setUserInfoOfRelatedDocument(userType,relatedDocumentID,user_id,rou_id,session){

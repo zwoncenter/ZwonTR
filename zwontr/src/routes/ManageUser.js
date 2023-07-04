@@ -159,7 +159,7 @@ function ManageUser({
       // updated_status.status_data[pagination_idx].approved=status_value; // this should be changed
       // setPagination(updated_status);
       updatePaginationElement(pagination_idx,"approved",status_value);
-      // updatePaginationElement(pagination_idx,"suspendedChangeDate",getCurrentDateString());
+      updatePaginationElement(pagination_idx,"suspendedChangeDate",getCurrentDateString());
     }
     setNowNotLoading();
   }
@@ -607,6 +607,10 @@ function ManageUser({
               const username=candidateStudentUserInfo.username;
               const nickname=candidateStudentUserInfo.nickname;
               const user_type_prompt=user_type_to_user_type_prompt_map[candidateStudentUserInfo.userType];
+              if(!selectedRelatedStudentID){
+                window.alert(`계정과 연동할 학생을 선택해주세요`);
+                return;
+              }
               let confirm_message=`${nickname}(${username}) 사용자의 [${user_type_prompt}] 권한을 활성화하고\n`;
               confirm_message+=`해당 계정을 [${getStudentFingerprintFromStudentInfo(currentStudentInfoMap[selectedRelatedStudentID])}]\n학생 정보와 연동하시겠습니까?`
               if(!window.confirm(confirm_message)) return;
