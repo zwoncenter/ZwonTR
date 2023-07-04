@@ -559,7 +559,11 @@ function App() {
           <StudentAdd />
         </Route>
         <Route exact path="/StudentEdit/:ID">
-          <StudentEdit />
+          <StudentEdit
+            setNowLoading={setNowLoading}
+            setNowNotLoading={setNowNotLoading}
+            myInfo={myInfo}
+          />
         </Route>
         <Route exact path="/TR/:ID/write">
           <TRwrite />
@@ -585,7 +589,11 @@ function App() {
           <ClosemeetingEdit />
         </Route> */}
         <Route exact path="/Closemeeting/:date">
-          <ClosemeetingEdit />
+          <ClosemeetingEdit
+            setNowLoading={setNowLoading}
+            setNowNotLoading={setNowNotLoading}
+            myInfo={myInfo}
+          />
         </Route>
         <Route exact path="/Middlemeeting/Write/:date">
           <MiddlemeetingWrite />

@@ -6,7 +6,11 @@ import axios from "axios";
 import TimePicker from "react-time-picker";
 import menuarrow from "../next.png";
 
-function ClosemeetingEdit() {
+function ClosemeetingEdit({
+  setNowLoading,
+  setNowNotLoading,
+  myInfo,
+}) {
   let history = useHistory();
   let paramDate = useParams()["date"];
   let date = new Date(paramDate);
@@ -19,12 +23,19 @@ function ClosemeetingEdit() {
   // const [objectid, setobjectid] = useState("");
 
   // 일일결산 피드백 작성 매니저 관련 코드
-  const [managerList, setmanagerList] = useState([]);
+  const [managerList, setmanagerList] = useState(["전체보기","작성하기"]);
   const [currentWritingManager, setCurrentWritingManager]= useState({});
+  function updateCurrentWritingManager(fieldName,value){
+    setCurrentWritingManager((prevData)=>{
+      const newData=JSON.parse(JSON.stringify(prevData));
+      newData[fieldName]=value;
+      return newData;
+    });
+  }
   function checkTextAreaDisabled(selectValue){
     // console.log("select value:"+JSON.stringify(selectValue));
-    // console.log("disabled:"+JSON.stringify(!selectValue || selectValue==="전체 보기"));
-    return !selectValue || selectValue==="전체 보기";
+    // console.log("disabled:"+JSON.stringify(!selectValue || selectValue==="전체보기"));
+    return !selectValue || selectValue==="전체보기";
   }
   function getFeedbackHash(studentName,managerName){
     return studentName+"@"+managerName;
@@ -55,9 +66,14 @@ function ClosemeetingEdit() {
     })
     return ret;
   }
+  function getMyFeedbackContentByStudentName(studentName){
+    const my_nickname=myInfo.nickname;
+    const feedback_hash=getFeedbackHash(studentName,my_nickname);
+    const ret=getFeedbackContentByFeedbackHash(feedback_hash);
+  }
   function getFeedbackContentByFeedbackHash(feedbackHash){
     const[student_name,manager_name]=feedbackHash.split("@");
-    if(manager_name==="전체 보기") return getAllFeedbackByStudentName(student_name);
+    if(manager_name==="전체보기") return getAllFeedbackByStudentName(student_name);
     else if(feedbackHash in closeFeedback) return closeFeedback[feedbackHash]["content"];
     else return "";
   }
@@ -108,22 +124,22 @@ function ClosemeetingEdit() {
     settodayTRlist(newtodayTRlist);
   }, [paramDate]);
 
-  useEffect(async ()=>{
-    const newmanagerList = await axios
-        .get("/api/managerList")
-        .then((result) => {
-          const data=result.data;
-          if(data.success===true) return data.ret;
-          else throw new Error(data.ret);
-          // return result["data"];
-        })
-        .catch((err) => {
-          return err;
-        });
-    // console.log("manager list:"+JSON.stringify(managerList));
-    newmanagerList.unshift("전체 보기");
-    setmanagerList(newmanagerList);
-  },[]);
+  // useEffect(async ()=>{
+  //   const newmanagerList = await axios
+  //       .get("/api/managerList")
+  //       .then((result) => {
+  //         const data=result.data;
+  //         if(data.success===true) return data.ret;
+  //         else throw new Error(data.ret);
+  //         // return result["data"];
+  //       })
+  //       .catch((err) => {
+  //         return err;
+  //       });
+  //   // console.log("manager list:"+JSON.stringify(managerList));
+  //   newmanagerList.unshift("전체보기");
+  //   setmanagerList(newmanagerList);
+  // },[]);
 
   return (
     <div>
@@ -249,7 +265,7 @@ function ClosemeetingEdit() {
           <tbody>
             {todayTRlist.map(function (tr, index) {
               const student_name=tr["이름"];
-              const current_writing_manager=currentWritingManager[student_name]?currentWritingManager[student_name]:"전체 보기";
+              const current_writing_manager=currentWritingManager[student_name]?currentWritingManager[student_name]:"전체보기";
               
               const feedback_hash=getFeedbackHash(student_name,current_writing_manager);
               return (
@@ -318,18 +334,20 @@ function ClosemeetingEdit() {
                         value={currentWritingManager[student_name]}
                         onChange={(e) => {
                           // console.log("select:"+JSON.stringify(e.target.value));
-                          const dict_copy={...currentWritingManager};
-                          dict_copy[student_name]=e.target.value;
-                          setCurrentWritingManager(dict_copy);
+                          // const dict_copy={...currentWritingManager};
+                          // dict_copy[student_name]=e.target.value;
+                          // setCurrentWritingManager(dict_copy);
+                          const value=e.target.value;
+                          updateCurrentWritingManager(student_name,value);
                         }}
-                        defaultValue={"전체 보기"}
+                        defaultValue={"전체보기"}
                     >
                       {/* <option value="선택">선택</option> */}
                       {managerList
-                          ? managerList.map((manager, index) => {
+                          ? managerList.map((prompt, index) => {
                             return (
-                                <option value={manager} key={index}>
-                                  {manager}
+                                <option value={prompt==="작성하기"?myInfo.nickname:prompt} key={index}>
+                                  {prompt}
                                 </option>
                             );
                           })

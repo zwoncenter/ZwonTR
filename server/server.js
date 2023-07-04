@@ -4099,6 +4099,8 @@ app.put("/api/StudentDB", loginCheck, permissionCheck(Role("manager"),Role("admi
     delete newstuDB._id; //MongoDB에서 Object_id 중복을 막기 위해 id 삭제
 
     newstuDB["진행중교재"] = checkDuplication(newTextbook); // 중복 제거한 진행 중인 교재 리스트로 교체
+    //halted textbook duplication check
+    if(newstuDB["중단된교재"]) newstuDB["중단된교재"]= checkDuplication(newstuDB["중단된교재"]);
 
     await db.collection("StudentDB").updateOne({ ID: findID }, { $set: newstuDB },{session});
 
@@ -5026,7 +5028,12 @@ app.post("/api/SaveClosemeetingFeedback", loginCheck, permissionCheck(Role("mana
         group_id:group_oid,
         deleted:{$ne:true},
       },
-      {$set:update_one_set_settings},
+      {
+        $setOnInsert:{
+          group_id:group_oid,
+        },
+        $set:update_one_set_settings
+      },
       {"upsert":true,session}
       );
       await session.commitTransaction();

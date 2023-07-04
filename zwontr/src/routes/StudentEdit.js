@@ -3,9 +3,15 @@ import { Form, Table, Row, Col, Button, Badge, InputGroup, FormControl } from "r
 import { useHistory, useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { useState, useEffect } from "react";
 import { FaCheck, FaSistrix, FaTrash } from "react-icons/fa";
+import { AiOutlineStop } from "react-icons/ai";
+import { BsArrow90DegLeft } from "react-icons/bs";
 import axios from "axios";
 
-function StudentEdit() {
+function StudentEdit({
+  setNowLoading,
+  setNowNotLoading,
+  myInfo,
+}) {
   const history = useHistory();
   const now = new Date(); // 현재 시간
   const utcNow = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
@@ -114,10 +120,12 @@ function StudentEdit() {
     용돈구조: [],
     매니징방법: [],
 
-    진행중교재: [],
+    진행중교재: [], // only textbooks that are not in the "중단된교재" can be in this list
     완료된교재: [],
+    중단된교재: [], 
     프로그램분류: ["자기인식", "진로탐색", "헬스", "외부활동", "독서", "외국어"],
   };
+  const [lastEdit,setLastEdit]= useState({최근작성매니저:"",최근작성일시:""});
   const [stuDB, setstuDB] = useState(writeform);
   const [managerList, setmanagerList] = useState([]);
   const [manager, setmanager] = useState("");
@@ -165,6 +173,7 @@ function StudentEdit() {
 
   const param = useParams();
   useEffect(async () => {
+    setNowLoading();
     const newstuDB = await axios
       .get(`/api/StudentDB/${param["ID"]}`)
       .then((result) => {
@@ -182,7 +191,9 @@ function StudentEdit() {
       });
     setmanager(newstuDB["작성매니저"]);
     setdate(newstuDB["작성일자"]);
-    newstuDB.작성매니저 = "";
+    setLastEdit({최근작성매니저:newstuDB.작성매니저,최근작성일시:newstuDB.작성일자});
+    // newstuDB.작성매니저 = "";
+    newstuDB.작성매니저=myInfo.nickname;
     newstuDB.작성일자 = new Date().toISOString().split("T")[0];
     const tmp = await axios
       .get("/api/managerList")
@@ -201,6 +212,8 @@ function StudentEdit() {
     newstuDB["진행중교재"].map((교재, index) => {
       교재["최근진도율"] = 교재["총교재량"] ? Math.round((교재["최근진도"] / parseInt(교재["총교재량"].match(/\d+/))) * 100) : 0;
     });
+
+    if(!newstuDB.중단된교재) newstuDB.중단된교재=[];
 
     setstuDB(newstuDB);
     // const existDocument = await axios
@@ -232,8 +245,22 @@ function StudentEdit() {
       });
     // settextbookList(existDocument["textbookList"]);
     settextbookList(textbookList);
-    
+    setNowNotLoading();
   }, []);
+
+  function checkTextbookAddToInProgressListPossible(textbookName){
+    const in_progress_list=stuDB.진행중교재;
+    const halt_list=stuDB.중단된교재;
+    for(let i=0; i<in_progress_list.length; i++){
+      const cur_textbook_name=(in_progress_list[i]).교재;
+      if(cur_textbook_name===textbookName) return [false,`${textbookName}은(는) 진행중교재 목록에 이미 포함된 교재입니다`];
+    }
+    for(let i=0; i<halt_list.length; i++){
+      const cur_textbook_name=(halt_list[i]).교재;
+      if(cur_textbook_name===textbookName) return [false,`${textbookName}은(는) 중단된교재 목록에 포함되어있는 교재입니다`];
+    }
+    return [true,``];
+  }
 
   return (
     <div className="stuedit-background">
@@ -245,10 +272,10 @@ function StudentEdit() {
       <h2 className="fw-bold text-center">
         <strong>{stuDB["이름"]} 학생 DB 조회/변경</strong>
       </h2>
-      <p>최근 작성매니저 : {manager}</p>
-      <p>최근 수정일 : {date}</p>
+      <p>최근 작성매니저 : {lastEdit.최근작성매니저}</p>
+      <p>최근 수정일 : {lastEdit.최근작성일시}</p>
       <div className="stuDB-form">
-        <div className="stuedit-cat-box">
+        {/* <div className="stuedit-cat-box">
           <h3 className="stuedit-cat-title mb-4">
             <strong>[ 작성매니저 / 작성일자 ]</strong>
           </h3>
@@ -292,7 +319,7 @@ function StudentEdit() {
               />
             </Col>
           </Form.Group>
-        </div>
+        </div> */}
 
         {/* 매니징목표 */}
         <div className="stuedit-cat-box">
@@ -1023,6 +1050,12 @@ function StudentEdit() {
                         className="btn btn-add"
                         type="button"
                         onClick={(e) => {
+                          const textbook_name=a.교재;
+                          const [possible,msg]=checkTextbookAddToInProgressListPossible(textbook_name);
+                          if(!possible){
+                            window.alert(`${msg}`);
+                            return;
+                          }
                           if (window.confirm("해당 교재를 진행중 교재에 추가하시겠습니까?")) {
                             const endDate =
                               a.권장학습기간 === ""
@@ -1057,139 +1090,170 @@ function StudentEdit() {
           </Button>
         </div>
 
-        {/* 진행중 교재 */}
-        <div className="stuedit-cat-box">
-          <h3 className="stuedit-cat-title mb-4">
-            <strong>[ 진행중교재 ]</strong>
-          </h3>
-          <Table striped hover className="mt-3">
-            <thead>
-              <tr>
-                <th width="8%">과목</th>
-                <th>교재명</th>
-                <th width="13%">총교재량</th>
-                <th width="17%">교재 시작일</th>
-                <th width="17%">권장 종료일</th>
-                <th width="10%">최근진도</th>
-                <th width="40px"></th>
-                <th width="40px"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {stuDB.진행중교재.map(function (a, i) {
-                return (
-                  <tr key={i}>
-                    <td>
-                      <p>{a.과목}</p>
-                    </td>
-                    <td>
-                      <p>{a.교재}</p>
-                    </td>
-                    <td>
-                      <p>{a.총교재량}</p>
-                    </td>
-                    <td>
-                      <input
-                        type="date"
-                        className="inputText"
-                        value={a.교재시작일}
-                        onChange={(e) => {
-                          change_depth_three("진행중교재", i, "교재시작일", e.target.value);
-                        }}
-                      />
-                    </td>
+          {/* 진행중 교재 */}
+          <div className="stuedit-cat-box">
+            <h3 className="stuedit-cat-title mb-4">
+              <strong>[ 진행중교재 ]</strong>
+            </h3>
+            <Table striped hover className="mt-3">
+              <thead>
+                <tr>
+                  <th width="8%">과목</th>
+                  <th>교재명</th>
+                  <th width="13%">총교재량</th>
+                  <th width="17%">교재 시작일</th>
+                  <th width="17%">권장 종료일</th>
+                  <th width="10%">최근진도</th>
+                  <th width="40px"></th>
+                  <th width="40px"></th>
+                  <th width="40px"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {stuDB.진행중교재.map(function (a, i) {
+                  return (
+                    <tr key={i}>
+                      <td>
+                        <p>{a.과목}</p>
+                      </td>
+                      <td>
+                        <p>{a.교재}</p>
+                      </td>
+                      <td>
+                        <p>{a.총교재량}</p>
+                      </td>
+                      <td>
+                        <input
+                          type="date"
+                          className="inputText"
+                          value={a.교재시작일}
+                          onChange={(e) => {
+                            change_depth_three("진행중교재", i, "교재시작일", e.target.value);
+                          }}
+                        />
+                      </td>
 
-                    <td>
-                      <input
-                        type="date"
-                        className="inputText"
-                        value={a.권장종료일}
-                        onChange={(e) => {
-                          change_depth_three("진행중교재", i, "권장종료일", e.target.value);
-                        }}
-                      />
-                    </td>
+                      <td>
+                        <input
+                          type="date"
+                          className="inputText"
+                          value={a.권장종료일}
+                          onChange={(e) => {
+                            change_depth_three("진행중교재", i, "권장종료일", e.target.value);
+                          }}
+                        />
+                      </td>
 
-                    <td>
-                      <p>
-                        {a.최근진도} {a.총교재량 ? "(" + a.최근진도율 + "%)" : null}
-                      </p>
-                      {/* <input
-                        type="number"
-                        placeholder="ex)70, 100"
-                        value={a.최근진도}
-                        className="inputText"
-                        onChange={(e) => {
-                          change_depth_three("진행중교재", i, "최근진도", parseInt(e.target.value));
-                        }}
-                      /> */}
-                    </td>
-                    <td>
-                      <button
-                        className="btn btn-delete"
-                        type="button"
-                        onClick={async () => {
-                          if (i > -1 && window.confirm("완료된 교재로 이동하시겠습니까?")) {
-                            const newstuDB = JSON.parse(JSON.stringify(stuDB));
-                            newstuDB["진행중교재"].splice(i, 1);
-                            newstuDB["완료된교재"].push({
-                              과목: a.과목,
-                              교재: a.교재,
-                              총교재량: a.총교재량,
-                              교재시작일: a.교재시작일,
-                              권장종료일: a.권장종료일,
-                              교재종료일: today,
-                            });
-                            setstuDB(newstuDB);
-                          }
-                        }}
-                      >
-                        <strong>
-                          <FaCheck></FaCheck>
-                        </strong>
-                      </button>
-                    </td>
-                    <td>
-                      <button
-                        className="btn btn-delete"
-                        type="button"
-                        onClick={() => {
-                          if (i > -1) {
-                            delete_depth_one("진행중교재", i);
-                          }
-                        }}
-                      >
-                        <strong>
-                          <FaTrash />
-                        </strong>
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
-        </div>
+                      <td>
+                        <p>
+                          {a.최근진도} {a.총교재량 ? "(" + a.최근진도율 + "%)" : null}
+                        </p>
+                        {/* <input
+                          type="number"
+                          placeholder="ex)70, 100"
+                          value={a.최근진도}
+                          className="inputText"
+                          onChange={(e) => {
+                            change_depth_three("진행중교재", i, "최근진도", parseInt(e.target.value));
+                          }}
+                        /> */}
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-delete"
+                          type="button"
+                          onClick={async () => {
+                            setNowLoading();
+                            if (i > -1 && window.confirm(`${a.교재}을(를) 완료된 교재로 이동하시겠습니까?`)) {
+                              const newstuDB = JSON.parse(JSON.stringify(stuDB));
+                              newstuDB["진행중교재"].splice(i, 1);
+                              newstuDB["완료된교재"].push({
+                                // 과목: a.과목,
+                                // 교재: a.교재,
+                                // 총교재량: a.총교재량,
+                                // 교재시작일: a.교재시작일,
+                                // 권장종료일: a.권장종료일,
+                                // 교재종료일: today,
+                                ...a,
+                                교재종료일:today,
+                              });
+                              setstuDB(newstuDB);
+                            }
+                            setNowNotLoading();
+                          }}
+                        >
+                          <strong>
+                            <FaCheck></FaCheck>
+                          </strong>
+                        </button>
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-delete"
+                          type="button"
+                          onClick={() => {
+                            if (i > -1 && window.confirm(`${a.교재}을(를) 진행중교재에서 삭제하겠습니까?`)) {
+                              setNowLoading();
+                              delete_depth_one("진행중교재", i);
+                              setNowNotLoading();
+                            }
+                          }}
+                        >
+                          <strong>
+                            <FaTrash />
+                          </strong>
+                        </button>
+                      </td>
+                      <td>
+                        <button
+                          variant="danger"
+                          className="btn btn-delete"
+                          type="button"
+                          onClick={() => {
+                            setNowLoading();
+                            if (i > -1 && window.confirm(`${a.교재}을(를) 중단된 교재로 이동하시겠습니까?\n(주간학습계획에서도 해당 교재가 삭제됩니다)`)) {
+                              const newstuDB = JSON.parse(JSON.stringify(stuDB));
+                              newstuDB["진행중교재"].splice(i, 1);
+                              newstuDB["중단된교재"].push({
+                                ...a,
+                                학습중단일:today,
+                              });
+                              setstuDB(newstuDB);
+                            }
+                            setNowNotLoading();
+                          }}
+                        >
+                          <strong>
+                            <AiOutlineStop />
+                          </strong>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Table>
+          </div>
 
-        {/* 완료된 교재 */}
-        <div className="stuedit-cat-box">
-          <h3 className="stuedit-cat-title mb-3">
-            <strong>[ 완료된교재 ]</strong>
-          </h3>
-          <Table striped hover className="mt-3">
-            <thead>
-              <tr>
-                <th width="10%">과목</th>
-                <th>교재명</th>
-                <th width="10%">총교재량</th>
-                <th width="17%">교재 시작일</th>
-                <th width="17%">권장 종료일</th>
-                <th width="17%">교재 종료일</th>
-                <th width="40px"></th>
-              </tr>
-            </thead>
+          {/* 완료된 교재 */}
+          <div className="stuedit-cat-box">
+            <h3 className="stuedit-cat-title mb-3">
+              <strong>[ 완료된교재 ]</strong>
+            </h3>
+            <Table striped hover className="mt-3">
+              <thead>
+                <tr>
+                  <th width="10%">과목</th>
+                  <th>교재명</th>
+                  <th width="10%">총교재량</th>
+                  <th width="17%">교재 시작일</th>
+                  <th width="17%">권장 종료일</th>
+                  <th width="17%">교재 종료일</th>
+                  <th width="40px"></th>
+                </tr>
+              </thead>
 
-            <tbody>
+              <tbody>
               {stuDB.완료된교재.map(function (a, i) {
                 return (
                   <tr key={i}>
@@ -1227,11 +1291,100 @@ function StudentEdit() {
                         type="button"
                         onClick={() => {
                           if (i > -1) {
+                            setNowLoading();
                             delete_depth_one("완료된교재", i);
+                            setNowNotLoading();
                           }
                         }}
                       >
                         <FaTrash></FaTrash>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        </div>
+
+        {/* 중단된 교재 */}
+        <div className="stuedit-cat-box">
+          <h3 className="stuedit-cat-title mb-4">
+            <strong>[ 중단된교재 ]</strong>
+          </h3>
+          <Table striped hover className="mt-3">
+            <thead>
+              <tr>
+                <th width="8%">과목</th>
+                <th>교재명</th>
+                <th width="13%">총교재량</th>
+                <th width="17%">교재 시작일</th>
+                <th width="17%">학습 중단일</th>
+                <th width="10%">마지막 진도</th>
+                <th width="40px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {stuDB.중단된교재.map(function (a, i) {
+                return (
+                  <tr key={i}>
+                    <td>
+                      <p>{a.과목}</p>
+                    </td>
+                    <td>
+                      <p>{a.교재}</p>
+                    </td>
+                    <td>
+                      <p>{a.총교재량}</p>
+                    </td>
+                    <td>
+                      <input
+                        type="date"
+                        className="inputText"
+                        value={a.교재시작일}
+                        onChange={(e) => {
+                          change_depth_three("중단된교재", i, "교재시작일", e.target.value);
+                        }}
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        type="date"
+                        className="inputText"
+                        value={a.학습중단일}
+                        onChange={(e) => {
+                          change_depth_three("중단된교재", i, "학습중단일", e.target.value);
+                        }}
+                      />
+                    </td>
+
+                    <td>
+                      <p>
+                        {a.최근진도} {a.총교재량 ? "(" + a.최근진도율 + "%)" : null}
+                      </p>
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-delete"
+                        type="button"
+                        onClick={async () => {
+                          setNowLoading();
+                            if (i > -1 && window.confirm(`중단된 교재 ${a.교재}을(를) 진행중 교재로 다시 이동하시겠습니까?`)) {
+                              const newstuDB = JSON.parse(JSON.stringify(stuDB));
+                              newstuDB["중단된교재"].splice(i, 1);
+                              newstuDB["진행중교재"].push({
+                                ...a,
+                                교재종료일:today,
+                              });
+                              setstuDB(newstuDB);
+                            }
+                            setNowNotLoading();
+                        }}
+                      >
+                        <strong>
+                          <BsArrow90DegLeft></BsArrow90DegLeft>
+                        </strong>
                       </button>
                     </td>
                   </tr>
@@ -1309,6 +1462,7 @@ function StudentEdit() {
                 }
               }
               if (window.confirm(`${stuDB.이름} 학생의 DB를 수정하시겠습니까?`)) {
+                setNowLoading();
                 axios
                   .put("/api/StudentDB", stuDB)
                   .then(function (result) {
@@ -1316,7 +1470,7 @@ function StudentEdit() {
                       window.alert("로그인이 필요합니다.");
                       return history.push("/");
                     }
-                    console.log(result);
+                    // console.log(result);
                     if (result.data.success === true) {
                       window.alert("수정되었습니다");
                       return history.push("/studentList");
@@ -1332,6 +1486,7 @@ function StudentEdit() {
                   .catch(function (err) {
                     window.alert("저장에 실패했습니다 개발/데이터 팀에게 문의해주세요");
                   })
+                setNowNotLoading();
               }
             }}
           >
