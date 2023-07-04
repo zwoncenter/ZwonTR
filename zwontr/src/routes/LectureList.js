@@ -360,8 +360,11 @@ function LectureList({
 
   function groupBy(list, fn){
     const groups = {};
+    const my_nickname=myInfo.nickname;
     list.forEach(function (o) {
-        const group = JSON.stringify(fn(o));
+        // const group = JSON.stringify(fn(o));
+        const group=fn(o);
+        if(showMyLecturesOnly && my_nickname!==group) return;
         groups[group] = groups[group] || [];
         groups[group].push(o);
     });
@@ -401,9 +404,47 @@ function LectureList({
   }, []);
 
   // 강의리스트를 매니저 이름별로 groupby
+  const [showMyLecturesOnly,setShowMyLecturesOnly]=useState(true);
+  function getShowMyLectureOnlyToggleButton(){
+    const button_prompt=showMyLecturesOnly?"전체 강의 보기":"내 강의만 보기";
+    return (
+      <Button
+        className="lectureSortingBtn"
+        variant="secondary"
+        onClick={(e)=>{
+          setShowMyLecturesOnly((prev_val)=>!prev_val);
+        }}
+      >
+        <strong>{button_prompt}</strong>
+      </Button>
+    );
+  }
   const groupedlectureList = groupBy(lectureList,(element)=>{
     return element.manager;
   });
+  function checkGroupedLectureListEmpty(){
+    const group_names=Object.keys(groupedlectureList);
+    if(group_names.length===0) return true;
+    for(let i=0; i<group_names.length; i++){
+      const cur_group_name=group_names[i];
+      const cur_list=groupedlectureList[cur_group_name];
+      if(cur_list && cur_list.length>0) return false;
+    }
+    return true;
+  }
+  function getLectureTableEmptyPromptRow(){
+    if(!checkGroupedLectureListEmpty()) return null;
+    return (
+      <tr>
+        <td>
+          <p><strong>{" - "}</strong></p>
+        </td>
+        <td>
+          <p><h5><strong>아직 등록된 강의가 없습니다. 위 "+" 버튼을 눌러 강의를 등록해주세요</strong></h5></p>
+        </td>
+      </tr>
+    );
+  }
   // console.log(`grouped lecture list: ${JSON.stringify(groupedlectureList)}`);
   function checkMyLecture(lectureDatum){
     return myInfo.username===lectureDatum.lecture_by_username;
@@ -785,6 +826,7 @@ function LectureList({
 
       <div className="row m-auto lectureListBox">
         <div className="d-flex flex-row-reverse">
+          {getShowMyLectureOnlyToggleButton()}
           <Button
             className="lectureSortingBtn"
             variant="secondary"
@@ -842,6 +884,7 @@ function LectureList({
             </tr>
             </thead>
             <tbody>
+          {getLectureTableEmptyPromptRow()}
           {
           Object.keys(groupedlectureList).map((element, idx)=>{
             return(
