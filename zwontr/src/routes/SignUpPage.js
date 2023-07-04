@@ -725,6 +725,7 @@ function SignUpPage({
         .catch((err)=>{
           window.alert("회원가입 중 네트워크 오류가 발생했습니다");
         });
+      setNowNotLoading();
       return false;
     }
     else return true;

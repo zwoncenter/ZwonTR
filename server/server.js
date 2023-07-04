@@ -3371,6 +3371,41 @@ app.post("/api/registerUser", async function(req,res){
       if(!group_doc) throw new Error("no such group name");
     }
 
+    //change user nickname if there is same name user
+    // const same_nickname_user_count= await db.collection('User').countDocuments({nickname:{$regex:register_info.nickname}},{session});
+    const group_match_stage={
+      $match:{
+
+      }
+    }
+    if(group_doc) group_match_stage["$match"]["GOU_aggregate.group_id"]=group_doc._id;
+    const same_nickname_user_doc_list= await db.collection('User').aggregate([
+      {
+        $match:{
+          nickname:{
+            $regex:register_info.nickname,
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: "GroupOfUser",
+          localField: "_id",
+          foreignField: "user_id",
+          as: "GOU_aggregate",
+        },
+      },
+      { 
+        $unwind: {
+          path:"$GOU_aggregate",
+          preserveNullAndEmptyArrays:true,
+        }
+      },
+      group_match_stage,
+    ],{session}).toArray();
+    const same_nickname_user_count=same_nickname_user_doc_list.length;
+    if(same_nickname_user_count>0) register_info.nickname=register_info.nickname+(same_nickname_user_count+1).toString();
+
     const current_date=getCurrentDate();
     const [salt,password_hashed]=authentificator.makeHashedSync(register_info.password);
     const user_info=getUserObjectWithRegisterInfo(register_info,salt,password_hashed,current_date);
@@ -3387,9 +3422,9 @@ app.post("/api/registerUser", async function(req,res){
       const group_id=group_doc._id;
       await db.collection("GroupOfUser").insertOne({user_id:user_id,group_id:group_id,modify_date:current_date,activated:false},{session});
     }
-
-    ret_val["ret"]["registered"]=true;
+    
     await session.commitTransaction();
+    ret_val["ret"]["registered"]=true;
   }
   catch(error){
     console.log(`error: ${JSON.stringify(error)}`);
