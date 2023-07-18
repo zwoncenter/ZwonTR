@@ -4991,6 +4991,12 @@ app.post("/api/Closemeeting/:date", loginCheck, permissionCheck(Role("manager"),
   });
 });
 
+function getSetOnInsertSettingsFromNewCLoseMeetingFeedback(feedbackData,groupId){
+  const ret={group_id:groupId};
+  if((Object.keys(feedbackData)).length===0) ret.closeFeedback={};
+  return ret;
+}
+
 function getUpdatePathFromNewCloseMeetingFeedback(feedbackData){
   const ret={}
   const path_base="closeFeedback."
@@ -5021,6 +5027,7 @@ app.post("/api/SaveClosemeetingFeedback", loginCheck, permissionCheck(Role("mana
     //date string validity check
     if(getValidDateString(date_string)===null) throw new Error("입력된 날짜가 올바르지 않습니다");
     const new_feedback_data=closemeeting_feedback_data["updatedFeedback"];
+    const set_on_insert_settings=getSetOnInsertSettingsFromNewCLoseMeetingFeedback(new_feedback_data,group_oid);
     const update_one_set_settings=getUpdatePathFromNewCloseMeetingFeedback(new_feedback_data);
     update_one_set_settings.deleted=false;
     update_one_set_settings.deleted_date=null;
@@ -5031,10 +5038,12 @@ app.post("/api/SaveClosemeetingFeedback", loginCheck, permissionCheck(Role("mana
         deleted:{$ne:true},
       },
       {
-        $setOnInsert:{
-          group_id:group_oid,
-        },
-        $set:update_one_set_settings
+        // $setOnInsert:{
+        //   group_id:group_oid,
+        //   closeFeedback:{},
+        // },
+        $setOnInsert:set_on_insert_settings,
+        $set:update_one_set_settings,
       },
       {"upsert":true,session}
       );

@@ -42,6 +42,7 @@ function ClosemeetingEdit({
   }
   function processCloseMeetingFeedbackData(feedbackData){
     const ret={};
+    if(!feedbackData) return ret;
     // console.log("closefeedback:"+JSON.stringify(feedbackData));
     Object.keys(feedbackData).forEach((feedback_hash,idx)=>{
       ret[feedback_hash]={"updated":false,"content":feedbackData[feedback_hash]};
