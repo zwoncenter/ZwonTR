@@ -7389,11 +7389,12 @@ app.post("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionChe
   let ret;
   try{
     session.startTransaction();
+    if(!newWeeklystudyfeedback.thisweekGoal || !newWeeklystudyfeedback.thisweekGoal.교재캡쳐) throw new Error(`invalid request:0`);
     const group_oid=req.session.passport.user.group_oid;
     const student_doc=await db.collection('StudentDB').findOne({ID,group_id:group_oid,deleted:{$ne:true},graduated:{$ne:true}},{session});
-    if(!student_doc) throw new Error(`invalid request:0`);
+    if(!student_doc) throw new Error(`invalid request:1`);
     const prev_weekly_study_feedback_doc= await db.collection('WeeklyStudyfeedback').findOne({학생ID: ID, 피드백일: paramDate},{session});
-    if(prev_weekly_study_feedback_doc) throw new Error(`invalid request:1`);
+    if(prev_weekly_study_feedback_doc) throw new Error(`invalid request:2`);
     newWeeklystudyfeedback.deleted=false;
     newWeeklystudyfeedback.deleted_date=null;
     await db.collection('WeeklyStudyfeedback').updateOne(
@@ -7485,11 +7486,12 @@ app.put("/api/Weeklystudyfeedback/:ID/:feedbackDate", loginCheck, permissionChec
   let ret;
   try{
     session.startTransaction();
+    if(!newWeeklystudyfeedback.thisweekGoal || !newWeeklystudyfeedback.thisweekGoal.교재캡쳐) throw new Error(`invalid request:0`);
     const group_oid=req.session.passport.user.group_oid;
     const student_doc=await db.collection('StudentDB').findOne({ID,group_id:group_oid},{session});
-    if(!student_doc) throw new Error(`invalid request:0`);
+    if(!student_doc) throw new Error(`invalid request:1`);
     const weekly_study_feedback_doc= await db.collection('WeeklyStudyfeedback').findOne({학생ID: ID, 피드백일: paramDate, deleted:{$ne:true}},{session});
-    if(!weekly_study_feedback_doc) throw new Error(`invalid request:1`);
+    if(!weekly_study_feedback_doc) throw new Error(`invalid request:2`);
     await db.collection('WeeklyStudyfeedback').updateOne({학생ID: ID, 피드백일: paramDate, deleted:{$ne:true}},{$set:newWeeklystudyfeedback},{session});
 
     await session.commitTransaction();
